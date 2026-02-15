@@ -13,6 +13,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from transformers import AutoTokenizer
+
     from .config import SLMConfig
     from .models import MultiTurnDialogue, QAPair
 
@@ -36,7 +38,7 @@ class ChatFormatter:
         self._tokenizer = None  # 지연 로딩
     
     @property
-    def tokenizer(self):
+    def tokenizer(self) -> AutoTokenizer:
         """토크나이저를 지연 로딩합니다 (필요하지 않으면 import 비용 회피)."""
         if self._tokenizer is None:
             from transformers import AutoTokenizer

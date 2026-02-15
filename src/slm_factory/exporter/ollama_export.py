@@ -107,12 +107,11 @@ class OllamaExporter:
                 logger.info(f"✓ Ollama 모델 생성됨: {self.model_name}")
                 if result.stdout:
                     logger.debug(f"표준 출력: {result.stdout}")
-                return True
             else:
                 logger.warning(f"Ollama 모델 생성 실패 (종료 코드 {result.returncode})")
                 if result.stderr:
                     logger.warning(f"표준 오류: {result.stderr}")
-                return False
+            return result.returncode == 0
                 
         except FileNotFoundError:
             logger.warning("ollama 명령을 찾을 수 없음")

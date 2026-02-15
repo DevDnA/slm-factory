@@ -82,9 +82,8 @@ def _print_error(
 
     msg = f"[red]✗[/red] {title}\n\n[dim]{error}[/dim]"
     if hints:
-        msg += "\n\n[yellow]해결 방법:[/yellow]"
-        for hint in hints:
-            msg += f"\n  → {hint}"
+        hint_lines = "\n".join(f"  → {hint}" for hint in hints)
+        msg += f"\n\n[yellow]해결 방법:[/yellow]\n{hint_lines}"
     console.print(Panel(msg, title="[red]오류[/red]", border_style="red"))
 
 

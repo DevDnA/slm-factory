@@ -176,6 +176,6 @@ class HFExporter:
         if self.merge_lora:
             logger.info("내보내기 모드: LoRA를 기본 모델에 병합")
             return self.merge_and_save(adapter_path, output_dir)
-        else:
-            logger.info("내보내기 모드: 어댑터만 저장 (병합 없음)")
-            return self.save_adapter_only(adapter_path, output_dir)
+
+        logger.info("내보내기 모드: 어댑터만 저장 (병합 없음)")
+        return self.save_adapter_only(adapter_path, output_dir)
