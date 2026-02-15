@@ -12,9 +12,35 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from ..config import SLMConfig
 
+from transformers import TrainerCallback
+
 from ..utils import get_logger
 
 logger = get_logger("trainer.lora_trainer")
+
+
+class _RichProgressCallback(TrainerCallback):
+    """학습 진행 상황을 로거를 통해 표시하는 콜백입니다."""
+
+    def on_epoch_begin(self, args, state, control, **kwargs):
+        if state.epoch is not None:
+            logger.info("Epoch %d/%d 시작", int(state.epoch) + 1, int(args.num_train_epochs))
+
+    def on_log(self, args, state, control, logs=None, **kwargs):
+        if logs:
+            parts = []
+            if "loss" in logs:
+                parts.append(f"loss={logs['loss']:.4f}")
+            if "eval_loss" in logs:
+                parts.append(f"eval_loss={logs['eval_loss']:.4f}")
+            if "learning_rate" in logs:
+                parts.append(f"lr={logs['learning_rate']:.2e}")
+            if parts:
+                logger.info("step %d  %s", state.global_step, "  ".join(parts))
+
+    def on_train_end(self, args, state, control, **kwargs):
+        epoch_str = f"{state.epoch:.1f}" if state.epoch else "?"
+        logger.info("학습 완료 — 총 %d 스텝, 최종 epoch %s", state.global_step, epoch_str)
 
 
 class LoRATrainer:
@@ -61,13 +87,29 @@ class LoRATrainer:
             )
             logger.info("Quantization enabled: %d-bit NF4", quant_cfg.bits)
 
-        model = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            quantization_config=quantization_config,
-            device_map="auto",
-            torch_dtype=torch.bfloat16,
-            trust_remote_code=True,
-        )
+        try:
+            model = AutoModelForCausalLM.from_pretrained(
+                model_name,
+                quantization_config=quantization_config,
+                device_map="auto",
+                torch_dtype=torch.bfloat16,
+                trust_remote_code=True,
+            )
+        except OSError as e:
+            if "does not appear to have" in str(e) or "not found" in str(e).lower():
+                raise RuntimeError(
+                    f"학생 모델 '{model_name}'을(를) 찾을 수 없습니다. "
+                    f"모델명이 정확한지, 인터넷 연결이 되어 있는지 확인하세요. "
+                    f"HuggingFace 모델 검색: https://huggingface.co/models?search={model_name}"
+                ) from e
+            raise
+        except RuntimeError as e:
+            if "cuda" in str(e).lower():
+                raise RuntimeError(
+                    "CUDA를 사용할 수 없습니다. GPU 드라이버와 PyTorch CUDA 버전을 확인하세요. "
+                    "CPU로 학습하려면 training.bf16을 false로 설정하세요."
+                ) from e
+            raise
 
         logger.info(
             "Loaded model %s (%.1fM params, device=%s)",
@@ -181,6 +223,8 @@ class LoRATrainer:
                 es_cfg.threshold,
             )
 
+        callbacks.append(_RichProgressCallback())
+
         return callbacks
 
     def train(self, dataset_dict: Any) -> Path:
@@ -224,7 +268,21 @@ class LoRATrainer:
 
         # 학습 실행
         logger.info("LoRA 미세 조정 시작...")
-        trainer.train()
+        try:
+            trainer.train()
+        except RuntimeError as e:
+            error_msg = str(e).lower()
+            if "out of memory" in error_msg or "cuda" in error_msg:
+                logger.error("GPU 메모리 부족 — 다음을 시도하세요:")
+                logger.error("  1. batch_size를 줄이세요 (현재: %d)", self.training_config.batch_size)
+                logger.error("  2. gradient_accumulation_steps를 늘리세요 (현재: %d)", self.training_config.gradient_accumulation_steps)
+                logger.error("  3. quantization.enabled를 true로 설정하세요")
+                logger.error("  4. LoRA r 값을 줄이세요 (현재: %d)", self.lora_config.r)
+                raise RuntimeError(
+                    "GPU 메모리가 부족합니다. project.yaml에서 batch_size를 줄이거나 "
+                    "quantization을 활성화하세요."
+                ) from e
+            raise
 
         # 어댑터와 토크나이저 저장
         adapter_dir = self.output_dir / "adapter"
