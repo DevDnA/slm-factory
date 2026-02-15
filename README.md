@@ -155,14 +155,10 @@ slm-factory는 "도메인 문서 → 파인튜닝된 SLM" 전환 과정을 완�
 git clone https://github.com/DevDnA/slm-factory.git
 cd slm-factory
 pip install -e ".[all]"
-```
-
-모든 기능이 포함됩니다: PDF/HTML/TXT/HWPX/DOCX 파싱, 한국어 띄어쓰기 교정, 임베딩 기반 검증, 테스트 도구.
-
-**Shell 자동완성 설정** (선택):
-```bash
 slm-factory --install-completion
 ```
+
+모든 기능이 포함됩니다: PDF/HTML/TXT/HWPX/DOCX 파싱, 한국어 띄어쓰기 교정, 임베딩 기반 검증, 테스트 도구, Shell 자동완성.
 
 ---
 
