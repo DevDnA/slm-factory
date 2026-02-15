@@ -52,8 +52,16 @@ class Pipeline:
     # 단계 1: 문서 파싱
     # ------------------------------------------------------------------
 
-    def step_parse(self) -> list[ParsedDocument]:
+    def step_parse(
+        self, files: list[Path] | None = None,
+    ) -> list[ParsedDocument]:
         """설정된 디렉토리의 모든 문서를 파싱합니다.
+
+        매개변수
+        ----------
+        files:
+            파싱할 파일 목록입니다. 지정 시 디렉토리 스캔 대신
+            이 목록의 파일만 파싱합니다.
 
         반환값
         -------
@@ -67,7 +75,6 @@ class Pipeline:
         """
         from .parsers import registry
 
-        # 설정에서 확장자 목록 구성 (예: ["pdf"] → [".pdf"])
         extensions = [
             ext if ext.startswith(".") else f".{ext}"
             for ext in self.config.parsing.formats
@@ -80,7 +87,7 @@ class Pipeline:
         )
 
         docs = registry.parse_directory(
-            self.config.paths.documents, formats=extensions
+            self.config.paths.documents, formats=extensions, files=files,
         )
 
         if not docs:

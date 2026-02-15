@@ -100,38 +100,44 @@ class ParserRegistry:
         self,
         dir_path: Path,
         formats: list[str] | None = None,
+        files: list[Path] | None = None,
     ) -> list[ParsedDocument]:
         """*dir_path*의 모든 지원 파일을 파싱합니다 (재귀 없음).
 
         매개변수
         ----------
         dir_path:
-            스캔할 디렉토리입니다.
+            스캔할 디렉토리입니다 (*files* 미지정 시 사용).
         formats:
             확장자의 선택적 화이트리스트입니다 (예: ``['.pdf']``).
             *None*일 때, 모든 등록된 확장자가 허용됩니다.
+        files:
+            파싱할 파일 목록입니다. 지정 시 *dir_path*와 *formats*를 무시하고
+            이 목록의 파일만 파싱합니다.
 
         반환값
         -------
         list[ParsedDocument]
             성공적으로 파싱된 문서입니다 (실패는 로깅되고 건너뜁니다).
         """
-        dir_path = Path(dir_path)
-        if not dir_path.is_dir():
-            logger.error("Directory not found: %s", dir_path)
-            return []
+        if files is not None:
+            target_files: list[Path] = [Path(f) for f in files]
+        else:
+            dir_path = Path(dir_path)
+            if not dir_path.is_dir():
+                logger.error("Directory not found: %s", dir_path)
+                return []
 
-        # 후보 파일 수집
-        allowed = {ext.lower() for ext in formats} if formats else None
-        files: list[Path] = sorted(
-            f
-            for f in dir_path.iterdir()
-            if f.is_file()
-            and self.get_parser(f) is not None
-            and (allowed is None or f.suffix.lower() in allowed)
-        )
+            allowed = {ext.lower() for ext in formats} if formats else None
+            target_files = sorted(
+                f
+                for f in dir_path.iterdir()
+                if f.is_file()
+                and self.get_parser(f) is not None
+                and (allowed is None or f.suffix.lower() in allowed)
+            )
 
-        if not files:
+        if not target_files:
             logger.warning("No parseable files found in %s", dir_path)
             return []
 
@@ -143,8 +149,8 @@ class ParserRegistry:
             MofNCompleteColumn(),
             transient=True,
         ) as progress:
-            task = progress.add_task("Parsing documents", total=len(files))
-            for file_path in files:
+            task = progress.add_task("Parsing documents", total=len(target_files))
+            for file_path in target_files:
                 parser = self.get_parser(file_path)
                 if parser is None:
                     progress.advance(task)
@@ -158,5 +164,5 @@ class ParserRegistry:
                 finally:
                     progress.advance(task)
 
-        logger.info("Parsed %d / %d files from %s", len(documents), len(files), dir_path)
+        logger.info("Parsed %d / %d files from %s", len(documents), len(target_files), dir_path)
         return documents

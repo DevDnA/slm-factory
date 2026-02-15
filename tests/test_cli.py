@@ -138,3 +138,23 @@ class TestGenerateCommand:
         assert result.exit_code == 0
         mock_pipeline.step_parse.assert_called_once()
         mock_pipeline.step_generate.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# wizard
+# ---------------------------------------------------------------------------
+
+
+class TestWizardCommand:
+    """wizard 명령어의 테스트입니다."""
+
+    def test_존재하지_않는_config_exit_code_1(self):
+        """존재하지 않는 설정 파일을 지정하면 exit code 1로 종료하는지 확인합니다."""
+        result = runner.invoke(app, ["wizard", "--config", "/nonexistent/path.yaml"])
+        assert result.exit_code == 1
+
+    def test_wizard_help_포함(self):
+        """wizard 명령어의 도움말에 '대화형'이 포함되는지 확인합니다."""
+        result = runner.invoke(app, ["wizard", "--help"])
+        assert result.exit_code == 0
+        assert "대화형" in result.output

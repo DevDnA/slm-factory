@@ -144,3 +144,17 @@ class TestParserRegistry:
 
         assert len(result) == 1
         assert result[0].doc_id == "doc1.dummy"
+
+    def test_parse_directory_files_필터(self, tmp_path):
+        """files 인자로 특정 파일만 파싱하는지 확인합니다."""
+        file1 = tmp_path / "doc1.dummy"
+        file2 = tmp_path / "doc2.dummy"
+        file1.write_text("내용1", encoding="utf-8")
+        file2.write_text("내용2", encoding="utf-8")
+
+        registry = ParserRegistry()
+        registry.register(_DummyParser)
+        result = registry.parse_directory(tmp_path, files=[file1])
+
+        assert len(result) == 1
+        assert result[0].doc_id == "doc1.dummy"

@@ -934,6 +934,252 @@ def version() -> None:
     console.print(f"slm-factory [bold]{__version__}[/bold]")
 
 
+@app.command()
+def wizard(
+    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+) -> None:
+    """대화형 파이프라인 — 단계별로 확인하며 실행합니다."""
+    from rich.panel import Panel
+    from rich.prompt import Confirm, Prompt
+    from rich.table import Table
+
+    console.print()
+    console.print(
+        Panel(
+            "[bold cyan]slm-factory 대화형 파이프라인[/bold cyan]\n"
+            "[dim]각 단계를 확인하며 진행합니다[/dim]",
+            expand=False,
+        )
+    )
+
+    # ── Step 1: 설정 파일 ─────────────────────────────────────────
+    console.print("\n[bold]━━━ Step 1. 설정 파일 ━━━[/bold]")
+    resolved = _find_config(config)
+    if not Path(resolved).is_file():
+        resolved = Prompt.ask("  설정 파일 경로를 입력하세요", default="project.yaml")
+        resolved = _find_config(resolved)
+
+    try:
+        pipeline = _load_pipeline(resolved)
+        console.print(f"  [green]✓[/green] [cyan]{resolved}[/cyan]")
+        console.print(f"    프로젝트: {pipeline.config.project.name}")
+        console.print(f"    Teacher : {pipeline.config.teacher.model}")
+        console.print(f"    Student : {pipeline.config.student.model}")
+    except Exception as e:
+        console.print(f"  [red]✗[/red] 설정 로드 실패: {e}")
+        raise typer.Exit(code=1)
+
+    pipeline.config.paths.ensure_dirs()
+
+    # ── Step 2: 문서 선택 ─────────────────────────────────────────
+    console.print("\n[bold]━━━ Step 2. 문서 선택 ━━━[/bold]")
+    doc_dir = pipeline.config.paths.documents
+    if not doc_dir.is_dir():
+        console.print(f"  [red]✗[/red] 문서 디렉토리 없음: {doc_dir}")
+        raise typer.Exit(code=1)
+
+    extensions = [
+        ext if ext.startswith(".") else f".{ext}"
+        for ext in pipeline.config.parsing.formats
+    ]
+    all_files = sorted(
+        f for f in doc_dir.iterdir()
+        if f.is_file() and f.suffix.lower() in extensions
+    )
+
+    if not all_files:
+        console.print(
+            f"  [red]✗[/red] 지원되는 문서가 없습니다 ({doc_dir})\n"
+            f"      지원 형식: {extensions}"
+        )
+        raise typer.Exit(code=1)
+
+    file_table = Table(show_header=True, title=f"문서 목록 ({doc_dir})")
+    file_table.add_column("#", style="dim", width=4)
+    file_table.add_column("파일명", style="cyan")
+    file_table.add_column("크기", justify="right")
+    for i, f in enumerate(all_files, 1):
+        size = f.stat().st_size
+        if size < 1024:
+            size_str = f"{size}B"
+        elif size < 1024 * 1024:
+            size_str = f"{size / 1024:.1f}KB"
+        else:
+            size_str = f"{size / 1024 / 1024:.1f}MB"
+        file_table.add_row(str(i), f.name, size_str)
+    console.print(file_table)
+
+    use_all = Confirm.ask(
+        f"  {len(all_files)}개 문서를 모두 사용하시겠습니까?", default=True,
+    )
+    selected_files: list[Path] | None = None
+    if not use_all:
+        selection = Prompt.ask(
+            "  사용할 문서 번호 (쉼표 구분)",
+            default=",".join(str(i) for i in range(1, len(all_files) + 1)),
+        )
+        indices = []
+        for part in selection.split(","):
+            s = part.strip()
+            if s.isdigit():
+                idx = int(s) - 1
+                if 0 <= idx < len(all_files):
+                    indices.append(idx)
+        selected_files = [all_files[i] for i in indices]
+        console.print(f"  선택: {len(selected_files)}개 문서")
+
+    # ── Step 3: 파싱 ──────────────────────────────────────────────
+    console.print("\n[bold]━━━ Step 3. 문서 파싱 ━━━[/bold]")
+    try:
+        docs = pipeline.step_parse(files=selected_files)
+        console.print(f"  [green]✓[/green] {len(docs)}개 문서 파싱 완료")
+    except Exception as e:
+        console.print(f"  [red]✗[/red] 파싱 실패: {e}")
+        raise typer.Exit(code=1)
+
+    # ── Step 4: QA 생성 ───────────────────────────────────────────
+    console.print("\n[bold]━━━ Step 4. QA 쌍 생성 ━━━[/bold]")
+    console.print(
+        f"  Teacher: {pipeline.config.teacher.model} "
+        f"({pipeline.config.teacher.backend})"
+    )
+    if not Confirm.ask("  QA 쌍을 생성하시겠습니까?", default=True):
+        console.print("  [yellow]⏭ 건너뜀[/yellow]")
+        console.print(
+            f"\n  파싱 결과: [cyan]{pipeline.output_dir / 'parsed_documents.json'}[/cyan]"
+        )
+        return
+
+    try:
+        pairs = pipeline.step_generate(docs)
+        console.print(f"  [green]✓[/green] {len(pairs)}개 QA 쌍 생성 완료")
+    except Exception as e:
+        console.print(f"  [red]✗[/red] QA 생성 실패: {e}")
+        console.print("  [dim]Ollama가 실행 중인지 확인하세요: ollama serve[/dim]")
+        raise typer.Exit(code=1)
+
+    # ── Step 5: 검증 ──────────────────────────────────────────────
+    console.print("\n[bold]━━━ Step 5. QA 검증 ━━━[/bold]")
+    try:
+        total_before = len(pairs)
+        pairs = pipeline.step_validate(pairs, docs=docs)
+        rejected = total_before - len(pairs)
+        console.print(
+            f"  [green]✓[/green] {len(pairs)}개 수락, {rejected}개 거부"
+        )
+    except Exception as e:
+        console.print(f"  [red]✗[/red] 검증 실패: {e}")
+        raise typer.Exit(code=1)
+
+    # ── Step 6: 품질 평가 ─────────────────────────────────────────
+    console.print("\n[bold]━━━ Step 6. 품질 점수 평가 ━━━[/bold]")
+    score_default = pipeline.config.scoring.enabled
+    console.print(
+        f"  [dim]설정: scoring.enabled = {str(score_default).lower()}[/dim]"
+    )
+    if Confirm.ask("  품질 점수 평가를 하시겠습니까?", default=score_default):
+        pipeline.config.scoring.enabled = True
+        try:
+            before = len(pairs)
+            pairs = pipeline.step_score(pairs)
+            console.print(
+                f"  [green]✓[/green] {len(pairs)}개 통과, "
+                f"{before - len(pairs)}개 제거"
+            )
+        except Exception as e:
+            console.print(f"  [red]✗[/red] 점수 평가 실패: {e}")
+            raise typer.Exit(code=1)
+    else:
+        console.print("  [yellow]⏭ 건너뜀[/yellow]")
+
+    # ── Step 7: 데이터 증강 ───────────────────────────────────────
+    console.print("\n[bold]━━━ Step 7. 데이터 증강 ━━━[/bold]")
+    augment_default = pipeline.config.augment.enabled
+    console.print(
+        f"  [dim]설정: augment.enabled = {str(augment_default).lower()}[/dim]"
+    )
+    if Confirm.ask("  데이터 증강을 하시겠습니까?", default=augment_default):
+        pipeline.config.augment.enabled = True
+        try:
+            before = len(pairs)
+            pairs = pipeline.step_augment(pairs)
+            console.print(
+                f"  [green]✓[/green] {before}개 → {len(pairs)}개 "
+                f"({len(pairs) - before}개 증강)"
+            )
+        except Exception as e:
+            console.print(f"  [red]✗[/red] 증강 실패: {e}")
+            raise typer.Exit(code=1)
+    else:
+        console.print("  [yellow]⏭ 건너뜀[/yellow]")
+
+    # ── 분석 (자동) ───────────────────────────────────────────────
+    pipeline.step_analyze(pairs)
+
+    # ── Step 8: 학습 ──────────────────────────────────────────────
+    console.print("\n[bold]━━━ Step 8. 모델 학습 ━━━[/bold]")
+    console.print(f"  Student: {pipeline.config.student.model}")
+    try:
+        training_data_path = pipeline.step_convert(pairs)
+        console.print(
+            f"  [green]✓[/green] 학습 데이터 변환 완료 ({len(pairs)}개 쌍)"
+        )
+    except Exception as e:
+        console.print(f"  [red]✗[/red] 변환 실패: {e}")
+        raise typer.Exit(code=1)
+
+    if not Confirm.ask("  LoRA 학습을 진행하시겠습니까?", default=True):
+        console.print("  [yellow]⏭ 건너뜀[/yellow]")
+        console.print(
+            f"\n  학습 데이터: [cyan]{training_data_path}[/cyan]\n"
+            f"  나중에 실행: [cyan]slm-factory train --config {resolved}"
+            f" --data {training_data_path}[/cyan]"
+        )
+        return
+
+    try:
+        adapter_path = pipeline.step_train(training_data_path)
+        console.print(f"  [green]✓[/green] 학습 완료: [cyan]{adapter_path}[/cyan]")
+    except Exception as e:
+        console.print(f"  [red]✗[/red] 학습 실패: {e}")
+        raise typer.Exit(code=1)
+
+    # ── Step 9: 내보내기 ──────────────────────────────────────────
+    console.print("\n[bold]━━━ Step 9. 모델 내보내기 ━━━[/bold]")
+    if not Confirm.ask("  모델을 내보내시겠습니까?", default=True):
+        console.print("  [yellow]⏭ 건너뜀[/yellow]")
+        console.print(
+            f"\n  어댑터: [cyan]{adapter_path}[/cyan]\n"
+            f"  나중에 실행: [cyan]slm-factory export --config {resolved}"
+            f" --adapter {adapter_path}[/cyan]"
+        )
+        return
+
+    try:
+        model_dir = pipeline.step_export(adapter_path)
+        console.print(
+            f"  [green]✓[/green] 내보내기 완료: [cyan]{model_dir}[/cyan]"
+        )
+    except Exception as e:
+        console.print(f"  [red]✗[/red] 내보내기 실패: {e}")
+        raise typer.Exit(code=1)
+
+    # ── 완료 ──────────────────────────────────────────────────────
+    console.print()
+    console.print(
+        Panel(
+            f"[bold green]파이프라인 완료![/bold green]\n\n"
+            f"모델: [cyan]{model_dir}[/cyan]\n\n"
+            f"Ollama 배포:\n"
+            f"  cd {model_dir}\n"
+            f"  ollama create "
+            f"{pipeline.config.export.ollama.model_name} -f Modelfile\n"
+            f"  ollama run {pipeline.config.export.ollama.model_name}",
+            expand=False,
+        )
+    )
+
+
 # ---------------------------------------------------------------------------
 # 진입점
 # ---------------------------------------------------------------------------
