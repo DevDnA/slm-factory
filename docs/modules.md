@@ -814,16 +814,14 @@ def wizard(
 
 **완료:**
 ```
-┌───────────────────────────────────────┐
-│ 파이프라인 완료!                       │
-│                                       │
-│ 모델: output/final_model              │
-│                                       │
-│ Ollama 배포:                          │
-│   cd output/final_model               │
-│   ollama create my-model -f Modelfile │
-│   ollama run my-model                 │
-└───────────────────────────────────────┘
+ 파이프라인 완료!
+
+ 모델: output/final_model
+
+ Ollama 배포:
+   cd output/final_model
+   ollama create my-model -f Modelfile
+   ollama run my-model
 ```
 
 **건너뛰기 동작:**
