@@ -162,6 +162,27 @@ slm-factory --install-completion
 
 모든 기능이 포함됩니다: PDF/HTML/TXT/HWPX/DOCX 파싱, 한국어 띄어쓰기 교정, 임베딩 기반 검증, 테스트 도구, Shell 자동완성.
 
+### Shell 자동완성
+
+Tab 키로 명령어와 옵션을 자동완성할 수 있습니다:
+
+```bash
+# 자동완성 설치 (bash/zsh/fish/powershell 자동 감지)
+slm-factory --install-completion
+
+# 셸 재시작 후 적용됩니다
+# 또는 즉시 적용:
+source ~/.bashrc   # bash
+source ~/.zshrc    # zsh
+```
+
+자동완성이 작동하지 않으면:
+
+```bash
+# 현재 셸의 자동완성 스크립트 확인
+slm-factory --show-completion
+```
+
 ---
 
 ## 7. 빠른 시작 (wizard)
@@ -252,6 +273,51 @@ slm-factory export --config my-project/project.yaml      # 모델 내보내기
 ---
 
 ## 9. CLI 명령어 레퍼런스
+
+### --help 출력 예시
+
+`slm-factory --help` 실행 시 다음과 같이 표시됩니다:
+
+```
+ Usage: slm-factory [OPTIONS] COMMAND [ARGS]...
+
+ Teacher-Student Knowledge Distillation framework for domain-specific SLMs.
+
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --verbose             -v        디버그 로그를 표시합니다                     │
+│ --quiet               -q        경고와 에러만 표시합니다                     │
+│ --install-completion            Install completion for the current shell.    │
+│ --show-completion               Show completion for the current shell, to   │
+│                                 copy it or customize the installation.       │
+│ --help                          Show this message and exit.                  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ 🚀 시작하기 ────────────────────────────────────────────────────────────────╮
+│ init       새로운 slm-factory 프로젝트를 초기화합니다.                       │
+│ check      프로젝트 설정과 환경을 사전 점검합니다.                           │
+│ wizard     대화형 파이프라인 — 단계별로 확인하며 실행합니다.                 │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ ⚙️ 파이프라인 ───────────────────────────────────────────────────────────────╮
+│ run        전체 파이프라인을 실행합니다 (파싱 → 생성 → 검증 → 변환 → 훈련 →  │
+│            내보내기).                                                        │
+│ parse      문서 파싱 단계만 실행합니다.                                      │
+│ generate   파싱 + QA 생성 단계를 실행합니다.                                 │
+│ validate   파싱 + 생성 + 검증 단계를 실행합니다.                             │
+│ score      파싱 + 생성 + 검증 + 품질 점수 평가를 실행합니다.                 │
+│ augment    파싱 + 생성 + 검증 + 점수 평가 + 데이터 증강을 실행합니다.        │
+│ analyze    파싱 + 생성 + 검증 + 점수 평가 + 증강 후 데이터 분석을            │
+│            실행합니다.                                                       │
+│ train      훈련 단계를 실행합니다 (선택적으로 사전 생성된 데이터 사용).      │
+│ convert    QA 데이터를 훈련용 JSONL 형식으로 변환합니다.                     │
+│ export     훈련된 모델을 내보냅니다 (LoRA 병합 + Ollama Modelfile).          │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ 🔧 유틸리티 ────────────────────────────────────────────────────────────────╮
+│ status     파이프라인 진행 상태를 확인합니다.                                │
+│ clean      중간 생성 파일을 정리합니다.                                      │
+│ version    slm-factory 버전을 표시합니다.                                    │
+╰──────────────────────────────────────────────────────────────────────────────╯
+```
+
+---
 
 ### 명령어 요약
 
