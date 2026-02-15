@@ -304,3 +304,287 @@ class TestPipelineRun:
         pipeline.step_train.assert_called_once_with(mock_training_path)
         pipeline.step_export.assert_called_once_with(mock_adapter_path)
         assert result == mock_export_path
+
+
+# ---------------------------------------------------------------------------
+# step_eval
+# ---------------------------------------------------------------------------
+
+
+class TestStepEval:
+    """Pipeline.step_eval 메서드의 테스트입니다."""
+
+    def test_비활성화시_빈_리스트_반환(self, make_config, make_qa_pair, tmp_path):
+        """eval.enabled=False일 때 빈 리스트를 반환하는지 확인합니다."""
+        config = make_config(
+            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            eval={"enabled": False},
+        )
+        (tmp_path / "output").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
+        pipeline = Pipeline(config)
+
+        pairs = [make_qa_pair()]
+        result = pipeline.step_eval(pairs, "test-model")
+
+        assert result == []
+
+    def test_정상_평가_실행(self, make_config, make_qa_pair, tmp_path, mocker):
+        """ModelEvaluator를 mock하여 평가 결과를 반환하는지 확인합니다."""
+        config = make_config(
+            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            eval={"enabled": True},
+        )
+        (tmp_path / "output").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
+        pipeline = Pipeline(config)
+
+        pairs = [make_qa_pair()]
+        mock_results = [MagicMock()]
+
+        mock_evaluator_cls = mocker.patch("slm_factory.evaluator.ModelEvaluator")
+        mock_evaluator = mock_evaluator_cls.return_value
+        mock_evaluator.evaluate.return_value = mock_results
+        mock_evaluator.save_results = MagicMock()
+        mock_evaluator.print_summary = MagicMock()
+
+        result = pipeline.step_eval(pairs, "test-model")
+
+        assert result == mock_results
+        mock_evaluator.evaluate.assert_called_once_with(pairs, "test-model")
+
+    def test_결과_파일_저장_호출(self, make_config, make_qa_pair, tmp_path, mocker):
+        """evaluator.save_results가 올바른 경로로 호출되는지 확인합니다."""
+        config = make_config(
+            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            eval={"enabled": True},
+        )
+        (tmp_path / "output").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
+        pipeline = Pipeline(config)
+
+        pairs = [make_qa_pair()]
+        mock_results = [MagicMock()]
+
+        mock_evaluator_cls = mocker.patch("slm_factory.evaluator.ModelEvaluator")
+        mock_evaluator = mock_evaluator_cls.return_value
+        mock_evaluator.evaluate.return_value = mock_results
+        mock_evaluator.save_results = MagicMock()
+        mock_evaluator.print_summary = MagicMock()
+
+        pipeline.step_eval(pairs, "test-model")
+
+        expected_path = pipeline.output_dir / config.eval.output_file
+        mock_evaluator.save_results.assert_called_once_with(mock_results, expected_path)
+
+
+# ---------------------------------------------------------------------------
+# step_gguf_export
+# ---------------------------------------------------------------------------
+
+
+class TestStepGgufExport:
+    """Pipeline.step_gguf_export 메서드의 테스트입니다."""
+
+    def test_비활성화시_model_dir_반환(self, make_config, tmp_path):
+        """gguf_export.enabled=False일 때 model_dir을 그대로 반환하는지 확인합니다."""
+        config = make_config(
+            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            gguf_export={"enabled": False},
+        )
+        (tmp_path / "output").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
+        pipeline = Pipeline(config)
+
+        model_dir = tmp_path / "model"
+        result = pipeline.step_gguf_export(model_dir)
+
+        assert result == model_dir
+
+    def test_정상_변환_실행(self, make_config, tmp_path, mocker):
+        """GGUFExporter를 mock하여 GGUF 경로를 반환하는지 확인합니다."""
+        config = make_config(
+            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            gguf_export={"enabled": True},
+        )
+        (tmp_path / "output").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
+        pipeline = Pipeline(config)
+
+        model_dir = tmp_path / "model"
+        expected_gguf = tmp_path / "model.gguf"
+
+        mock_exporter_cls = mocker.patch("slm_factory.exporter.gguf_export.GGUFExporter")
+        mock_exporter = mock_exporter_cls.return_value
+        mock_exporter.export.return_value = expected_gguf
+
+        result = pipeline.step_gguf_export(model_dir)
+
+        assert result == expected_gguf
+
+    def test_exporter_export_호출(self, make_config, tmp_path, mocker):
+        """exporter.export가 model_dir로 호출되는지 확인합니다."""
+        config = make_config(
+            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            gguf_export={"enabled": True},
+        )
+        (tmp_path / "output").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
+        pipeline = Pipeline(config)
+
+        model_dir = tmp_path / "model"
+
+        mock_exporter_cls = mocker.patch("slm_factory.exporter.gguf_export.GGUFExporter")
+        mock_exporter = mock_exporter_cls.return_value
+        mock_exporter.export.return_value = tmp_path / "model.gguf"
+
+        pipeline.step_gguf_export(model_dir)
+
+        mock_exporter.export.assert_called_once_with(model_dir)
+
+
+# ---------------------------------------------------------------------------
+# step_dialogue
+# ---------------------------------------------------------------------------
+
+
+class TestStepDialogue:
+    """Pipeline.step_dialogue 메서드의 테스트입니다."""
+
+    def test_비활성화시_빈_리스트_반환(self, make_config, make_qa_pair, tmp_path):
+        """dialogue.enabled=False일 때 빈 리스트를 반환하는지 확인합니다."""
+        config = make_config(
+            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            dialogue={"enabled": False},
+        )
+        (tmp_path / "output").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
+        pipeline = Pipeline(config)
+
+        pairs = [make_qa_pair()]
+        result = pipeline.step_dialogue(pairs)
+
+        assert result == []
+
+    def test_정상_대화_생성(self, make_config, make_qa_pair, tmp_path, mocker):
+        """DialogueGenerator를 mock하여 대화 목록을 반환하는지 확인합니다."""
+        config = make_config(
+            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            dialogue={"enabled": True},
+        )
+        (tmp_path / "output").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
+        pipeline = Pipeline(config)
+
+        pairs = [make_qa_pair()]
+        mock_dialogues = [MagicMock()]
+
+        mocker.patch("slm_factory.teacher.create_teacher", return_value=MagicMock())
+        mock_generator_cls = mocker.patch(
+            "slm_factory.teacher.dialogue_generator.DialogueGenerator"
+        )
+        mock_generator = mock_generator_cls.return_value
+        mocker.patch("slm_factory.pipeline.asyncio.run", return_value=mock_dialogues)
+        mock_generator.save_dialogues = MagicMock()
+
+        result = pipeline.step_dialogue(pairs)
+
+        assert result == mock_dialogues
+
+    def test_대화_파일_저장(self, make_config, make_qa_pair, tmp_path, mocker):
+        """generator.save_dialogues가 올바른 경로로 호출되는지 확인합니다."""
+        config = make_config(
+            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            dialogue={"enabled": True},
+        )
+        (tmp_path / "output").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
+        pipeline = Pipeline(config)
+
+        pairs = [make_qa_pair()]
+        mock_dialogues = [MagicMock()]
+
+        mocker.patch("slm_factory.teacher.create_teacher", return_value=MagicMock())
+        mock_generator_cls = mocker.patch(
+            "slm_factory.teacher.dialogue_generator.DialogueGenerator"
+        )
+        mock_generator = mock_generator_cls.return_value
+        mocker.patch("slm_factory.pipeline.asyncio.run", return_value=mock_dialogues)
+        mock_generator.save_dialogues = MagicMock()
+
+        pipeline.step_dialogue(pairs)
+
+        expected_path = pipeline.output_dir / "dialogues.json"
+        mock_generator.save_dialogues.assert_called_once_with(mock_dialogues, expected_path)
+
+
+# ---------------------------------------------------------------------------
+# step_compare
+# ---------------------------------------------------------------------------
+
+
+class TestStepCompare:
+    """Pipeline.step_compare 메서드의 테스트입니다."""
+
+    def test_비활성화시_빈_리스트_반환(self, make_config, make_qa_pair, tmp_path):
+        """compare.enabled=False일 때 빈 리스트를 반환하는지 확인합니다."""
+        config = make_config(
+            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            compare={"enabled": False},
+        )
+        (tmp_path / "output").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
+        pipeline = Pipeline(config)
+
+        pairs = [make_qa_pair()]
+        result = pipeline.step_compare(pairs)
+
+        assert result == []
+
+    def test_정상_비교_실행(self, make_config, make_qa_pair, tmp_path, mocker):
+        """ModelComparator를 mock하여 비교 결과를 반환하는지 확인합니다."""
+        config = make_config(
+            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            compare={"enabled": True, "base_model": "base", "finetuned_model": "ft"},
+        )
+        (tmp_path / "output").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
+        pipeline = Pipeline(config)
+
+        pairs = [make_qa_pair()]
+        mock_results = [MagicMock()]
+
+        mock_comparator_cls = mocker.patch("slm_factory.comparator.ModelComparator")
+        mock_comparator = mock_comparator_cls.return_value
+        mock_comparator.compare.return_value = mock_results
+        mock_comparator.save_results = MagicMock()
+        mock_comparator.print_summary = MagicMock()
+
+        result = pipeline.step_compare(pairs)
+
+        assert result == mock_results
+        mock_comparator.compare.assert_called_once_with(pairs)
+
+    def test_결과_파일_저장_호출(self, make_config, make_qa_pair, tmp_path, mocker):
+        """comparator.save_results가 올바른 경로로 호출되는지 확인합니다."""
+        config = make_config(
+            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            compare={"enabled": True, "base_model": "base", "finetuned_model": "ft"},
+        )
+        (tmp_path / "output").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
+        pipeline = Pipeline(config)
+
+        pairs = [make_qa_pair()]
+        mock_results = [MagicMock()]
+
+        mock_comparator_cls = mocker.patch("slm_factory.comparator.ModelComparator")
+        mock_comparator = mock_comparator_cls.return_value
+        mock_comparator.compare.return_value = mock_results
+        mock_comparator.save_results = MagicMock()
+        mock_comparator.print_summary = MagicMock()
+
+        pipeline.step_compare(pairs)
+
+        expected_path = pipeline.output_dir / config.compare.output_file
+        mock_comparator.save_results.assert_called_once_with(mock_results, expected_path)

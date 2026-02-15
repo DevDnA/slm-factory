@@ -112,6 +112,13 @@ slm-factory는 "도메인 문서 → 파인튜닝된 SLM" 전환 과정을 완�
 - **모듈 직접 실행**: `python -m slm_factory`로 패키지를 직접 실행할 수 있습니다
 - **편의 CLI 도구**: `status`로 진행 상태 확인, `clean`으로 중간 파일 정리, `convert`/`export` 단독 실행, `--verbose`/`--quiet` 로그 레벨 조절을 지원합니다
 - **대화형 파이프라인 (권장)**: `wizard` 명령 하나로 문서 선택부터 모델 배포까지 단계별로 안내합니다. 처음 사용자는 wizard만 실행하면 됩니다
+- **자동 모델 평가**: 학습된 모델을 BLEU/ROUGE 메트릭으로 자동 평가합니다
+- **모델 비교 (Before/After)**: Base 모델과 Fine-tuned 모델의 답변을 나란히 비교합니다
+- **GGUF 변환**: llama.cpp 호환 GGUF 양자화 형식으로 모델을 변환합니다
+- **증분 학습**: 문서 추가 시 기존 QA를 유지하면서 새 문서만 처리합니다
+- **멀티턴 대화 생성**: QA 쌍을 멀티턴 대화 데이터로 확장합니다
+- **QA 수동 리뷰 (TUI)**: 생성된 QA 쌍을 TUI에서 승인/거부/편집합니다
+- **파이프라인 대시보드 (TUI)**: 파이프라인 진행 상태를 실시간 TUI로 모니터링합니다
 
 ---
 
@@ -134,6 +141,8 @@ slm-factory는 "도메인 문서 → 파인튜닝된 SLM" 전환 과정을 완�
 | | trl | >=0.8.0 | SFTTrainer |
 | | accelerate | >=0.28.0 | 분산 학습 |
 | | bitsandbytes | >=0.43.0 | 양자화 |
+| **Evaluation** | evaluate | >=0.4.0 | BLEU/ROUGE 메트릭 |
+| **TUI** | textual | >=0.40.0 | TUI 프레임워크 |
 | **Optional** | pykospacing | - | 한국어 띄어쓰기 교정 |
 | | sentence-transformers | >=2.6.0 | 의미적 유사도 검증 |
 | | pdfplumber | >=0.11.0 | 대체 PDF 파서 |
@@ -211,6 +220,9 @@ wizard가 다음을 순서대로 안내합니다:
 7. 데이터 증강 (선택)
 8. LoRA 학습 (확인 후 진행)
 9. 모델 내보내기 (확인 후 진행)
+10. 멀티턴 대화 생성 (선택)
+11. GGUF 변환 (선택)
+12. 모델 평가 (선택)
 
 각 단계에서 건너뛰기를 선택하면, 나중에 실행할 명령어를 알려줍니다.
 
@@ -309,10 +321,19 @@ slm-factory export --config my-project/project.yaml      # 모델 내보내기
 │ train      훈련 단계를 실행합니다 (선택적으로 사전 생성된 데이터 사용).      │
 │ convert    QA 데이터를 훈련용 JSONL 형식으로 변환합니다.                     │
 │ export     훈련된 모델을 내보냅니다 (LoRA 병합 + Ollama Modelfile).          │
+│ update     변경된 문서만 증분 처리합니다.                                    │
+│ generate-dialogue  QA 쌍에서 멀티턴 대화 데이터를 생성합니다.                │
+│ export-gguf        병합된 모델을 GGUF 형식으로 변환합니다.                   │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ 📊 평가 ────────────────────────────────────────────────────────────────────╮
+│ eval       학습된 모델을 QA 데이터로 평가합니다.                             │
+│ compare    Base 모델과 Fine-tuned 모델의 답변을 비교합니다.                  │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ╭─ 🔧 유틸리티 ────────────────────────────────────────────────────────────────╮
 │ status     파이프라인 진행 상태를 확인합니다.                                │
 │ clean      중간 생성 파일을 정리합니다.                                      │
+│ review     QA 쌍을 수동으로 리뷰하는 TUI를 실행합니다.                       │
+│ dashboard  파이프라인 모니터링 TUI 대시보드를 실행합니다.                     │
 │ version    slm-factory 버전을 표시합니다.                                    │
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ```
@@ -339,6 +360,13 @@ slm-factory export --config my-project/project.yaml      # 모델 내보내기
 | `clean` | 중간 생성 파일 정리 | `--config`, `--all` |
 | `convert` | QA 데이터를 훈련용 JSONL로 변환 | `--config`, `--data` |
 | `export` | 훈련된 모델 내보내기 (LoRA 병합) | `--config`, `--adapter` |
+| `eval` | 학습된 모델 평가 (BLEU/ROUGE) | `--config`, `--model` (필수), `--data` |
+| `compare` | Base vs Fine-tuned 모델 비교 | `--config`, `--base-model` (필수), `--finetuned-model` (필수), `--data` |
+| `export-gguf` | GGUF 양자화 형식으로 변환 | `--config`, `--model-dir` |
+| `update` | 변경된 문서만 증분 처리 | `--config` |
+| `generate-dialogue` | 멀티턴 대화 데이터 생성 | `--config`, `--data` |
+| `review` | QA 수동 리뷰 TUI | `--config`, `--data` |
+| `dashboard` | 파이프라인 대시보드 TUI | `--config` |
 | `check` | 설정 및 환경 사전 점검 | `--config` |
 | `version` | 버전 정보 출력 | - |
 
@@ -363,6 +391,9 @@ slm-factory wizard [--config <설정파일경로>]
 7. 데이터 증강 (선택)
 8. LoRA 학습 (확인 후 진행)
 9. 모델 내보내기 (확인 후 진행)
+10. 멀티턴 대화 생성 (선택)
+11. GGUF 변환 (선택)
+12. 모델 평가 (선택)
 
 각 단계에서 "건너뜀"을 선택하면 해당 단계의 결과물 경로와 나중에 실행할 명령어를 안내합니다.
 
@@ -675,6 +706,161 @@ QA 데이터를 훈련용 JSONL 형식으로 변환합니다. 파이프라인 �
 
 ---
 
+### `eval` - 모델 평가
+
+학습된 모델을 BLEU/ROUGE 메트릭으로 평가합니다.
+
+**사용법**:
+```bash
+slm-factory eval --model <모델이름> [--config <설정파일>] [--data <QA데이터>]
+```
+
+**옵션**:
+- `--model` (필수): 평가할 Ollama 모델 이름
+- `--config` (선택, 기본값: `project.yaml`): 프로젝트 설정 파일
+- `--data` (선택): QA 데이터 파일 경로 (미지정 시 자동 감지)
+
+**예시**:
+```bash
+slm-factory eval --model my-project-model --config project.yaml
+```
+
+**출력**: `output/evaluation_results.json` (BLEU/ROUGE 점수)
+
+---
+
+### `compare` - 모델 비교
+
+Base 모델과 Fine-tuned 모델의 답변을 나란히 비교합니다.
+
+**사용법**:
+```bash
+slm-factory compare --base-model <기준모델> --finetuned-model <파인튜닝모델> [--config <설정파일>] [--data <QA데이터>]
+```
+
+**옵션**:
+- `--base-model` (필수): 비교 기준 모델 (Ollama)
+- `--finetuned-model` (필수): 파인튜닝된 모델 (Ollama)
+- `--config` (선택, 기본값: `project.yaml`): 프로젝트 설정 파일
+- `--data` (선택): QA 데이터 파일 경로
+
+**예시**:
+```bash
+slm-factory compare --base-model gemma:2b --finetuned-model my-project-model --config project.yaml
+```
+
+**출력**: `output/compare_results.json` (나란히 비교 결과)
+
+---
+
+### `export-gguf` - GGUF 변환
+
+병합된 모델을 llama.cpp 호환 GGUF 양자화 형식으로 변환합니다.
+
+**사용법**:
+```bash
+slm-factory export-gguf [--config <설정파일>] [--model-dir <모델경로>]
+```
+
+**옵션**:
+- `--config` (선택, 기본값: `project.yaml`): 프로젝트 설정 파일
+- `--model-dir` (선택, 기본값: `output/merged_model`): 병합된 모델 디렉토리
+
+**예시**:
+```bash
+slm-factory export-gguf --config project.yaml
+```
+
+llama.cpp의 convert 스크립트를 사용하여 GGUF 양자화 형식으로 변환합니다.
+
+---
+
+### `update` - 증분 업데이트
+
+변경된 문서만 감지하여 새 QA를 생성하고 기존 QA와 병합합니다.
+
+**사용법**:
+```bash
+slm-factory update [--config <설정파일>]
+```
+
+**옵션**:
+- `--config` (선택, 기본값: `project.yaml`): 프로젝트 설정 파일
+
+**예시**:
+```bash
+slm-factory update --config project.yaml
+```
+
+해시 기반으로 변경 감지하여 기존 QA를 유지하면서 새 문서만 처리합니다.
+
+---
+
+### `generate-dialogue` - 대화 생성
+
+QA 쌍을 멀티턴 대화 형식으로 확장합니다.
+
+**사용법**:
+```bash
+slm-factory generate-dialogue [--config <설정파일>] [--data <QA데이터>]
+```
+
+**옵션**:
+- `--config` (선택, 기본값: `project.yaml`): 프로젝트 설정 파일
+- `--data` (선택): QA 데이터 파일 경로
+
+**예시**:
+```bash
+slm-factory generate-dialogue --config project.yaml
+```
+
+**출력**: `output/dialogues.json` (멀티턴 대화 데이터)
+
+---
+
+### `review` - QA 리뷰
+
+TUI에서 QA 쌍을 하나씩 확인하며 승인/거부/편집합니다.
+
+**사용법**:
+```bash
+slm-factory review [--config <설정파일>] [--data <QA데이터>]
+```
+
+**옵션**:
+- `--config` (선택, 기본값: `project.yaml`): 프로젝트 설정 파일
+- `--data` (선택): QA 데이터 파일 경로
+
+**예시**:
+```bash
+slm-factory review --config project.yaml
+```
+
+**출력**: `output/qa_reviewed.json` (수동 리뷰된 QA 쌍)
+
+---
+
+### `dashboard` - 대시보드
+
+파이프라인 진행 상태를 실시간 TUI로 모니터링합니다.
+
+**사용법**:
+```bash
+slm-factory dashboard [--config <설정파일>]
+```
+
+**옵션**:
+- `--config` (선택, 기본값: `project.yaml`): 프로젝트 설정 파일
+
+**예시**:
+```bash
+slm-factory dashboard --config project.yaml
+```
+
+각 단계의 파일 존재 여부, 건수, 최근 수정 시각을 표시합니다.
+
+---
+
 ### `version` - 버전 정보
 
 slm-factory의 현재 버전을 출력합니다.
@@ -701,7 +887,11 @@ output/
 ├── qa_alpaca.json             # 생성된 QA 쌍 (Alpaca 형식)
 ├── qa_scored.json             # 점수 평가된 QA 쌍 (재개용)
 ├── qa_augmented.json          # 증강된 QA 쌍 (재개용)
+├── qa_reviewed.json           # 수동 리뷰된 QA 쌍
 ├── data_analysis.json         # 데이터 분석 보고서
+├── dialogues.json             # 멀티턴 대화 데이터
+├── evaluation_results.json    # 모델 평가 결과 (BLEU/ROUGE)
+├── compare_results.json       # 모델 비교 결과 (Before/After)
 ├── training_data.jsonl        # 채팅 템플릿 적용된 학습 데이터
 ├── checkpoints/
 │   └── adapter/               # LoRA 어댑터 가중치
@@ -726,7 +916,15 @@ output/
 
 - **`qa_augmented.json`**: 데이터 증강이 완료된 QA 쌍입니다. `--resume` 옵션으로 analyze 단계부터 재개할 수 있습니다.
 
+- **`qa_reviewed.json`**: TUI에서 수동 리뷰를 거친 QA 쌍입니다. 승인된 QA만 포함되며, 편집된 내용이 반영됩니다.
+
 - **`data_analysis.json`**: QA 데이터의 통계 분석 보고서입니다. 카테고리 분포, 문서별 분포, 답변/질문 길이 통계, 데이터 품질 경고를 포함합니다.
+
+- **`dialogues.json`**: QA 쌍을 멀티턴 대화 형식으로 확장한 데이터입니다. 대화형 모델 학습에 활용할 수 있습니다.
+
+- **`evaluation_results.json`**: 학습된 모델의 BLEU/ROUGE 점수 평가 결과입니다. 각 메트릭별 점수와 평균 점수를 포함합니다.
+
+- **`compare_results.json`**: Base 모델과 Fine-tuned 모델의 답변을 나란히 비교한 결과입니다. 각 질문에 대한 두 모델의 답변을 포함합니다.
 
 - **`training_data.jsonl`**: Student 모델의 채팅 템플릿이 적용된 학습 데이터입니다. 각 줄은 `{"text": "..."}` 형식의 JSON 객체이며, `text` 필드에 채팅 템플릿이 적용된 전체 대화 문자열이 포함됩니다.
 
@@ -1075,8 +1273,16 @@ slm-factory/
 │       ├── scorer.py                # QA 품질 점수 평가 (Teacher LLM)
 │       ├── augmenter.py             # QA 데이터 증강 (질문 패러프레이즈)
 │       ├── analyzer.py              # 학습 데이터 통계 분석
+│       ├── evaluator.py             # 모델 자동 평가 (BLEU/ROUGE)
+│       ├── comparator.py            # 모델 비교 (Before/After)
+│       ├── incremental.py           # 증분 학습 추적
 │       ├── converter.py             # 채팅 템플릿 변환기
 │       ├── utils.py                 # 유틸리티 및 로깅 설정
+│       ├── tui/
+│       │   ├── __init__.py          # TUI 패키지
+│       │   ├── widgets.py           # TUI 위젯 (QACard, StatusBar)
+│       │   ├── reviewer.py          # QA 수동 리뷰 TUI
+│       │   └── dashboard.py         # 파이프라인 대시보드 TUI
 │       ├── parsers/
 │       │   ├── __init__.py          # 파서 레지스트리
 │       │   ├── base.py              # 파서 기본 클래스
@@ -1090,7 +1296,8 @@ slm-factory/
 │       │   ├── base.py              # Teacher 기본 클래스
 │       │   ├── ollama.py            # Ollama 백엔드
 │       │   ├── openai_compat.py     # OpenAI 호환 API 백엔드
-│       │   └── qa_generator.py      # QA 쌍 생성 로직
+│       │   ├── qa_generator.py      # QA 쌍 생성 로직
+│       │   └── dialogue_generator.py  # 멀티턴 대화 생성
 │       ├── validator/
 │       │   ├── __init__.py          # 검증 모듈 초기화
 │       │   ├── rules.py             # 규칙 기반 검증 (길이, 패턴 등)
@@ -1101,7 +1308,8 @@ slm-factory/
 │       └── exporter/
 │           ├── __init__.py          # 내보내기 모듈 초기화
 │           ├── hf_export.py         # HuggingFace 모델 병합
-│           └── ollama_export.py     # Ollama Modelfile 생성
+│           ├── ollama_export.py     # Ollama Modelfile 생성
+│           └── gguf_export.py       # GGUF 양자화 변환
 ├── templates/
 │   └── project.yaml                 # 기본 프로젝트 템플릿
 ├── tests/
