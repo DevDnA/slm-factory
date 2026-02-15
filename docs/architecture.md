@@ -73,7 +73,8 @@ cli.py
         │     ├─→ pdf.py (PDFParser)
         │     ├─→ hwpx.py (HWPXParser)
         │     ├─→ html.py (HTMLParser)
-        │     └─→ text.py (TextParser)
+        │     ├─→ text.py (TextParser)
+        │     └─→ docx.py (DOCXParser)
         │
         ├─→ teacher/
         │     ├─→ base.py (BaseTeacher)
@@ -119,7 +120,7 @@ All modules
 - `parse_directory()`: 디렉토리를 스캔하고 파일별로 파서를 선택하여 파싱, Rich 진행 표시줄 표시, 실패 격리
 
 **등록 메커니즘:**
-`parsers/__init__.py`에서 전역 `registry` 인스턴스를 생성하고 `PDFParser`, `HWPXParser`, `HTMLParser`, `TextParser`를 자동 등록합니다.
+`parsers/__init__.py`에서 전역 `registry` 인스턴스를 생성하고 `PDFParser`, `HWPXParser`, `HTMLParser`, `TextParser`, `DOCXParser`를 자동 등록합니다.
 
 **BaseParser 추상 클래스:**
 - `extensions` ClassVar: 지원하는 파일 확장자 목록
@@ -128,31 +129,37 @@ All modules
 
 **커스텀 파서 추가 예제:**
 
+다음은 커스텀 파서 추가 예제입니다 (참고: DOCX 파서는 이미 내장되어 있습니다):
+
 ```python
 from slm_factory.parsers.base import BaseParser
 from slm_factory.models import ParsedDocument
 from slm_factory.parsers import registry
 
 @registry.register
-class DOCXParser(BaseParser):
-    """Microsoft Word 문서 파서"""
-    extensions = [".docx"]
+class CSVParser(BaseParser):
+    """CSV 파일 파서"""
+    extensions = [".csv"]
     
     def parse(self, path: Path) -> ParsedDocument:
-        from docx import Document
+        import csv
         
-        doc = Document(path)
-        text = "\n".join([para.text for para in doc.paragraphs])
+        with open(path, encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            rows = list(reader)
+        
+        # CSV를 텍스트로 변환
+        content = "\n".join([str(row) for row in rows])
         
         return ParsedDocument(
             doc_id=path.name,
             title=path.stem,
-            content=text,
-            metadata={"paragraphs": len(doc.paragraphs)}
+            content=content,
+            metadata={"rows": len(rows)}
         )
 ```
 
-등록 후 자동으로 `.docx` 파일이 파이프라인에서 처리됩니다.
+등록 후 자동으로 `.csv` 파일이 파이프라인에서 처리됩니다.
 
 ### 3.2 Factory 패턴 (teacher/)
 
@@ -324,6 +331,8 @@ tasks = [_bounded_task(item) for item in items]
 results = await asyncio.gather(*tasks, return_exceptions=True)
 ```
 
+또한 scorer, augmenter, qa_generator에 Rich Progress 바가 통합되어 대량 처리 시 실시간 진행 상황을 표시합니다.
+
 ### 3.6 통계 분석 패턴 (analyzer.py)
 
 Analyzer는 LLM 의존성 없이 순수 통계 분석을 수행합니다.
@@ -338,7 +347,7 @@ Analyzer는 LLM 의존성 없이 순수 통계 분석을 수행합니다.
 ### 4.1 Step 1: parse
 
 **입력:**
-- `documents/` 디렉토리 내 파일들 (PDF, HWPX, HTML, TXT 등)
+- `documents/` 디렉토리 내 파일들 (PDF, HWPX, HTML, TXT, DOCX 등)
 
 **처리 로직:**
 1. `ParserRegistry.parse_directory()` 호출
@@ -517,7 +526,9 @@ Analyzer는 LLM 의존성 없이 순수 통계 분석을 수행합니다.
 5. 각 QA 쌍에 1~5점 부여
 6. threshold(기본 3.0) 미만 제거
 
-**출력:** list[QAPair] (필터링됨)
+**출력:**
+- 타입: `list[QAPair]` (필터링됨)
+- 저장 파일: `qa_scored.json` (중간 저장, --resume으로 재개 가능)
 
 **에러 처리:** 점수 파싱 실패 시 기본값 3점 적용, 개별 평가 실패는 로그 후 건너뜀
 
@@ -533,7 +544,9 @@ Analyzer는 LLM 의존성 없이 순수 통계 분석을 수행합니다.
 5. 원본 질문을 num_variants(기본 2)개 패러프레이즈
 6. 증강된 QAPair에 is_augmented=True 설정
 
-**출력:** list[QAPair] (원본 + 증강)
+**출력:**
+- 타입: `list[QAPair]` (원본 + 증강)
+- 저장 파일: `qa_augmented.json` (중간 저장, --resume으로 재개 가능)
 
 **에러 처리:** 개별 패러프레이즈 실패는 로그 후 건너뜀
 
@@ -1205,6 +1218,9 @@ def train(self):
 | 양자화 활성화 | `training.quantization.enabled: true` 설정 | `project.yaml` | 매우 쉬움 |
 | 커스텀 프롬프트 | `questions.system_prompt` 또는 `student.system_prompt` 수정 | `project.yaml` | 매우 쉬움 |
 | Early Stopping 설정 | `training.early_stopping.enabled: true` + patience/threshold 조정 | `project.yaml` | 쉬움 |
+| `python -m` 실행 | `__main__.py` 자동 포함 | `__main__.py` | 매우 쉬움 |
+| 파이프라인 재개 | `--resume` 옵션으로 중간 파일에서 재개 | `cli.py` | 매우 쉬움 |
+| 설정 검증 | `slm-factory check` 명령 | `cli.py` | 매우 쉬움 |
 
 ### 7.1 확장 예제: 새 파서 추가
 

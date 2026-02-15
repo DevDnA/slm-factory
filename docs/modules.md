@@ -7,9 +7,10 @@
 ```
 src/slm_factory/
 ├── __init__.py              (4줄)     패키지 초기화 + 버전
+├── __main__.py              (7줄)     python -m slm_factory 진입점
 ├── config.py                (298줄)   설정 시스템
-├── cli.py                   (331줄)   CLI 인터페이스
-├── pipeline.py              (331줄)   파이프라인 오케스트레이터
+├── cli.py                   (~660줄)  CLI 인터페이스
+├── pipeline.py              (~464줄)  파이프라인 오케스트레이터
 ├── converter.py             (~265줄)  채팅 포맷터 (converter/ 통합)
 ├── models.py                (~37줄)   공유 데이터 모델 (QAPair, ParsedDocument)
 ├── utils.py                 (~30줄)   로깅 유틸리티 (utils/ 통합)
@@ -17,12 +18,13 @@ src/slm_factory/
 ├── augmenter.py             (119줄)   QA 데이터 증강
 ├── analyzer.py              (173줄)   학습 데이터 분석
 ├── parsers/
-│   ├── __init__.py          (24줄)    파서 레지스트리
+│   ├── __init__.py          (~30줄)   파서 레지스트리
 │   ├── base.py              (163줄)   기본 클래스
 │   ├── pdf.py               (165줄)   PDF 파서
 │   ├── hwpx.py              (181줄)   HWPX 파서
 │   ├── html.py              (180줄)   HTML 파서
-│   └── text.py              (101줄)   텍스트 파서
+│   ├── text.py              (101줄)   텍스트 파서
+│   └── docx.py              (143줄)   DOCX 파서
 ├── teacher/
 │   ├── __init__.py          (50줄)    팩토리 함수
 │   ├── base.py              (56줄)    기본 클래스
@@ -52,7 +54,7 @@ src/slm_factory/
 | converter | config, models, utils | transformers |
 | models | - | dataclasses |
 | utils | - | logging, rich |
-| parsers | models, utils | fitz, bs4, lxml, zipfile, pykospacing (선택) |
+| parsers | models, utils | fitz, bs4, lxml, zipfile, pykospacing (선택), python-docx (선택) |
 | teacher | config, models, utils | httpx |
 | validator | config, models, utils | sentence_transformers (선택) |
 | scorer | config, models, teacher, utils | - |
@@ -64,7 +66,7 @@ src/slm_factory/
 ### 1.3 데이터 흐름
 
 ```
-문서 파일 (PDF/HWPX/HTML/TXT)
+문서 파일 (PDF/HWPX/HTML/TXT/DOCX)
     ↓ parsers/
 ParsedDocument 객체 (models.py에서 정의)
     ↓ teacher/qa_generator.py
@@ -366,7 +368,7 @@ Pydantic v2의 강력한 타입 검증을 활용하여 런타임 에러를 사�
 
 ---
 
-## 3. cli.py — CLI 인터페이스 (331줄)
+## 3. cli.py — CLI 인터페이스 (~660줄)
 
 ### 3.1 역할
 
@@ -555,7 +557,66 @@ def version():
     console.print(f"slm-factory version {__version__}")
 ```
 
-### 3.5 진입점 설정
+#### 8. check — 설정 검증
+
+```python
+@app.command()
+def check(
+    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+) -> None:
+    """프로젝트 설정과 환경을 사전 점검합니다."""
+```
+
+**동작:**
+1. 설정 파일 로드 및 검증
+2. 문서 디렉토리 존재 확인
+3. 출력 디렉토리 생성 가능 여부 확인
+4. Ollama 연결 및 모델 존재 여부 확인
+5. Rich Table로 점검 결과 출력
+
+**점검 항목:**
+- ✓ 설정 파일 로드 성공
+- ✓ 문서 디렉토리 존재
+- ✓ 출력 디렉토리 접근 가능
+- ✓ Ollama 서버 연결
+- ✓ Teacher 모델 존재
+
+**사용 사례:**
+- 파이프라인 실행 전 환경 검증
+- 설정 오류 사전 발견
+- CI/CD 환경 검증
+
+### 3.5 --resume 옵션
+
+`run`, `score`, `augment`, `analyze`, `train` 명령어에 `--resume` / `-r` 옵션이 추가되었습니다.
+
+**동작:**
+중간 저장 파일을 순서대로 탐색하여 가장 최근 단계부터 재개합니다:
+
+1. `qa_augmented.json` → analyze 단계부터 재개
+2. `qa_scored.json` → augment 단계부터 재개
+3. `qa_alpaca.json` → score 단계부터 재개
+4. `parsed_documents.json` → generate 단계부터 재개
+5. 없으면 처음부터 실행
+
+**사용 예시:**
+```bash
+# 중단된 파이프라인 재개
+slm-factory run project.yaml --resume
+
+# 점수 평가부터 재개
+slm-factory score project.yaml -r
+
+# 증강부터 재개
+slm-factory augment project.yaml --resume
+```
+
+**장점:**
+- 긴 파이프라인 중단 시 처음부터 재실행 불필요
+- 비용 절감 (Teacher LLM API 호출 최소화)
+- 디버깅 효율성 향상
+
+### 3.6 진입점 설정
 
 `pyproject.toml`에서 CLI 진입점을 정의합니다:
 
@@ -566,7 +627,7 @@ slm-factory = "slm_factory.cli:app"
 
 설치 후 `slm-factory` 명령어로 직접 실행 가능합니다.
 
-### 3.6 에러 처리 패턴
+### 3.7 에러 처리 패턴
 
 모든 명령어는 일관된 에러 처리 패턴을 따릅니다:
 
@@ -586,7 +647,41 @@ slm-factory = "slm_factory.cli:app"
 
 ---
 
-## 4. pipeline.py — 파이프라인 오케스트레이터 (331줄)
+## 3.8 __main__.py (7줄)
+
+### 3.8.1 역할
+
+`python -m slm_factory` 실행을 위한 진입점입니다.
+
+```python
+"""python -m slm_factory 실행을 위한 진입점입니다."""
+
+from .cli import app
+
+if __name__ == "__main__":
+    app()
+```
+
+**사용 예시:**
+```bash
+# 패키지 모듈로 실행
+python -m slm_factory version
+python -m slm_factory run project.yaml
+python -m slm_factory check --config project.yaml
+
+# 설치된 명령어로 실행 (동일한 동작)
+slm-factory version
+slm-factory run project.yaml
+```
+
+**장점:**
+- 패키지가 설치되지 않아도 `python -m` 방식으로 실행 가능
+- 개발 중 테스트 시 유용
+- 표준 Python 패키지 실행 방식 지원
+
+---
+
+## 4. pipeline.py — 파이프라인 오케스트레이터 (~464줄)
 
 ### 4.1 역할
 
@@ -815,6 +910,8 @@ def run(self) -> Path:
 |------|------|------|
 | `parsed_documents.json` | 1 | 파싱 결과 검증, 재생성 없이 QA 생성 재시도 |
 | `qa_alpaca.json` | 2 | 생성된 QA 품질 확인, 검증 규칙 조정 |
+| `qa_scored.json` | 3a | 점수 평가 결과 보존, augment 단계 재개 |
+| `qa_augmented.json` | 3b | 증강 결과 보존, analyze 단계 재개 |
 | `training_data.jsonl` | 4 | 학습 데이터 직접 확인, 외부 도구로 분석 |
 
 **재개 시나리오:**
@@ -1217,9 +1314,98 @@ class TextParser(BaseParser):
         )
 ```
 
-### 5.6 __init__.py (24줄)
+### 5.6 docx.py (143줄)
 
 #### 5.6.1 역할
+
+python-docx를 사용하여 DOCX(Word) 파일에서 텍스트와 표를 추출합니다. 지연 임포트로 python-docx 미설치 시 명확한 에러를 표시합니다.
+
+#### 5.6.2 DOCXParser 클래스
+
+```python
+class DOCXParser(BaseParser):
+    """DOCX 문서를 파싱합니다."""
+    
+    extensions: ClassVar[list[str]] = [".docx"]
+    
+    def parse(self, path: Path) -> ParsedDocument:
+        """DOCX 파일을 파싱하여 ParsedDocument를 반환합니다."""
+        try:
+            from docx import Document  # 지연 임포트
+        except ImportError as exc:
+            raise ImportError(
+                "python-docx가 설치되지 않았습니다. "
+                "pip install slm-factory[docx] 로 설치하세요."
+            ) from exc
+        
+        # DOCX 파일 로드
+        doc = Document(str(path))
+        
+        # 텍스트 추출 (헤딩 스타일 자동 감지)
+        paragraphs = []
+        for para in doc.paragraphs:
+            text = para.text.strip()
+            if text:
+                # Heading 1 → # 제목, Heading 2 → ## 부제목
+                if para.style and para.style.name.startswith("Heading"):
+                    level = int(para.style.name[-1]) if para.style.name[-1].isdigit() else 1
+                    paragraphs.append(f"{'#' * level} {text}")
+                else:
+                    paragraphs.append(text)
+        
+        content = "\n\n".join(paragraphs)
+        
+        # 표를 마크다운 형식으로 변환
+        tables_md = []
+        for table in doc.tables:
+            rows = [[cell.text.strip() for cell in row.cells] for row in table.rows]
+            if rows:
+                header = "| " + " | ".join(rows[0]) + " |"
+                separator = "| " + " | ".join(["---"] * len(rows[0])) + " |"
+                body_lines = [
+                    "| " + " | ".join(row[: len(rows[0])]) + " |"
+                    for row in rows[1:]
+                ]
+                md_table = f"{header}\n{separator}\n" + "\n".join(body_lines)
+                tables_md.append(md_table)
+        
+        # 메타데이터 추출 (core_properties)
+        title = doc.core_properties.title or path.stem
+        metadata = {}
+        if doc.core_properties.author:
+            metadata["author"] = doc.core_properties.author
+        if doc.core_properties.created:
+            metadata["date"] = doc.core_properties.created.strftime("%Y-%m-%d")
+        
+        # 파일명에서 날짜 추출 시도
+        date_from_name = extract_date_from_filename(path.stem)
+        if date_from_name and "date" not in metadata:
+            metadata["date"] = date_from_name
+        
+        return ParsedDocument(
+            doc_id=path.name,
+            title=title,
+            content=content,
+            tables=tables_md,
+            metadata=metadata,
+        )
+```
+
+**주요 기능:**
+- **헤딩 스타일 자동 감지**: Heading 1 → `# 제목`, Heading 2 → `## 부제목`
+- **표 변환**: Word 표를 마크다운 형식으로 변환 (행 길이 패딩 포함)
+- **메타데이터 추출**: core_properties에서 제목, 작성자, 생성일 추출
+- **날짜 추출**: 파일명에서 YYMMDD 형식 날짜 자동 추출 (`extract_date_from_filename`)
+- **지연 임포트**: python-docx 미설치 시 ImportError with 설치 안내
+
+**에러 처리:**
+- `ImportError`: python-docx 미설치 시 명확한 설치 안내
+- `FileNotFoundError`: 파일이 없을 때
+- `RuntimeError`: DOCX 파일 파싱 실패 시
+
+### 5.7 __init__.py (~30줄)
+
+#### 5.7.1 역할
 
 전역 레지스트리를 생성하고 모든 파서를 등록합니다.
 
@@ -1229,6 +1415,7 @@ from .pdf import PDFParser
 from .hwpx import HWPXParser
 from .html import HTMLParser
 from .text import TextParser
+from .docx import DOCXParser
 
 # 전역 레지스트리 생성
 registry = ParserRegistry()
@@ -1238,6 +1425,7 @@ registry.register(PDFParser)
 registry.register(HWPXParser)
 registry.register(HTMLParser)
 registry.register(TextParser)
+registry.register(DOCXParser)
 
 __all__ = ["registry", "ParsedDocument"]
 ```
@@ -1247,6 +1435,7 @@ __all__ = ["registry", "ParsedDocument"]
 2. HWPXParser
 3. HTMLParser
 4. TextParser
+5. DOCXParser
 
 ---
 
@@ -3244,6 +3433,8 @@ SLM Factory는 29개 파일, 약 3,900줄의 코드로 구성된 모듈형 파�
 
 **핵심 모듈:**
 - **config.py**: 중앙 설정 시스템 (Pydantic 검증)
+- **cli.py**: CLI 인터페이스 (check, --resume 옵션 포함)
+- **__main__.py**: python -m 실행 진입점
 - **pipeline.py**: 9단계 오케스트레이터
 - **models.py**: 공유 데이터 모델 (QAPair, ParsedDocument)
 - **converter.py**: 채팅 템플릿 변환 (최상위 모듈)
@@ -3251,7 +3442,7 @@ SLM Factory는 29개 파일, 약 3,900줄의 코드로 구성된 모듈형 파�
 - **scorer.py**: QA 품질 점수 평가 (Teacher LLM 기반)
 - **augmenter.py**: QA 데이터 증강 (질문 패러프레이즈)
 - **analyzer.py**: 학습 데이터 분석 (통계 보고서)
-- **parsers/**: 4개 형식 지원 (PDF, HWPX, HTML, TXT)
+- **parsers/**: 5개 형식 지원 (PDF, HWPX, HTML, TXT, DOCX)
 - **teacher/**: 2개 백엔드 (Ollama, OpenAI 호환)
 - **validator/**: 규칙 + 임베딩 검증
 - **trainer/**: LoRA 파인튜닝 (DataLoader 통합)

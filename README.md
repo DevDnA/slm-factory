@@ -99,7 +99,7 @@ slm-factory는 "도메인 문서 → 파인튜닝된 SLM" 전환 과정을 완�
 
 ## 3. 주요 기능
 
-- **다중 형식 파싱**: PDF, HWPX(한글), HTML, TXT/MD 문서를 자동으로 파싱하여 텍스트와 표를 추출합니다
+- **다중 형식 파싱**: PDF, HWPX(한글), HTML, TXT/MD, DOCX(Word) 문서를 자동으로 파싱하여 텍스트와 표를 추출합니다
 - **유연한 Teacher LLM 백엔드**: Ollama(로컬 실행) 또는 OpenAI 호환 API를 Teacher 모델로 사용할 수 있습니다
 - **규칙 기반 + 임베딩 기반 QA 검증**: 생성된 QA 쌍의 품질을 자동으로 검증하고 필터링합니다
 - **Teacher LLM 기반 품질 점수 평가**: 생성된 QA 쌍을 Teacher LLM이 1~5점으로 평가하여 저품질 데이터를 자동으로 필터링합니다
@@ -108,6 +108,11 @@ slm-factory는 "도메인 문서 → 파인튜닝된 SLM" 전환 과정을 완�
 - **자동 채팅 템플릿 변환**: HuggingFace의 모든 대화형 모델을 지원하며, 각 모델의 채팅 템플릿을 자동으로 적용합니다
 - **LoRA 파인튜닝 + 조기 종료**: 효율적인 LoRA 학습과 조기 종료 기능으로 과적합을 방지합니다
 - **원클릭 Ollama 배포**: 학습된 모델을 Ollama Modelfile로 자동 변환하여 즉시 배포할 수 있습니다
+- **DOCX(Word) 파싱 지원**: python-docx를 사용하여 Word 문서의 텍스트, 표, 메타데이터를 자동 추출합니다
+- **설정 검증 명령어**: `slm-factory check` 명령으로 설정 파일, 문서 디렉토리, Ollama 연결을 사전 점검합니다
+- **파이프라인 재개**: `--resume` 옵션으로 중간 저장 파일에서 중단된 단계부터 재실행할 수 있습니다
+- **Rich 진행률 표시**: QA 생성, 품질 평가, 데이터 증강 시 실시간 진행 바를 표시합니다
+- **모듈 직접 실행**: `python -m slm_factory`로 패키지를 직접 실행할 수 있습니다
 
 ---
 
@@ -133,6 +138,7 @@ slm-factory는 "도메인 문서 → 파인튜닝된 SLM" 전환 과정을 완�
 | **Optional** | pykospacing | - | 한국어 띄어쓰기 교정 |
 | | sentence-transformers | >=2.6.0 | 의미적 유사도 검증 |
 | | pdfplumber | >=0.11.0 | 대체 PDF 파서 |
+| | python-docx | - | DOCX(Word) 파싱 |
 | | pytest | >=8.0 | 테스트 프레임워크 |
 
 ---
@@ -160,6 +166,9 @@ pip install -e ".[korean]"
 # 의미적 검증 (임베딩 기반 groundedness 체크)
 pip install -e ".[validation]"
 
+# DOCX(Word) 문서 처리
+pip install -e ".[docx]"
+
 # 개발 환경 (테스트 프레임워크 포함)
 pip install -e ".[dev]"
 ```
@@ -168,11 +177,12 @@ pip install -e ".[dev]"
 - **기본 설치**: PDF, HTML, TXT/MD 문서 파싱과 기본 학습 기능을 제공합니다
 - **korean**: HWPX(한글 문서) 파싱과 pykospacing을 통한 한국어 띄어쓰기 교정 기능을 추가합니다
 - **validation**: sentence-transformers를 설치하여 생성된 답변이 원본 문서에 근거하는지 의미적으로 검증합니다
+- **docx**: python-docx를 설치하여 Word 문서(.docx) 파싱 기능을 추가합니다
 - **dev**: pytest 등 개발 및 테스트 도구를 포함합니다
 
 여러 옵션을 동시에 설치하려면 쉼표로 구분하십시오:
 ```bash
-pip install -e ".[korean,validation]"
+pip install -e ".[korean,validation,docx]"
 ```
 
 ---
@@ -290,14 +300,15 @@ ollama run my-project-model
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|----------|
 | `init` | 새 프로젝트 초기화 | `--name` (필수), `--path` |
-| `run` | 전체 파이프라인 실행 | `--config` |
+| `run` | 전체 파이프라인 실행 | `--config`, `--resume` |
 | `parse` | 문서 파싱만 실행 | `--config` |
 | `generate` | 파싱 + QA 생성 | `--config` |
 | `validate` | 파싱 + 생성 + 검증 | `--config` |
-| `score` | 파싱 + 생성 + 검증 + 품질 평가 | `--config` |
-| `augment` | 파싱 + 생성 + 검증 + 평가 + 증강 | `--config` |
-| `analyze` | 파싱 + 생성 + 검증 + 평가 + 증강 + 분석 | `--config` |
-| `train` | 학습 단계 실행 | `--config`, `--data` |
+| `score` | 파싱 + 생성 + 검증 + 품질 평가 | `--config`, `--resume` |
+| `augment` | 파싱 + 생성 + 검증 + 평가 + 증강 | `--config`, `--resume` |
+| `analyze` | 파싱 + 생성 + 검증 + 평가 + 증강 + 분석 | `--config`, `--resume` |
+| `train` | 학습 단계 실행 | `--config`, `--data`, `--resume` |
+| `check` | 설정 및 환경 사전 점검 | `--config` |
 | `version` | 버전 정보 출력 | - |
 
 ---
@@ -536,6 +547,23 @@ Training complete! Adapter saved to: ./output/checkpoints/adapter
 
 ---
 
+### `check` - 설정 검증
+
+프로젝트 설정과 실행 환경을 사전 점검합니다.
+
+**사용법**: `slm-factory check --config project.yaml`
+
+점검 항목:
+- 설정 파일 로드 및 Pydantic 검증
+- 문서 디렉토리 존재 및 파일 유무
+- 출력 디렉토리 쓰기 권한
+- Ollama 서버 연결 (backend=ollama일 때)
+- Teacher 모델 사용 가능 여부
+
+모든 항목 통과 시 "모든 점검 통과!" 메시지와 함께 종료 코드 0을 반환합니다.
+
+---
+
 ### `version` - 버전 정보
 
 slm-factory의 현재 버전을 출력합니다.
@@ -560,6 +588,8 @@ slm-factory 0.1.0
 output/
 ├── parsed_documents.json       # 파싱된 문서 (디버깅 및 재개용)
 ├── qa_alpaca.json             # 생성된 QA 쌍 (Alpaca 형식)
+├── qa_scored.json             # 점수 평가된 QA 쌍 (재개용)
+├── qa_augmented.json          # 증강된 QA 쌍 (재개용)
 ├── data_analysis.json         # 데이터 분석 보고서
 ├── training_data.jsonl        # 채팅 템플릿 적용된 학습 데이터
 ├── checkpoints/
@@ -580,6 +610,10 @@ output/
 - **`parsed_documents.json`**: 원본 문서에서 추출한 텍스트, 표, 메타데이터를 JSON 형식으로 저장합니다. 파이프라인 재개 시 파싱 단계를 건너뛸 수 있습니다.
 
 - **`qa_alpaca.json`**: Teacher LLM이 생성한 질문-답변 쌍을 Alpaca 형식으로 저장합니다. 각 항목은 `instruction`, `input`, `output` 필드를 포함합니다.
+
+- **`qa_scored.json`**: 품질 점수 평가를 통과한 QA 쌍입니다. `--resume` 옵션으로 augment 단계부터 재개할 수 있습니다.
+
+- **`qa_augmented.json`**: 데이터 증강이 완료된 QA 쌍입니다. `--resume` 옵션으로 analyze 단계부터 재개할 수 있습니다.
 
 - **`data_analysis.json`**: QA 데이터의 통계 분석 보고서입니다. 카테고리 분포, 문서별 분포, 답변/질문 길이 통계, 데이터 품질 경고를 포함합니다.
 
@@ -928,6 +962,7 @@ slm-factory/
 ├── src/
 │   └── slm_factory/
 │       ├── __init__.py              # 패키지 초기화 및 버전 정보
+│       ├── __main__.py              # python -m slm_factory 진입점
 │       ├── cli.py                   # CLI 진입점 및 명령어 정의
 │       ├── config.py                # Pydantic 기반 설정 스키마
 │       ├── models.py                # 공유 데이터 모델 (QAPair, ParsedDocument)
@@ -943,7 +978,8 @@ slm-factory/
 │       │   ├── pdf.py               # PDF 파서 (PyMuPDF)
 │       │   ├── hwpx.py              # HWPX 파서 (한글 문서)
 │       │   ├── html.py              # HTML 파서 (BeautifulSoup)
-│       │   └── text.py              # TXT/MD 파서
+│       │   ├── text.py              # TXT/MD 파서
+│       │   └── docx.py              # DOCX 파서 (python-docx)
 │       ├── teacher/
 │       │   ├── __init__.py          # Teacher LLM 팩토리
 │       │   ├── base.py              # Teacher 기본 클래스

@@ -101,6 +101,7 @@ paths:
 | `html` | `.html`, `.htm` | `HTMLParser` | `beautifulsoup4` (기본 포함) |
 | `txt` | `.txt` | `TextParser` | 없음 |
 | `md` | `.md` | `TextParser` | 없음 |
+| `docx` | `.docx` | `DOCXParser` | `python-docx` (선택, `pip install slm-factory[docx]`) |
 
 ### 4.2 PDF 옵션 (`pdf`)
 
@@ -118,14 +119,14 @@ paths:
 
 ```yaml
 parsing:
-  formats: ["pdf", "hwpx", "html", "txt"]
-  pdf:
-    extract_tables: true
-  hwpx:
-    apply_spacing: true
+   formats: ["pdf", "hwpx", "html", "txt", "docx"]
+   pdf:
+     extract_tables: true
+   hwpx:
+     apply_spacing: true
 ```
 
-이 설정은 `documents/` 디렉토리 내 모든 PDF, HWPX, HTML, TXT 파일을 파싱합니다.
+이 설정은 `documents/` 디렉토리 내 모든 PDF, HWPX, HTML, TXT, DOCX 파일을 파싱합니다.
 
 ---
 
@@ -962,10 +963,29 @@ export:
 
 ## 부록: 설정 파일 검증
 
-설정 파일이 올바른지 확인하려면, 가장 가벼운 파이프라인 단계인 `parse`를 실행하여 설정 로딩이 정상적으로 수행되는지 확인할 수 있습니다:
+설정 파일이 올바른지 확인하려면 `check` 명령을 사용합니다:
 
 ```bash
-slm-factory parse --config project.yaml
+slm-factory check --config project.yaml
+```
+
+이 명령은 다음 항목을 자동으로 검증합니다:
+
+- **설정 파일**: YAML 로드 및 Pydantic 검증
+- **문서 디렉토리**: 존재 여부 및 파일 유무
+- **출력 디렉토리**: 쓰기 가능 여부
+- **Ollama 연결** (backend가 ollama일 때): 서버 연결 상태 및 모델 존재 여부
+
+검증 결과는 Rich Table로 표시되며, 모든 항목이 통과하면 종료 코드 0, 실패하면 1을 반환합니다.
+
+### 예시
+
+```bash
+$ slm-factory check --config project.yaml
+✓ Config file: Valid
+✓ Documents directory: Found (5 files)
+✓ Output directory: Writable
+✓ Ollama connection: Connected (model: qwen3:8b)
 ```
 
 설정 파일에 오류가 있으면(YAML 구문 오류, 잘못된 타입, 알 수 없는 필드 등) Pydantic 검증 단계에서 상세한 에러 메시지를 출력합니다.
