@@ -16,10 +16,27 @@ if TYPE_CHECKING:
 
 app = typer.Typer(
     name="slm-factory",
-    help="Teacher-Student Knowledge Distillation framework for domain-specific SLMs.",
-    no_args_is_help=True,
 )
 console = Console()
+
+
+@app.callback(invoke_without_command=True)
+def main_callback(
+    ctx: typer.Context,
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="디버그 로그를 표시합니다"),
+    quiet: bool = typer.Option(False, "--quiet", "-q", help="경고와 에러만 표시합니다"),
+) -> None:
+    """Teacher-Student Knowledge Distillation framework for domain-specific SLMs."""
+    if verbose:
+        import logging
+
+        logging.getLogger("slm_factory").setLevel(logging.DEBUG)
+    elif quiet:
+        import logging
+
+        logging.getLogger("slm_factory").setLevel(logging.WARNING)
+    if ctx.invoked_subcommand is None:
+        console.print(ctx.get_help())
 
 
 # ---------------------------------------------------------------------------
@@ -27,12 +44,28 @@ console = Console()
 # ---------------------------------------------------------------------------
 
 
+def _find_config(config_path: str) -> str:
+    p = Path(config_path)
+    if p.is_file():
+        return config_path
+
+    if p.name == "project.yaml":
+        for parent in [Path.cwd()] + list(Path.cwd().parents):
+            candidate = parent / "project.yaml"
+            if candidate.is_file():
+                return str(candidate)
+            if parent == Path.cwd().parent.parent:
+                break
+
+    return config_path
+
+
 def _load_pipeline(config_path: str) -> Pipeline:
-    """설정을 로드하고 Pipeline 인스턴스를 반환합니다."""
     from .config import load_config
     from .pipeline import Pipeline
     from .utils import setup_logging
 
+    config_path = _find_config(config_path)
     setup_logging()
 
     config = load_config(config_path)
@@ -528,8 +561,9 @@ def check(
     try:
         from .config import load_config
 
-        cfg = load_config(config)
-        table.add_row("설정 파일", "[green]OK[/green]", str(config))
+        resolved = _find_config(config)
+        cfg = load_config(resolved)
+        table.add_row("설정 파일", "[green]OK[/green]", str(resolved))
     except Exception as e:
         cfg = None
         table.add_row("설정 파일", "[red]FAIL[/red]", str(e))
@@ -640,6 +674,257 @@ def check(
         console.print("\n[bold green]모든 점검 통과![/bold green]\n")
     else:
         console.print("\n[bold yellow]일부 항목에 주의가 필요합니다.[/bold yellow]\n")
+        raise typer.Exit(code=1)
+
+
+@app.command()
+def status(
+    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+) -> None:
+    """파이프라인 진행 상태를 확인합니다."""
+    from rich.table import Table
+
+    from .config import load_config
+
+    try:
+        cfg = load_config(_find_config(config))
+    except Exception as e:
+        console.print(f"\n[bold red]오류:[/bold red] {e}")
+        raise typer.Exit(code=1)
+
+    output_dir = Path(cfg.paths.output)
+
+    stages: list[tuple[str, str, str]] = [
+        ("parse", "parsed_documents.json", "문서"),
+        ("generate", "qa_alpaca.json", "쌍"),
+        ("score", "qa_scored.json", "쌍"),
+        ("augment", "qa_augmented.json", "쌍"),
+        ("analyze", "data_analysis.json", "항목"),
+        ("convert", "training_data.jsonl", "줄"),
+        ("train", "checkpoints/adapter/", ""),
+        ("export", "merged_model/", ""),
+    ]
+
+    table = Table(title="파이프라인 진행 상태")
+    table.add_column("단계", style="cyan")
+    table.add_column("파일", style="dim")
+    table.add_column("상태", style="bold")
+    table.add_column("건수")
+
+    for stage_name, filename, unit in stages:
+        filepath = output_dir / filename.rstrip("/")
+        if filename.endswith("/"):
+            if filepath.is_dir():
+                table.add_row(stage_name, filename, "[green]존재[/green]", "디렉토리")
+            else:
+                table.add_row(stage_name, filename, "[red]없음[/red]", "-")
+        elif filename.endswith(".jsonl"):
+            if filepath.is_file():
+                line_count = sum(1 for _ in filepath.open(encoding="utf-8"))
+                table.add_row(
+                    stage_name, filename, "[green]존재[/green]",
+                    f"{line_count}개 {unit}",
+                )
+            else:
+                table.add_row(stage_name, filename, "[red]없음[/red]", "-")
+        elif filepath.is_file():
+            try:
+                data = json.loads(filepath.read_text(encoding="utf-8"))
+                count = len(data) if isinstance(data, list) else 1
+                table.add_row(
+                    stage_name, filename, "[green]존재[/green]",
+                    f"{count}개 {unit}",
+                )
+            except Exception:
+                table.add_row(stage_name, filename, "[green]존재[/green]", "?")
+        else:
+            table.add_row(stage_name, filename, "[red]없음[/red]", "-")
+
+    console.print()
+    console.print(table)
+
+    if (output_dir / "qa_augmented.json").is_file():
+        resume_stage = "analyze"
+    elif (output_dir / "qa_scored.json").is_file():
+        resume_stage = "augment"
+    elif (output_dir / "qa_alpaca.json").is_file():
+        resume_stage = "validate"
+    elif (output_dir / "parsed_documents.json").is_file():
+        resume_stage = "generate"
+    else:
+        resume_stage = "parse"
+
+    all_complete = all(
+        (output_dir / fn.rstrip("/")).exists() for _, fn, _ in stages
+    )
+    if all_complete:
+        console.print("\n[bold green]모든 단계가 완료되었습니다[/bold green]\n")
+    else:
+        console.print(
+            f"\n다음 [cyan]--resume[/cyan] 실행 시 "
+            f"[bold]{resume_stage}[/bold]부터 재개됩니다\n"
+        )
+
+
+@app.command()
+def clean(
+    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+    all_files: bool = typer.Option(False, "--all", help="모든 출력 파일을 삭제합니다"),
+) -> None:
+    """중간 생성 파일을 정리합니다."""
+    import shutil
+
+    from rich.table import Table
+
+    from .config import load_config
+
+    try:
+        cfg = load_config(_find_config(config))
+    except Exception as e:
+        console.print(f"\n[bold red]오류:[/bold red] {e}")
+        raise typer.Exit(code=1)
+
+    output_dir = Path(cfg.paths.output)
+
+    if all_files:
+        targets = list(output_dir.iterdir()) if output_dir.is_dir() else []
+    else:
+        intermediate_names = [
+            "qa_scored.json",
+            "qa_augmented.json",
+            "data_analysis.json",
+        ]
+        targets = [
+            output_dir / name
+            for name in intermediate_names
+            if (output_dir / name).exists()
+        ]
+
+    if not targets:
+        console.print("\n삭제할 파일이 없습니다.\n")
+        return
+
+    console.print("\n[bold]삭제 대상:[/bold]")
+    for t in targets:
+        console.print(f"  {t}")
+
+    typer.confirm("\n삭제하시겠습니까?", abort=True)
+
+    deleted: list[Path] = []
+    for t in targets:
+        if t.is_dir():
+            shutil.rmtree(t)
+            deleted.append(t)
+        elif t.is_file():
+            t.unlink()
+            deleted.append(t)
+
+    table = Table(title="삭제 결과")
+    table.add_column("파일", style="cyan")
+    table.add_column("상태", style="bold")
+    for d in deleted:
+        table.add_row(str(d), "[green]삭제됨[/green]")
+
+    console.print()
+    console.print(table)
+    console.print(f"\n[bold green]{len(deleted)}개 항목 삭제 완료[/bold green]\n")
+
+
+@app.command()
+def convert(
+    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+    data: Optional[str] = typer.Option(
+        None, "--data", help="QA 데이터 파일 경로 (qa_alpaca.json 또는 qa_augmented.json)"
+    ),
+) -> None:
+    """QA 데이터를 훈련용 JSONL 형식으로 변환합니다."""
+    try:
+        pipeline = _load_pipeline(config)
+        pipeline.config.paths.ensure_dirs()
+
+        if data is not None:
+            data_path = Path(data)
+            if not data_path.is_file():
+                console.print(
+                    f"\n[bold red]오류:[/bold red] 파일을 찾을 수 없음: {data_path}"
+                )
+                raise typer.Exit(code=1)
+            pairs = pipeline._load_pairs(data_path)
+        else:
+            output_dir = pipeline.output_dir
+            candidates = [
+                output_dir / "qa_augmented.json",
+                output_dir / "qa_scored.json",
+                output_dir / "qa_alpaca.json",
+            ]
+            data_path = None
+            for candidate in candidates:
+                if candidate.is_file():
+                    data_path = candidate
+                    break
+            if data_path is None:
+                console.print(
+                    "\n[bold red]오류:[/bold red] QA 데이터 파일을 찾을 수 없습니다"
+                )
+                raise typer.Exit(code=1)
+            console.print(f"[yellow]자동 감지:[/yellow] {data_path}")
+            pairs = pipeline._load_pairs(data_path)
+
+        training_data_path = pipeline.step_convert(pairs)
+
+        console.print(
+            f"\n[bold green]변환 완료![/bold green] "
+            f"훈련 데이터: [cyan]{training_data_path}[/cyan] ({len(pairs)}개 쌍)\n"
+        )
+
+    except FileNotFoundError as e:
+        console.print(f"\n[bold red]오류:[/bold red] {e}")
+        raise typer.Exit(code=1)
+    except Exception as e:
+        console.print(f"\n[bold red]변환 실패:[/bold red] {e}")
+        raise typer.Exit(code=1)
+
+
+@app.command(name="export")
+def export_model(
+    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+    adapter: Optional[str] = typer.Option(
+        None, "--adapter", help="어댑터 디렉토리 경로"
+    ),
+) -> None:
+    """훈련된 모델을 내보냅니다 (LoRA 병합 + Ollama Modelfile)."""
+    try:
+        pipeline = _load_pipeline(config)
+        pipeline.config.paths.ensure_dirs()
+
+        if adapter is not None:
+            adapter_path = Path(adapter)
+            if not adapter_path.is_dir():
+                console.print(
+                    f"\n[bold red]오류:[/bold red] 어댑터 디렉토리를 찾을 수 없음: {adapter_path}"
+                )
+                raise typer.Exit(code=1)
+        else:
+            adapter_path = pipeline.output_dir / "checkpoints" / "adapter"
+            if not adapter_path.is_dir():
+                console.print(
+                    f"\n[bold red]오류:[/bold red] 어댑터 디렉토리를 찾을 수 없음: {adapter_path}\n"
+                    "[dim]--adapter 옵션으로 경로를 지정하거나 train 명령을 먼저 실행하세요[/dim]"
+                )
+                raise typer.Exit(code=1)
+
+        model_dir = pipeline.step_export(adapter_path)
+
+        console.print(
+            f"\n[bold green]내보내기 완료![/bold green] "
+            f"모델 저장 위치: [cyan]{model_dir}[/cyan]\n"
+        )
+
+    except FileNotFoundError as e:
+        console.print(f"\n[bold red]오류:[/bold red] {e}")
+        raise typer.Exit(code=1)
+    except Exception as e:
+        console.print(f"\n[bold red]내보내기 실패:[/bold red] {e}")
         raise typer.Exit(code=1)
 
 
