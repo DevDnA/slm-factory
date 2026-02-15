@@ -79,11 +79,44 @@ def _get_error_hints(error: Exception) -> list[str]:
     ):
         return ["documents 디렉토리에 문서(PDF, TXT 등)를 추가하세요"]
 
+    if "cuda" in error_str or "out of memory" in error_str or "oom" in error_str:
+        return [
+            "GPU 메모리가 부족합니다. 다음을 시도하세요:",
+            "  training.batch_size를 줄이세요 (예: 2 또는 1)",
+            "  lora.r 값을 줄이세요 (예: 8)",
+            "  gradient_accumulation_steps를 늘리세요",
+        ]
+
+    if "model" in error_str and ("not found" in error_str or "does not exist" in error_str):
+        return [
+            "모델을 찾을 수 없습니다:",
+            "  Ollama 모델 확인: `ollama list`",
+            "  모델 다운로드: `ollama pull <모델명>`",
+            "  설정 파일의 teacher.model 또는 student.model을 확인하세요",
+        ]
+
+    if "permission" in error_str or "access denied" in error_str:
+        return [
+            "파일/디렉토리 접근 권한이 없습니다:",
+            "  출력 디렉토리의 쓰기 권한을 확인하세요",
+            "  `sudo` 없이 실행 중인지 확인하세요",
+        ]
+
+    if "disk" in error_str or "no space" in error_str:
+        return [
+            "디스크 공간이 부족합니다:",
+            "  `df -h`로 디스크 사용량을 확인하세요",
+            "  불필요한 체크포인트를 삭제하세요: `slm-factory clean`",
+        ]
+
     return ["--verbose 옵션으로 상세 로그를 확인하세요"]
 
 
 def _print_error(
-    title: str, error: Exception | str, hints: list[str] | None = None
+    title: str,
+    error: Exception | str,
+    hints: list[str] | None = None,
+    resume_cmd: str | None = None,
 ) -> None:
     """사용자 친화적 에러 메시지를 Rich Panel로 출력합니다."""
     from rich.panel import Panel
@@ -92,6 +125,8 @@ def _print_error(
     if hints:
         hint_lines = "\n".join(f"  → {hint}" for hint in hints)
         msg += f"\n\n[yellow]해결 방법:[/yellow]\n{hint_lines}"
+    if resume_cmd:
+        msg += f"\n\n[blue]재개하려면:[/blue]\n  [cyan]{resume_cmd}[/cyan]"
     console.print(Panel(msg, title="[red]오류[/red]", border_style="red"))
 
 
@@ -260,9 +295,18 @@ def init(
     """새로운 slm-factory 프로젝트를 초기화합니다."""
     from .config import create_default_config
 
+    from rich.prompt import Confirm
+
     project_dir = Path(path) / name
     documents_dir = project_dir / "documents"
     output_dir = project_dir / "output"
+    config_path = project_dir / "project.yaml"
+
+    if config_path.is_file():
+        console.print(f"\n[yellow]⚠[/yellow] 설정 파일이 이미 존재합니다: [cyan]{config_path}[/cyan]")
+        if not Confirm.ask("  덮어쓰시겠습니까?", default=False):
+            console.print("  [dim]취소됨[/dim]")
+            raise typer.Exit(code=0)
 
     project_dir.mkdir(parents=True, exist_ok=True)
     documents_dir.mkdir(parents=True, exist_ok=True)
@@ -274,7 +318,6 @@ def init(
         'model_name: "my-project-model"', f'model_name: "{name}-model"'
     )
 
-    config_path = project_dir / "project.yaml"
     config_path.write_text(config_content, encoding="utf-8")
 
     console.print(f"\n[green]✓[/green] 프로젝트 '{name}'가 생성되었습니다: [cyan]{project_dir}[/cyan]\n")
@@ -283,11 +326,13 @@ def init(
     console.print(f"  {documents_dir}/")
     console.print(f"  {output_dir}/")
     console.print(f"  {config_path}")
-    console.print(f"\n[bold]다음 단계:[/bold]")
+    console.print(f"\n[bold]사전 준비:[/bold]")
     console.print(f"  1. [cyan]{documents_dir}[/cyan] 디렉토리에 학습할 문서(PDF, TXT 등)를 추가하세요")
-    console.print(f"  2. Ollama를 실행하세요: [cyan]ollama serve[/cyan]")
+    console.print(f"  2. 별도 터미널에서 Ollama를 실행하세요: [cyan]ollama serve[/cyan]")
     console.print(f"  3. Teacher 모델을 다운로드하세요: [cyan]ollama pull qwen3:8b[/cyan]")
-    console.print(f"  4. wizard를 실행하세요: [cyan]slm-factory wizard --config {config_path}[/cyan]\n")
+    console.print(f"\n[bold]실행:[/bold]")
+    console.print(f"  4. 환경 점검: [cyan]slm-factory check --config {config_path}[/cyan]")
+    console.print(f"  5. wizard 실행: [cyan]slm-factory wizard --config {config_path}[/cyan]\n")
 
 
 @app.command(rich_help_panel="⚙️ 파이프라인")
@@ -781,9 +826,14 @@ def check(
     console.print()
     console.print(table)
     if all_ok:
-        console.print("\n[bold green]모든 점검 통과![/bold green]\n")
+        console.print("\n[bold green]모든 점검 통과![/bold green]")
+        console.print(f"  wizard 실행: [cyan]slm-factory wizard --config {resolved}[/cyan]\n")
     else:
-        console.print("\n[bold yellow]일부 항목에 주의가 필요합니다.[/bold yellow]\n")
+        console.print("\n[bold yellow]일부 항목에 주의가 필요합니다.[/bold yellow]")
+        console.print("\n[dim]일반적인 해결 방법:[/dim]")
+        console.print("  문서 추가  → documents/ 디렉토리에 PDF, TXT 등을 넣으세요")
+        console.print("  Ollama 실행 → 별도 터미널에서 [cyan]ollama serve[/cyan]")
+        console.print(f"  모델 다운로드 → [cyan]ollama pull {cfg.teacher.model}[/cyan]\n")
         raise typer.Exit(code=1)
 
 
@@ -1051,6 +1101,7 @@ def wizard(
         raise typer.Exit(code=1)
 
     pipeline.config.paths.ensure_dirs()
+    _resume_cmd = f"slm-factory wizard --resume --config {resolved}"
 
     # ── 재개 지점 감지 ────────────────────────────────────────────
     skip_to_step = 1
@@ -1147,7 +1198,7 @@ def wizard(
             docs = pipeline.step_parse(files=selected_files)
             console.print(f"  [green]✓[/green] {len(docs)}개 문서 파싱 완료")
         except Exception as e:
-            _print_error("파싱 실패", e, hints=_get_error_hints(e))
+            _print_error("파싱 실패", e, hints=_get_error_hints(e), resume_cmd=_resume_cmd)
             raise typer.Exit(code=1)
 
     # ── Step 4: QA 생성 ───────────────────────────────────────────
@@ -1194,7 +1245,7 @@ def wizard(
             pairs = pipeline.step_generate(docs)
             console.print(f"  [green]✓[/green] {len(pairs)}개 QA 쌍 생성 완료")
         except Exception as e:
-            _print_error("QA 생성 실패", e, hints=_get_error_hints(e))
+            _print_error("QA 생성 실패", e, hints=_get_error_hints(e), resume_cmd=_resume_cmd)
             raise typer.Exit(code=1)
 
     # ── Step 5: 검증 ──────────────────────────────────────────────
@@ -1213,7 +1264,7 @@ def wizard(
                 f"  [green]✓[/green] {len(pairs)}개 수락, {rejected}개 거부"
             )
         except Exception as e:
-            _print_error("검증 실패", e, hints=_get_error_hints(e))
+            _print_error("검증 실패", e, hints=_get_error_hints(e), resume_cmd=_resume_cmd)
             raise typer.Exit(code=1)
 
     # ── Step 6: 품질 평가 ─────────────────────────────────────────
@@ -1236,7 +1287,7 @@ def wizard(
                     f"{before - len(pairs)}개 제거"
                 )
             except Exception as e:
-                _print_error("점수 평가 실패", e, hints=_get_error_hints(e))
+                _print_error("점수 평가 실패", e, hints=_get_error_hints(e), resume_cmd=_resume_cmd)
                 raise typer.Exit(code=1)
         else:
             console.print("  [yellow]⏭ 건너뜀[/yellow]")
@@ -1263,7 +1314,7 @@ def wizard(
                     f"({len(pairs) - before}개 증강)"
                 )
             except Exception as e:
-                _print_error("증강 실패", e, hints=_get_error_hints(e))
+                _print_error("증강 실패", e, hints=_get_error_hints(e), resume_cmd=_resume_cmd)
                 raise typer.Exit(code=1)
         else:
             console.print("  [yellow]⏭ 건너뜀[/yellow]")
@@ -1282,7 +1333,7 @@ def wizard(
             f"  [green]✓[/green] 학습 데이터 변환 완료 ({len(pairs)}개 쌍)"
         )
     except Exception as e:
-        _print_error("변환 실패", e, hints=_get_error_hints(e))
+        _print_error("변환 실패", e, hints=_get_error_hints(e), resume_cmd=_resume_cmd)
         raise typer.Exit(code=1)
 
     if not Confirm.ask("  LoRA 학습을 진행하시겠습니까?", default=True):
@@ -1302,7 +1353,7 @@ def wizard(
         adapter_path = pipeline.step_train(training_data_path)
         console.print(f"  [green]✓[/green] 학습 완료: [cyan]{adapter_path}[/cyan]")
     except Exception as e:
-        _print_error("학습 실패", e, hints=_get_error_hints(e))
+        _print_error("학습 실패", e, hints=_get_error_hints(e), resume_cmd=_resume_cmd)
         raise typer.Exit(code=1)
 
     # ── Step 9: 내보내기 ──────────────────────────────────────────
@@ -1327,7 +1378,7 @@ def wizard(
             f"  [green]✓[/green] 내보내기 완료: [cyan]{model_dir}[/cyan]"
         )
     except Exception as e:
-        _print_error("내보내기 실패", e, hints=_get_error_hints(e))
+        _print_error("내보내기 실패", e, hints=_get_error_hints(e), resume_cmd=_resume_cmd)
         raise typer.Exit(code=1)
 
     # ── Step 10: 멀티턴 대화 생성 (선택) ────────────────────────────
