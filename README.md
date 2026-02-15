@@ -12,14 +12,16 @@
 - [4. 기술 스택](#4-기술-스택)
 - [5. 시스템 요구사항](#5-시스템-요구사항)
 - [6. 설치](#6-설치)
-- [7. 빠른 시작](#7-빠른-시작)
-- [8. CLI 명령어 레퍼런스](#8-cli-명령어-레퍼런스)
-- [9. 출력 파일 구조](#9-출력-파일-구조)
-- [10. 활용 예시](#10-활용-예시)
-- [11. 트러블슈팅](#11-트러블슈팅)
-- [12. 프로젝트 구조](#12-프로젝트-구조)
-- [13. 관련 문서](#13-관련-문서)
-- [14. 라이선스](#14-라이선스)
+- [7. 빠른 시작 (wizard)](#7-빠른-시작-wizard)
+- [8. 고급: 수동 파이프라인 실행](#8-고급-수동-파이프라인-실행)
+- [9. CLI 명령어 레퍼런스](#9-cli-명령어-레퍼런스)
+- [10. 출력 파일 구조](#10-출력-파일-구조)
+- [11. 활용 예시](#11-활용-예시)
+- [12. 트러블슈팅](#12-트러블슈팅)
+- [13. 프로젝트 구조](#13-프로젝트-구조)
+- [14. 관련 문서](#14-관련-문서)
+- [15. 라이선스](#15-라이선스)
+
 
 ---
 
@@ -109,7 +111,7 @@ slm-factory는 "도메인 문서 → 파인튜닝된 SLM" 전환 과정을 완�
 - **Rich 진행률 표시**: QA 생성, 품질 평가, 데이터 증강 시 실시간 진행 바를 표시합니다
 - **모듈 직접 실행**: `python -m slm_factory`로 패키지를 직접 실행할 수 있습니다
 - **편의 CLI 도구**: `status`로 진행 상태 확인, `clean`으로 중간 파일 정리, `convert`/`export` 단독 실행, `--verbose`/`--quiet` 로그 레벨 조절을 지원합니다
-- **대화형 파이프라인**: `wizard` 명령으로 단계별 확인하며 실행할 수 있습니다. 문서 선택, QA 생성, 증강, 학습을 대화형으로 진행합니다
+- **대화형 파이프라인 (권장)**: `wizard` 명령 하나로 문서 선택부터 모델 배포까지 단계별로 안내합니다. 처음 사용자는 wizard만 실행하면 됩니다
 
 ---
 
@@ -162,33 +164,56 @@ slm-factory --install-completion
 
 ---
 
-## 7. 빠른 시작
+## 7. 빠른 시작 (wizard)
 
-다음 5단계로 첫 번째 도메인 특화 모델을 생성할 수 있습니다:
-
-### 1. 프로젝트 초기화
+3단계로 첫 번째 도메인 특화 모델을 생성할 수 있습니다:
 
 ```bash
+# 1. 프로젝트 생성
 slm-factory init --name my-project
+
+# 2. 학습할 문서를 넣기
+cp /path/to/your/documents/*.pdf my-project/documents/
+
+# 3. wizard 실행 — 이후는 안내에 따라 진행
+slm-factory wizard --config my-project/project.yaml
 ```
 
-이 명령은 다음 구조를 생성합니다:
-```
-my-project/
-├── documents/       # 학습할 문서를 여기에 추가
-├── output/          # 파이프라인 출력물 저장
-└── project.yaml     # 설정 파일
-```
+wizard가 다음을 순서대로 안내합니다:
 
-### 2. 문서 추가
+1. 설정 파일 확인
+2. 문서 선택 (전체 또는 개별)
+3. 문서 파싱
+4. QA 쌍 생성 (확인 후 진행)
+5. QA 검증
+6. 품질 점수 평가 (선택)
+7. 데이터 증강 (선택)
+8. LoRA 학습 (확인 후 진행)
+9. 모델 내보내기 (확인 후 진행)
 
-학습할 도메인 문서를 `my-project/documents/` 디렉토리에 복사합니다:
+각 단계에서 건너뛰기를 선택하면, 나중에 실행할 명령어를 알려줍니다.
+
+> **사전 준비**: wizard 실행 전 Ollama 서버와 Teacher 모델이 필요합니다:
+> ```bash
+> ollama serve          # 별도 터미널에서 실행
+> ollama pull qwen3:8b  # Teacher 모델 다운로드
+> ```
+
+완료 후 생성된 모델을 테스트합니다:
 
 ```bash
-cp /path/to/your/documents/*.pdf my-project/documents/
+cd my-project/output/merged_model
+ollama create my-project-model -f Modelfile
+ollama run my-project-model
 ```
 
-### 3. 설정 편집
+---
+
+## 8. 고급: 수동 파이프라인 실행
+
+wizard 없이 각 단계를 직접 제어하려면 `run` 명령을 사용합니다.
+
+### 설정 편집
 
 `my-project/project.yaml` 파일을 열어 필요한 설정을 수정합니다:
 
@@ -204,73 +229,29 @@ export:
     model_name: "my-project-model"  # 배포할 모델 이름
 ```
 
-> **Tip**: `slm-factory check --config my-project/project.yaml`으로 설정과 환경을 사전 점검할 수 있습니다. `--config`를 생략하면 현재 디렉토리에서 `project.yaml`을 자동으로 검색합니다.
-
-### 4. Ollama 실행 및 Teacher 모델 다운로드
-
-별도 터미널에서 Ollama 서버를 실행하고 Teacher 모델을 다운로드합니다:
-
-```bash
-# 터미널 1: Ollama 서버 실행
-ollama serve
-
-# 터미널 2: Teacher 모델 다운로드
-ollama pull qwen3:8b
-```
-
-### 5. 파이프라인 실행
+### 전체 파이프라인 한 번에 실행
 
 ```bash
 slm-factory run --config my-project/project.yaml
 ```
 
-**예상 출력**:
-```
-slm-factory — Starting full pipeline...
+### 단계별 실행
 
-Parsing documents in ./my-project/documents (formats: ['.pdf', '.txt', '.html'])
-Parsed 5 documents — saved debug output to ./my-project/output/parsed_documents.json
-
-Generating QA pairs from 5 documents...
-Generated 150 QA pairs
-
-Validating 150 QA pairs...
-Rule validation: 142 accepted, 8 rejected
-Validation complete — 142 pairs accepted
-
-Converting 142 QA pairs to training format...
-Training data saved to ./my-project/output/training_data.jsonl
-
-Loading training data from ./my-project/output/training_data.jsonl
-Starting LoRA training...
-[Training progress bars...]
-Training complete — adapter at ./my-project/output/checkpoints/adapter
-
-Exporting model from adapter...
-Generating Ollama Modelfile...
-Export complete — model at ./my-project/output/merged_model
-
-Pipeline complete! Model saved to: ./my-project/output/merged_model
-```
-
-### 6. 모델 테스트
-
-생성된 모델을 Ollama로 테스트합니다:
+개별 단계만 실행할 수도 있습니다:
 
 ```bash
-# Ollama에 모델 등록
-cd my-project/output/merged_model
-ollama create my-project-model -f Modelfile
-
-# 모델 실행
-ollama run my-project-model
+slm-factory parse --config my-project/project.yaml      # 문서 파싱만
+slm-factory generate --config my-project/project.yaml    # 파싱 + QA 생성
+slm-factory validate --config my-project/project.yaml    # + 검증
+slm-factory train --config my-project/project.yaml       # 학습
+slm-factory export --config my-project/project.yaml      # 모델 내보내기
 ```
 
-이제 도메인 문서를 학습한 특화 모델과 대화할 수 있습니다!
+> **Tip**: `slm-factory check --config my-project/project.yaml`으로 설정과 환경을 사전 점검할 수 있습니다.
 
 ---
 
-## 8. CLI 명령어 레퍼런스
+## 9. CLI 명령어 레퍼런스
 
 ### 명령어 요약
 
@@ -278,6 +259,7 @@ ollama run my-project-model
 
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|----------|
+| **`wizard`** | **대화형 파이프라인 (권장)** | `--config` |
 | `init` | 새 프로젝트 초기화 | `--name` (필수), `--path` |
 | `run` | 전체 파이프라인 실행 | `--config`, `--resume` |
 | `parse` | 문서 파싱만 실행 | `--config` |
@@ -292,8 +274,31 @@ ollama run my-project-model
 | `convert` | QA 데이터를 훈련용 JSONL로 변환 | `--config`, `--data` |
 | `export` | 훈련된 모델 내보내기 (LoRA 병합) | `--config`, `--adapter` |
 | `check` | 설정 및 환경 사전 점검 | `--config` |
-| `wizard` | 대화형 파이프라인 (단계별 안내) | `--config` |
 | `version` | 버전 정보 출력 | - |
+
+---
+
+### `wizard` - 대화형 파이프라인 (권장)
+
+전체 파이프라인을 단계별로 안내하며 대화형으로 실행합니다. 각 단계에서 사용자의 확인을 받고, 선택적 단계(품질 평가, 데이터 증강)는 건너뛸 수 있습니다.
+
+**사용법**:
+```bash
+slm-factory wizard [--config <설정파일경로>]
+```
+
+**진행 단계**:
+1. 설정 파일 로드 (자동 탐색 또는 직접 입력)
+2. 문서 선택 (전체 또는 개별 선택)
+3. 문서 파싱 (자동 진행)
+4. QA 쌍 생성 (확인 후 진행)
+5. QA 검증 (자동 진행)
+6. 품질 점수 평가 (선택)
+7. 데이터 증강 (선택)
+8. LoRA 학습 (확인 후 진행)
+9. 모델 내보내기 (확인 후 진행)
+
+각 단계에서 "건너뜀"을 선택하면 해당 단계의 결과물 경로와 나중에 실행할 명령어를 안내합니다.
 
 ---
 
@@ -604,30 +609,6 @@ QA 데이터를 훈련용 JSONL 형식으로 변환합니다. 파이프라인 �
 
 ---
 
-### `wizard` - 대화형 파이프라인
-
-전체 파이프라인을 단계별로 안내하며 대화형으로 실행합니다. 각 단계에서 사용자의 확인을 받고, 선택적 단계(품질 평가, 데이터 증강)는 건너뛸 수 있습니다.
-
-**사용법**:
-```bash
-slm-factory wizard [--config <설정파일경로>]
-```
-
-**진행 단계**:
-1. 설정 파일 로드 (자동 탐색 또는 직접 입력)
-2. 문서 선택 (전체 또는 개별 선택)
-3. 문서 파싱 (자동 진행)
-4. QA 쌍 생성 (확인 후 진행)
-5. QA 검증 (자동 진행)
-6. 품질 점수 평가 (선택)
-7. 데이터 증강 (선택)
-8. LoRA 학습 (확인 후 진행)
-9. 모델 내보내기 (확인 후 진행)
-
-각 단계에서 "건너뜀"을 선택하면 해당 단계의 결과물 경로와 나중에 실행할 명령어를 안내합니다.
-
----
-
 ### `version` - 버전 정보
 
 slm-factory의 현재 버전을 출력합니다.
@@ -644,7 +625,7 @@ slm-factory 0.1.0
 
 ---
 
-## 9. 출력 파일 구조
+## 10. 출력 파일 구조
 
 파이프라인 실행 후 `output/` 디렉토리에 다음 파일들이 생성됩니다:
 
@@ -689,7 +670,7 @@ output/
 
 ---
 
-## 10. 활용 예시
+## 11. 활용 예시
 
 ### 예시 1: 한국어 정책 문서(HWPX) → 정책 전문 모델
 
@@ -836,7 +817,7 @@ slm-factory train --config project.yaml --data ./custom_qa.jsonl
 
 ---
 
-## 11. 트러블슈팅
+## 12. 트러블슈팅
 
 ### 1. Ollama 연결 실패
 
@@ -1013,7 +994,7 @@ questions:
 
 ---
 
-## 12. 프로젝트 구조
+## 13. 프로젝트 구조
 
 ```
 slm-factory/
@@ -1069,7 +1050,7 @@ slm-factory/
 
 ---
 
-## 13. 관련 문서
+## 14. 관련 문서
 
 프로젝트에 대한 더 자세한 정보는 다음 문서를 참조하십시오:
 
@@ -1079,7 +1060,7 @@ slm-factory/
 
 ---
 
-## 14. 라이선스
+## 15. 라이선스
 
 이 프로젝트의 라이선스는 추후 결정됩니다.
 
