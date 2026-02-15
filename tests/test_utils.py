@@ -1,13 +1,15 @@
 """유틸리티(utils.py)의 단위 테스트입니다."""
 
+import asyncio
 import hashlib
 import logging
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 
 import slm_factory.utils as utils_module
-from slm_factory.utils import compute_file_hash, get_logger, setup_logging
+from slm_factory.utils import compute_file_hash, get_logger, run_bounded, setup_logging
 
 
 class TestSetupLogging:
@@ -126,3 +128,75 @@ class TestComputeFileHash:
         """존재하지 않는 파일이면 FileNotFoundError가 발생하는지 확인합니다."""
         with pytest.raises(FileNotFoundError):
             compute_file_hash(tmp_path / "nonexistent.txt")
+
+
+# ---------------------------------------------------------------------------
+# run_bounded
+# ---------------------------------------------------------------------------
+
+
+class TestRunBounded:
+    """run_bounded 함수의 테스트입니다."""
+
+    def test_반환값_전파(self):
+        """코루틴의 반환값이 그대로 전파되는지 확인합니다."""
+
+        async def _coro():
+            return 42
+
+        progress = MagicMock()
+        sem = asyncio.Semaphore(1)
+
+        result = asyncio.run(run_bounded(sem, _coro(), progress, task_id=0))
+
+        assert result == 42
+
+    def test_진행률_갱신(self):
+        """실행 후 progress.advance가 호출되는지 확인합니다."""
+
+        async def _coro():
+            return "ok"
+
+        progress = MagicMock()
+        sem = asyncio.Semaphore(1)
+
+        asyncio.run(run_bounded(sem, _coro(), progress, task_id=7))
+
+        progress.advance.assert_called_once_with(7)
+
+    def test_세마포어_동시성_제한(self):
+        """세마포어가 동시 실행 수를 제한하는지 확인합니다."""
+        max_concurrent = 0
+        current = 0
+
+        async def _track():
+            nonlocal max_concurrent, current
+            current += 1
+            if current > max_concurrent:
+                max_concurrent = current
+            await asyncio.sleep(0.01)
+            current -= 1
+            return True
+
+        async def _run():
+            sem = asyncio.Semaphore(2)
+            progress = MagicMock()
+            tasks = [run_bounded(sem, _track(), progress, task_id=0) for _ in range(6)]
+            return await asyncio.gather(*tasks)
+
+        results = asyncio.run(_run())
+
+        assert all(results)
+        assert max_concurrent <= 2
+
+    def test_예외_전파(self):
+        """코루틴이 예외를 발생시키면 그대로 전파되는지 확인합니다."""
+
+        async def _fail():
+            raise ValueError("의도된 오류")
+
+        progress = MagicMock()
+        sem = asyncio.Semaphore(1)
+
+        with pytest.raises(ValueError, match="의도된 오류"):
+            asyncio.run(run_bounded(sem, _fail(), progress, task_id=0))

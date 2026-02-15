@@ -3,7 +3,7 @@
 from pathlib import Path
 
 from slm_factory.models import ParsedDocument
-from slm_factory.parsers.base import BaseParser, ParserRegistry, extract_date_from_filename
+from slm_factory.parsers.base import BaseParser, ParserRegistry, extract_date_from_filename, rows_to_markdown
 
 
 # ---------------------------------------------------------------------------
@@ -157,3 +157,61 @@ class TestParserRegistry:
 
         assert len(result) == 1
         assert result[0].doc_id == "doc1.dummy"
+
+
+# ---------------------------------------------------------------------------
+# rows_to_markdown
+# ---------------------------------------------------------------------------
+
+
+class TestRowsToMarkdown:
+    """rows_to_markdown 함수의 테스트입니다."""
+
+    def test_빈_리스트(self):
+        """빈 리스트가 주어지면 빈 문자열을 반환하는지 확인합니다."""
+        assert rows_to_markdown([]) == ""
+
+    def test_헤더만_있는_빈_행(self):
+        """헤더 행의 셀이 모두 빈 리스트이면 빈 문자열을 반환하는지 확인합니다."""
+        assert rows_to_markdown([[]]) == ""
+
+    def test_단일_행_헤더만(self):
+        """헤더만 있고 데이터 행이 없는 경우 올바른 마크다운을 반환하는지 확인합니다."""
+        result = rows_to_markdown([["이름", "나이"]])
+        lines = result.split("\n")
+        assert len(lines) == 2
+        assert "이름" in lines[0]
+        assert "나이" in lines[0]
+        assert "---" in lines[1]
+
+    def test_여러_행(self):
+        """헤더와 데이터 행이 모두 있는 경우 올바른 마크다운 테이블을 생성하는지 확인합니다."""
+        result = rows_to_markdown([
+            ["A", "B"],
+            ["1", "2"],
+            ["3", "4"],
+        ])
+        lines = result.split("\n")
+        assert len(lines) == 4  # 헤더 + 구분선 + 2 데이터
+        assert lines[0] == "| A | B |"
+        assert lines[1] == "| --- | --- |"
+        assert lines[2] == "| 1 | 2 |"
+        assert lines[3] == "| 3 | 4 |"
+
+    def test_열_수_부족_패딩(self):
+        """데이터 행의 열 수가 헤더보다 적으면 빈 문자열로 패딩하는지 확인합니다."""
+        result = rows_to_markdown([
+            ["A", "B", "C"],
+            ["1"],
+        ])
+        lines = result.split("\n")
+        assert lines[2] == "| 1 |  |  |"
+
+    def test_열_수_초과_자름(self):
+        """데이터 행의 열 수가 헤더보다 많으면 헤더 열 수에 맞게 자르는지 확인합니다."""
+        result = rows_to_markdown([
+            ["A", "B"],
+            ["1", "2", "3", "4"],
+        ])
+        lines = result.split("\n")
+        assert lines[2] == "| 1 | 2 |"

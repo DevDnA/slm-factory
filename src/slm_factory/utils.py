@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     import asyncio
     from collections.abc import Awaitable
 
+    import httpx
     from rich.progress import Progress
 
 T = TypeVar("T")
@@ -63,3 +64,20 @@ async def run_bounded(
         result = await coro
         progress.advance(task_id)
         return result
+
+
+async def ollama_generate(
+    client: httpx.AsyncClient,
+    api_base: str,
+    model_name: str,
+    question: str,
+    timeout: float,
+) -> str:
+    """Ollama /api/generate 엔드포인트로 답변을 생성합니다."""
+    resp = await client.post(
+        f"{api_base}/api/generate",
+        json={"model": model_name, "prompt": question, "stream": False},
+        timeout=timeout,
+    )
+    resp.raise_for_status()
+    return resp.json().get("response", "")

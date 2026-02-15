@@ -100,16 +100,17 @@ class TestFindLlamaCpp:
         ):
             pass
 
-    def test_PATH에서_발견(self, make_config, mocker):
+    def test_PATH에서_발견(self, make_config, mocker, tmp_path):
         exporter = _make_gguf_exporter(make_config)
 
-        mocker.patch("shutil.which", return_value="/usr/bin/convert_hf_to_gguf.py")
+        fake_script = tmp_path / "convert_hf_to_gguf.py"
+        mocker.patch("shutil.which", return_value=str(fake_script))
 
-        common_paths_exist = mocker.patch.object(Path, "is_dir", return_value=False)
+        mocker.patch.object(Path, "is_dir", return_value=False)
 
         result = exporter._find_llama_cpp()
 
-        assert result == Path("/usr/bin")
+        assert result == tmp_path
 
     def test_어디서도_못찾으면_에러(self, make_config, mocker):
         exporter = _make_gguf_exporter(make_config)

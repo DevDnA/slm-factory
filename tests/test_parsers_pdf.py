@@ -17,6 +17,11 @@ from slm_factory.parsers.pdf import PDFParser, _clean_page_numbers, _table_to_ma
 # 맑은고딕 폰트 경로 (WSL 환경에서 Windows 폰트 참조)
 _MALGUN_FONT = "/mnt/c/Windows/Fonts/malgun.ttf"
 
+pytestmark = pytest.mark.skipif(
+    not Path(_MALGUN_FONT).exists(),
+    reason="맑은고딕 폰트 없음 (WSL 환경 전용 테스트)",
+)
+
 
 # ---------------------------------------------------------------------------
 # fixture: 실제 PDF 파일 생성 헬퍼

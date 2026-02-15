@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 from .evaluator import _load_bleu, _load_rouge
 from .models import CompareResult, QAPair
-from .utils import get_logger, run_bounded
+from .utils import get_logger, ollama_generate, run_bounded
 
 logger = get_logger("comparator")
 
@@ -33,14 +33,7 @@ class ModelComparator:
         self.max_concurrency = config.teacher.max_concurrency
 
     async def _generate(self, client: httpx.AsyncClient, model_name: str, question: str) -> str:
-        """Ollama API로 답변을 생성합니다."""
-        resp = await client.post(
-            f"{self.api_base}/api/generate",
-            json={"model": model_name, "prompt": question, "stream": False},
-            timeout=self.timeout,
-        )
-        resp.raise_for_status()
-        return resp.json().get("response", "")
+        return await ollama_generate(client, self.api_base, model_name, question, self.timeout)
 
     def _compute_scores(self, reference: str, base_answer: str, finetuned_answer: str) -> dict[str, float]:
         """Base 모델과 Fine-tuned 모델 답변의 점수를 계산합니다."""
