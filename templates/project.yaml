@@ -1,0 +1,138 @@
+# slm-factory 프로젝트 설정 파일
+# 전체 파이프라인: parse → generate QA → validate → convert → train → export
+
+project:
+  name: "my-project"
+  version: "1.0.0"
+  language: "en"                        # "en", "ko", "ja" 등 문서 언어 코드
+
+paths:
+  documents: "./documents"              # 입력 문서 디렉토리
+  output: "./output"                    # 모든 출력물이 저장되는 디렉토리
+
+# -- 1단계: 문서 파싱(Document Parsing) ------------------------------------
+parsing:
+  formats: ["pdf"]                      # pdf, hwpx, html, txt, md 지원
+  pdf:
+    extract_tables: true
+  hwpx:
+    apply_spacing: true                 # 필수 설치: pip install slm-factory[korean]
+
+# -- 2단계: QA 생성(QA Generation) -----------------------------------------
+teacher:
+  backend: "ollama"                     # "ollama" | "openai" (vLLM은 openai 백엔드 사용)
+  model: "qwen3:8b"
+  api_base: "http://localhost:11434"
+  api_key: null                         # openai 백엔드 사용 시 필수
+  temperature: 0.3
+  timeout: 180
+  max_context_chars: 12000
+  max_concurrency: 4                    # 동시 요청 수. Ollama: 1~2, vLLM: 8~16 권장
+
+questions:
+  categories:
+    overview:
+      - "What is the main purpose of this document?"
+      - "What problem does this aim to solve?"
+      - "Who are the target users or beneficiaries?"
+      - "What are the key changes or innovations described?"
+      - "What is the scope and limitations?"
+    technical:
+      - "What are the key technical details or specifications?"
+      - "What technologies, methods, or tools are described?"
+      - "What are the system requirements?"
+      - "How does this compare to existing alternatives?"
+      - "What are the performance metrics or benchmarks?"
+    implementation:
+      - "What is the timeline or schedule?"
+      - "What resources (budget, personnel, infrastructure) are required?"
+      - "What are the step-by-step implementation procedures?"
+      - "What risks or challenges are anticipated?"
+      - "What are the expected outcomes or deliverables?"
+    # 파일에서 질문을 불러오려면 아래 주석 해제:
+    # file: "./questions.txt"
+
+  system_prompt: >
+    You are a helpful assistant that answers questions based strictly on the
+    provided document. Answer only from the document content. Do not speculate
+    or fabricate information. Be concise and factual. Include specific numbers,
+    dates, and names when available. If the document does not contain relevant
+    information, say "The document does not contain this information."
+
+  output_format: "alpaca"
+
+# -- 3단계: QA 검증(QA Validation) -----------------------------------------
+validation:
+  enabled: true
+  min_answer_length: 20
+  max_answer_length: 2000
+  remove_empty: true
+  deduplicate: true
+  reject_patterns:
+    - "(?i)i don't know"
+    - "(?i)not (available|provided|mentioned|found)"
+    - "(?i)the document does not contain"
+  groundedness:
+    enabled: false                      # 필수 설치: pip install slm-factory[validation]
+    model: "all-MiniLM-L6-v2"
+    threshold: 0.3
+
+# -- 3a단계: 품질 점수 평가(Quality Scoring) --------------------------------
+scoring:
+  enabled: false                      # true로 설정 시 Teacher LLM이 QA 쌍을 1~5점으로 평가
+  threshold: 3.0                      # 이 점수 미만의 QA 쌍은 제거됩니다
+  max_concurrency: 4                  # 동시 평가 요청 수
+
+# -- 3b단계: 데이터 증강(Data Augmentation) ---------------------------------
+augment:
+  enabled: false                      # true로 설정 시 질문 패러프레이즈로 데이터 증강
+  num_variants: 2                     # 질문당 생성할 패러프레이즈 변형 수
+  max_concurrency: 4                  # 동시 증강 요청 수
+
+# -- 3c단계: 데이터 분석(Data Analysis) ------------------------------------
+analyzer:
+  enabled: true                       # QA 쌍 통계 보고서를 생성합니다
+  output_file: "data_analysis.json"   # 분석 보고서 저장 파일명
+
+# -- 4·5단계: 학생 모델(Student Model) + 학습(Training) --------------------
+student:
+  model: "google/gemma-3-1b-it"         # HuggingFace의 Causal LM 모델 지정
+  max_seq_length: 4096
+
+training:
+  lora:
+    r: 16
+    alpha: 32
+    dropout: 0.05
+    target_modules: "auto"              # "auto" 또는 ["q_proj", "v_proj"] 등 직접 지정
+    use_rslora: false
+  batch_size: 4
+  gradient_accumulation_steps: 4
+  learning_rate: 2.0e-5
+  lr_scheduler: "cosine"
+  warmup_ratio: 0.1
+  num_epochs: 20
+  early_stopping:
+    enabled: true
+    patience: 3
+    threshold: 0.01
+  optimizer: "adamw_torch_fused"
+  bf16: true
+  train_split: 0.9
+  save_strategy: "epoch"
+  quantization:
+    enabled: false
+    bits: 4
+
+# -- 6단계: 모델 내보내기(Export) -------------------------------------------
+export:
+  merge_lora: true
+  output_format: "safetensors"
+  ollama:
+    enabled: true
+    model_name: "my-project-model"
+    system_prompt: "You are a helpful domain-specific assistant."
+    parameters:
+      temperature: 0.7
+      top_p: 0.9
+      num_ctx: 4096

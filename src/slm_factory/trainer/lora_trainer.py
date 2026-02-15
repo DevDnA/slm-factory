@@ -1,0 +1,316 @@
+"""HuggingFace TRL의 SFTTrainer를 이용한 LoRA(Low-Rank Adaptation) 미세 조정.
+
+학생 모델에 LoRA 어댑터를 적용하고, 조기 종료(Early Stopping)와
+코사인 학습률 스케줄링으로 학습한 후 어댑터 가중치를 저장합니다.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from ..config import SLMConfig
+
+from ..utils import get_logger
+
+logger = get_logger("trainer.lora_trainer")
+
+
+class LoRATrainer:
+    """LoRA(Low-Rank Adaptation) 미세 조정 오케스트레이터.
+
+    HuggingFace TRL의 SFTTrainer를 적절한 LoRA 설정, 조기 종료,
+    그리고 설정의 모든 학습 하이퍼파라미터로 감싸서 제공합니다.
+    """
+
+    def __init__(self, config: SLMConfig):
+        self.config = config
+        self.student_config = config.student
+        self.training_config = config.training
+        self.lora_config = config.training.lora
+        self.output_dir = Path(config.paths.output) / "checkpoints"
+
+    def _load_model(self) -> tuple[Any, Any]:
+        """학생 모델과 토크나이저를 로드합니다.
+
+        설정에서 활성화된 경우 BitsAndBytes를 통해 4비트 양자화를 적용합니다.
+
+        반환값
+        -------
+        tuple[model, tokenizer]
+            로드된 인과 언어 모델(Causal LM)과 그 토크나이저.
+        """
+        from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+        import torch
+
+        model_name = self.student_config.model
+
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_name, trust_remote_code=True
+        )
+        tokenizer.padding_side = "right"
+
+        quantization_config = None
+        quant_cfg = self.training_config.quantization
+        if quant_cfg.enabled:
+            quantization_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch.bfloat16,
+            )
+            logger.info("Quantization enabled: %d-bit NF4", quant_cfg.bits)
+
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            quantization_config=quantization_config,
+            device_map="auto",
+            torch_dtype=torch.bfloat16,
+            trust_remote_code=True,
+        )
+
+        logger.info(
+            "Loaded model %s (%.1fM params, device=%s)",
+            model_name,
+            sum(p.numel() for p in model.parameters()) / 1e6,
+            next(model.parameters()).device,
+        )
+        return model, tokenizer
+
+    def _create_lora_config(self) -> Any:
+        """학습 설정에서 peft LoraConfig를 구성합니다.
+
+        반환값
+        -------
+        peft.LoraConfig
+            설정된 LoRA 어댑터 설정.
+        """
+        from peft import LoraConfig, TaskType
+
+        target_modules = self.lora_config.target_modules
+        if target_modules == "auto":
+            target_modules = None
+
+        lora_config = LoraConfig(
+            r=self.lora_config.r,
+            lora_alpha=self.lora_config.alpha,
+            lora_dropout=self.lora_config.dropout,
+            target_modules=target_modules,
+            use_rslora=self.lora_config.use_rslora,
+            task_type=TaskType.CAUSAL_LM,
+            bias="none",
+        )
+
+        logger.info(
+            "LoRA config: r=%d, alpha=%d, dropout=%.3f, rslora=%s",
+            self.lora_config.r,
+            self.lora_config.alpha,
+            self.lora_config.dropout,
+            self.lora_config.use_rslora,
+        )
+        return lora_config
+
+    def _create_training_args(self) -> Any:
+        """설정에서 HuggingFace TrainingArguments를 구성합니다.
+
+        반환값
+        -------
+        transformers.TrainingArguments
+            완전한 학습 인자 명세.
+        """
+        from transformers import TrainingArguments
+
+        tc = self.training_config
+
+        training_args = TrainingArguments(
+            output_dir=str(self.output_dir),
+            num_train_epochs=tc.num_epochs,
+            per_device_train_batch_size=tc.batch_size,
+            per_device_eval_batch_size=tc.batch_size,
+            gradient_accumulation_steps=tc.gradient_accumulation_steps,
+            learning_rate=tc.learning_rate,
+            lr_scheduler_type=tc.lr_scheduler,
+            warmup_ratio=tc.warmup_ratio,
+            optim=tc.optimizer,
+            bf16=tc.bf16,
+            logging_steps=10,
+            eval_strategy=tc.save_strategy,
+            save_strategy=tc.save_strategy,
+            save_total_limit=3,
+            load_best_model_at_end=True,
+            metric_for_best_model="eval_loss",
+            greater_is_better=False,
+            report_to="none",
+            seed=42,
+            remove_unused_columns=False,
+        )
+
+        logger.info(
+            "Training: %d epochs, batch=%d, grad_accum=%d, lr=%.2e, scheduler=%s",
+            tc.num_epochs,
+            tc.batch_size,
+            tc.gradient_accumulation_steps,
+            tc.learning_rate,
+            tc.lr_scheduler,
+        )
+        return training_args
+
+    def _create_callbacks(self) -> list[Any]:
+        """학습 콜백(조기 종료 등)을 구성합니다.
+
+        반환값
+        -------
+        list
+            HuggingFace 콜백 인스턴스 목록.
+        """
+        from transformers import EarlyStoppingCallback
+
+        callbacks: list[Any] = []
+
+        es_cfg = self.training_config.early_stopping
+        if es_cfg.enabled:
+            callbacks.append(
+                EarlyStoppingCallback(
+                    early_stopping_patience=es_cfg.patience,
+                    early_stopping_threshold=es_cfg.threshold,
+                )
+            )
+            logger.info(
+                "Early stopping enabled: patience=%d, threshold=%.4f",
+                es_cfg.patience,
+                es_cfg.threshold,
+            )
+
+        return callbacks
+
+    def train(self, dataset_dict: Any) -> Path:
+        """제공된 데이터셋에서 LoRA 미세 조정을 실행합니다.
+
+        매개변수
+        ----------
+        dataset_dict:
+            ``"train"``과 ``"eval"`` 분할을 포함하는 ``DatasetDict``,
+            각각 ``"text"`` 열을 포함합니다.
+
+        반환값
+        -------
+        Path
+            저장된 어댑터 디렉토리의 경로.
+        """
+        from trl import SFTTrainer
+        from peft import get_peft_model
+
+        # 모델과 토크나이저 로드
+        model, tokenizer = self._load_model()
+
+        # LoRA 어댑터 적용
+        lora_config = self._create_lora_config()
+        model = get_peft_model(model, lora_config)
+        model.print_trainable_parameters()
+
+        # 학습 인자와 콜백 구성
+        training_args = self._create_training_args()
+        callbacks = self._create_callbacks()
+
+        # 트레이너 생성
+        trainer = SFTTrainer(
+            model=model,
+            args=training_args,
+            train_dataset=dataset_dict["train"],
+            eval_dataset=dataset_dict["eval"],
+            processing_class=tokenizer,
+            callbacks=callbacks,
+        )
+
+        # 학습 실행
+        logger.info("LoRA 미세 조정 시작...")
+        trainer.train()
+
+        # 어댑터와 토크나이저 저장
+        adapter_dir = self.output_dir / "adapter"
+        adapter_dir.mkdir(parents=True, exist_ok=True)
+        model.save_pretrained(adapter_dir)
+        tokenizer.save_pretrained(adapter_dir)
+
+        logger.info("학습 완료 — 어댑터가 %s에 저장됨", adapter_dir)
+        return adapter_dir
+
+
+_data_logger = get_logger("trainer.data_loader")
+
+
+class DataLoader:
+    """JSONL 파일에서 학습 데이터를 로드하고 분할합니다.
+
+    JSONL 형식: 한 줄에 하나의 {"text": "..."}, "text"는
+    채팅 템플릿 형식의 학습 문자열을 포함합니다.
+    """
+
+    def __init__(self, train_split: float = 0.9):
+        self.train_split = train_split
+
+    def load_jsonl(self, path: str | Path) -> "datasets.Dataset":
+        """JSONL 파일을 HuggingFace Dataset으로 로드합니다.
+
+        매개변수
+        ----------
+        path:
+            한 줄에 하나의 ``{"text": "..."}``를 포함하는 ``.jsonl`` 파일의 경로.
+
+        반환값
+        -------
+        datasets.Dataset
+            로드된 데이터셋.
+        """
+        from datasets import load_dataset
+
+        path = Path(path)
+        ds = load_dataset("json", data_files=str(path), split="train")
+        _data_logger.info("Loaded %d examples from %s", len(ds), path.name)
+        return ds
+
+    def split(self, dataset: "datasets.Dataset") -> "datasets.DatasetDict":
+        """데이터셋을 학습 및 평가 세트로 분할합니다.
+
+        매개변수
+        ----------
+        dataset:
+            분할할 HuggingFace Dataset.
+
+        반환값
+        -------
+        datasets.DatasetDict
+            ``"train"``과 ``"eval"`` 키를 포함하는 딕셔너리.
+        """
+        from datasets import DatasetDict
+
+        split = dataset.train_test_split(test_size=1 - self.train_split, seed=42)
+        ds_dict = DatasetDict({
+            "train": split["train"],
+            "eval": split["test"],
+        })
+        _data_logger.info(
+            "Split: %d train / %d eval (%.0f%% train)",
+            len(ds_dict["train"]),
+            len(ds_dict["eval"]),
+            self.train_split * 100,
+        )
+        return ds_dict
+
+    def load_and_split(self, path: str | Path) -> "datasets.DatasetDict":
+        """JSONL 파일을 로드하고 학습/평가 세트로 분할합니다.
+
+        :meth:`load_jsonl`과 :meth:`split`을 연결하는 편의 메서드입니다.
+
+        매개변수
+        ----------
+        path:
+            ``.jsonl`` 파일의 경로.
+
+        반환값
+        -------
+        datasets.DatasetDict
+            ``"train"``과 ``"eval"`` 키를 포함하는 딕셔너리.
+        """
+        dataset = self.load_jsonl(path)
+        return self.split(dataset)

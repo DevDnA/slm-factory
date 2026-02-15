@@ -1,0 +1,994 @@
+# slm-factory
+
+도메인 문서를 학습하여 특화된 소형 언어모델(SLM)을 자동 생성하는 Teacher-Student 지식 증류 프레임워크
+
+---
+
+## 목차
+
+- [1. 소개](#1-소개)
+- [2. 파이프라인 흐름도](#2-파이프라인-흐름도)
+- [3. 주요 기능](#3-주요-기능)
+- [4. 기술 스택](#4-기술-스택)
+- [5. 시스템 요구사항](#5-시스템-요구사항)
+- [6. 설치](#6-설치)
+- [7. 빠른 시작](#7-빠른-시작)
+- [8. CLI 명령어 레퍼런스](#8-cli-명령어-레퍼런스)
+- [9. 출력 파일 구조](#9-출력-파일-구조)
+- [10. 활용 예시](#10-활용-예시)
+- [11. 트러블슈팅](#11-트러블슈팅)
+- [12. 프로젝트 구조](#12-프로젝트-구조)
+- [13. 관련 문서](#13-관련-문서)
+- [14. 라이선스](#14-라이선스)
+
+---
+
+## 1. 소개
+
+**slm-factory**는 도메인 문서를 학습하여 특화된 소형 언어모델(SLM)을 자동 생성하는 Teacher-Student 지식 증류 프레임워크입니다.
+
+### 지식 증류(Knowledge Distillation)란?
+
+지식 증류는 대형 언어모델(Teacher)의 지식을 소형 모델(Student)에게 전달하는 기술입니다. slm-factory는 이 과정을 다음과 같이 자동화합니다:
+
+1. **Teacher 모델의 역할**: 도메인 문서를 읽고 질문에 대한 답변을 생성합니다. 예를 들어, Qwen3 8B와 같은 대형 모델이 정책 문서를 읽고 "이 정책의 주요 목적은 무엇인가?"라는 질문에 상세한 답변을 제공합니다.
+
+2. **Student 모델의 학습**: Teacher가 생성한 질문-답변 쌍을 학습 데이터로 활용하여 소형 모델(예: Gemma 1B)을 파인튜닝합니다. Student 모델은 Teacher의 답변 패턴과 도메인 지식을 학습하게 됩니다.
+
+3. **결과물**: 원본 문서의 도메인 지식을 내재화한 경량 모델이 생성됩니다. 이 모델은 Teacher보다 훨씬 작지만, 특정 도메인에서는 유사한 수준의 성능을 발휘할 수 있습니다.
+
+### 왜 소형 언어모델(SLM)인가?
+
+- **비용 효율성**: 대형 모델 대비 추론 비용이 10배 이상 저렴합니다
+- **속도**: 응답 생성 속도가 빠르고 실시간 서비스에 적합합니다
+- **프라이버시**: 로컬 환경에서 실행 가능하여 민감한 도메인 데이터를 외부로 전송하지 않습니다
+- **도메인 특화**: 특정 분야에 집중하여 범용 모델보다 높은 정확도를 달성할 수 있습니다
+
+### slm-factory의 자동화
+
+slm-factory는 "도메인 문서 → 파인튜닝된 SLM" 전환 과정을 완전히 자동화합니다. 사용자는 문서를 제공하고 설정 파일을 편집하는 것만으로, 문서 파싱부터 QA 생성, 검증, 학습, 배포까지 전체 파이프라인을 한 번의 명령으로 실행할 수 있습니다.
+
+---
+
+## 2. 파이프라인 흐름도
+
+```
+┌─────────────┐      ┌──────────────┐      ┌──────────────┐      ┌──────────────┐
+│  Documents  │ ───▶ │  Step 1      │ ───▶ │  Step 2      │ ───▶ │  Step 3      │
+│ PDF/HWPX/   │      │  Parse       │      │  Generate    │      │  Validate    │
+│ HTML/TXT    │      │  문서 파싱    │      │  QA 쌍 생성  │      │  QA 검증     │
+└─────────────┘      └──────────────┘      └──────────────┘      └──────────────┘
+                              │                      │                      │
+                              ▼                      ▼                      ▼
+                     ParsedDocument          QA Pairs (Alpaca)      Filtered QA Pairs
+
+┌──────────────┐      ┌──────────────┐      ┌──────────────┐
+│  Step 3a     │ ───▶ │  Step 3b     │ ───▶ │  Step 3c     │
+│  Score       │      │  Augment     │      │  Analyze     │
+│  품질 평가    │      │  데이터 증강  │      │  통계 분석    │
+└──────────────┘      └──────────────┘      └──────────────┘
+         │                      │                      │
+         ▼                      ▼                      ▼
+  Scored QA Pairs       Augmented Pairs       data_analysis.json
+  (Teacher LLM)         (패러프레이즈)         (분석 보고서)
+
+┌──────────────┐      ┌──────────────┐      ┌──────────────┐
+│  Step 6      │ ◀─── │  Step 5      │ ◀─── │  Step 4      │
+│  Export      │      │  Train       │      │  Convert     │
+│  모델 배포    │      │  LoRA 학습   │      │  채팅 템플릿  │
+└──────────────┘      └──────────────┘      └──────────────┘
+         │                      │                      │
+         ▼                      ▼                      ▼
+  Merged Model +         LoRA Adapter          training_data.jsonl
+  Ollama Modelfile       (SFTTrainer)          (모델별 자동 변환)
+```
+
+### 단계별 입출력
+
+1. **parse**: PDF/HWPX/HTML/TXT → `ParsedDocument`
+2. **generate**: `ParsedDocument` + Teacher LLM → QA 쌍
+3. **validate**: QA 쌍 → 필터링된 QA 쌍 (규칙 + 임베딩 검증)
+4. **score**: QA 쌍 → 품질 점수 평가된 QA 쌍 (Teacher LLM 1~5점 평가, threshold 필터링)
+5. **augment**: QA 쌍 → 증강된 QA 쌍 (Teacher LLM 질문 패러프레이즈)
+6. **analyze**: QA 쌍 → 분석 보고서 (통계 분석, 데이터 품질 경고)
+7. **convert**: Alpaca JSON → 채팅 템플릿 JSONL
+8. **train**: 채팅 데이터 → LoRA 어댑터
+9. **export**: LoRA 어댑터 → 병합 모델 + Ollama Modelfile
+
+---
+
+## 3. 주요 기능
+
+- **다중 형식 파싱**: PDF, HWPX(한글), HTML, TXT/MD 문서를 자동으로 파싱하여 텍스트와 표를 추출합니다
+- **유연한 Teacher LLM 백엔드**: Ollama(로컬 실행) 또는 OpenAI 호환 API를 Teacher 모델로 사용할 수 있습니다
+- **규칙 기반 + 임베딩 기반 QA 검증**: 생성된 QA 쌍의 품질을 자동으로 검증하고 필터링합니다
+- **Teacher LLM 기반 품질 점수 평가**: 생성된 QA 쌍을 Teacher LLM이 1~5점으로 평가하여 저품질 데이터를 자동으로 필터링합니다
+- **질문 패러프레이즈 데이터 증강**: Teacher LLM을 활용하여 질문을 다양한 표현으로 변형하여 학습 데이터를 증강합니다
+- **자동 데이터 분석 보고서**: 카테고리 분포, 길이 통계, 데이터 불균형 경고 등을 포함한 분석 보고서를 자동 생성합니다
+- **자동 채팅 템플릿 변환**: HuggingFace의 모든 대화형 모델을 지원하며, 각 모델의 채팅 템플릿을 자동으로 적용합니다
+- **LoRA 파인튜닝 + 조기 종료**: 효율적인 LoRA 학습과 조기 종료 기능으로 과적합을 방지합니다
+- **원클릭 Ollama 배포**: 학습된 모델을 Ollama Modelfile로 자동 변환하여 즉시 배포할 수 있습니다
+
+---
+
+## 4. 기술 스택
+
+| 카테고리 | 패키지 | 버전 | 역할 |
+|---------|--------|------|------|
+| **Core** | typer | >=0.9.0 | CLI 프레임워크 |
+| | pydantic | >=2.0 | 설정 검증 |
+| | pyyaml | >=6.0 | YAML 파싱 |
+| | rich | >=13.0 | 터미널 출력 |
+| | httpx | >=0.25.0 | HTTP 클라이언트 |
+| **Parsing** | pymupdf | >=1.24.0 | PDF 파싱 |
+| | beautifulsoup4 | >=4.12 | HTML 파싱 |
+| | lxml | >=5.0 | XML 파싱 (HWPX) |
+| **ML/Training** | torch | >=2.1.0 | 딥러닝 프레임워크 |
+| | transformers | >=4.40.0 | 모델 로딩 및 학습 |
+| | datasets | >=2.18.0 | 데이터셋 관리 |
+| | peft | >=0.10.0 | LoRA 어댑터 |
+| | trl | >=0.8.0 | SFTTrainer |
+| | accelerate | >=0.28.0 | 분산 학습 |
+| | bitsandbytes | >=0.43.0 | 양자화 |
+| **Optional** | pykospacing | - | 한국어 띄어쓰기 교정 |
+| | sentence-transformers | >=2.6.0 | 의미적 유사도 검증 |
+| | pdfplumber | >=0.11.0 | 대체 PDF 파서 |
+| | pytest | >=8.0 | 테스트 프레임워크 |
+
+---
+
+## 5. 시스템 요구사항
+
+- **Python**: 3.11 이상
+- **GPU**: CUDA 지원 GPU 권장 (VRAM 8GB 이상, CPU 학습도 가능하나 매우 느림)
+- **Ollama**: Teacher LLM으로 Ollama를 사용하는 경우 설치 필요 ([ollama.com](https://ollama.com))
+- **디스크 공간**: 약 5GB 이상 (모델 다운로드 및 학습 체크포인트 저장)
+
+---
+
+## 6. 설치
+
+프로젝트를 클론하거나 다운로드한 후, 필요에 따라 다음 중 하나의 방식으로 설치하십시오:
+
+```bash
+# 기본 설치 (PDF, HTML, TXT 파싱 + 학습)
+pip install -e .
+
+# 한국어 문서 처리 (HWPX 파싱 + 띄어쓰기 교정)
+pip install -e ".[korean]"
+
+# 의미적 검증 (임베딩 기반 groundedness 체크)
+pip install -e ".[validation]"
+
+# 개발 환경 (테스트 프레임워크 포함)
+pip install -e ".[dev]"
+```
+
+**설치 옵션 설명**:
+- **기본 설치**: PDF, HTML, TXT/MD 문서 파싱과 기본 학습 기능을 제공합니다
+- **korean**: HWPX(한글 문서) 파싱과 pykospacing을 통한 한국어 띄어쓰기 교정 기능을 추가합니다
+- **validation**: sentence-transformers를 설치하여 생성된 답변이 원본 문서에 근거하는지 의미적으로 검증합니다
+- **dev**: pytest 등 개발 및 테스트 도구를 포함합니다
+
+여러 옵션을 동시에 설치하려면 쉼표로 구분하십시오:
+```bash
+pip install -e ".[korean,validation]"
+```
+
+---
+
+## 7. 빠른 시작
+
+다음 5단계로 첫 번째 도메인 특화 모델을 생성할 수 있습니다:
+
+### 1. 프로젝트 초기화
+
+```bash
+slm-factory init --name my-project
+```
+
+이 명령은 다음 구조를 생성합니다:
+```
+my-project/
+├── documents/       # 학습할 문서를 여기에 추가
+├── output/          # 파이프라인 출력물 저장
+└── project.yaml     # 설정 파일
+```
+
+### 2. 문서 추가
+
+학습할 도메인 문서를 `my-project/documents/` 디렉토리에 복사합니다:
+
+```bash
+cp /path/to/your/documents/*.pdf my-project/documents/
+```
+
+### 3. 설정 편집
+
+`my-project/project.yaml` 파일을 열어 필요한 설정을 수정합니다:
+
+```yaml
+teacher:
+  model: "qwen3:8b"              # Teacher 모델 선택
+  
+student:
+  model: "google/gemma-3-1b-it"  # Student 모델 선택
+
+export:
+  ollama:
+    model_name: "my-project-model"  # 배포할 모델 이름
+```
+
+### 4. Ollama 실행 및 Teacher 모델 다운로드
+
+별도 터미널에서 Ollama 서버를 실행하고 Teacher 모델을 다운로드합니다:
+
+```bash
+# 터미널 1: Ollama 서버 실행
+ollama serve
+
+# 터미널 2: Teacher 모델 다운로드
+ollama pull qwen3:8b
+```
+
+### 5. 파이프라인 실행
+
+```bash
+slm-factory run --config my-project/project.yaml
+```
+
+**예상 출력**:
+```
+slm-factory — Starting full pipeline...
+
+Parsing documents in ./my-project/documents (formats: ['.pdf'])
+Parsed 5 documents — saved debug output to ./my-project/output/parsed_documents.json
+
+Generating QA pairs from 5 documents...
+Generated 150 QA pairs
+
+Validating 150 QA pairs...
+Rule validation: 142 accepted, 8 rejected
+Validation complete — 142 pairs accepted
+
+Converting 142 QA pairs to training format...
+Training data saved to ./my-project/output/training_data.jsonl
+
+Loading training data from ./my-project/output/training_data.jsonl
+Starting LoRA training...
+[Training progress bars...]
+Training complete — adapter at ./my-project/output/checkpoints/adapter
+
+Exporting model from adapter...
+Generating Ollama Modelfile...
+Export complete — model at ./my-project/output/merged_model
+
+Pipeline complete! Model saved to: ./my-project/output/merged_model
+```
+
+### 6. 모델 테스트
+
+생성된 모델을 Ollama로 테스트합니다:
+
+```bash
+# Ollama에 모델 등록
+cd my-project/output/merged_model
+ollama create my-project-model -f Modelfile
+
+# 모델 실행
+ollama run my-project-model
+```
+
+이제 도메인 문서를 학습한 특화 모델과 대화할 수 있습니다!
+
+---
+
+## 8. CLI 명령어 레퍼런스
+
+### 명령어 요약
+
+| 명령어 | 설명 | 주요 옵션 |
+|--------|------|----------|
+| `init` | 새 프로젝트 초기화 | `--name` (필수), `--path` |
+| `run` | 전체 파이프라인 실행 | `--config` |
+| `parse` | 문서 파싱만 실행 | `--config` |
+| `generate` | 파싱 + QA 생성 | `--config` |
+| `validate` | 파싱 + 생성 + 검증 | `--config` |
+| `score` | 파싱 + 생성 + 검증 + 품질 평가 | `--config` |
+| `augment` | 파싱 + 생성 + 검증 + 평가 + 증강 | `--config` |
+| `analyze` | 파싱 + 생성 + 검증 + 평가 + 증강 + 분석 | `--config` |
+| `train` | 학습 단계 실행 | `--config`, `--data` |
+| `version` | 버전 정보 출력 | - |
+
+---
+
+### `init` - 프로젝트 초기화
+
+새로운 slm-factory 프로젝트를 생성합니다.
+
+**사용법**:
+```bash
+slm-factory init --name <프로젝트명> [--path <부모디렉토리>]
+```
+
+**옵션**:
+- `--name` (필수): 생성할 프로젝트 이름
+- `--path` (선택, 기본값: `.`): 프로젝트를 생성할 부모 디렉토리
+
+**예시**:
+```bash
+slm-factory init --name policy-assistant
+```
+
+**출력**:
+```
+Project 'policy-assistant' created at ./policy-assistant
+
+Project structure:
+  ./policy-assistant/
+  ./policy-assistant/documents/
+  ./policy-assistant/output/
+  ./policy-assistant/project.yaml
+
+Next steps:
+  1. Add your documents to ./policy-assistant/documents
+  2. Edit ./policy-assistant/project.yaml to customize settings
+  3. Run: slm-factory run --config ./policy-assistant/project.yaml
+```
+
+---
+
+### `run` - 전체 파이프라인 실행
+
+문서 파싱부터 모델 배포까지 전체 파이프라인을 순차적으로 실행합니다.
+
+**사용법**:
+```bash
+slm-factory run [--config <설정파일경로>]
+```
+
+**옵션**:
+- `--config` (선택, 기본값: `project.yaml`): 프로젝트 설정 파일 경로
+
+**예시**:
+```bash
+slm-factory run --config ./my-project/project.yaml
+```
+
+**실행 단계**:
+1. 문서 파싱 (parse)
+2. QA 쌍 생성 (generate)
+3. QA 검증 (validate)
+4. 품질 점수 평가 (score) — scoring.enabled 시
+5. 데이터 증강 (augment) — augment.enabled 시
+6. 데이터 분석 (analyze) — analyzer.enabled 시
+7. 학습 데이터 변환 (convert)
+8. LoRA 학습 (train)
+9. 모델 병합 및 배포 (export)
+
+---
+
+### `parse` - 문서 파싱
+
+문서 파싱 단계만 실행하여 결과를 확인합니다.
+
+**사용법**:
+```bash
+slm-factory parse [--config <설정파일경로>]
+```
+
+**예시**:
+```bash
+slm-factory parse --config project.yaml
+```
+
+**출력**:
+```
+Parsed 5 documents
+```
+
+**생성 파일**: `output/parsed_documents.json` (디버깅 및 재개용)
+
+---
+
+### `generate` - QA 생성
+
+문서 파싱 후 Teacher LLM을 사용하여 QA 쌍을 생성합니다.
+
+**사용법**:
+```bash
+slm-factory generate [--config <설정파일경로>]
+```
+
+**예시**:
+```bash
+slm-factory generate --config project.yaml
+```
+
+**출력**:
+```
+Generated 150 QA pairs from 5 documents
+```
+
+**생성 파일**: `output/qa_alpaca.json` (Alpaca 형식 QA 쌍)
+
+---
+
+### `validate` - QA 검증
+
+파싱, 생성 후 QA 쌍을 검증하고 필터링합니다.
+
+**사용법**:
+```bash
+slm-factory validate [--config <설정파일경로>]
+```
+
+**예시**:
+```bash
+slm-factory validate --config project.yaml
+```
+
+**출력**:
+```
+Validation complete: 142 accepted, 8 rejected (out of 150 generated)
+```
+
+검증 기준:
+- 최소/최대 답변 길이
+- 빈 답변 제거
+- 중복 제거
+- 거부 패턴 매칭 (예: "I don't know")
+- 선택적 의미적 groundedness 체크
+
+---
+
+### `score` - 품질 점수 평가
+
+문서 파싱, QA 생성, 검증 후 Teacher LLM을 사용하여 QA 쌍의 품질을 1~5점으로 평가합니다.
+
+**사용법**:
+```bash
+slm-factory score [--config <설정파일경로>]
+```
+
+**예시**:
+```bash
+slm-factory score --config project.yaml
+```
+
+**출력**:
+```
+Score complete: 120 passed, 22 filtered (out of 142 validated)
+```
+
+Note: scoring.enabled가 false(기본값)이면 점수 평가를 건너뜁니다. project.yaml에서 scoring.enabled: true로 설정하십시오.
+
+---
+
+### `augment` - 데이터 증강
+
+점수 평가까지 완료된 QA 쌍을 Teacher LLM으로 질문 패러프레이즈하여 증강합니다.
+
+**사용법**:
+```bash
+slm-factory augment [--config <설정파일경로>]
+```
+
+**예시**:
+```bash
+slm-factory augment --config project.yaml
+```
+
+**출력**:
+```
+Augmentation complete: 120 → 360 (240 augmented pairs added)
+```
+
+Note: augment.enabled가 false(기본값)이면 증강을 건너뜁니다.
+
+---
+
+### `analyze` - 데이터 분석
+
+전체 전처리 파이프라인 실행 후 데이터 통계 분석을 수행합니다.
+
+**사용법**:
+```bash
+slm-factory analyze [--config <설정파일경로>]
+```
+
+**예시**:
+```bash
+slm-factory analyze --config project.yaml
+```
+
+**출력**: 분석 요약 테이블 (Rich 콘솔) + data_analysis.json 보고서
+
+---
+
+### `train` - 학습
+
+LoRA 파인튜닝을 실행합니다. 기존 학습 데이터를 사용하거나 전체 파이프라인을 실행할 수 있습니다.
+
+**사용법**:
+```bash
+slm-factory train [--config <설정파일경로>] [--data <학습데이터경로>]
+```
+
+**옵션**:
+- `--config` (선택, 기본값: `project.yaml`): 프로젝트 설정 파일
+- `--data` (선택): 기존 `training_data.jsonl` 파일 경로. 지정하지 않으면 전체 파이프라인 실행
+
+**예시 1**: 전체 파이프라인 실행 후 학습
+```bash
+slm-factory train --config project.yaml
+```
+
+**예시 2**: 기존 학습 데이터로 학습만 실행
+```bash
+slm-factory train --config project.yaml --data ./custom_qa_data.jsonl
+```
+
+**출력**:
+```
+Training complete! Adapter saved to: ./output/checkpoints/adapter
+```
+
+---
+
+### `version` - 버전 정보
+
+slm-factory의 현재 버전을 출력합니다.
+
+**사용법**:
+```bash
+slm-factory version
+```
+
+**출력**:
+```
+slm-factory 0.1.0
+```
+
+---
+
+## 9. 출력 파일 구조
+
+파이프라인 실행 후 `output/` 디렉토리에 다음 파일들이 생성됩니다:
+
+```
+output/
+├── parsed_documents.json       # 파싱된 문서 (디버깅 및 재개용)
+├── qa_alpaca.json             # 생성된 QA 쌍 (Alpaca 형식)
+├── data_analysis.json         # 데이터 분석 보고서
+├── training_data.jsonl        # 채팅 템플릿 적용된 학습 데이터
+├── checkpoints/
+│   └── adapter/               # LoRA 어댑터 가중치
+│       ├── adapter_config.json
+│       ├── adapter_model.safetensors
+│       └── ...
+└── merged_model/              # 병합된 최종 모델
+    ├── config.json
+    ├── model.safetensors
+    ├── tokenizer.json
+    ├── tokenizer_config.json
+    └── Modelfile              # Ollama 배포 파일
+```
+
+### 파일 설명
+
+- **`parsed_documents.json`**: 원본 문서에서 추출한 텍스트, 표, 메타데이터를 JSON 형식으로 저장합니다. 파이프라인 재개 시 파싱 단계를 건너뛸 수 있습니다.
+
+- **`qa_alpaca.json`**: Teacher LLM이 생성한 질문-답변 쌍을 Alpaca 형식으로 저장합니다. 각 항목은 `instruction`, `input`, `output` 필드를 포함합니다.
+
+- **`data_analysis.json`**: QA 데이터의 통계 분석 보고서입니다. 카테고리 분포, 문서별 분포, 답변/질문 길이 통계, 데이터 품질 경고를 포함합니다.
+
+- **`training_data.jsonl`**: Student 모델의 채팅 템플릿이 적용된 학습 데이터입니다. 각 줄은 `{"text": "..."}` 형식의 JSON 객체이며, `text` 필드에 채팅 템플릿이 적용된 전체 대화 문자열이 포함됩니다.
+
+- **`checkpoints/adapter/`**: LoRA 학습 중 저장된 어댑터 가중치입니다. PEFT 형식으로 저장되며, 원본 모델과 결합하여 사용할 수 있습니다.
+
+- **`merged_model/`**: LoRA 어댑터가 원본 Student 모델과 병합된 최종 모델입니다. HuggingFace 형식으로 저장되며, `Modelfile`을 통해 Ollama에 즉시 배포할 수 있습니다.
+
+---
+
+## 10. 활용 예시
+
+### 예시 1: 한국어 정책 문서(HWPX) → 정책 전문 모델
+
+한국 정부 정책 문서(HWPX 형식)를 학습하여 정책 질의응답 모델을 생성합니다.
+
+**설정 파일** (`policy-project/project.yaml`):
+```yaml
+project:
+  name: "policy-assistant"
+  language: "ko"
+
+paths:
+  documents: "./documents"
+  output: "./output"
+
+parsing:
+  formats: ["hwpx"]
+  hwpx:
+    apply_spacing: true          # 한국어 띄어쓰기 교정 활성화
+
+teacher:
+  backend: "ollama"
+  model: "qwen3:8b"
+  temperature: 0.3
+
+questions:
+  categories:
+    policy_overview:
+      - "이 정책의 주요 목적은 무엇입니까?"
+      - "정책 대상자는 누구입니까?"
+      - "정책의 시행 기간은 언제입니까?"
+    policy_details:
+      - "지원 내용과 규모는 어떻게 됩니까?"
+      - "신청 자격 요건은 무엇입니까?"
+      - "신청 절차는 어떻게 됩니까?"
+
+student:
+  model: "google/gemma-3-1b-it"
+
+export:
+  ollama:
+    model_name: "policy-assistant-ko"
+    system_prompt: "당신은 한국 정부 정책 전문 상담 도우미입니다."
+```
+
+**실행**:
+```bash
+# 한국어 지원 설치
+pip install -e ".[korean]"
+
+# 파이프라인 실행
+slm-factory run --config policy-project/project.yaml
+
+# 모델 배포 및 테스트
+cd policy-project/output/merged_model
+ollama create policy-assistant-ko -f Modelfile
+ollama run policy-assistant-ko
+```
+
+---
+
+### 예시 2: 영문 기술 문서(PDF) → 기술 문서 전문 모델
+
+소프트웨어 API 문서(PDF)를 학습하여 개발자 지원 모델을 생성합니다.
+
+**설정 파일** (`tech-docs/project.yaml`):
+```yaml
+project:
+  name: "api-assistant"
+  language: "en"
+
+paths:
+  documents: "./documents"
+  output: "./output"
+
+parsing:
+  formats: ["pdf"]
+  pdf:
+    extract_tables: true
+
+teacher:
+  backend: "ollama"
+  model: "qwen3:8b"
+  temperature: 0.2              # 기술 문서는 낮은 temperature 권장
+
+questions:
+  categories:
+    api_basics:
+      - "What is the purpose of this API?"
+      - "What are the authentication requirements?"
+      - "What is the base URL for API requests?"
+    api_usage:
+      - "What are the available endpoints?"
+      - "What parameters does this endpoint accept?"
+      - "What is the expected response format?"
+      - "What are common error codes and their meanings?"
+    examples:
+      - "Provide a code example for this functionality."
+      - "What are best practices for using this API?"
+
+validation:
+  enabled: true
+  groundedness:
+    enabled: true               # 의미적 검증 활성화
+    threshold: 0.3
+
+student:
+  model: "google/gemma-3-1b-it"
+
+training:
+  num_epochs: 15
+  learning_rate: 1.5e-5
+
+export:
+  ollama:
+    model_name: "api-assistant"
+    system_prompt: "You are a helpful API documentation assistant."
+```
+
+**실행**:
+```bash
+# 의미적 검증 지원 설치
+pip install -e ".[validation]"
+
+# 파이프라인 실행
+slm-factory run --config tech-docs/project.yaml
+```
+
+---
+
+### 예시 3: 기존 QA 데이터로 학습만 실행
+
+이미 준비된 QA 데이터셋이 있는 경우, 파싱과 생성 단계를 건너뛰고 학습만 실행할 수 있습니다.
+
+**QA 데이터 형식** (`custom_qa.jsonl`):
+```jsonl
+{"messages": [{"role": "user", "content": "What is Python?"}, {"role": "assistant", "content": "Python is a high-level programming language..."}]}
+{"messages": [{"role": "user", "content": "How do I install packages?"}, {"role": "assistant", "content": "Use pip install <package-name>..."}]}
+```
+
+**실행**:
+```bash
+slm-factory train --config project.yaml --data ./custom_qa.jsonl
+```
+
+이 방식은 다음과 같은 경우에 유용합니다:
+- 외부에서 준비한 QA 데이터셋을 사용하는 경우
+- 여러 번 학습 하이퍼파라미터를 조정하며 실험하는 경우
+- 파싱과 생성 단계가 이미 완료된 경우
+
+---
+
+## 11. 트러블슈팅
+
+### 1. Ollama 연결 실패
+
+**증상**:
+```
+Error: Failed to connect to Ollama at http://localhost:11434
+```
+
+**해결 방법**:
+- Ollama 서버가 실행 중인지 확인하십시오:
+  ```bash
+  ollama serve
+  ```
+- `project.yaml`의 `teacher.api_base` 설정이 올바른지 확인하십시오:
+  ```yaml
+  teacher:
+    api_base: "http://localhost:11434"  # Ollama 기본 포트
+  ```
+- 방화벽이나 네트워크 설정이 11434 포트를 차단하지 않는지 확인하십시오
+
+---
+
+### 2. GPU 메모리 부족 (CUDA Out of Memory)
+
+**증상**:
+```
+RuntimeError: CUDA out of memory. Tried to allocate X.XX GiB
+```
+
+**해결 방법**:
+
+**방법 1**: 양자화 활성화 (메모리 사용량 50% 감소)
+```yaml
+training:
+  quantization:
+    enabled: true
+    bits: 4
+```
+
+**방법 2**: 배치 크기 감소
+```yaml
+training:
+  batch_size: 2                    # 기본값 4에서 감소
+  gradient_accumulation_steps: 8   # 총 배치 크기 유지
+```
+
+**방법 3**: 더 작은 Student 모델 사용
+```yaml
+student:
+  model: "TinyLlama/TinyLlama-1.1B-Chat-v1.0"  # 1B 모델
+```
+
+**방법 4**: CPU 학습 (느리지만 메모리 제약 없음)
+```yaml
+training:
+  bf16: false                      # CPU는 bf16 미지원
+```
+
+---
+
+### 3. HWPX 파싱 실패
+
+**증상**:
+```
+Error: Failed to parse HWPX file - section0.xml not found
+```
+
+**해결 방법**:
+- HWPX 파일이 손상되지 않았는지 확인하십시오 (한글에서 열어보기)
+- HWPX 파일이 암호화되어 있지 않은지 확인하십시오
+- 파일 확장자가 `.hwpx`인지 확인하십시오 (`.hwp`는 지원하지 않음)
+- 최신 한글 버전에서 HWPX로 다시 저장해보십시오
+
+---
+
+### 4. pykospacing 설치 오류
+
+**증상**:
+```
+ERROR: Could not install packages due to an OSError
+```
+
+**해결 방법**:
+
+**방법 1**: Python 버전 확인 (3.11 이상 필요)
+```bash
+python --version
+```
+
+**방법 2**: Git이 설치되어 있는지 확인 (pykospacing은 Git 저장소에서 설치)
+```bash
+git --version
+```
+
+**방법 3**: 수동 설치 시도
+```bash
+pip install git+https://github.com/haven-jeon/PyKoSpacing.git
+```
+
+**방법 4**: 한국어 띄어쓰기 교정 비활성화
+```yaml
+parsing:
+  hwpx:
+    apply_spacing: false
+```
+
+---
+
+### 5. 학습 데이터 부족 경고
+
+**증상**:
+```
+Warning: Only 15 QA pairs generated. Recommend at least 100 for effective training.
+```
+
+**해결 방법**:
+
+**방법 1**: 더 많은 문서 추가
+```bash
+cp /path/to/more/documents/*.pdf ./documents/
+```
+
+**방법 2**: 질문 카테고리 확장
+```yaml
+questions:
+  categories:
+    overview: [...]
+    technical: [...]
+    implementation: [...]
+    additional:                    # 새 카테고리 추가
+      - "What are the benefits?"
+      - "What are the limitations?"
+```
+
+**방법 3**: Teacher 모델의 컨텍스트 크기 증가
+```yaml
+teacher:
+  max_context_chars: 20000         # 기본값 12000에서 증가
+```
+
+---
+
+### 6. 빈 QA 응답 생성
+
+**증상**:
+대부분의 QA 쌍이 "The document does not contain this information."으로 생성됨
+
+**해결 방법**:
+
+**방법 1**: Teacher 모델 타임아웃 증가
+```yaml
+teacher:
+  timeout: 300                     # 기본값 180초에서 증가
+```
+
+**방법 2**: 다른 Teacher 모델 시도
+```yaml
+teacher:
+  model: "llama3.1:8b"             # 또는 "mistral:7b"
+```
+
+**방법 3**: 질문을 문서 내용에 맞게 조정
+- 문서를 먼저 읽고 실제로 답변 가능한 질문으로 수정하십시오
+- 너무 일반적이거나 추상적인 질문은 피하십시오
+
+**방법 4**: System prompt 조정
+```yaml
+questions:
+  system_prompt: >
+    Answer the question based on the document. 
+    Provide detailed answers with specific information.
+    If the exact answer is not in the document, provide related information.
+```
+
+---
+
+## 12. 프로젝트 구조
+
+```
+slm-factory/
+├── src/
+│   └── slm_factory/
+│       ├── __init__.py              # 패키지 초기화 및 버전 정보
+│       ├── cli.py                   # CLI 진입점 및 명령어 정의
+│       ├── config.py                # Pydantic 기반 설정 스키마
+│       ├── models.py                # 공유 데이터 모델 (QAPair, ParsedDocument)
+│       ├── pipeline.py              # 파이프라인 오케스트레이터
+│       ├── scorer.py                # QA 품질 점수 평가 (Teacher LLM)
+│       ├── augmenter.py             # QA 데이터 증강 (질문 패러프레이즈)
+│       ├── analyzer.py              # 학습 데이터 통계 분석
+│       ├── converter.py             # 채팅 템플릿 변환기
+│       ├── utils.py                 # 유틸리티 및 로깅 설정
+│       ├── parsers/
+│       │   ├── __init__.py          # 파서 레지스트리
+│       │   ├── base.py              # 파서 기본 클래스
+│       │   ├── pdf.py               # PDF 파서 (PyMuPDF)
+│       │   ├── hwpx.py              # HWPX 파서 (한글 문서)
+│       │   ├── html.py              # HTML 파서 (BeautifulSoup)
+│       │   └── text.py              # TXT/MD 파서
+│       ├── teacher/
+│       │   ├── __init__.py          # Teacher LLM 팩토리
+│       │   ├── base.py              # Teacher 기본 클래스
+│       │   ├── ollama.py            # Ollama 백엔드
+│       │   ├── openai_compat.py     # OpenAI 호환 API 백엔드
+│       │   └── qa_generator.py      # QA 쌍 생성 로직
+│       ├── validator/
+│       │   ├── __init__.py          # 검증 모듈 초기화
+│       │   ├── rules.py             # 규칙 기반 검증 (길이, 패턴 등)
+│       │   └── similarity.py        # 임베딩 기반 groundedness 체크
+│       ├── trainer/
+│       │   ├── __init__.py          # 학습 모듈 초기화
+│       │   └── lora_trainer.py      # LoRA 파인튜닝 (SFTTrainer, DataLoader 포함)
+│       └── exporter/
+│           ├── __init__.py          # 내보내기 모듈 초기화
+│           ├── hf_export.py         # HuggingFace 모델 병합
+│           └── ollama_export.py     # Ollama Modelfile 생성
+├── templates/
+│   └── project.yaml                 # 기본 프로젝트 템플릿
+├── tests/
+│   └── __init__.py                  # 테스트 패키지
+├── docs/
+│   ├── architecture.md              # 아키텍처 가이드
+│   ├── configuration.md             # 설정 레퍼런스
+│   └── modules.md                   # 모듈별 상세 문서
+├── pyproject.toml                   # 프로젝트 메타데이터 및 의존성
+└── README.md                        # 이 문서
+```
+
+---
+
+## 13. 관련 문서
+
+프로젝트에 대한 더 자세한 정보는 다음 문서를 참조하십시오:
+
+- **[아키텍처 가이드](docs/architecture.md)**: slm-factory의 내부 구조와 설계 원칙을 설명합니다
+- **[설정 레퍼런스](docs/configuration.md)**: `project.yaml`의 모든 설정 옵션에 대한 상세 설명을 제공합니다
+- **[모듈별 상세 문서](docs/modules.md)**: 각 모듈(파서, Teacher, 검증기 등)의 API와 확장 방법을 안내합니다
+
+---
+
+## 14. 라이선스
+
+이 프로젝트의 라이선스는 추후 결정됩니다.
+
+---
+
+**slm-factory**로 도메인 특화 언어모델을 쉽고 빠르게 구축하십시오!
