@@ -69,26 +69,26 @@ class TestHFExporterInit:
 class TestHFExporterExport:
     """HFExporter.export 메서드의 테스트입니다."""
 
-    def test_merge_lora_True이면_merge_and_save_호출(self, make_config, mocker):
+    def test_merge_lora_True이면_merge_and_save_호출(self, make_config, mocker, tmp_path):
         """merge_lora=True일 때 merge_and_save가 호출되는지 확인합니다."""
         exporter = _make_hf_exporter(make_config, merge_lora=True)
-        expected_path = Path("/tmp/merged")
+        expected_path = tmp_path / "merged"
 
         mocker.patch.object(exporter, "merge_and_save", return_value=expected_path)
 
-        result = exporter.export(Path("/tmp/adapter"))
+        result = exporter.export(tmp_path / "adapter")
 
         exporter.merge_and_save.assert_called_once()
         assert result == expected_path
 
-    def test_merge_lora_False이면_save_adapter_only_호출(self, make_config, mocker):
+    def test_merge_lora_False이면_save_adapter_only_호출(self, make_config, mocker, tmp_path):
         """merge_lora=False일 때 save_adapter_only가 호출되는지 확인합니다."""
         exporter = _make_hf_exporter(make_config, merge_lora=False)
-        expected_path = Path("/tmp/adapter_copy")
+        expected_path = tmp_path / "adapter_copy"
 
         mocker.patch.object(exporter, "save_adapter_only", return_value=expected_path)
 
-        result = exporter.export(Path("/tmp/adapter"))
+        result = exporter.export(tmp_path / "adapter")
 
         exporter.save_adapter_only.assert_called_once()
         assert result == expected_path

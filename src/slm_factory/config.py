@@ -344,6 +344,7 @@ class CompareConfig(BaseModel):
     enabled: bool = False
     base_model: str = ""
     finetuned_model: str = ""
+    metrics: list[str] = Field(default_factory=lambda: ["bleu", "rouge"])
     max_samples: int = 20
     output_file: str = "compare_results.json"
 

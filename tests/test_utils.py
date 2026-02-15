@@ -1,9 +1,13 @@
-"""로깅 유틸리티(utils.py)의 단위 테스트입니다."""
+"""유틸리티(utils.py)의 단위 테스트입니다."""
 
+import hashlib
 import logging
+from pathlib import Path
+
+import pytest
 
 import slm_factory.utils as utils_module
-from slm_factory.utils import get_logger, setup_logging
+from slm_factory.utils import compute_file_hash, get_logger, setup_logging
 
 
 class TestSetupLogging:
@@ -48,3 +52,77 @@ class TestGetLogger:
         assert logger_a.name != logger_b.name
         assert logger_a.name == "slm_factory.module_a"
         assert logger_b.name == "slm_factory.module_b"
+
+
+# ---------------------------------------------------------------------------
+# compute_file_hash
+# ---------------------------------------------------------------------------
+
+
+class TestComputeFileHash:
+    """compute_file_hash 함수의 테스트입니다."""
+
+    def test_sha256_기본_해시(self, tmp_path: Path):
+        """기본 알고리즘(sha256)으로 올바른 해시를 반환하는지 확인합니다."""
+        f = tmp_path / "sample.txt"
+        content = b"hello world"
+        f.write_bytes(content)
+
+        result = compute_file_hash(f)
+        expected = hashlib.sha256(content).hexdigest()
+
+        assert result == expected
+
+    def test_md5_알고리즘(self, tmp_path: Path):
+        """md5 알고리즘을 지정하면 올바른 해시를 반환하는지 확인합니다."""
+        f = tmp_path / "sample.txt"
+        content = b"test data for md5"
+        f.write_bytes(content)
+
+        result = compute_file_hash(f, algorithm="md5")
+        expected = hashlib.md5(content).hexdigest()
+
+        assert result == expected
+
+    def test_빈_파일(self, tmp_path: Path):
+        """빈 파일의 해시가 올바르게 계산되는지 확인합니다."""
+        f = tmp_path / "empty.txt"
+        f.write_bytes(b"")
+
+        result = compute_file_hash(f)
+        expected = hashlib.sha256(b"").hexdigest()
+
+        assert result == expected
+
+    def test_동일_내용_동일_해시(self, tmp_path: Path):
+        """동일 내용의 파일은 동일한 해시를 반환하는지 확인합니다."""
+        f1 = tmp_path / "a.txt"
+        f2 = tmp_path / "b.txt"
+        f1.write_bytes(b"same content")
+        f2.write_bytes(b"same content")
+
+        assert compute_file_hash(f1) == compute_file_hash(f2)
+
+    def test_다른_내용_다른_해시(self, tmp_path: Path):
+        """다른 내용의 파일은 다른 해시를 반환하는지 확인합니다."""
+        f1 = tmp_path / "a.txt"
+        f2 = tmp_path / "b.txt"
+        f1.write_bytes(b"content A")
+        f2.write_bytes(b"content B")
+
+        assert compute_file_hash(f1) != compute_file_hash(f2)
+
+    def test_str_경로_허용(self, tmp_path: Path):
+        """문자열 경로도 허용되는지 확인합니다."""
+        f = tmp_path / "sample.txt"
+        f.write_bytes(b"string path test")
+
+        result_path = compute_file_hash(f)
+        result_str = compute_file_hash(str(f))
+
+        assert result_path == result_str
+
+    def test_존재하지_않는_파일(self, tmp_path: Path):
+        """존재하지 않는 파일이면 FileNotFoundError가 발생하는지 확인합니다."""
+        with pytest.raises(FileNotFoundError):
+            compute_file_hash(tmp_path / "nonexistent.txt")

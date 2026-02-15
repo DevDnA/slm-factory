@@ -267,6 +267,78 @@ class TestStepExport:
 
 
 # ---------------------------------------------------------------------------
+# step_score
+# ---------------------------------------------------------------------------
+
+
+class TestStepScoreDisabled:
+    """Pipeline.step_score 비활성화 테스트입니다."""
+
+    def test_비활성화시_입력_그대로_반환(self, make_config, make_qa_pair, tmp_path):
+        """scoring.enabled=False이면 입력 쌍을 그대로 반환하는지 확인합니다."""
+        config = make_config(
+            scoring={"enabled": False},
+            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+        )
+        (tmp_path / "output").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
+        pipeline = Pipeline(config)
+
+        pairs = [make_qa_pair(), make_qa_pair(question="두 번째")]
+        result = pipeline.step_score(pairs)
+
+        assert result is pairs
+
+
+# ---------------------------------------------------------------------------
+# step_augment
+# ---------------------------------------------------------------------------
+
+
+class TestStepAugmentDisabled:
+    """Pipeline.step_augment 비활성화 테스트입니다."""
+
+    def test_비활성화시_입력_그대로_반환(self, make_config, make_qa_pair, tmp_path):
+        """augment.enabled=False이면 입력 쌍을 그대로 반환하는지 확인합니다."""
+        config = make_config(
+            augment={"enabled": False},
+            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+        )
+        (tmp_path / "output").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
+        pipeline = Pipeline(config)
+
+        pairs = [make_qa_pair()]
+        result = pipeline.step_augment(pairs)
+
+        assert result is pairs
+
+
+# ---------------------------------------------------------------------------
+# step_analyze
+# ---------------------------------------------------------------------------
+
+
+class TestStepAnalyzeDisabled:
+    """Pipeline.step_analyze 비활성화 테스트입니다."""
+
+    def test_비활성화시_None_반환(self, make_config, make_qa_pair, tmp_path):
+        """analyzer.enabled=False이면 None을 반환하는지 확인합니다."""
+        config = make_config(
+            analyzer={"enabled": False},
+            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+        )
+        (tmp_path / "output").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
+        pipeline = Pipeline(config)
+
+        pairs = [make_qa_pair()]
+        result = pipeline.step_analyze(pairs)
+
+        assert result is None
+
+
+# ---------------------------------------------------------------------------
 # run (전체 파이프라인)
 # ---------------------------------------------------------------------------
 

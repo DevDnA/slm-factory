@@ -45,7 +45,7 @@ class ModelComparator:
     def _compute_scores(self, reference: str, base_answer: str, finetuned_answer: str) -> dict[str, float]:
         """Base 모델과 Fine-tuned 모델 답변의 점수를 계산합니다."""
         scores: dict[str, float] = {}
-        metrics = self.config.eval.metrics
+        metrics = self.compare_config.metrics
 
         if "bleu" in metrics:
             bleu = _load_bleu()

@@ -175,6 +175,7 @@ training:
 #   enabled: false                      # 기본 모델 vs 파인튜닝 모델 답변 비교
 #   base_model: ""                      # 비교 기준 모델 (Ollama 모델명)
 #   finetuned_model: ""                 # 파인튜닝된 모델 (Ollama 모델명)
+#   metrics: ["bleu", "rouge"]          # 비교에 사용할 메트릭
 #   max_samples: 20                     # 비교할 최대 질문 수
 #   output_file: "compare_results.json" # 비교 결과 저장 파일
 

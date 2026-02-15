@@ -77,7 +77,7 @@ class TestComputeScores:
         assert mock_rouge.compute.call_count == 2
 
     def test_bleu_only(self, slm_config, mock_bleu):
-        slm_config.eval.metrics = ["bleu"]
+        slm_config.compare.metrics = ["bleu"]
         comp = ModelComparator(slm_config)
         with patch("slm_factory.comparator._load_bleu", return_value=mock_bleu):
             scores = comp._compute_scores("ref", "base", "ft")
@@ -87,7 +87,7 @@ class TestComputeScores:
         assert "base_rouge1" not in scores
 
     def test_rouge_only(self, slm_config, mock_rouge):
-        slm_config.eval.metrics = ["rouge"]
+        slm_config.compare.metrics = ["rouge"]
         comp = ModelComparator(slm_config)
         with patch("slm_factory.comparator._load_rouge", return_value=mock_rouge):
             scores = comp._compute_scores("ref", "base", "ft")
@@ -97,7 +97,7 @@ class TestComputeScores:
         assert "base_bleu" not in scores
 
     def test_no_metrics(self, slm_config):
-        slm_config.eval.metrics = []
+        slm_config.compare.metrics = []
         comp = ModelComparator(slm_config)
         scores = comp._compute_scores("ref", "base", "ft")
         assert scores == {}

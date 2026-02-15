@@ -725,7 +725,7 @@ slm-factory eval --model <모델이름> [--config <설정파일>] [--data <QA데
 slm-factory eval --model my-project-model --config project.yaml
 ```
 
-**출력**: `output/evaluation_results.json` (BLEU/ROUGE 점수)
+**출력**: `output/eval_results.json` (BLEU/ROUGE 점수)
 
 ---
 
@@ -890,7 +890,7 @@ output/
 ├── qa_reviewed.json           # 수동 리뷰된 QA 쌍
 ├── data_analysis.json         # 데이터 분석 보고서
 ├── dialogues.json             # 멀티턴 대화 데이터
-├── evaluation_results.json    # 모델 평가 결과 (BLEU/ROUGE)
+├── eval_results.json          # 모델 평가 결과 (BLEU/ROUGE)
 ├── compare_results.json       # 모델 비교 결과 (Before/After)
 ├── training_data.jsonl        # 채팅 템플릿 적용된 학습 데이터
 ├── checkpoints/
@@ -922,7 +922,7 @@ output/
 
 - **`dialogues.json`**: QA 쌍을 멀티턴 대화 형식으로 확장한 데이터입니다. 대화형 모델 학습에 활용할 수 있습니다.
 
-- **`evaluation_results.json`**: 학습된 모델의 BLEU/ROUGE 점수 평가 결과입니다. 각 메트릭별 점수와 평균 점수를 포함합니다.
+- **`eval_results.json`**: 학습된 모델의 BLEU/ROUGE 점수 평가 결과입니다. 각 메트릭별 점수와 평균 점수를 포함합니다.
 
 - **`compare_results.json`**: Base 모델과 Fine-tuned 모델의 답변을 나란히 비교한 결과입니다. 각 질문에 대한 두 모델의 답변을 포함합니다.
 

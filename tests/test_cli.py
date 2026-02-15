@@ -468,10 +468,10 @@ class TestLoadQaData:
 class TestEvalCommand:
     """eval 명령어의 테스트입니다."""
 
-    def test_모델_평가_실행(self, mocker):
+    def test_모델_평가_실행(self, mocker, tmp_path):
         """파이프라인과 평가기를 올바르게 호출하는지 확인합니다."""
         mock_pipeline = MagicMock()
-        mock_pipeline.output_dir = Path("/tmp/output")
+        mock_pipeline.output_dir = tmp_path / "output"
         mock_pipeline.config.eval.output_file = "eval_results.json"
         mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
         mocker.patch("slm_factory.cli._load_qa_data", return_value=[MagicMock()])
@@ -532,10 +532,10 @@ class TestExportGgufCommand:
         assert result.exit_code == 0
         mock_exporter.export.assert_called_once()
 
-    def test_모델_디렉토리_미존재(self, mocker):
+    def test_모델_디렉토리_미존재(self, mocker, tmp_path):
         """모델 디렉토리가 존재하지 않으면 exit code 1로 종료하는지 확인합니다."""
         mock_pipeline = MagicMock()
-        mock_pipeline.config.paths.output = Path("/tmp/nonexistent")
+        mock_pipeline.config.paths.output = tmp_path / "nonexistent"
         mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
 
         result = runner.invoke(app, [
@@ -561,10 +561,10 @@ class TestExportGgufCommand:
 class TestUpdateCommand:
     """update 명령어의 테스트입니다."""
 
-    def test_증분_업데이트_실행(self, mocker):
+    def test_증분_업데이트_실행(self, mocker, tmp_path):
         """변경 문서 감지 및 증분 업데이트가 수행되는지 확인합니다."""
         mock_pipeline = MagicMock()
-        mock_pipeline.output_dir = Path("/tmp/output")
+        mock_pipeline.output_dir = tmp_path / "output"
         mock_pipeline.step_parse.return_value = [MagicMock()]
         mock_pipeline.step_generate.return_value = [MagicMock()]
         mock_pipeline._load_pairs.return_value = []
@@ -619,10 +619,10 @@ class TestUpdateCommand:
 class TestGenerateDialogueCommand:
     """generate-dialogue 명령어의 테스트입니다."""
 
-    def test_대화_생성_실행(self, mocker):
+    def test_대화_생성_실행(self, mocker, tmp_path):
         """파이프라인과 DialogueGenerator를 올바르게 호출하는지 확인합니다."""
         mock_pipeline = MagicMock()
-        mock_pipeline.output_dir = Path("/tmp/output")
+        mock_pipeline.output_dir = tmp_path / "output"
         mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
         mocker.patch("slm_factory.cli._load_qa_data", return_value=[MagicMock()])
 
@@ -662,10 +662,10 @@ class TestGenerateDialogueCommand:
 class TestCompareCommand:
     """compare 명령어의 테스트입니다."""
 
-    def test_모델_비교_실행(self, mocker):
+    def test_모델_비교_실행(self, mocker, tmp_path):
         """파이프라인과 ModelComparator를 올바르게 호출하는지 확인합니다."""
         mock_pipeline = MagicMock()
-        mock_pipeline.output_dir = Path("/tmp/output")
+        mock_pipeline.output_dir = tmp_path / "output"
         mock_pipeline.config.compare.output_file = "compare_results.json"
         mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
         mocker.patch("slm_factory.cli._load_qa_data", return_value=[MagicMock()])
@@ -704,10 +704,10 @@ class TestCompareCommand:
 class TestDashboardCommand:
     """dashboard 명령어의 테스트입니다."""
 
-    def test_대시보드_실행(self, mocker):
+    def test_대시보드_실행(self, mocker, tmp_path):
         """load_config과 PipelineDashboard가 올바르게 호출되는지 확인합니다."""
         mock_cfg = MagicMock()
-        mock_cfg.paths.output = "/tmp/output"
+        mock_cfg.paths.output = str(tmp_path / "output")
         mock_cfg.dashboard.refresh_interval = 5
         mocker.patch("slm_factory.cli._find_config", return_value="test.yaml")
         mocker.patch("slm_factory.config.load_config", return_value=mock_cfg)
@@ -739,10 +739,10 @@ class TestDashboardCommand:
 class TestReviewCommand:
     """review 명령어의 테스트입니다."""
 
-    def test_리뷰_실행(self, mocker):
+    def test_리뷰_실행(self, mocker, tmp_path):
         """파이프라인과 QAReviewerApp이 올바르게 호출되는지 확인합니다."""
         mock_pipeline = MagicMock()
-        mock_pipeline.output_dir = Path("/tmp/output")
+        mock_pipeline.output_dir = tmp_path / "output"
         mock_pipeline.config.review.output_file = "qa_reviewed.json"
         mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
         mocker.patch("slm_factory.cli._load_qa_data", return_value=[MagicMock()])
