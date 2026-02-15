@@ -1057,6 +1057,7 @@ slm-factory/
 - **[아키텍처 가이드](docs/architecture.md)**: slm-factory의 내부 구조와 설계 원칙을 설명합니다
 - **[설정 레퍼런스](docs/configuration.md)**: `project.yaml`의 모든 설정 옵션에 대한 상세 설명을 제공합니다
 - **[모듈별 상세 문서](docs/modules.md)**: 각 모듈(파서, Teacher, 검증기 등)의 API와 확장 방법을 안내합니다
+- **[자주 묻는 질문 (FAQ)](docs/faq.md)**: Ollama 연결, GPU 메모리, QA 품질 등 자주 발생하는 문제의 해결 방법을 안내합니다
 
 ---
 

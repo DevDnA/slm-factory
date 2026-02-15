@@ -67,6 +67,9 @@ Modelfile
 .env.*
 !.env.example
 
+# User project config (created by slm-factory init)
+/project.yaml
+
 # Misc
 .cache/
 *.tmp
