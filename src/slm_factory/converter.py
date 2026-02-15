@@ -28,7 +28,7 @@ class ChatFormatter:
     모든 HuggingFace 모델에 대해 올바른 역할 태그(<start_of_turn>, [INST], <|im_start|> 등)를 보장합니다.
     """
     
-    def __init__(self, config: SLMConfig):
+    def __init__(self, config: SLMConfig) -> None:
         self.config = config
         self.model_name = config.student.model
         self.max_seq_length = config.student.max_seq_length

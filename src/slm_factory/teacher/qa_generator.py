@@ -32,7 +32,7 @@ class QAGenerator:
         config: 전체 SLMConfig(교사, 질문 섹션 필요)
     """
     
-    def __init__(self, config: SLMConfig):
+    def __init__(self, config: SLMConfig) -> None:
         from ..teacher import create_teacher
         self.config = config
         self.teacher = create_teacher(config.teacher)

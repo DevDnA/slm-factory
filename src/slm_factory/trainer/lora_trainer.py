@@ -50,7 +50,7 @@ class LoRATrainer:
     그리고 설정의 모든 학습 하이퍼파라미터로 감싸서 제공합니다.
     """
 
-    def __init__(self, config: SLMConfig):
+    def __init__(self, config: SLMConfig) -> None:
         self.config = config
         self.student_config = config.student
         self.training_config = config.training
@@ -304,7 +304,7 @@ class DataLoader:
     채팅 템플릿 형식의 학습 문자열을 포함합니다.
     """
 
-    def __init__(self, train_split: float = 0.9):
+    def __init__(self, train_split: float = 0.9) -> None:
         self.train_split = train_split
 
     def load_jsonl(self, path: str | Path) -> "datasets.Dataset":

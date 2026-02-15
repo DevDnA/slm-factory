@@ -279,7 +279,7 @@ class TestSaveResults:
 
 
 class TestPrintSummary:
-    def test_runs_without_error(self, comparator):
+    def test_runs_without_error(self, comparator, capsys):
         results = [
             CompareResult(
                 question="q?", reference_answer="a", base_answer="b", finetuned_answer="f",
@@ -287,11 +287,16 @@ class TestPrintSummary:
             ),
         ]
         comparator.print_summary(results)
+        out = capsys.readouterr().out
+        assert "비교 결과 요약" in out
+        assert "1건 비교 완료" in out
 
-    def test_empty_results(self, comparator):
+    def test_empty_results(self, comparator, capsys):
         comparator.print_summary([])
+        out = capsys.readouterr().out
+        assert "비교 결과가 없습니다" in out
 
-    def test_multiple_metrics(self, comparator):
+    def test_multiple_metrics(self, comparator, capsys):
         results = [
             CompareResult(
                 question="q1?", reference_answer="a1", base_answer="b1", finetuned_answer="f1",
@@ -303,8 +308,12 @@ class TestPrintSummary:
             ),
         ]
         comparator.print_summary(results)
+        out = capsys.readouterr().out
+        assert "bleu" in out
+        assert "rouge1" in out
+        assert "2건 비교 완료" in out
 
-    def test_zero_base_score_shows_na(self, comparator):
+    def test_zero_base_score_shows_na(self, comparator, capsys):
         results = [
             CompareResult(
                 question="q?", reference_answer="a", base_answer="b", finetuned_answer="f",
@@ -312,3 +321,5 @@ class TestPrintSummary:
             ),
         ]
         comparator.print_summary(results)
+        out = capsys.readouterr().out
+        assert "N/A" in out

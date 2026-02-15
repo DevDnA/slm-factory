@@ -36,7 +36,7 @@ class GroundednessChecker:
     코사인 유사도를 계산합니다. 임계값 이하의 답변은 잠재적 환각(Hallucination)으로 표시됩니다.
     """
     
-    def __init__(self, config: GroundednessConfig):
+    def __init__(self, config: GroundednessConfig) -> None:
         _check_sentence_transformers()
         from sentence_transformers import SentenceTransformer
         

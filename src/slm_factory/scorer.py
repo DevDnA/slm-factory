@@ -22,7 +22,7 @@ logger = get_logger("scorer")
 class QualityScorer:
     """교사 LLM을 사용하여 QA 쌍의 품질을 1~5점으로 평가합니다."""
 
-    def __init__(self, teacher: BaseTeacher, config: ScoringConfig, teacher_config: TeacherConfig):
+    def __init__(self, teacher: BaseTeacher, config: ScoringConfig, teacher_config: TeacherConfig) -> None:
         self.teacher = teacher
         self.config = config
         self.teacher_config = teacher_config

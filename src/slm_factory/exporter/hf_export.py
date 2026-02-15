@@ -24,7 +24,7 @@ class HFExporter:
         config: 전체 SLMConfig
     """
     
-    def __init__(self, config: SLMConfig):
+    def __init__(self, config: SLMConfig) -> None:
         self.config = config
         self.student_model = config.student.model
         self.merge_lora = config.export.merge_lora

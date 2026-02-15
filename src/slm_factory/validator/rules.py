@@ -32,7 +32,7 @@ class RuleValidator:
     4. 중복 제거: 중복된 질문-답변 쌍 거부
     """
     
-    def __init__(self, config: ValidationConfig):
+    def __init__(self, config: ValidationConfig) -> None:
         self.config = config
         self._seen_pairs: set[str] = set()  # 중복 제거용 — (질문, 답변) 해시 저장
         self._compiled_patterns: list[re.Pattern] = [

@@ -175,18 +175,27 @@ class TestSaveResults:
 
 
 class TestPrintSummary:
-    def test_runs_without_error(self, evaluator):
+    def test_runs_without_error(self, evaluator, capsys):
         results = [
             EvalResult(question="q?", reference_answer="a", generated_answer="g", scores={"bleu": 0.5}),
         ]
         evaluator.print_summary(results)
+        out = capsys.readouterr().out
+        assert "평가 결과 요약" in out
+        assert "1건 평가 완료" in out
 
-    def test_empty_results(self, evaluator):
+    def test_empty_results(self, evaluator, capsys):
         evaluator.print_summary([])
+        out = capsys.readouterr().out
+        assert "평가 결과가 없습니다" in out
 
-    def test_multiple_metrics(self, evaluator):
+    def test_multiple_metrics(self, evaluator, capsys):
         results = [
             EvalResult(question="q1?", reference_answer="a1", generated_answer="g1", scores={"bleu": 0.5, "rouge1": 0.6}),
             EvalResult(question="q2?", reference_answer="a2", generated_answer="g2", scores={"bleu": 0.7, "rouge1": 0.8}),
         ]
         evaluator.print_summary(results)
+        out = capsys.readouterr().out
+        assert "bleu" in out
+        assert "rouge1" in out
+        assert "2건 평가 완료" in out

@@ -25,7 +25,7 @@ class OllamaExporter:
         config: 전체 SLMConfig
     """
     
-    def __init__(self, config: SLMConfig):
+    def __init__(self, config: SLMConfig) -> None:
         self.config = config
         self.ollama_config = config.export.ollama
         self.model_name = config.export.ollama.model_name

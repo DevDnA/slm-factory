@@ -22,7 +22,7 @@ logger = get_logger("augmenter")
 class DataAugmenter:
     """교사 LLM을 사용하여 질문을 패러프레이즈하여 데이터를 증강합니다."""
 
-    def __init__(self, teacher: BaseTeacher, config: AugmentConfig, teacher_config: TeacherConfig):
+    def __init__(self, teacher: BaseTeacher, config: AugmentConfig, teacher_config: TeacherConfig) -> None:
         self.teacher = teacher
         self.config = config
         self.teacher_config = teacher_config
