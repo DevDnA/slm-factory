@@ -260,7 +260,7 @@ slm-factory run --config my-project/project.yaml
 ```
 slm-factory — Starting full pipeline...
 
-Parsing documents in ./my-project/documents (formats: ['.pdf'])
+Parsing documents in ./my-project/documents (formats: ['.pdf', '.txt', '.html'])
 Parsed 5 documents — saved debug output to ./my-project/output/parsed_documents.json
 
 Generating QA pairs from 5 documents...

@@ -159,7 +159,7 @@ class HwpxOptions(BaseModel):
     apply_spacing: bool = True
 
 class ParsingConfig(BaseModel):
-    formats: list[str] = ["pdf"]
+    formats: list[str] = ["pdf", "txt", "html"]
     pdf: PdfOptions = PdfOptions()
     hwpx: HwpxOptions = HwpxOptions()
 ```

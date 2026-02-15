@@ -67,6 +67,8 @@ project:
 
 입력 문서와 출력 파일의 위치를 지정합니다. 지정된 디렉토리가 없으면 자동으로 생성됩니다.
 
+상대 경로는 `project.yaml` 파일이 위치한 디렉토리를 기준으로 해석됩니다. 예를 들어 `my-project/project.yaml`에서 `"./documents"`는 `my-project/documents/`를 의미합니다. 따라서 프로젝트 디렉토리 외부에서 `--config my-project/project.yaml`로 실행해도 올바른 경로를 참조합니다.
+
 | 필드 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
 | `documents` | `Path` | `"./documents"` | 입력 문서가 저장된 디렉토리. 파싱할 PDF, HWPX 등의 파일을 여기에 배치합니다 |
@@ -88,7 +90,7 @@ paths:
 
 | 필드 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
-| `formats` | `list[str]` | `["pdf"]` | 파싱할 문서 형식 목록. 여러 형식을 동시에 지정할 수 있습니다 |
+| `formats` | `list[str]` | `["pdf", "txt", "html"]` | 파싱할 문서 형식 목록. 여러 형식을 동시에 지정할 수 있습니다 |
 | `pdf` | `PdfOptions` | (하위 참조) | PDF 파싱 옵션 |
 | `hwpx` | `HwpxOptions` | (하위 참조) | HWPX 파싱 옵션 |
 

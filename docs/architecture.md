@@ -839,7 +839,7 @@ SLMConfig (root)
 │   └── output: Path = "./output"
 │
 ├── parsing: ParsingConfig
-│   ├── formats: list[str] = ["pdf"]
+│   ├── formats: list[str] = ["pdf", "txt", "html"]
 │   ├── pdf: PdfOptions
 │   │   └── extract_tables: bool = True
 │   └── hwpx: HwpxOptions
