@@ -136,30 +136,46 @@ class ChatFormatter:
         list[dict[str, str]]
             HF 데이터셋 준비가 된 {"text": formatted_string} 딕셔너리 리스트.
         """
+        from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeRemainingColumn
+        
         formatted_data = []
         skipped = 0
         
-        for pair in pairs:
-            formatted_text = self.format_one(pair)
+        progress = Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("{task.completed}/{task.total}"),
+            TimeRemainingColumn(),
+        )
+        
+        with progress:
+            task_id = progress.add_task("훈련 데이터 변환 중...", total=len(pairs))
             
-            if formatted_text is None:
-                skipped += 1
-                continue
-            
-            # 토큰 개수를 세어 max_seq_length 확인
-            tokens = self.tokenizer.encode(formatted_text)
-            token_count = len(tokens)
-            
-            if token_count > self.max_seq_length:
-                skipped += 1
-                logger.debug(
-                    "쌍 건너뜀: %d 토큰 > max_seq_length (%d)",
-                    token_count,
-                    self.max_seq_length,
-                )
-                continue
-            
-            formatted_data.append({"text": formatted_text})
+            for pair in pairs:
+                formatted_text = self.format_one(pair)
+                
+                if formatted_text is None:
+                    skipped += 1
+                    progress.advance(task_id)
+                    continue
+                
+                # 토큰 개수를 세어 max_seq_length 확인
+                tokens = self.tokenizer.encode(formatted_text)
+                token_count = len(tokens)
+                
+                if token_count > self.max_seq_length:
+                    skipped += 1
+                    logger.debug(
+                        "쌍 건너뜀: %d 토큰 > max_seq_length (%d)",
+                        token_count,
+                        self.max_seq_length,
+                    )
+                    progress.advance(task_id)
+                    continue
+                
+                formatted_data.append({"text": formatted_text})
+                progress.advance(task_id)
         
         total = len(pairs)
         accepted = len(formatted_data)

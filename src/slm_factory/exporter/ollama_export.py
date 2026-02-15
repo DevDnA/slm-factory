@@ -87,17 +87,21 @@ class OllamaExporter:
         반환값:
             성공하면 True, 그렇지 않으면 False
         """
+        from rich.console import Console
+        
+        console = Console()
         modelfile_path = Path(modelfile_path)
         
         logger.info(f"Ollama 모델 생성 중: {self.model_name}")
         
         try:
-            result = subprocess.run(
-                ["ollama", "create", self.model_name, "-f", str(modelfile_path)],
-                capture_output=True,
-                text=True,
-                timeout=300,  # 5분 타임아웃
-            )
+            with console.status(f"[bold blue]Ollama 모델 생성 중: {self.model_name}[/bold blue]"):
+                result = subprocess.run(
+                    ["ollama", "create", self.model_name, "-f", str(modelfile_path)],
+                    capture_output=True,
+                    text=True,
+                    timeout=300,  # 5분 타임아웃
+                )
             
             if result.returncode == 0:
                 logger.info(f"✓ Ollama 모델 생성됨: {self.model_name}")

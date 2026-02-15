@@ -47,7 +47,10 @@ class HFExporter:
         # 지연 임포트
         from peft import PeftModel
         from transformers import AutoModelForCausalLM, AutoTokenizer
+        from rich.console import Console
         import torch
+        
+        console = Console()
         
         adapter_path = Path(adapter_path)
         if output_dir is None:
@@ -55,44 +58,41 @@ class HFExporter:
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         
-        logger.info(f"기본 모델 로드 중: {self.student_model}")
-        
         # 디바이스 결정
         device_map = "auto" if torch.cuda.is_available() else None
         
         # 기본 모델 로드
         try:
-            base_model = AutoModelForCausalLM.from_pretrained(
-                self.student_model,
-                device_map=device_map,
-                torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
-            )
+            with console.status(f"[bold blue]기본 모델 로드 중: {self.student_model}[/bold blue]"):
+                base_model = AutoModelForCausalLM.from_pretrained(
+                    self.student_model,
+                    device_map=device_map,
+                    torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
+                )
         except OSError as e:
             raise RuntimeError(
                 f"기본 모델 '{self.student_model}'을(를) 로드할 수 없습니다. "
                 f"모델명이 정확한지 확인하세요: {e}"
             ) from e
         
-        logger.info(f"LoRA 어댑터 로드 중: {adapter_path}")
-        
         # LoRA 어댑터 로드
         try:
-            model = PeftModel.from_pretrained(base_model, adapter_path)
+            with console.status(f"[bold blue]LoRA 어댑터 로드 중: {adapter_path}[/bold blue]"):
+                model = PeftModel.from_pretrained(base_model, adapter_path)
         except Exception as e:
             raise RuntimeError(
                 f"LoRA 어댑터를 로드할 수 없습니다 ({adapter_path}). "
                 f"학습이 정상 완료되었는지 확인하세요: {e}"
             ) from e
         
-        logger.info("LoRA 가중치를 기본 모델에 병합 중...")
-        
         # 병합 및 언로드
         try:
-            model = model.merge_and_unload()
-            model.save_pretrained(
-                output_dir,
-                safe_serialization=True,
-            )
+            with console.status("[bold blue]LoRA 가중치 병합 및 모델 저장 중...[/bold blue]"):
+                model = model.merge_and_unload()
+                model.save_pretrained(
+                    output_dir,
+                    safe_serialization=True,
+                )
         except RuntimeError as e:
             if "out of memory" in str(e).lower():
                 raise RuntimeError(
@@ -107,12 +107,15 @@ class HFExporter:
                 f"디스크 공간이 충분한지 확인하세요: {e}"
             ) from e
         
-        logger.info(f"병합된 모델을 저장 중: {output_dir}")
-        
         # 토크나이저 저장
-        logger.info("토크나이저 저장 중...")
-        tokenizer = AutoTokenizer.from_pretrained(self.student_model)
-        tokenizer.save_pretrained(output_dir)
+        try:
+            with console.status("[bold blue]토크나이저 저장 중...[/bold blue]"):
+                tokenizer = AutoTokenizer.from_pretrained(self.student_model)
+                tokenizer.save_pretrained(output_dir)
+        except Exception as e:
+            raise RuntimeError(
+                f"토크나이저를 저장할 수 없습니다: {e}"
+            ) from e
         
         logger.info(f"✓ 병합된 모델이 저장됨: {output_dir}")
         
