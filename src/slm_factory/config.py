@@ -251,6 +251,121 @@ class ExportConfig(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# 신규 기능 설정
+# ---------------------------------------------------------------------------
+
+
+class EvalConfig(BaseModel):
+    """학습된 모델의 자동 평가 설정입니다."""
+
+    enabled: bool = False
+    test_split: float = 0.1
+    metrics: list[str] = Field(default_factory=lambda: ["bleu", "rouge"])
+    max_samples: int = 50
+    output_file: str = "eval_results.json"
+
+    @model_validator(mode="after")
+    def _check_eval_params(self) -> "EvalConfig":
+        """평가 설정의 유효성을 검증합니다."""
+        if not (0.0 < self.test_split < 1.0):
+            raise ValueError(
+                f"test_split({self.test_split})은 0과 1 사이여야 합니다"
+            )
+        if self.max_samples < 1:
+            raise ValueError(
+                f"max_samples({self.max_samples})는 1 이상이어야 합니다"
+            )
+        return self
+
+
+class GGUFExportConfig(BaseModel):
+    """GGUF 양자화 변환 설정입니다."""
+
+    enabled: bool = False
+    quantization_type: str = "q4_k_m"
+    llama_cpp_path: str = ""
+
+    @model_validator(mode="after")
+    def _check_gguf_params(self) -> "GGUFExportConfig":
+        """GGUF 양자화 타입의 유효성을 검증합니다."""
+        valid_types = {"q4_0", "q4_1", "q4_k_m", "q4_k_s", "q5_0", "q5_1",
+                       "q5_k_m", "q5_k_s", "q8_0", "f16", "f32"}
+        if self.quantization_type.lower() not in valid_types:
+            raise ValueError(
+                f"quantization_type({self.quantization_type})이 올바르지 않습니다. "
+                f"지원: {', '.join(sorted(valid_types))}"
+            )
+        return self
+
+
+class IncrementalConfig(BaseModel):
+    """증분 학습 설정입니다."""
+
+    enabled: bool = False
+    hash_file: str = "document_hashes.json"
+    merge_strategy: Literal["append", "replace"] = "append"
+    resume_adapter: str = ""
+
+
+class DialogueConfig(BaseModel):
+    """멀티턴 대화 생성 설정입니다."""
+
+    enabled: bool = False
+    min_turns: int = 2
+    max_turns: int = 5
+    include_single_qa: bool = True
+
+    @model_validator(mode="after")
+    def _check_dialogue_params(self) -> "DialogueConfig":
+        """대화 턴 수 범위를 검증합니다."""
+        if self.min_turns < 2:
+            raise ValueError(
+                f"min_turns({self.min_turns})는 2 이상이어야 합니다"
+            )
+        if self.min_turns > self.max_turns:
+            raise ValueError(
+                f"min_turns({self.min_turns})는 "
+                f"max_turns({self.max_turns})보다 클 수 없습니다"
+            )
+        return self
+
+
+class ReviewConfig(BaseModel):
+    """QA 수동 리뷰 설정입니다."""
+
+    enabled: bool = False
+    auto_open: bool = True
+    output_file: str = "qa_reviewed.json"
+
+
+class CompareConfig(BaseModel):
+    """모델 비교 설정입니다."""
+
+    enabled: bool = False
+    base_model: str = ""
+    finetuned_model: str = ""
+    max_samples: int = 20
+    output_file: str = "compare_results.json"
+
+    @model_validator(mode="after")
+    def _check_compare_params(self) -> "CompareConfig":
+        """비교 설정의 유효성을 검증합니다."""
+        if self.max_samples < 1:
+            raise ValueError(
+                f"max_samples({self.max_samples})는 1 이상이어야 합니다"
+            )
+        return self
+
+
+class DashboardConfig(BaseModel):
+    """TUI 대시보드 설정입니다."""
+
+    enabled: bool = False
+    refresh_interval: float = 2.0
+    theme: str = "dark"
+
+
+# ---------------------------------------------------------------------------
 # 루트 설정
 # ---------------------------------------------------------------------------
 
@@ -274,6 +389,13 @@ class SLMConfig(BaseModel):
     student: StudentConfig = Field(default_factory=StudentConfig)
     training: TrainingConfig = Field(default_factory=TrainingConfig)
     export: ExportConfig = Field(default_factory=ExportConfig)
+    eval: EvalConfig = Field(default_factory=EvalConfig)
+    gguf_export: GGUFExportConfig = Field(default_factory=GGUFExportConfig)
+    incremental: IncrementalConfig = Field(default_factory=IncrementalConfig)
+    dialogue: DialogueConfig = Field(default_factory=DialogueConfig)
+    review: ReviewConfig = Field(default_factory=ReviewConfig)
+    compare: CompareConfig = Field(default_factory=CompareConfig)
+    dashboard: DashboardConfig = Field(default_factory=DashboardConfig)
 
     @model_validator(mode="before")
     @classmethod

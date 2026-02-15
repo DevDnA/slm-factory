@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from .config import SLMConfig
-    from .models import QAPair
+    from .models import MultiTurnDialogue, QAPair
 
 from .utils import get_logger
 
@@ -278,3 +278,102 @@ class ChatFormatter:
         
         # 형식화 및 저장
         return self.save_training_data(pairs, output_path)
+
+    # ------------------------------------------------------------------
+    # 멀티턴 대화 지원
+    # ------------------------------------------------------------------
+
+    def build_dialogue_messages(
+        self, dialogue: MultiTurnDialogue
+    ) -> list[dict[str, str]]:
+        """멀티턴 대화를 OpenAI 메시지 형식으로 변환합니다."""
+        messages: list[dict[str, str]] = []
+
+        if self.system_prompt:
+            messages.append({"role": "system", "content": self.system_prompt})
+
+        for turn in dialogue.turns:
+            messages.append({"role": turn.role, "content": turn.content})
+
+        return messages
+
+    def format_dialogue(self, dialogue: MultiTurnDialogue) -> str | None:
+        """대화를 채팅 템플릿으로 형식화합니다."""
+        messages = self.build_dialogue_messages(dialogue)
+
+        try:
+            formatted = self.tokenizer.apply_chat_template(
+                messages,
+                tokenize=False,
+                add_generation_prompt=False,
+            )
+            return formatted
+        except Exception as e:
+            logger.debug(
+                "%s에서 시스템 역할 실패 (오류: %s), 시스템 없이 재시도 중",
+                self.model_name,
+                type(e).__name__,
+            )
+
+            messages_no_system = [m for m in messages if m["role"] != "system"]
+
+            try:
+                formatted = self.tokenizer.apply_chat_template(
+                    messages_no_system,
+                    tokenize=False,
+                    add_generation_prompt=False,
+                )
+                return formatted
+            except Exception as e2:
+                logger.error(
+                    "시스템 역할 없이도 대화 형식화 실패: %s",
+                    type(e2).__name__,
+                )
+                return None
+
+    def save_dialogue_training_data(
+        self,
+        dialogues: list[MultiTurnDialogue],
+        pairs: list[QAPair],
+        output_path: str | Path,
+    ) -> Path:
+        """대화 데이터를 학습용 JSONL로 저장합니다."""
+        output_path = Path(output_path)
+        formatted_data: list[dict[str, str]] = []
+
+        # 단일 QA 포함 여부
+        if self.config.dialogue.include_single_qa:
+            for pair in pairs:
+                formatted_text = self.format_one(pair)
+                if formatted_text is not None:
+                    tokens = self.tokenizer.encode(formatted_text)
+                    if len(tokens) <= self.max_seq_length:
+                        formatted_data.append({"text": formatted_text})
+
+        # 대화 데이터
+        skipped = 0
+        for dialogue in dialogues:
+            formatted_text = self.format_dialogue(dialogue)
+            if formatted_text is None:
+                skipped += 1
+                continue
+
+            tokens = self.tokenizer.encode(formatted_text)
+            if len(tokens) > self.max_seq_length:
+                skipped += 1
+                continue
+
+            formatted_data.append({"text": formatted_text})
+
+        with open(output_path, "w", encoding="utf-8") as f:
+            for item in formatted_data:
+                f.write(json.dumps(item, ensure_ascii=False) + "\n")
+
+        logger.info(
+            "%d개 학습 예제를 %s에 저장함 (대화 %d개 건너뜀)",
+            len(formatted_data),
+            output_path,
+            skipped,
+        )
+
+        return output_path

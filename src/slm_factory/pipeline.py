@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .config import SLMConfig
-    from .models import ParsedDocument, QAPair
+    from .models import CompareResult, EvalResult, MultiTurnDialogue, ParsedDocument, QAPair
 
 from .utils import get_logger
 
@@ -403,6 +403,150 @@ class Pipeline:
 
         logger.info("Export complete — model at %s", model_dir)
         return model_dir
+
+    # ------------------------------------------------------------------
+    # 단계 7: 자동 평가
+    # ------------------------------------------------------------------
+
+    def step_eval(
+        self, pairs: list[QAPair], model_name: str,
+    ) -> list[EvalResult]:
+        """학습된 모델의 품질을 QA 쌍으로 자동 평가합니다.
+
+        매개변수
+        ----------
+        pairs:
+            평가에 사용할 QA 쌍입니다.
+        model_name:
+            평가 대상 Ollama 모델 이름입니다.
+
+        반환값
+        -------
+        list[EvalResult]
+            각 QA 쌍에 대한 평가 결과입니다.
+        """
+        from .evaluator import ModelEvaluator
+        from .models import EvalResult
+
+        if not self.config.eval.enabled:
+            logger.info("Eval disabled — skipping")
+            return []
+
+        logger.info("Evaluating model '%s' with %d pairs...", model_name, len(pairs))
+
+        evaluator = ModelEvaluator(self.config)
+        results = evaluator.evaluate(pairs, model_name)
+
+        eval_path = self.output_dir / self.config.eval.output_file
+        evaluator.save_results(results, eval_path)
+        evaluator.print_summary(results)
+
+        logger.info("Evaluation complete: %d results — saved to %s", len(results), eval_path)
+        return results
+
+    # ------------------------------------------------------------------
+    # 단계 8: GGUF 변환
+    # ------------------------------------------------------------------
+
+    def step_gguf_export(self, model_dir: Path) -> Path:
+        """병합된 모델을 GGUF 양자화 형식으로 변환합니다.
+
+        매개변수
+        ----------
+        model_dir:
+            :meth:`step_export`에서 얻은 병합된 모델 디렉토리입니다.
+
+        반환값
+        -------
+        Path
+            생성된 GGUF 파일의 경로입니다.
+        """
+        from .exporter.gguf_export import GGUFExporter
+
+        if not self.config.gguf_export.enabled:
+            logger.info("GGUF export disabled — skipping")
+            return model_dir
+
+        logger.info("Converting model to GGUF format...")
+
+        exporter = GGUFExporter(self.config)
+        gguf_path = exporter.export(model_dir)
+
+        logger.info("GGUF export complete: %s", gguf_path)
+        return gguf_path
+
+    # ------------------------------------------------------------------
+    # 단계 9: 멀티턴 대화 생성
+    # ------------------------------------------------------------------
+
+    def step_dialogue(self, pairs: list[QAPair]) -> list[MultiTurnDialogue]:
+        """QA 쌍에서 멀티턴 대화 데이터를 생성합니다.
+
+        매개변수
+        ----------
+        pairs:
+            대화 생성에 사용할 QA 쌍입니다.
+
+        반환값
+        -------
+        list[MultiTurnDialogue]
+            생성된 멀티턴 대화 목록입니다.
+        """
+        from .models import MultiTurnDialogue
+        from .teacher import create_teacher
+        from .teacher.dialogue_generator import DialogueGenerator
+
+        if not self.config.dialogue.enabled:
+            logger.info("Dialogue generation disabled — skipping")
+            return []
+
+        logger.info("Generating multi-turn dialogues from %d pairs...", len(pairs))
+
+        teacher = create_teacher(self.config.teacher)
+        generator = DialogueGenerator(teacher, self.config.dialogue, self.config.teacher)
+        dialogues = asyncio.run(generator.generate_all(pairs))
+
+        dialogue_path = self.output_dir / "dialogues.json"
+        generator.save_dialogues(dialogues, dialogue_path)
+
+        logger.info("Dialogue generation complete: %d dialogues — saved to %s", len(dialogues), dialogue_path)
+        return dialogues
+
+    # ------------------------------------------------------------------
+    # 단계 10: 모델 비교
+    # ------------------------------------------------------------------
+
+    def step_compare(self, pairs: list[QAPair]) -> list[CompareResult]:
+        """Base 모델과 Fine-tuned 모델의 답변을 비교합니다.
+
+        매개변수
+        ----------
+        pairs:
+            비교에 사용할 QA 쌍입니다.
+
+        반환값
+        -------
+        list[CompareResult]
+            각 QA 쌍에 대한 비교 결과입니다.
+        """
+        from .comparator import ModelComparator
+        from .models import CompareResult
+
+        if not self.config.compare.enabled:
+            logger.info("Model comparison disabled — skipping")
+            return []
+
+        logger.info("Comparing models...")
+
+        comparator = ModelComparator(self.config)
+        results = comparator.compare(pairs)
+
+        compare_path = self.output_dir / self.config.compare.output_file
+        comparator.save_results(results, compare_path)
+        comparator.print_summary(results)
+
+        logger.info("Comparison complete: %d results — saved to %s", len(results), compare_path)
+        return results
 
     # ------------------------------------------------------------------
     # 전체 파이프라인

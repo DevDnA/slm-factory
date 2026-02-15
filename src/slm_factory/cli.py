@@ -1313,6 +1313,402 @@ def wizard(
     console.print(Panel(summary, expand=False))
 
 
+@app.command(name="eval", rich_help_panel="📊 평가")
+def eval_model(
+    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    model: str = typer.Option(..., "--model", help="평가할 Ollama 모델 이름입니다"),
+    data: Optional[str] = typer.Option(
+        None, "--data", help="QA 데이터 파일 경로 (미지정 시 출력 디렉토리에서 자동 감지)"
+    ),
+) -> None:
+    """학습된 모델을 QA 데이터로 평가합니다."""
+    try:
+        from .evaluator import ModelEvaluator
+
+        pipeline = _load_pipeline(config)
+        pipeline.config.paths.ensure_dirs()
+
+        if data is not None:
+            data_path = Path(data)
+            if not data_path.is_file():
+                _print_error(
+                    "QA 데이터 파일 미발견",
+                    f"파일을 찾을 수 없음: {data_path}",
+                    ["--data 옵션의 경로를 확인하세요"],
+                )
+                raise typer.Exit(code=1)
+            pairs = pipeline._load_pairs(data_path)
+        else:
+            output_dir = pipeline.output_dir
+            candidates = [
+                output_dir / "qa_augmented.json",
+                output_dir / "qa_scored.json",
+                output_dir / "qa_alpaca.json",
+            ]
+            data_path = None
+            for candidate in candidates:
+                if candidate.is_file():
+                    data_path = candidate
+                    break
+            if data_path is None:
+                _print_error(
+                    "QA 데이터 파일 미발견",
+                    "출력 디렉토리에 QA 데이터 파일이 없습니다",
+                    ["generate 명령을 먼저 실행하거나 --data 옵션으로 경로를 지정하세요"],
+                )
+                raise typer.Exit(code=1)
+            console.print(f"[yellow]자동 감지:[/yellow] {data_path}")
+            pairs = pipeline._load_pairs(data_path)
+
+        evaluator = ModelEvaluator(pipeline.config)
+        results = evaluator.evaluate(pairs, model)
+
+        eval_output = pipeline.output_dir / pipeline.config.eval.output_file
+        evaluator.save_results(results, eval_output)
+        evaluator.print_summary(results)
+
+        console.print(
+            f"\n[bold green]평가 완료![/bold green] "
+            f"결과: [cyan]{eval_output}[/cyan] ({len(results)}건)\n"
+        )
+
+    except FileNotFoundError as e:
+        _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
+        raise typer.Exit(code=1)
+    except Exception as e:
+        _print_error("평가 실패", e, hints=_get_error_hints(e))
+        raise typer.Exit(code=1)
+
+
+@app.command(name="export-gguf", rich_help_panel="⚙️ 파이프라인")
+def export_gguf(
+    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    model_dir: Optional[str] = typer.Option(
+        None, "--model-dir", help="병합된 모델 디렉토리 경로 (기본값: output/merged_model)"
+    ),
+) -> None:
+    """병합된 모델을 GGUF 형식으로 변환합니다 (llama.cpp 사용)."""
+    try:
+        from .exporter.gguf_export import GGUFExporter
+
+        pipeline = _load_pipeline(config)
+        pipeline.config.paths.ensure_dirs()
+
+        if model_dir is not None:
+            resolved_model_dir = Path(model_dir)
+        else:
+            resolved_model_dir = pipeline.config.paths.output / "merged_model"
+
+        if not resolved_model_dir.is_dir():
+            _print_error(
+                "모델 디렉토리 미발견",
+                f"디렉토리를 찾을 수 없음: {resolved_model_dir}",
+                ["--model-dir 옵션으로 경로를 지정하거나 export 명령을 먼저 실행하세요"],
+            )
+            raise typer.Exit(code=1)
+
+        exporter = GGUFExporter(pipeline.config)
+        gguf_path = exporter.export(resolved_model_dir)
+
+        console.print(
+            f"\n[bold green]GGUF 변환 완료![/bold green] "
+            f"파일: [cyan]{gguf_path}[/cyan]\n"
+        )
+
+    except FileNotFoundError as e:
+        _print_error("파일 오류", e, hints=_get_error_hints(e))
+        raise typer.Exit(code=1)
+    except Exception as e:
+        _print_error("GGUF 변환 실패", e, hints=_get_error_hints(e))
+        raise typer.Exit(code=1)
+
+
+@app.command(name="update", rich_help_panel="⚙️ 파이프라인")
+def update(
+    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+) -> None:
+    """변경된 문서만 증분 처리합니다."""
+    try:
+        from .incremental import IncrementalTracker
+
+        pipeline = _load_pipeline(config)
+        pipeline.config.paths.ensure_dirs()
+
+        tracker = IncrementalTracker(pipeline.config)
+        changed_files = tracker.get_changed_files(pipeline.config.paths.documents)
+
+        if not changed_files:
+            console.print("\n변경된 문서가 없습니다\n")
+            return
+
+        console.print(
+            f"\n[bold blue]증분 업데이트:[/bold blue] {len(changed_files)}개 변경 문서 감지\n"
+        )
+
+        docs = pipeline.step_parse(files=changed_files)
+        pairs = pipeline.step_generate(docs)
+
+        existing_path = pipeline.output_dir / "qa_alpaca.json"
+        if existing_path.is_file():
+            existing_pairs = pipeline._load_pairs(existing_path)
+        else:
+            existing_pairs = []
+
+        strategy = pipeline.config.incremental.merge_strategy
+        merged = tracker.merge_qa_pairs(existing_pairs, pairs, strategy)
+
+        pipeline._save_pairs(merged, existing_path)
+
+        console.print(
+            f"\n[bold green]증분 업데이트 완료![/bold green] "
+            f"변경 문서: {len(changed_files)}개, "
+            f"새 QA: {len(pairs)}개, "
+            f"전체 QA: {len(merged)}개 "
+            f"(전략: {strategy})\n"
+        )
+
+    except FileNotFoundError as e:
+        _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
+        raise typer.Exit(code=1)
+    except Exception as e:
+        _print_error("증분 업데이트 실패", e, hints=_get_error_hints(e))
+        raise typer.Exit(code=1)
+
+
+@app.command(name="generate-dialogue", rich_help_panel="⚙️ 파이프라인")
+def generate_dialogue(
+    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    data: Optional[str] = typer.Option(
+        None, "--data", help="QA 데이터 파일 경로 (qa_alpaca.json 또는 qa_augmented.json)"
+    ),
+) -> None:
+    """QA 쌍에서 멀티턴 대화 데이터를 생성합니다."""
+    try:
+        import asyncio
+
+        pipeline = _load_pipeline(config)
+        pipeline.config.paths.ensure_dirs()
+
+        if data is not None:
+            data_path = Path(data)
+            if not data_path.is_file():
+                _print_error(
+                    "QA 데이터 파일 미발견",
+                    f"파일을 찾을 수 없음: {data_path}",
+                    ["--data 옵션의 경로를 확인하세요"],
+                )
+                raise typer.Exit(code=1)
+            pairs = pipeline._load_pairs(data_path)
+        else:
+            output_dir = pipeline.output_dir
+            candidates = [
+                output_dir / "qa_augmented.json",
+                output_dir / "qa_scored.json",
+                output_dir / "qa_alpaca.json",
+            ]
+            data_path = None
+            for candidate in candidates:
+                if candidate.is_file():
+                    data_path = candidate
+                    break
+            if data_path is None:
+                _print_error(
+                    "QA 데이터 파일 미발견",
+                    "출력 디렉토리에 QA 데이터 파일이 없습니다",
+                    ["generate 명령을 먼저 실행하세요"],
+                )
+                raise typer.Exit(code=1)
+            console.print(f"[yellow]자동 감지:[/yellow] {data_path}")
+            pairs = pipeline._load_pairs(data_path)
+
+        from .teacher import create_teacher
+        from .teacher.dialogue_generator import DialogueGenerator
+
+        teacher = create_teacher(pipeline.config.teacher)
+        generator = DialogueGenerator(
+            teacher, pipeline.config.dialogue, pipeline.config.teacher
+        )
+        dialogues = asyncio.run(generator.generate_all(pairs))
+
+        dialogue_path = pipeline.output_dir / "dialogues.json"
+        generator.save_dialogues(dialogues, dialogue_path)
+
+        console.print(
+            f"\n[bold green]대화 생성 완료![/bold green] "
+            f"{len(dialogues)}개 대화 생성됨 → [cyan]{dialogue_path}[/cyan]\n"
+        )
+
+    except FileNotFoundError as e:
+        _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
+        raise typer.Exit(code=1)
+    except Exception as e:
+        _print_error("대화 생성 실패", e, hints=_get_error_hints(e))
+        raise typer.Exit(code=1)
+
+
+@app.command(name="compare", rich_help_panel="📊 평가")
+def compare_models(
+    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    base_model: str = typer.Option(..., "--base-model", help="비교 기준 모델 이름 (Ollama)"),
+    finetuned_model: str = typer.Option(..., "--finetuned-model", help="파인튜닝된 모델 이름 (Ollama)"),
+    data: Optional[str] = typer.Option(None, "--data", help="QA 데이터 파일 경로"),
+) -> None:
+    """Base 모델과 Fine-tuned 모델의 답변을 비교합니다."""
+    try:
+        from .comparator import ModelComparator
+
+        pipeline = _load_pipeline(config)
+        pipeline.config.paths.ensure_dirs()
+
+        if data is not None:
+            data_path = Path(data)
+            if not data_path.is_file():
+                _print_error(
+                    "QA 데이터 파일 미발견",
+                    f"파일을 찾을 수 없음: {data_path}",
+                    ["--data 옵션의 경로를 확인하세요"],
+                )
+                raise typer.Exit(code=1)
+            pairs = pipeline._load_pairs(data_path)
+        else:
+            output_dir = pipeline.output_dir
+            candidates = [
+                output_dir / "qa_augmented.json",
+                output_dir / "qa_scored.json",
+                output_dir / "qa_alpaca.json",
+            ]
+            data_path = None
+            for candidate in candidates:
+                if candidate.is_file():
+                    data_path = candidate
+                    break
+            if data_path is None:
+                _print_error(
+                    "QA 데이터 파일 미발견",
+                    "출력 디렉토리에 QA 데이터 파일이 없습니다",
+                    ["generate 명령을 먼저 실행하거나 --data 옵션으로 경로를 지정하세요"],
+                )
+                raise typer.Exit(code=1)
+            console.print(f"[yellow]자동 감지:[/yellow] {data_path}")
+            pairs = pipeline._load_pairs(data_path)
+
+        pipeline.config.compare.base_model = base_model
+        pipeline.config.compare.finetuned_model = finetuned_model
+
+        comparator = ModelComparator(pipeline.config)
+        results = comparator.compare(pairs)
+
+        compare_output = pipeline.output_dir / pipeline.config.compare.output_file
+        comparator.save_results(results, compare_output)
+        comparator.print_summary(results)
+
+        console.print(
+            f"\n[bold green]비교 완료![/bold green] "
+            f"결과: [cyan]{compare_output}[/cyan] ({len(results)}건)\n"
+        )
+
+    except FileNotFoundError as e:
+        _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
+        raise typer.Exit(code=1)
+    except Exception as e:
+        _print_error("비교 실패", e, hints=_get_error_hints(e))
+        raise typer.Exit(code=1)
+
+
+@app.command(name="dashboard", rich_help_panel="🔧 유틸리티")
+def dashboard(
+    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+) -> None:
+    """파이프라인 모니터링 TUI 대시보드를 실행합니다."""
+    from .config import load_config
+
+    try:
+        cfg = load_config(_find_config(config))
+    except Exception as e:
+        _print_error("설정 로드 실패", e, hints=_get_error_hints(e))
+        raise typer.Exit(code=1)
+
+    output_dir = Path(cfg.paths.output)
+
+    try:
+        from .tui.dashboard import PipelineDashboard
+
+        dash_app = PipelineDashboard(
+            output_dir=output_dir,
+            refresh_interval=cfg.dashboard.refresh_interval,
+        )
+        dash_app.run()
+    except Exception as e:
+        _print_error("대시보드 실행 실패", e, hints=_get_error_hints(e))
+        raise typer.Exit(code=1)
+
+
+@app.command(name="review", rich_help_panel="🔧 유틸리티")
+def review_qa(
+    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    data: Optional[str] = typer.Option(None, "--data", help="QA 데이터 파일 경로"),
+) -> None:
+    """QA 쌍을 수동으로 리뷰하는 TUI를 실행합니다."""
+    try:
+        pipeline = _load_pipeline(config)
+        pipeline.config.paths.ensure_dirs()
+
+        if data is not None:
+            data_path = Path(data)
+            if not data_path.is_file():
+                _print_error(
+                    "QA 데이터 파일 미발견",
+                    f"파일을 찾을 수 없음: {data_path}",
+                    ["--data 옵션의 경로를 확인하세요"],
+                )
+                raise typer.Exit(code=1)
+            pairs = pipeline._load_pairs(data_path)
+        else:
+            output_dir = pipeline.output_dir
+            candidates = [
+                output_dir / "qa_reviewed.json",
+                output_dir / "qa_augmented.json",
+                output_dir / "qa_scored.json",
+                output_dir / "qa_alpaca.json",
+            ]
+            data_path = None
+            for candidate in candidates:
+                if candidate.is_file():
+                    data_path = candidate
+                    break
+            if data_path is None:
+                _print_error(
+                    "QA 데이터 파일 미발견",
+                    "출력 디렉토리에 QA 데이터 파일이 없습니다",
+                    ["generate 명령을 먼저 실행하거나 --data 옵션으로 경로를 지정하세요"],
+                )
+                raise typer.Exit(code=1)
+            console.print(f"[yellow]자동 감지:[/yellow] {data_path}")
+            pairs = pipeline._load_pairs(data_path)
+
+        output_path = pipeline.output_dir / pipeline.config.review.output_file
+
+        from .tui.reviewer import QAReviewerApp
+
+        reviewer_app = QAReviewerApp(pairs=pairs, output_path=output_path)
+        reviewer_app.run()
+
+        statuses = QAReviewerApp.count_statuses(pairs)
+        console.print(
+            f"\n[bold green]리뷰 완료![/bold green] "
+            f"승인: [green]{statuses['approved']}[/green], "
+            f"거부: [red]{statuses['rejected']}[/red], "
+            f"대기: [yellow]{statuses['pending']}[/yellow]\n"
+        )
+
+    except FileNotFoundError as e:
+        _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
+        raise typer.Exit(code=1)
+    except Exception as e:
+        _print_error("리뷰 실행 실패", e, hints=_get_error_hints(e))
+        raise typer.Exit(code=1)
+
+
 # ---------------------------------------------------------------------------
 # 진입점
 # ---------------------------------------------------------------------------

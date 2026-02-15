@@ -30,7 +30,43 @@ class QAPair:
     """메타데이터를 포함한 단일 질문-답변 쌍."""
     question: str
     answer: str
-    instruction: str = ""  # Alpaca 'instruction' 필드
-    source_doc: str = ""   # 이 쌍이 나온 문서
-    category: str = ""     # 질문 카테고리
+    instruction: str = ""
+    source_doc: str = ""
+    category: str = ""
     is_augmented: bool = False
+    content_hash: str = ""
+    review_status: str = ""
+
+
+@dataclass
+class EvalResult:
+    """단일 평가 결과."""
+    question: str
+    reference_answer: str
+    generated_answer: str
+    scores: dict = field(default_factory=dict)
+
+
+@dataclass
+class DialogueTurn:
+    """대화의 단일 턴."""
+    role: str
+    content: str
+
+
+@dataclass
+class MultiTurnDialogue:
+    """멀티턴 대화 데이터."""
+    turns: list[DialogueTurn] = field(default_factory=list)
+    source_doc: str = ""
+    category: str = ""
+
+
+@dataclass
+class CompareResult:
+    """모델 비교 결과."""
+    question: str
+    reference_answer: str
+    base_answer: str
+    finetuned_answer: str
+    scores: dict = field(default_factory=dict)

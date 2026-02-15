@@ -136,6 +136,54 @@ training:
     enabled: false                       # QLoRA 활성화 (VRAM 절약, 속도 감소)
     bits: 4                              # 4-bit 양자화 (4 | 8)
 
+# -- 자동 평가(Evaluation) -------------------------------------------------
+# eval:
+#   enabled: false                      # 학습된 모델을 held-out QA로 자동 평가합니다
+#   test_split: 0.1                     # 전체 QA 중 평가용 비율 (0.0~1.0)
+#   metrics: ["bleu", "rouge"]          # 평가 메트릭: bleu, rouge, bertscore
+#   max_samples: 50                     # 최대 평가 샘플 수
+#   output_file: "eval_results.json"    # 평가 결과 저장 파일
+
+# -- GGUF 변환(GGUF Export) ------------------------------------------------
+# gguf_export:
+#   enabled: false                      # llama.cpp GGUF 포맷으로 변환합니다
+#   quantization_type: "q4_k_m"         # q4_k_m (권장), q5_k_m, q8_0, f16
+#   llama_cpp_path: ""                  # llama.cpp 디렉토리 경로 (빈 값이면 자동 탐색)
+
+# -- 증분 학습(Incremental Learning) ----------------------------------------
+# incremental:
+#   enabled: false                      # 문서 변경분만 QA를 재생성합니다
+#   hash_file: "document_hashes.json"   # 문서 해시 저장 파일
+#   merge_strategy: "append"            # "append" (기존 유지+추가) | "replace" (전체 교체)
+#   resume_adapter: ""                  # 이전 어댑터 경로 (이어서 학습)
+
+# -- 멀티턴 대화 생성(Dialogue Generation) -----------------------------------
+# dialogue:
+#   enabled: false                      # 단일 QA를 멀티턴 대화로 확장합니다
+#   min_turns: 2                        # 최소 대화 턴 수
+#   max_turns: 5                        # 최대 대화 턴 수
+#   include_single_qa: true             # 단일 QA도 학습 데이터에 포함
+
+# -- QA 리뷰(Review) -------------------------------------------------------
+# review:
+#   enabled: false                      # TUI에서 QA 쌍을 수동 검토합니다
+#   auto_open: true                     # review 명령 시 자동으로 TUI 실행
+#   output_file: "qa_reviewed.json"     # 리뷰 결과 저장 파일
+
+# -- 모델 비교(Compare) ----------------------------------------------------
+# compare:
+#   enabled: false                      # 기본 모델 vs 파인튜닝 모델 답변 비교
+#   base_model: ""                      # 비교 기준 모델 (Ollama 모델명)
+#   finetuned_model: ""                 # 파인튜닝된 모델 (Ollama 모델명)
+#   max_samples: 20                     # 비교할 최대 질문 수
+#   output_file: "compare_results.json" # 비교 결과 저장 파일
+
+# -- TUI 대시보드(Dashboard) ------------------------------------------------
+# dashboard:
+#   enabled: false                      # 터미널 대시보드로 파이프라인 모니터링
+#   refresh_interval: 2.0               # 화면 갱신 주기 (초)
+#   theme: "dark"                       # "dark" | "light"
+
 # -- 6단계: 모델 내보내기(Export) -------------------------------------------
 export:
   merge_lora: true                      # LoRA 어댑터를 기본 모델에 병합

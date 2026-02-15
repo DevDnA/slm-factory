@@ -38,6 +38,13 @@ pdfplumber = [
 docx = [
     "python-docx>=1.0.0",
 ]
+eval = [
+    "rouge-score>=0.1.2",
+    "nltk>=3.8",
+]
+tui = [
+    "textual>=0.50.0",
+]
 dev = [
     "pytest>=8.0",
     "pytest-mock>=3.12",
@@ -47,6 +54,9 @@ all = [
     "pykospacing @ git+https://github.com/haven-jeon/PyKoSpacing.git",
     "sentence-transformers>=2.6.0",
     "python-docx>=1.0.0",
+    "rouge-score>=0.1.2",
+    "nltk>=3.8",
+    "textual>=0.50.0",
     "pytest>=8.0",
     "pytest-mock>=3.12",
     "pytest-asyncio>=0.23.0",
