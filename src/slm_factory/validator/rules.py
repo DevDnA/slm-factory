@@ -104,7 +104,7 @@ class RuleValidator:
                     key = reason.split(":")[0].split("(")[0].strip()
                     reason_counts[key] = reason_counts.get(key, 0) + 1
             for reason, count in sorted(reason_counts.items(), key=lambda x: -x[1]):
-                logger.info(f"  Rejection reason: {reason} ({count})")
+                logger.info("  Rejection reason: %s (%d)", reason, count)
         
         return accepted, rejected
     

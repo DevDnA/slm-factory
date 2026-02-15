@@ -312,6 +312,18 @@ class QAGenerator:
         docs: list[ParsedDocument],
         questions: list[str] | None = None,
     ) -> list[QAPair]:
+        """여러 문서에 대한 QA 쌍을 비동기적으로 생성합니다.
+
+        세마포어를 사용하여 동시 요청 수를 제한하며,
+        ``generate_all``의 비동기 버전입니다.
+
+        Args:
+            docs: 파싱된 문서 목록
+            questions: 선택적 질문 목록(기본값: config.questions.get_all_questions())
+
+        Returns:
+            생성된 모든 QAPair 객체의 평탄화된 목록
+        """
         max_concurrency = self.teacher_config.max_concurrency
         semaphore = asyncio.Semaphore(max_concurrency)
 

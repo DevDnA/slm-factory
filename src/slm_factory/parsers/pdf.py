@@ -88,68 +88,69 @@ class PDFParser(BaseParser):
         # ------------------------------------------------------------------
         # 텍스트 추출
         # ------------------------------------------------------------------
-        pages_text: list[str] = []
-        for page in doc:
-            try:
-                text = page.get_text("text")
-                if text:
-                    pages_text.append(text)
-            except Exception:
-                logger.warning("Could not extract text from page %d of %s", page.number, path.name)
-
-        raw_text = "\n\n".join(pages_text)
-        content = _clean_page_numbers(raw_text).strip()
-
-        # 과도한 빈 줄 정규화
-        content = re.sub(r"\n{3,}", "\n\n", content)
-
-        # ------------------------------------------------------------------
-        # 표 추출 (최선 노력; PyMuPDF >= 1.23.0은 find_tables 포함)
-        # ------------------------------------------------------------------
-        tables_md: list[str] = []
         try:
+            pages_text: list[str] = []
             for page in doc:
-                tab_finder = page.find_tables()
-                for table in tab_finder.tables:
-                    md = _table_to_markdown(table)
-                    if md:
-                        tables_md.append(md)
-        except AttributeError:
-            # find_tables 없는 PyMuPDF 버전 — 조용히 건너뜀
-            logger.debug("Table extraction unavailable (PyMuPDF version lacks find_tables)")
-        except Exception:
-            logger.debug("Table extraction failed for %s", path.name, exc_info=True)
+                try:
+                    text = page.get_text("text")
+                    if text:
+                        pages_text.append(text)
+                except Exception:
+                    logger.warning("Could not extract text from page %d of %s", page.number, path.name)
 
-        # ------------------------------------------------------------------
-        # 메타데이터
-        # ------------------------------------------------------------------
-        pdf_meta = doc.metadata or {}
-        metadata: dict[str, object] = {}
+            raw_text = "\n\n".join(pages_text)
+            content = _clean_page_numbers(raw_text).strip()
 
-        if pdf_meta.get("author"):
-            metadata["author"] = pdf_meta["author"]
-        if pdf_meta.get("creationDate"):
-            metadata["creation_date"] = pdf_meta["creationDate"]
-        if pdf_meta.get("modDate"):
-            metadata["mod_date"] = pdf_meta["modDate"]
-        if pdf_meta.get("subject"):
-            metadata["subject"] = pdf_meta["subject"]
+            # 과도한 빈 줄 정규화
+            content = re.sub(r"\n{3,}", "\n\n", content)
 
-        metadata["page_count"] = len(doc)
+            # ------------------------------------------------------------------
+            # 표 추출 (최선 노력; PyMuPDF >= 1.23.0은 find_tables 포함)
+            # ------------------------------------------------------------------
+            tables_md: list[str] = []
+            try:
+                for page in doc:
+                    tab_finder = page.find_tables()
+                    for table in tab_finder.tables:
+                        md = _table_to_markdown(table)
+                        if md:
+                            tables_md.append(md)
+            except AttributeError:
+                # find_tables 없는 PyMuPDF 버전 — 조용히 건너뜀
+                logger.debug("Table extraction unavailable (PyMuPDF version lacks find_tables)")
+            except Exception:
+                logger.debug("Table extraction failed for %s", path.name, exc_info=True)
 
-        # 파일명에서 날짜 추출 시도 (YYMMDD)
-        date_from_name = extract_date_from_filename(path.stem)
-        if date_from_name:
-            metadata["date"] = date_from_name
+            # ------------------------------------------------------------------
+            # 메타데이터
+            # ------------------------------------------------------------------
+            pdf_meta = doc.metadata or {}
+            metadata: dict[str, object] = {}
 
-        # ------------------------------------------------------------------
-        # 제목: PDF 메타데이터 선호, 파일명으로 폴백
-        # ------------------------------------------------------------------
-        title = (pdf_meta.get("title") or "").strip()
-        if not title:
-            title = path.stem
+            if pdf_meta.get("author"):
+                metadata["author"] = pdf_meta["author"]
+            if pdf_meta.get("creationDate"):
+                metadata["creation_date"] = pdf_meta["creationDate"]
+            if pdf_meta.get("modDate"):
+                metadata["mod_date"] = pdf_meta["modDate"]
+            if pdf_meta.get("subject"):
+                metadata["subject"] = pdf_meta["subject"]
 
-        doc.close()
+            metadata["page_count"] = len(doc)
+
+            # 파일명에서 날짜 추출 시도 (YYMMDD)
+            date_from_name = extract_date_from_filename(path.stem)
+            if date_from_name:
+                metadata["date"] = date_from_name
+
+            # ------------------------------------------------------------------
+            # 제목: PDF 메타데이터 선호, 파일명으로 폴백
+            # ------------------------------------------------------------------
+            title = (pdf_meta.get("title") or "").strip()
+            if not title:
+                title = path.stem
+        finally:
+            doc.close()
 
         return ParsedDocument(
             doc_id=path.name,

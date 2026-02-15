@@ -117,7 +117,7 @@ class HFExporter:
                 f"토크나이저를 저장할 수 없습니다: {e}"
             ) from e
         
-        logger.info(f"✓ 병합된 모델이 저장됨: {output_dir}")
+        logger.info("✓ 병합된 모델이 저장됨: %s", output_dir)
         
         return output_dir
     
@@ -144,14 +144,14 @@ class HFExporter:
             output_dir = self.config.paths.output / "adapter"
         output_dir = Path(output_dir)
         
-        logger.info(f"{adapter_path}에서 {output_dir}로 어댑터 복사 중")
+        logger.info("%s에서 %s로 어댑터 복사 중", adapter_path, output_dir)
         
         # 어댑터 디렉토리 복사
         if output_dir.exists():
             shutil.rmtree(output_dir)
         shutil.copytree(adapter_path, output_dir)
         
-        logger.info(f"✓ 어댑터가 저장됨: {output_dir}")
+        logger.info("✓ 어댑터가 저장됨: %s", output_dir)
         
         return output_dir
     

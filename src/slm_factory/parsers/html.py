@@ -29,8 +29,8 @@ def _detect_encoding(content: bytes) -> str:
         meta_charset = soup.find("meta", charset=True)
         if meta_charset:
             return meta_charset.get("charset", "latin-1")
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug("HTML 메타 태그에서 charset 추출 실패: %s", e)
 
     # 폴백
     return "latin-1"

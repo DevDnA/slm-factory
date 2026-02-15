@@ -8,6 +8,7 @@ YAML 파일에서 프로젝트 설정을 로드하고 검증합니다.
 from __future__ import annotations
 
 import importlib.resources
+import logging
 from pathlib import Path
 from typing import Any, Literal, Union
 
@@ -474,8 +475,10 @@ def create_default_config() -> str:
             "../../" + _TEMPLATE_PATH
         )
         return ref.read_text(encoding="utf-8")
-    except Exception:
-        pass
+    except Exception as e:
+        logging.getLogger("slm_factory.config").debug(
+            "importlib.resources에서 템플릿 로드 실패: %s", e
+        )
 
     # 최후의 수단: 최소한의 내장 기본값 반환
     return SLMConfig().model_dump_json(indent=2)

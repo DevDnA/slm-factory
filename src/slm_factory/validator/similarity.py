@@ -43,7 +43,7 @@ class GroundednessChecker:
         self.config = config
         self.threshold = config.threshold
         self._model = SentenceTransformer(config.model)
-        logger.info(f"Loaded embedding model: {config.model}")
+        logger.info("Loaded embedding model: %s", config.model)
     
     def _chunk_text(self, text: str, chunk_size: int = 512, overlap: int = 64) -> list[str]:
         """임베딩 비교를 위해 텍스트를 겹치는 청크로 분할합니다.
@@ -124,7 +124,7 @@ class GroundednessChecker:
         for pair in pairs:
             source = source_texts.get(pair.source_doc, "")
             if not source:
-                logger.warning(f"No source text for doc '{pair.source_doc}', skipping groundedness check")
+                logger.warning("No source text for doc '%s', skipping groundedness check", pair.source_doc)
                 grounded.append(pair)
                 continue
             

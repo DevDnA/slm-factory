@@ -51,7 +51,7 @@ class OllamaExporter:
             output_path = model_dir / "Modelfile"
         output_path = Path(output_path)
         
-        logger.info(f"Modelfile 생성 중: {output_path}")
+        logger.info("Modelfile 생성 중: %s", output_path)
         
         # Modelfile 내용 구성
         lines = [
@@ -72,7 +72,7 @@ class OllamaExporter:
         # Modelfile 작성
         output_path.write_text(content, encoding="utf-8")
         
-        logger.info(f"✓ Modelfile 생성됨: {output_path}")
+        logger.info("✓ Modelfile 생성됨: %s", output_path)
         
         return output_path
     
@@ -92,7 +92,7 @@ class OllamaExporter:
         console = Console()
         modelfile_path = Path(modelfile_path)
         
-        logger.info(f"Ollama 모델 생성 중: {self.model_name}")
+        logger.info("Ollama 모델 생성 중: %s", self.model_name)
         
         try:
             with console.status(f"[bold blue]Ollama 모델 생성 중: {self.model_name}[/bold blue]"):
@@ -104,13 +104,13 @@ class OllamaExporter:
                 )
             
             if result.returncode == 0:
-                logger.info(f"✓ Ollama 모델 생성됨: {self.model_name}")
+                logger.info("✓ Ollama 모델 생성됨: %s", self.model_name)
                 if result.stdout:
-                    logger.debug(f"표준 출력: {result.stdout}")
+                    logger.debug("표준 출력: %s", result.stdout)
             else:
-                logger.warning(f"Ollama 모델 생성 실패 (종료 코드 {result.returncode})")
+                logger.warning("Ollama 모델 생성 실패 (종료 코드 %d)", result.returncode)
                 if result.stderr:
-                    logger.warning(f"표준 오류: {result.stderr}")
+                    logger.warning("표준 오류: %s", result.stderr)
             return result.returncode == 0
                 
         except FileNotFoundError:
@@ -120,7 +120,7 @@ class OllamaExporter:
             logger.warning("ollama create 명령 타임아웃")
             return False
         except Exception as e:
-            logger.warning(f"ollama create 실행 중 오류: {e}")
+            logger.warning("ollama create 실행 중 오류: %s", e)
             return False
     
     def export(
@@ -168,12 +168,12 @@ class OllamaExporter:
             logger.info("Ollama 감지됨, 모델 생성 시도 중...")
             success = self.create_model(modelfile_path)
             if success:
-                logger.info(f"✓ 모델 준비 완료! 실행: ollama run {self.model_name}")
+                logger.info("✓ 모델 준비 완료! 실행: ollama run %s", self.model_name)
             else:
-                logger.info(f"수동으로 가져오려면 실행: ollama create {self.model_name} -f {modelfile_path}")
+                logger.info("수동으로 가져오려면 실행: ollama create %s -f %s", self.model_name, modelfile_path)
         else:
             logger.info("Ollama를 감지하지 못했습니다. 수동으로 가져오려면:")
-            logger.info(f"  1. https://ollama.ai에서 Ollama 설치")
-            logger.info(f"  2. 실행: ollama create {self.model_name} -f {modelfile_path}")
+            logger.info("  1. https://ollama.ai에서 Ollama 설치")
+            logger.info("  2. 실행: ollama create %s -f %s", self.model_name, modelfile_path)
         
         return modelfile_path

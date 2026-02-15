@@ -42,6 +42,14 @@ def main_callback(
 
 
 # ---------------------------------------------------------------------------
+# 공통 옵션 상수
+# ---------------------------------------------------------------------------
+
+_CONFIG_HELP = "프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."
+_RESUME_HELP = "중간 저장 파일에서 재개합니다"
+
+
+# ---------------------------------------------------------------------------
 # 헬퍼
 # ---------------------------------------------------------------------------
 
@@ -284,9 +292,9 @@ def init(
 
 @app.command(rich_help_panel="⚙️ 파이프라인")
 def run(
-    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
     resume: bool = typer.Option(
-        False, "--resume", "-r", help="중간 저장 파일에서 재개합니다"
+        False, "--resume", "-r", help=_RESUME_HELP
     ),
 ) -> None:
     """전체 파이프라인을 실행합니다 (파싱 → 생성 → 검증 → 변환 → 훈련 → 내보내기)."""
@@ -340,7 +348,7 @@ def run(
 
 @app.command(rich_help_panel="⚙️ 파이프라인")
 def parse(
-    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
 ) -> None:
     """문서 파싱 단계만 실행합니다."""
     try:
@@ -362,7 +370,7 @@ def parse(
 
 @app.command(rich_help_panel="⚙️ 파이프라인")
 def generate(
-    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
 ) -> None:
     """파싱 + QA 생성 단계를 실행합니다."""
     try:
@@ -386,7 +394,7 @@ def generate(
 
 @app.command(rich_help_panel="⚙️ 파이프라인")
 def validate(
-    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
 ) -> None:
     """파싱 + 생성 + 검증 단계를 실행합니다."""
     try:
@@ -416,9 +424,9 @@ def validate(
 
 @app.command(rich_help_panel="⚙️ 파이프라인")
 def score(
-    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
     resume: bool = typer.Option(
-        False, "--resume", "-r", help="중간 저장 파일에서 재개합니다"
+        False, "--resume", "-r", help=_RESUME_HELP
     ),
 ) -> None:
     """파싱 + 생성 + 검증 + 품질 점수 평가를 실행합니다."""
@@ -467,9 +475,9 @@ def score(
 
 @app.command(rich_help_panel="⚙️ 파이프라인")
 def augment(
-    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
     resume: bool = typer.Option(
-        False, "--resume", "-r", help="중간 저장 파일에서 재개합니다"
+        False, "--resume", "-r", help=_RESUME_HELP
     ),
 ) -> None:
     """파싱 + 생성 + 검증 + 점수 평가 + 데이터 증강을 실행합니다."""
@@ -524,9 +532,9 @@ def augment(
 
 @app.command(rich_help_panel="⚙️ 파이프라인")
 def analyze(
-    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
     resume: bool = typer.Option(
-        False, "--resume", "-r", help="중간 저장 파일에서 재개합니다"
+        False, "--resume", "-r", help=_RESUME_HELP
     ),
 ) -> None:
     """파싱 + 생성 + 검증 + 점수 평가 + 증강 후 데이터 분석을 실행합니다."""
@@ -580,12 +588,12 @@ def analyze(
 
 @app.command(rich_help_panel="⚙️ 파이프라인")
 def train(
-    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
     data: Optional[str] = typer.Option(
         None, "--data", help="사전 생성된 training_data.jsonl 파일 경로입니다"
     ),
     resume: bool = typer.Option(
-        False, "--resume", "-r", help="중간 저장 파일에서 재개합니다"
+        False, "--resume", "-r", help=_RESUME_HELP
     ),
 ) -> None:
     """훈련 단계를 실행합니다 (선택적으로 사전 생성된 데이터 사용)."""
@@ -648,7 +656,7 @@ def train(
 
 @app.command(rich_help_panel="🚀 시작하기")
 def check(
-    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
 ) -> None:
     """프로젝트 설정과 환경을 사전 점검합니다."""
     from rich.table import Table
@@ -781,7 +789,7 @@ def check(
 
 @app.command(rich_help_panel="🔧 유틸리티")
 def status(
-    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
 ) -> None:
     """파이프라인 진행 상태를 확인합니다."""
     from rich.table import Table
@@ -871,7 +879,7 @@ def status(
 
 @app.command(rich_help_panel="🔧 유틸리티")
 def clean(
-    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
     all_files: bool = typer.Option(False, "--all", help="모든 출력 파일을 삭제합니다"),
 ) -> None:
     """중간 생성 파일을 정리합니다."""
@@ -935,7 +943,7 @@ def clean(
 
 @app.command(rich_help_panel="⚙️ 파이프라인")
 def convert(
-    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
     data: Optional[str] = typer.Option(
         None, "--data", help="QA 데이터 파일 경로 (qa_alpaca.json 또는 qa_augmented.json)"
     ),
@@ -964,7 +972,7 @@ def convert(
 
 @app.command(name="export", rich_help_panel="⚙️ 파이프라인")
 def export_model(
-    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
     adapter: Optional[str] = typer.Option(
         None, "--adapter", help="어댑터 디렉토리 경로"
     ),
@@ -1008,7 +1016,7 @@ def version() -> None:
 
 @app.command(rich_help_panel="🚀 시작하기")
 def wizard(
-    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
     resume: bool = typer.Option(False, "--resume", "-r", help="이전 실행의 중간 결과에서 재개합니다"),
 ) -> None:
     """대화형 파이프라인 — 단계별로 확인하며 실행합니다."""
@@ -1398,7 +1406,7 @@ def wizard(
 
 @app.command(name="eval", rich_help_panel="📊 평가")
 def eval_model(
-    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
     model: str = typer.Option(..., "--model", help="평가할 Ollama 모델 이름입니다"),
     data: Optional[str] = typer.Option(
         None, "--data", help="QA 데이터 파일 경로 (미지정 시 출력 디렉토리에서 자동 감지)"
@@ -1435,7 +1443,7 @@ def eval_model(
 
 @app.command(name="export-gguf", rich_help_panel="⚙️ 파이프라인")
 def export_gguf(
-    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
     model_dir: Optional[str] = typer.Option(
         None, "--model-dir", help="병합된 모델 디렉토리 경로 (기본값: output/merged_model)"
     ),
@@ -1478,7 +1486,7 @@ def export_gguf(
 
 @app.command(name="update", rich_help_panel="⚙️ 파이프라인")
 def update(
-    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
 ) -> None:
     """변경된 문서만 증분 처리합니다."""
     try:
@@ -1530,7 +1538,7 @@ def update(
 
 @app.command(name="generate-dialogue", rich_help_panel="⚙️ 파이프라인")
 def generate_dialogue(
-    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
     data: Optional[str] = typer.Option(
         None, "--data", help="QA 데이터 파일 경로 (qa_alpaca.json 또는 qa_augmented.json)"
     ),
@@ -1571,7 +1579,7 @@ def generate_dialogue(
 
 @app.command(name="compare", rich_help_panel="📊 평가")
 def compare_models(
-    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
     base_model: str = typer.Option(..., "--base-model", help="비교 기준 모델 이름 (Ollama)"),
     finetuned_model: str = typer.Option(..., "--finetuned-model", help="파인튜닝된 모델 이름 (Ollama)"),
     data: Optional[str] = typer.Option(None, "--data", help="QA 데이터 파일 경로"),
@@ -1610,7 +1618,7 @@ def compare_models(
 
 @app.command(name="dashboard", rich_help_panel="🔧 유틸리티")
 def dashboard(
-    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
 ) -> None:
     """파이프라인 모니터링 TUI 대시보드를 실행합니다."""
     from .config import load_config
@@ -1638,7 +1646,7 @@ def dashboard(
 
 @app.command(name="review", rich_help_panel="🔧 유틸리티")
 def review_qa(
-    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
     data: Optional[str] = typer.Option(None, "--data", help="QA 데이터 파일 경로"),
 ) -> None:
     """QA 쌍을 수동으로 리뷰하는 TUI를 실행합니다."""

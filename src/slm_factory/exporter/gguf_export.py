@@ -76,7 +76,7 @@ class GGUFExporter:
                 )
 
             if result.stdout:
-                logger.debug(f"표준 출력: {result.stdout}")
+                logger.debug("표준 출력: %s", result.stdout)
 
         except subprocess.TimeoutExpired as e:
             raise RuntimeError(
@@ -99,7 +99,7 @@ class GGUFExporter:
                     f"llama.cpp 변환 로그를 확인하세요."
                 )
 
-        logger.info(f"✓ GGUF 파일 생성됨: {output_file}")
+        logger.info("✓ GGUF 파일 생성됨: %s", output_file)
 
         return output_file
 
@@ -109,7 +109,7 @@ class GGUFExporter:
         if self.llama_cpp_path:
             configured_path = Path(self.llama_cpp_path)
             if configured_path.is_dir():
-                logger.debug(f"설정된 llama.cpp 경로 사용: {configured_path}")
+                logger.debug("설정된 llama.cpp 경로 사용: %s", configured_path)
                 return configured_path
             raise FileNotFoundError(
                 f"설정된 llama.cpp 경로를 찾을 수 없습니다: {configured_path}"
@@ -126,7 +126,7 @@ class GGUFExporter:
 
         for candidate in common_paths:
             if candidate.is_dir():
-                logger.debug(f"llama.cpp 발견: {candidate}")
+                logger.debug("llama.cpp 발견: %s", candidate)
                 return candidate
 
         # 3. PATH에서 검색
@@ -152,7 +152,7 @@ class GGUFExporter:
 
         for candidate in candidates:
             if candidate.is_file():
-                logger.debug(f"변환 스크립트 발견: {candidate}")
+                logger.debug("변환 스크립트 발견: %s", candidate)
                 return candidate
 
         raise FileNotFoundError(
