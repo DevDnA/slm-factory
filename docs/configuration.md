@@ -797,7 +797,133 @@ export:
 
 ---
 
-## 14. 전체 설정 예시 — 한국어 프로젝트
+## 14. 설정 레시피 — 상황별 빠른 설정
+
+이 섹션은 자주 사용되는 설정 패턴을 레시피 형태로 제공합니다. 각 레시피는 특정 상황에 맞게 최소한의 필드만 변경하는 방식으로 구성되어 있습니다.
+
+### 14.1 빠른 시작 — 기본값 그대로 실행
+
+**상황**: 처음 slm-factory를 사용하며, 기본 설정으로 빠르게 테스트하고 싶을 때
+
+**핵심 변경**: 없음 (기본값 사용)
+
+**사전 준비**:
+1. Ollama 서버 실행: `ollama serve`
+2. Teacher 모델 다운로드: `ollama pull qwen3:8b`
+3. `documents/` 디렉토리에 PDF 또는 TXT 파일 추가
+
+**참고**: `project.yaml` 파일을 수정할 필요가 없습니다. `slm-factory init --name my-project` 명령으로 생성된 기본 템플릿을 그대로 사용하면 됩니다. 기본 설정은 영어 문서, Ollama 백엔드, Gemma 3 1B 모델을 사용합니다.
+
+---
+
+### 14.2 소량 문서 (5개 이하) — 과적합 방지
+
+**상황**: 문서가 5개 이하로 적어서 데이터가 부족하고 과적합이 우려될 때
+
+**핵심 변경**:
+- 데이터 증강 활성화 (`augment.enabled: true`)
+- 변형 수 증가 (`augment.num_variants: 3`)
+- 에포크 수 감소 (`training.num_epochs: 10`)
+- 드롭아웃 증가 (`training.lora.dropout: 0.1`)
+- 품질 점수 평가 활성화 권장 (`scoring.enabled: true`)
+
+```yaml
+# 데이터 증강으로 데이터셋 확장 (원본의 4배)
+augment:
+  enabled: true
+  num_variants: 3  # 각 QA 쌍당 3개 변형 생성
+  max_concurrency: 4
+
+# 저품질 QA 쌍 필터링
+scoring:
+  enabled: true
+  threshold: 3.5  # 3.5점 이상만 통과
+  max_concurrency: 4
+
+# 과적합 방지를 위한 학습 설정
+training:
+  num_epochs: 10  # 에포크 수 감소
+  lora:
+    dropout: 0.1  # 드롭아웃 증가
+  early_stopping:
+    enabled: true
+    patience: 3
+```
+
+**참고**: 데이터 증강은 Teacher LLM 호출 비용을 증가시키므로, 로컬 Ollama를 사용하는 것이 좋습니다. 품질 점수 평가도 추가 비용이 발생하지만, 소량 데이터에서는 품질이 더 중요합니다.
+
+---
+
+### 14.3 VRAM 제한 (8GB GPU) — 메모리 최적화
+
+**상황**: RTX 3060, RTX 4060 등 8GB VRAM GPU에서 학습할 때
+
+**핵심 변경**:
+- 배치 크기 감소 (`training.batch_size: 2`)
+- 그래디언트 누적 증가 (`training.gradient_accumulation_steps: 8`)
+- 양자화 활성화 (`training.quantization.enabled: true`)
+- 경량 모델 사용 (`student.model: "google/gemma-3-1b-it"`)
+- 시퀀스 길이 감소 (`student.max_seq_length: 2048`)
+
+```yaml
+# 경량 Student 모델
+student:
+  model: "google/gemma-3-1b-it"  # 1B 파라미터
+  max_seq_length: 2048  # 시퀀스 길이 절반으로 감소
+
+# 메모리 최적화 학습 설정
+training:
+  batch_size: 2  # 배치 크기 감소
+  gradient_accumulation_steps: 8  # 실제 배치 크기는 2×8=16으로 유지
+  quantization:
+    enabled: true  # 4비트 양자화로 VRAM 50% 절감
+    bits: 4
+  bf16: true  # bfloat16 혼합 정밀도 (Ampere 이상 GPU)
+```
+
+**참고**: 양자화를 사용하면 VRAM 사용량이 약 50% 감소하지만, 품질 저하는 거의 없습니다. `max_seq_length`를 2048로 줄이면 긴 문서는 잘리지만, 대부분의 QA 쌍은 이 길이 내에 들어갑니다.
+
+---
+
+### 14.4 vLLM/OpenAI 백엔드 사용 — 외부 API 연동
+
+**상황**: Ollama 대신 vLLM 서버 또는 OpenAI API를 Teacher 모델로 사용할 때
+
+**핵심 변경**:
+- 백엔드 변경 (`teacher.backend: "openai"`)
+- API 엔드포인트 설정 (`teacher.api_base`)
+- API 키 설정 (`teacher.api_key`)
+- 동시 요청 수 증가 (`teacher.max_concurrency: 16`)
+
+#### vLLM 서버 사용
+
+```yaml
+teacher:
+  backend: "openai"
+  model: "meta-llama/Llama-3.1-8B-Instruct"
+  api_base: "http://localhost:8000/v1"
+  api_key: "dummy"  # vLLM은 키가 필요 없지만 필드는 채워야 함
+  temperature: 0.3
+  max_concurrency: 16  # vLLM은 높은 동시성 지원
+```
+
+#### OpenAI API 사용
+
+```yaml
+teacher:
+  backend: "openai"
+  model: "gpt-4o-mini"
+  api_base: "https://api.openai.com"
+  api_key: "sk-proj-..."  # 실제 OpenAI API 키
+  temperature: 0.3
+  max_concurrency: 8  # OpenAI는 rate limit 고려
+```
+
+**참고**: vLLM은 로컬 서버이므로 `max_concurrency`를 높여도 되지만, OpenAI API는 rate limit이 있으므로 적절히 조절해야 합니다. `api_key`는 환경 변수 `OPENAI_API_KEY`로 설정하는 것이 안전합니다.
+
+---
+
+## 15. 전체 설정 예시 — 한국어 프로젝트
 
 한국어 문서를 처리하는 완전한 프로젝트 설정 예시입니다.
 
@@ -963,7 +1089,7 @@ export:
 
 ---
 
-## 부록: 설정 파일 검증
+## 16. 부록: 설정 파일 검증
 
 설정 파일이 올바른지 확인하려면 `check` 명령을 사용합니다:
 
