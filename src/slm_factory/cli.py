@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 
 app = typer.Typer(
     name="slm-factory",
+    rich_markup_mode="rich",
 )
 console = Console()
 
@@ -44,6 +45,48 @@ def main_callback(
 # ---------------------------------------------------------------------------
 
 
+def _get_error_hints(error: Exception) -> list[str]:
+    """에러 유형에 따라 해결 힌트를 반환합니다."""
+    error_str = str(error).lower()
+    error_type = type(error).__name__.lower()
+
+    if isinstance(error, FileNotFoundError):
+        return ["설정 파일을 찾을 수 없습니다. `slm-factory init`으로 프로젝트를 생성하세요"]
+
+    if (
+        isinstance(error, ConnectionError)
+        or "connect" in error_str
+        or "connect" in error_type
+        or "ollama" in error_str
+        or "httpx" in error_type
+    ):
+        return [
+            "Ollama가 실행 중인지 확인하세요: `ollama serve`",
+            "모델이 다운로드되었는지 확인하세요: `ollama pull qwen3:8b`",
+        ]
+
+    if isinstance(error, RuntimeError) and (
+        "no documents" in error_str or "no parseable" in error_str
+    ):
+        return ["documents 디렉토리에 문서(PDF, TXT 등)를 추가하세요"]
+
+    return ["--verbose 옵션으로 상세 로그를 확인하세요"]
+
+
+def _print_error(
+    title: str, error: Exception | str, hints: list[str] | None = None
+) -> None:
+    """사용자 친화적 에러 메시지를 Rich Panel로 출력합니다."""
+    from rich.panel import Panel
+
+    msg = f"[red]✗[/red] {title}\n\n[dim]{error}[/dim]"
+    if hints:
+        msg += "\n\n[yellow]해결 방법:[/yellow]"
+        for hint in hints:
+            msg += f"\n  → {hint}"
+    console.print(Panel(msg, title="[red]오류[/red]", border_style="red"))
+
+
 def _find_config(config_path: str) -> str:
     p = Path(config_path)
     if p.is_file():
@@ -61,6 +104,8 @@ def _find_config(config_path: str) -> str:
 
 
 def _load_pipeline(config_path: str) -> Pipeline:
+    from pydantic import ValidationError
+
     from .config import load_config
     from .pipeline import Pipeline
     from .utils import setup_logging
@@ -68,7 +113,22 @@ def _load_pipeline(config_path: str) -> Pipeline:
     config_path = _find_config(config_path)
     setup_logging()
 
-    config = load_config(config_path)
+    try:
+        config = load_config(config_path)
+    except ValidationError as e:
+        from rich.table import Table
+
+        table = Table(title="설정 검증 오류", show_lines=True)
+        table.add_column("위치", style="cyan")
+        table.add_column("오류", style="red")
+        table.add_column("입력값", style="yellow")
+        for err in e.errors():
+            loc = " → ".join(str(loc_part) for loc_part in err["loc"])
+            table.add_row(loc, err["msg"], str(err.get("input", "")))
+        console.print(table)
+        console.print("\n[dim]ℹ 설정 파일을 확인하세요[/dim]")
+        raise typer.Exit(code=1)
+
     return Pipeline(config)
 
 
@@ -141,10 +201,10 @@ def _find_resume_point(pipeline: Pipeline) -> tuple[str, list]:
 # ---------------------------------------------------------------------------
 
 
-@app.command()
+@app.command(rich_help_panel="🚀 시작하기")
 def init(
-    name: str = typer.Option(..., "--name", help="Project name"),
-    path: str = typer.Option(".", "--path", help="Parent directory for the project"),
+    name: str = typer.Option(..., "--name", help="프로젝트 이름입니다"),
+    path: str = typer.Option(".", "--path", help="프로젝트를 생성할 상위 디렉토리입니다"),
 ) -> None:
     """새로운 slm-factory 프로젝트를 초기화합니다."""
     from .config import create_default_config
@@ -166,21 +226,22 @@ def init(
     config_path = project_dir / "project.yaml"
     config_path.write_text(config_content, encoding="utf-8")
 
-    console.print(f"\n[bold green]Project '{name}' created at {project_dir}[/bold green]\n")
+    console.print(f"\n[green]✓[/green] 프로젝트 '{name}'가 생성되었습니다: [cyan]{project_dir}[/cyan]\n")
     console.print("프로젝트 구조:")
     console.print(f"  {project_dir}/")
     console.print(f"  {documents_dir}/")
     console.print(f"  {output_dir}/")
     console.print(f"  {config_path}")
-    console.print("\n[bold]다음 단계:[/bold]")
-    console.print(f"  1. [cyan]{documents_dir}[/cyan]에 문서 추가")
-    console.print(f"  2. [cyan]{config_path}[/cyan]를 편집하여 설정 커스터마이징")
-    console.print(f"  3. 실행: [cyan]slm-factory run --config {config_path}[/cyan]\n")
+    console.print(f"\n[bold]다음 단계:[/bold]")
+    console.print(f"  1. [cyan]{documents_dir}[/cyan] 디렉토리에 학습할 문서(PDF, TXT 등)를 추가하세요")
+    console.print(f"  2. Ollama를 실행하세요: [cyan]ollama serve[/cyan]")
+    console.print(f"  3. Teacher 모델을 다운로드하세요: [cyan]ollama pull qwen3:8b[/cyan]")
+    console.print(f"  4. wizard를 실행하세요: [cyan]slm-factory wizard --config {config_path}[/cyan]\n")
 
 
-@app.command()
+@app.command(rich_help_panel="⚙️ 파이프라인")
 def run(
-    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
     resume: bool = typer.Option(
         False, "--resume", "-r", help="중간 저장 파일에서 재개합니다"
     ),
@@ -227,16 +288,16 @@ def run(
         )
 
     except FileNotFoundError as e:
-        console.print(f"\n[bold red]오류:[/bold red] {e}")
+        _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
     except Exception as e:
-        console.print(f"\n[bold red]파이프라인 실패:[/bold red] {e}")
+        _print_error("파이프라인 실패", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
 
 
-@app.command()
+@app.command(rich_help_panel="⚙️ 파이프라인")
 def parse(
-    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
 ) -> None:
     """문서 파싱 단계만 실행합니다."""
     try:
@@ -249,16 +310,16 @@ def parse(
         )
 
     except FileNotFoundError as e:
-        console.print(f"\n[bold red]오류:[/bold red] {e}")
+        _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
     except Exception as e:
-        console.print(f"\n[bold red]파싱 실패:[/bold red] {e}")
+        _print_error("파싱 실패", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
 
 
-@app.command()
+@app.command(rich_help_panel="⚙️ 파이프라인")
 def generate(
-    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
 ) -> None:
     """파싱 + QA 생성 단계를 실행합니다."""
     try:
@@ -273,16 +334,16 @@ def generate(
         )
 
     except FileNotFoundError as e:
-        console.print(f"\n[bold red]오류:[/bold red] {e}")
+        _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
     except Exception as e:
-        console.print(f"\n[bold red]생성 실패:[/bold red] {e}")
+        _print_error("생성 실패", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
 
 
-@app.command()
+@app.command(rich_help_panel="⚙️ 파이프라인")
 def validate(
-    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
 ) -> None:
     """파싱 + 생성 + 검증 단계를 실행합니다."""
     try:
@@ -303,16 +364,16 @@ def validate(
         )
 
     except FileNotFoundError as e:
-        console.print(f"\n[bold red]오류:[/bold red] {e}")
+        _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
     except Exception as e:
-        console.print(f"\n[bold red]검증 실패:[/bold red] {e}")
+        _print_error("검증 실패", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
 
 
-@app.command()
+@app.command(rich_help_panel="⚙️ 파이프라인")
 def score(
-    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
     resume: bool = typer.Option(
         False, "--resume", "-r", help="중간 저장 파일에서 재개합니다"
     ),
@@ -354,16 +415,16 @@ def score(
         )
 
     except FileNotFoundError as e:
-        console.print(f"\n[bold red]오류:[/bold red] {e}")
+        _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
     except Exception as e:
-        console.print(f"\n[bold red]점수 평가 실패:[/bold red] {e}")
+        _print_error("점수 평가 실패", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
 
 
-@app.command()
+@app.command(rich_help_panel="⚙️ 파이프라인")
 def augment(
-    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
     resume: bool = typer.Option(
         False, "--resume", "-r", help="중간 저장 파일에서 재개합니다"
     ),
@@ -411,16 +472,16 @@ def augment(
         )
 
     except FileNotFoundError as e:
-        console.print(f"\n[bold red]오류:[/bold red] {e}")
+        _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
     except Exception as e:
-        console.print(f"\n[bold red]증강 실패:[/bold red] {e}")
+        _print_error("증강 실패", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
 
 
-@app.command()
+@app.command(rich_help_panel="⚙️ 파이프라인")
 def analyze(
-    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
     resume: bool = typer.Option(
         False, "--resume", "-r", help="중간 저장 파일에서 재개합니다"
     ),
@@ -467,18 +528,18 @@ def analyze(
         )
 
     except FileNotFoundError as e:
-        console.print(f"\n[bold red]오류:[/bold red] {e}")
+        _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
     except Exception as e:
-        console.print(f"\n[bold red]분석 실패:[/bold red] {e}")
+        _print_error("분석 실패", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
 
 
-@app.command()
+@app.command(rich_help_panel="⚙️ 파이프라인")
 def train(
-    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
     data: Optional[str] = typer.Option(
-        None, "--data", help="Path to pre-generated training_data.jsonl"
+        None, "--data", help="사전 생성된 training_data.jsonl 파일 경로입니다"
     ),
     resume: bool = typer.Option(
         False, "--resume", "-r", help="중간 저장 파일에서 재개합니다"
@@ -537,16 +598,16 @@ def train(
         )
 
     except FileNotFoundError as e:
-        console.print(f"\n[bold red]오류:[/bold red] {e}")
+        _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
     except Exception as e:
-        console.print(f"\n[bold red]훈련 실패:[/bold red] {e}")
+        _print_error("훈련 실패", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
 
 
-@app.command()
+@app.command(rich_help_panel="🚀 시작하기")
 def check(
-    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
 ) -> None:
     """프로젝트 설정과 환경을 사전 점검합니다."""
     from rich.table import Table
@@ -677,9 +738,9 @@ def check(
         raise typer.Exit(code=1)
 
 
-@app.command()
+@app.command(rich_help_panel="🔧 유틸리티")
 def status(
-    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
 ) -> None:
     """파이프라인 진행 상태를 확인합니다."""
     from rich.table import Table
@@ -689,7 +750,7 @@ def status(
     try:
         cfg = load_config(_find_config(config))
     except Exception as e:
-        console.print(f"\n[bold red]오류:[/bold red] {e}")
+        _print_error("설정 로드 실패", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
 
     output_dir = Path(cfg.paths.output)
@@ -766,9 +827,9 @@ def status(
         )
 
 
-@app.command()
+@app.command(rich_help_panel="🔧 유틸리티")
 def clean(
-    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
     all_files: bool = typer.Option(False, "--all", help="모든 출력 파일을 삭제합니다"),
 ) -> None:
     """중간 생성 파일을 정리합니다."""
@@ -781,7 +842,7 @@ def clean(
     try:
         cfg = load_config(_find_config(config))
     except Exception as e:
-        console.print(f"\n[bold red]오류:[/bold red] {e}")
+        _print_error("설정 로드 실패", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
 
     output_dir = Path(cfg.paths.output)
@@ -830,9 +891,9 @@ def clean(
     console.print(f"\n[bold green]{len(deleted)}개 항목 삭제 완료[/bold green]\n")
 
 
-@app.command()
+@app.command(rich_help_panel="⚙️ 파이프라인")
 def convert(
-    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
     data: Optional[str] = typer.Option(
         None, "--data", help="QA 데이터 파일 경로 (qa_alpaca.json 또는 qa_augmented.json)"
     ),
@@ -878,16 +939,16 @@ def convert(
         )
 
     except FileNotFoundError as e:
-        console.print(f"\n[bold red]오류:[/bold red] {e}")
+        _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
     except Exception as e:
-        console.print(f"\n[bold red]변환 실패:[/bold red] {e}")
+        _print_error("변환 실패", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
 
 
-@app.command(name="export")
+@app.command(name="export", rich_help_panel="⚙️ 파이프라인")
 def export_model(
-    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
     adapter: Optional[str] = typer.Option(
         None, "--adapter", help="어댑터 디렉토리 경로"
     ),
@@ -921,22 +982,22 @@ def export_model(
         )
 
     except FileNotFoundError as e:
-        console.print(f"\n[bold red]오류:[/bold red] {e}")
+        _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
     except Exception as e:
-        console.print(f"\n[bold red]내보내기 실패:[/bold red] {e}")
+        _print_error("내보내기 실패", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
 
 
-@app.command()
+@app.command(rich_help_panel="🔧 유틸리티")
 def version() -> None:
     """slm-factory 버전을 표시합니다."""
     console.print(f"slm-factory [bold]{__version__}[/bold]")
 
 
-@app.command()
+@app.command(rich_help_panel="🚀 시작하기")
 def wizard(
-    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+    config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
 ) -> None:
     """대화형 파이프라인 — 단계별로 확인하며 실행합니다."""
     from rich.panel import Panel
@@ -953,7 +1014,7 @@ def wizard(
     )
 
     # ── Step 1: 설정 파일 ─────────────────────────────────────────
-    console.print("\n[bold]━━━ Step 1. 설정 파일 ━━━[/bold]")
+    console.print("\n[bold]━━━ [1/9] 설정 파일 ━━━[/bold]")
     resolved = _find_config(config)
     if not Path(resolved).is_file():
         resolved = Prompt.ask("  설정 파일 경로를 입력하세요", default="project.yaml")
@@ -966,13 +1027,13 @@ def wizard(
         console.print(f"    Teacher : {pipeline.config.teacher.model}")
         console.print(f"    Student : {pipeline.config.student.model}")
     except Exception as e:
-        console.print(f"  [red]✗[/red] 설정 로드 실패: {e}")
+        _print_error("설정 로드 실패", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
 
     pipeline.config.paths.ensure_dirs()
 
     # ── Step 2: 문서 선택 ─────────────────────────────────────────
-    console.print("\n[bold]━━━ Step 2. 문서 선택 ━━━[/bold]")
+    console.print("\n[bold]━━━ [2/9] 문서 선택 ━━━[/bold]")
     doc_dir = pipeline.config.paths.documents
     if not doc_dir.is_dir():
         console.print(f"  [red]✗[/red] 문서 디렉토리 없음: {doc_dir}")
@@ -1025,24 +1086,30 @@ def wizard(
                 idx = int(s) - 1
                 if 0 <= idx < len(all_files):
                     indices.append(idx)
+                else:
+                    console.print(f"  [yellow]⚠ 번호 {s}은(는) 범위 밖입니다 (1~{len(all_files)})[/yellow]")
+        if not indices:
+            console.print(f"  [red]✗ 선택된 문서가 없습니다. 1~{len(all_files)} 범위의 번호를 입력하세요.[/red]")
+            raise typer.Exit(code=1)
         selected_files = [all_files[i] for i in indices]
-        console.print(f"  선택: {len(selected_files)}개 문서")
+        console.print(f"  [green]✓[/green] {len(selected_files)}개 문서 선택됨")
 
     # ── Step 3: 파싱 ──────────────────────────────────────────────
-    console.print("\n[bold]━━━ Step 3. 문서 파싱 ━━━[/bold]")
+    console.print("\n[bold]━━━ [3/9] 문서 파싱 ━━━[/bold]")
     try:
         docs = pipeline.step_parse(files=selected_files)
         console.print(f"  [green]✓[/green] {len(docs)}개 문서 파싱 완료")
     except Exception as e:
-        console.print(f"  [red]✗[/red] 파싱 실패: {e}")
+        _print_error("파싱 실패", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
 
     # ── Step 4: QA 생성 ───────────────────────────────────────────
-    console.print("\n[bold]━━━ Step 4. QA 쌍 생성 ━━━[/bold]")
+    console.print("\n[bold]━━━ [4/9] QA 쌍 생성 ━━━[/bold]")
     console.print(
         f"  Teacher: {pipeline.config.teacher.model} "
         f"({pipeline.config.teacher.backend})"
     )
+    console.print("  [dim]Teacher LLM으로 문서 기반 질문-답변 쌍을 생성합니다. Ollama 실행이 필요합니다.[/dim]")
     if not Confirm.ask("  QA 쌍을 생성하시겠습니까?", default=True):
         console.print("  [yellow]⏭ 건너뜀[/yellow]")
         console.print(
@@ -1054,12 +1121,11 @@ def wizard(
         pairs = pipeline.step_generate(docs)
         console.print(f"  [green]✓[/green] {len(pairs)}개 QA 쌍 생성 완료")
     except Exception as e:
-        console.print(f"  [red]✗[/red] QA 생성 실패: {e}")
-        console.print("  [dim]Ollama가 실행 중인지 확인하세요: ollama serve[/dim]")
+        _print_error("QA 생성 실패", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
 
     # ── Step 5: 검증 ──────────────────────────────────────────────
-    console.print("\n[bold]━━━ Step 5. QA 검증 ━━━[/bold]")
+    console.print("\n[bold]━━━ [5/9] QA 검증 ━━━[/bold]")
     try:
         total_before = len(pairs)
         pairs = pipeline.step_validate(pairs, docs=docs)
@@ -1068,12 +1134,13 @@ def wizard(
             f"  [green]✓[/green] {len(pairs)}개 수락, {rejected}개 거부"
         )
     except Exception as e:
-        console.print(f"  [red]✗[/red] 검증 실패: {e}")
+        _print_error("검증 실패", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
 
     # ── Step 6: 품질 평가 ─────────────────────────────────────────
-    console.print("\n[bold]━━━ Step 6. 품질 점수 평가 ━━━[/bold]")
+    console.print("\n[bold]━━━ [6/9] 품질 점수 평가 ━━━[/bold]")
     score_default = pipeline.config.scoring.enabled
+    console.print("  [dim]Teacher LLM이 각 QA 쌍을 1~5점으로 평가하여 저품질 데이터를 제거합니다.[/dim]")
     console.print(
         f"  [dim]설정: scoring.enabled = {str(score_default).lower()}[/dim]"
     )
@@ -1087,14 +1154,17 @@ def wizard(
                 f"{before - len(pairs)}개 제거"
             )
         except Exception as e:
-            console.print(f"  [red]✗[/red] 점수 평가 실패: {e}")
+            _print_error("점수 평가 실패", e, hints=_get_error_hints(e))
             raise typer.Exit(code=1)
     else:
         console.print("  [yellow]⏭ 건너뜀[/yellow]")
 
     # ── Step 7: 데이터 증강 ───────────────────────────────────────
-    console.print("\n[bold]━━━ Step 7. 데이터 증강 ━━━[/bold]")
+    console.print("\n[bold]━━━ [7/9] 데이터 증강 ━━━[/bold]")
     augment_default = pipeline.config.augment.enabled
+    console.print(
+        f"  [dim]질문을 다양한 표현으로 변형하여 학습 데이터를 늘립니다 (설정: {pipeline.config.augment.num_variants}배).[/dim]"
+    )
     console.print(
         f"  [dim]설정: augment.enabled = {str(augment_default).lower()}[/dim]"
     )
@@ -1108,7 +1178,7 @@ def wizard(
                 f"({len(pairs) - before}개 증강)"
             )
         except Exception as e:
-            console.print(f"  [red]✗[/red] 증강 실패: {e}")
+            _print_error("증강 실패", e, hints=_get_error_hints(e))
             raise typer.Exit(code=1)
     else:
         console.print("  [yellow]⏭ 건너뜀[/yellow]")
@@ -1117,15 +1187,16 @@ def wizard(
     pipeline.step_analyze(pairs)
 
     # ── Step 8: 학습 ──────────────────────────────────────────────
-    console.print("\n[bold]━━━ Step 8. 모델 학습 ━━━[/bold]")
+    console.print("\n[bold]━━━ [8/9] 모델 학습 ━━━[/bold]")
     console.print(f"  Student: {pipeline.config.student.model}")
+    console.print("  [dim]Student 모델에 LoRA 어댑터를 적용하여 파인튜닝합니다. GPU 필요, 약 30분~2시간 소요.[/dim]")
     try:
         training_data_path = pipeline.step_convert(pairs)
         console.print(
             f"  [green]✓[/green] 학습 데이터 변환 완료 ({len(pairs)}개 쌍)"
         )
     except Exception as e:
-        console.print(f"  [red]✗[/red] 변환 실패: {e}")
+        _print_error("변환 실패", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
 
     if not Confirm.ask("  LoRA 학습을 진행하시겠습니까?", default=True):
@@ -1141,11 +1212,12 @@ def wizard(
         adapter_path = pipeline.step_train(training_data_path)
         console.print(f"  [green]✓[/green] 학습 완료: [cyan]{adapter_path}[/cyan]")
     except Exception as e:
-        console.print(f"  [red]✗[/red] 학습 실패: {e}")
+        _print_error("학습 실패", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
 
     # ── Step 9: 내보내기 ──────────────────────────────────────────
-    console.print("\n[bold]━━━ Step 9. 모델 내보내기 ━━━[/bold]")
+    console.print("\n[bold]━━━ [9/9] 모델 내보내기 ━━━[/bold]")
+    console.print("  [dim]LoRA 어댑터를 기본 모델에 병합하고 Ollama 모델로 등록합니다.[/dim]")
     if not Confirm.ask("  모델을 내보내시겠습니까?", default=True):
         console.print("  [yellow]⏭ 건너뜀[/yellow]")
         console.print(
@@ -1161,7 +1233,7 @@ def wizard(
             f"  [green]✓[/green] 내보내기 완료: [cyan]{model_dir}[/cyan]"
         )
     except Exception as e:
-        console.print(f"  [red]✗[/red] 내보내기 실패: {e}")
+        _print_error("내보내기 실패", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
 
     # ── 완료 ──────────────────────────────────────────────────────
