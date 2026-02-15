@@ -107,7 +107,7 @@ class TestFormatOne:
 
         result = formatter.format_one(pair)
 
-        assert result is not None
+        assert result == "<formatted>"
         mock_tok.apply_chat_template.assert_called()
 
     def test_시스템_역할_실패_시_폴백(self, make_config, make_qa_pair):
@@ -122,7 +122,7 @@ class TestFormatOne:
 
         result = formatter.format_one(pair)
 
-        assert result is not None
+        assert result == "<fallback formatted>"
         assert mock_tok.apply_chat_template.call_count == 2
 
 

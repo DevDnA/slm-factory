@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 from .evaluator import _load_bleu, _load_rouge
 from .models import CompareResult, QAPair
-from .utils import get_logger
+from .utils import get_logger, run_bounded
 
 logger = get_logger("comparator")
 
@@ -115,13 +115,10 @@ class ModelComparator:
             with progress:
                 task_id = progress.add_task("모델 비교 중...", total=len(qa_pairs))
 
-                async def _bounded(pair: QAPair) -> CompareResult:
-                    async with semaphore:
-                        result = await self._compare_one(client, pair)
-                        progress.advance(task_id)
-                        return result
-
-                tasks = [_bounded(pair) for pair in qa_pairs]
+                tasks = [
+                    run_bounded(semaphore, self._compare_one(client, pair), progress, task_id)
+                    for pair in qa_pairs
+                ]
                 gathered = await asyncio.gather(*tasks, return_exceptions=True)
 
         for item in gathered:

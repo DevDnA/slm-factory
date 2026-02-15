@@ -1,12 +1,21 @@
-"""Rich를 사용한 구조화된 로깅."""
+"""Rich를 사용한 구조화된 로깅 및 비동기 유틸리티."""
 
 from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import TYPE_CHECKING, TypeVar
 
 from rich.console import Console
 from rich.logging import RichHandler
+
+if TYPE_CHECKING:
+    import asyncio
+    from collections.abc import Awaitable
+
+    from rich.progress import Progress
+
+T = TypeVar("T")
 
 console = Console()
 
@@ -41,3 +50,16 @@ def compute_file_hash(path: str | Path, algorithm: str = "sha256") -> str:
         for chunk in iter(lambda: f.read(8192), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+async def run_bounded(
+    semaphore: asyncio.Semaphore,
+    coro: Awaitable[T],
+    progress: Progress,
+    task_id: int,
+) -> T:
+    """세마포어 제한 하에 코루틴을 실행하고 진행률을 갱신합니다."""
+    async with semaphore:
+        result = await coro
+        progress.advance(task_id)
+        return result

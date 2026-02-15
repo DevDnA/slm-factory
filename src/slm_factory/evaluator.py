@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from .config import EvalConfig, SLMConfig
 
 from .models import EvalResult, QAPair
-from .utils import get_logger
+from .utils import get_logger, run_bounded
 
 logger = get_logger("evaluator")
 
@@ -109,13 +109,10 @@ class ModelEvaluator:
             with progress:
                 task_id = progress.add_task("모델 평가 중...", total=len(qa_pairs))
 
-                async def _bounded(pair: QAPair) -> EvalResult:
-                    async with semaphore:
-                        result = await self._evaluate_one(client, model_name, pair)
-                        progress.advance(task_id)
-                        return result
-
-                tasks = [_bounded(pair) for pair in qa_pairs]
+                tasks = [
+                    run_bounded(semaphore, self._evaluate_one(client, model_name, pair), progress, task_id)
+                    for pair in qa_pairs
+                ]
                 gathered = await asyncio.gather(*tasks, return_exceptions=True)
 
         for item in gathered:

@@ -73,7 +73,6 @@ class TestParseDialogue:
     def test_valid_json(self, generator, sample_pair):
         text = _make_valid_response()
         result = generator._parse_dialogue(text, sample_pair)
-        assert result is not None
         assert isinstance(result, MultiTurnDialogue)
         assert len(result.turns) == 4
         assert result.turns[0].role == "user"
@@ -84,7 +83,7 @@ class TestParseDialogue:
     def test_json_with_code_fence(self, generator, sample_pair):
         text = "```json\n" + _make_valid_response() + "\n```"
         result = generator._parse_dialogue(text, sample_pair)
-        assert result is not None
+        assert isinstance(result, MultiTurnDialogue)
         assert len(result.turns) == 4
 
     def test_invalid_json_returns_none(self, generator, sample_pair):
@@ -109,7 +108,7 @@ class TestParseDialogue:
         ]
         text = json.dumps({"turns": turns})
         result = generator._parse_dialogue(text, sample_pair)
-        assert result is not None
+        assert isinstance(result, MultiTurnDialogue)
         assert len(result.turns) == 2
 
     def test_max_turns_truncation(self, generator, sample_pair):
@@ -124,7 +123,7 @@ class TestParseDialogue:
         ]
         text = json.dumps({"turns": turns})
         result = generator._parse_dialogue(text, sample_pair)
-        assert result is not None
+        assert isinstance(result, MultiTurnDialogue)
         assert len(result.turns) == 3
 
     def test_min_turns_enforcement(self, generator, sample_pair):
@@ -146,7 +145,7 @@ class TestParseDialogue:
         ]
         text = json.dumps({"turns": turns})
         result = generator._parse_dialogue(text, sample_pair)
-        assert result is not None
+        assert isinstance(result, MultiTurnDialogue)
         assert all(t.content for t in result.turns)
 
 
@@ -154,7 +153,6 @@ class TestGenerateDialogue:
     async def test_returns_valid_dialogue(self, mock_teacher, generator, sample_pair):
         mock_teacher.agenerate = AsyncMock(return_value=_make_valid_response())
         result = await generator.generate_dialogue(sample_pair)
-        assert result is not None
         assert isinstance(result, MultiTurnDialogue)
         assert len(result.turns) >= 2
 

@@ -12,6 +12,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from slm_factory.config import SLMConfig
 from slm_factory.pipeline import Pipeline
 
 
@@ -45,7 +46,7 @@ class TestPipelineInit:
         """config와 output_dir 필드가 올바르게 설정되는지 확인합니다."""
         pipeline = _make_pipeline(make_config, tmp_path)
 
-        assert pipeline.config is not None
+        assert isinstance(pipeline.config, SLMConfig)
         assert pipeline.output_dir == Path(str(tmp_path / "output"))
 
 
@@ -263,7 +264,7 @@ class TestStepExport:
 
         result = pipeline.step_export(adapter_path)
 
-        assert result is not None
+        assert isinstance(result, Path)
 
 
 # ---------------------------------------------------------------------------

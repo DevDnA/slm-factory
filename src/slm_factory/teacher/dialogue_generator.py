@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from .base import BaseTeacher
 
 from ..models import DialogueTurn, MultiTurnDialogue, QAPair
-from ..utils import get_logger
+from ..utils import get_logger, run_bounded
 
 logger = get_logger("dialogue_generator")
 
@@ -138,15 +138,10 @@ class DialogueGenerator:
         with progress:
             task_id = progress.add_task("멀티턴 대화 생성 중...", total=len(pairs))
 
-            async def _bounded_generate(
-                pair: QAPair,
-            ) -> MultiTurnDialogue | None:
-                async with semaphore:
-                    result = await self.generate_dialogue(pair)
-                    progress.advance(task_id)
-                    return result
-
-            tasks = [_bounded_generate(pair) for pair in pairs]
+            tasks = [
+                run_bounded(semaphore, self.generate_dialogue(pair), progress, task_id)
+                for pair in pairs
+            ]
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
         for result in results:

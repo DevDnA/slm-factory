@@ -107,7 +107,7 @@ class TestParseResponse:
         text = '{"instruction": "질문입니다", "output": "답변입니다"}'
         result = gen.parse_response(text)
 
-        assert result is not None
+        assert isinstance(result, dict)
         assert result["instruction"] == "질문입니다"
         assert result["output"] == "답변입니다"
 
@@ -117,7 +117,7 @@ class TestParseResponse:
         text = '{"question": "Q?", "answer": "A!"}'
         result = gen.parse_response(text)
 
-        assert result is not None
+        assert isinstance(result, dict)
         assert result["instruction"] == "Q?"
         assert result["output"] == "A!"
 
@@ -127,7 +127,7 @@ class TestParseResponse:
         text = '[{"instruction": "첫 번째", "output": "답변1"}]'
         result = gen.parse_response(text)
 
-        assert result is not None
+        assert isinstance(result, dict)
         assert result["instruction"] == "첫 번째"
 
     def test_data_래핑_풀림(self, mocker, make_config):
@@ -136,7 +136,7 @@ class TestParseResponse:
         text = '{"data": [{"instruction": "래핑", "output": "답변"}]}'
         result = gen.parse_response(text)
 
-        assert result is not None
+        assert isinstance(result, dict)
         assert result["instruction"] == "래핑"
 
     def test_코드_펜스_제거(self, mocker, make_config):
@@ -145,7 +145,7 @@ class TestParseResponse:
         text = '```json\n{"instruction": "펜스", "output": "제거됨"}\n```'
         result = gen.parse_response(text)
 
-        assert result is not None
+        assert isinstance(result, dict)
         assert result["instruction"] == "펜스"
         assert result["output"] == "제거됨"
 

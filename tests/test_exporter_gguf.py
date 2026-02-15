@@ -331,7 +331,7 @@ class TestModuleExports:
     def test_GGUFExporter_임포트_가능(self):
         from slm_factory.exporter import GGUFExporter
 
-        assert GGUFExporter is not None
+        assert callable(GGUFExporter)
 
     def test___all___포함(self):
         from slm_factory import exporter

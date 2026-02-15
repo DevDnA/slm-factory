@@ -30,6 +30,21 @@ def extract_date_from_filename(filename: str) -> str | None:
     return None
 
 
+def rows_to_markdown(table_rows: list[list[str]]) -> str:
+    """2차원 문자열 리스트를 마크다운 표로 변환합니다."""
+    if not table_rows or not table_rows[0]:
+        return ""
+    header = table_rows[0]
+    md_lines = [
+        "| " + " | ".join(header) + " |",
+        "| " + " | ".join("---" for _ in header) + " |",
+    ]
+    for row in table_rows[1:]:
+        padded = row + [""] * max(0, len(header) - len(row))
+        md_lines.append("| " + " | ".join(padded[: len(header)]) + " |")
+    return "\n".join(md_lines)
+
+
 class BaseParser(ABC):
     """모든 문서 파서의 추상 기본 클래스입니다."""
 

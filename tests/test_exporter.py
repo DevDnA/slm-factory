@@ -225,4 +225,4 @@ class TestOllamaExporterExport:
         result = exporter.export(model_dir, output_dir=tmp_path)
 
         exporter.generate_modelfile.assert_called_once()
-        assert result is not None
+        assert isinstance(result, Path)

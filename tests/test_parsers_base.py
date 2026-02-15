@@ -94,7 +94,6 @@ class TestParserRegistry:
         registry = ParserRegistry()
         registry.register(_DummyParser)
         parser = registry.get_parser(Path("file.dummy"))
-        assert parser is not None
         assert isinstance(parser, _DummyParser)
 
     def test_get_parser_미등록_확장자(self):

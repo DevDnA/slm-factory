@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 from ..models import QAPair
 from ..utils import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger("validator.rules")
 
 
 @dataclass

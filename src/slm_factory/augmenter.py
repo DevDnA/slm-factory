@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from .teacher.base import BaseTeacher
 
 from .models import QAPair
-from .utils import get_logger
+from .utils import get_logger, run_bounded
 
 logger = get_logger("augmenter")
 
@@ -109,13 +109,10 @@ class DataAugmenter:
         with progress:
             task_id = progress.add_task("데이터 증강 중...", total=len(original_pairs))
 
-            async def _bounded_paraphrase(pair: QAPair) -> list[QAPair]:
-                async with semaphore:
-                    result = await self.paraphrase_one(pair)
-                    progress.advance(task_id)
-                    return result
-
-            tasks = [_bounded_paraphrase(pair) for pair in original_pairs]
+            tasks = [
+                run_bounded(semaphore, self.paraphrase_one(pair), progress, task_id)
+                for pair in original_pairs
+            ]
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
         for result in results:

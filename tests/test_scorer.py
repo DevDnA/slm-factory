@@ -70,7 +70,7 @@ class TestParseScore:
     def test_number_only_fallback(self, scorer):
         text = "점수는 4점입니다."
         result = scorer._parse_score(text)
-        assert result is not None
+        assert isinstance(result, tuple)
         assert result[0] == 4
 
     def test_parse_failure_returns_none(self, scorer):

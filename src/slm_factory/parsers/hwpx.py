@@ -16,7 +16,7 @@ from typing import ClassVar
 from bs4 import BeautifulSoup
 
 from ..utils import get_logger
-from .base import BaseParser, ParsedDocument, extract_date_from_filename
+from .base import BaseParser, ParsedDocument, extract_date_from_filename, rows_to_markdown
 
 logger = get_logger("parsers.hwpx")
 
@@ -47,22 +47,7 @@ def _table_to_markdown(table_element) -> str:
             if row_data:
                 table_rows.append(row_data)
 
-        if not table_rows:
-            return ""
-
-        # 마크다운 표 구성
-        header = table_rows[0]
-        md_lines = [
-            "| " + " | ".join(header) + " |",
-            "| " + " | ".join("---" for _ in header) + " |",
-        ]
-        for row in table_rows[1:]:
-            # 행을 헤더 길이에 맞게 패딩
-            while len(row) < len(header):
-                row.append("")
-            md_lines.append("| " + " | ".join(row[:len(header)]) + " |")
-
-        return "\n".join(md_lines)
+        return rows_to_markdown(table_rows)
     except Exception:
         logger.debug("Failed to convert table to markdown", exc_info=True)
         return ""

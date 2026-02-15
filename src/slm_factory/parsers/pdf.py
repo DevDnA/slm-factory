@@ -9,7 +9,7 @@ from typing import ClassVar
 import fitz  # PyMuPDF
 
 from ..utils import get_logger
-from .base import BaseParser, ParsedDocument, extract_date_from_filename
+from .base import BaseParser, ParsedDocument, extract_date_from_filename, rows_to_markdown
 
 logger = get_logger("parsers.pdf")
 
@@ -31,28 +31,20 @@ def _clean_page_numbers(text: str) -> str:
 def _table_to_markdown(table: fitz.table.Table) -> str:  # type: ignore[name-defined]
     """PyMuPDF Table 객체를 마크다운 표 문자열로 변환합니다."""
     try:
-        rows = table.extract()
+        raw_rows = table.extract()
     except Exception:
         return ""
 
-    if not rows:
+    if not raw_rows:
         return ""
 
-    # 셀 정제: None / 줄바꿈 대체
     def _cell(val: object) -> str:
         if val is None:
             return ""
         return str(val).replace("\n", " ").strip()
 
-    header = [_cell(c) for c in rows[0]]
-    md_lines = [
-        "| " + " | ".join(header) + " |",
-        "| " + " | ".join("---" for _ in header) + " |",
-    ]
-    for row in rows[1:]:
-        md_lines.append("| " + " | ".join(_cell(c) for c in row) + " |")
-
-    return "\n".join(md_lines)
+    table_rows = [[_cell(c) for c in row] for row in raw_rows]
+    return rows_to_markdown(table_rows)
 
 
 class PDFParser(BaseParser):

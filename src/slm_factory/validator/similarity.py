@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 from ..utils import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger("validator.similarity")
 
 
 def _check_sentence_transformers() -> None:

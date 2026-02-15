@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from .teacher.base import BaseTeacher
 
 from .models import QAPair
-from .utils import get_logger
+from .utils import get_logger, run_bounded
 
 logger = get_logger("scorer")
 
@@ -109,13 +109,10 @@ class QualityScorer:
         with progress:
             task_id = progress.add_task("품질 점수 평가 중...", total=len(pairs))
 
-            async def _bounded_score(pair: QAPair) -> tuple[QAPair, int, str]:
-                async with semaphore:
-                    result = await self.score_one(pair)
-                    progress.advance(task_id)
-                    return result
-
-            tasks = [_bounded_score(pair) for pair in pairs]
+            tasks = [
+                run_bounded(semaphore, self.score_one(pair), progress, task_id)
+                for pair in pairs
+            ]
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
         for result in results:
