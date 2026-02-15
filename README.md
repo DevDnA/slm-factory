@@ -151,40 +151,16 @@ slm-factory는 "도메인 문서 → 파인튜닝된 SLM" 전환 과정을 완�
 
 ## 6. 설치
 
-프로젝트를 클론하거나 다운로드한 후, 필요에 따라 다음 중 하나의 방식으로 설치하십시오:
-
 ```bash
-# 기본 설치 (PDF, HTML, TXT 파싱 + 학습)
-pip install -e .
-
-# 한국어 문서 처리 (HWPX 파싱 + 띄어쓰기 교정)
-pip install -e ".[korean]"
-
-# 의미적 검증 (임베딩 기반 groundedness 체크)
-pip install -e ".[validation]"
-
-# DOCX(Word) 문서 처리
-pip install -e ".[docx]"
-
-# 개발 환경 (테스트 프레임워크 포함)
-pip install -e ".[dev]"
+git clone https://github.com/DevDnA/slm-factory.git
+cd slm-factory
+pip install -e ".[all]"
 ```
 
-**설치 옵션 설명**:
-- **기본 설치**: PDF, HTML, TXT/MD 문서 파싱과 기본 학습 기능을 제공합니다
-- **korean**: HWPX(한글 문서) 파싱과 pykospacing을 통한 한국어 띄어쓰기 교정 기능을 추가합니다
-- **validation**: sentence-transformers를 설치하여 생성된 답변이 원본 문서에 근거하는지 의미적으로 검증합니다
-- **docx**: python-docx를 설치하여 Word 문서(.docx) 파싱 기능을 추가합니다
-- **dev**: pytest 등 개발 및 테스트 도구를 포함합니다
-
-여러 옵션을 동시에 설치하려면 쉼표로 구분하십시오:
-```bash
-pip install -e ".[korean,validation,docx]"
-```
+모든 기능이 포함됩니다: PDF/HTML/TXT/HWPX/DOCX 파싱, 한국어 띄어쓰기 교정, 임베딩 기반 검증, 테스트 도구.
 
 **Shell 자동완성 설정** (선택):
 ```bash
-# 현재 셸에 자동완성 설치
 slm-factory --install-completion
 ```
 
@@ -765,9 +741,6 @@ export:
 
 **실행**:
 ```bash
-# 한국어 지원 설치
-pip install -e ".[korean]"
-
 # 파이프라인 실행
 slm-factory run --config policy-project/project.yaml
 
@@ -839,9 +812,6 @@ export:
 
 **실행**:
 ```bash
-# 의미적 검증 지원 설치
-pip install -e ".[validation]"
-
 # 파이프라인 실행
 slm-factory run --config tech-docs/project.yaml
 ```

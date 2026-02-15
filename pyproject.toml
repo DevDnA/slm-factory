@@ -43,6 +43,14 @@ dev = [
     "pytest-mock>=3.12",
     "pytest-asyncio>=0.23.0",
 ]
+all = [
+    "pykospacing @ git+https://github.com/haven-jeon/PyKoSpacing.git",
+    "sentence-transformers>=2.6.0",
+    "python-docx>=1.0.0",
+    "pytest>=8.0",
+    "pytest-mock>=3.12",
+    "pytest-asyncio>=0.23.0",
+]
 
 [project.scripts]
 slm-factory = "slm_factory.cli:app"
