@@ -26,20 +26,17 @@ SLM Factory는 다음 5가지 핵심 원칙을 기반으로 설계되었습니�
 ```
                         CLI (cli.py)
                       Entry Point (Typer)
-                             |
-                             v
+                            ---
                      Pipeline (pipeline.py)
                       Orchestrator (9 steps)
-    |      |      |      |      |      |      |      |      |
-    v      v      v      v      v      v      v      v      v
-    1      2      3     3a     3b     3c      4      5      6
-  Parse  Gene-  Vali-  Score  Aug-   Ana-   Con-   Train  Export
-         rate   date          ment   lyze   vert
-    |      |      |      |      |      |      |      |      |
-    v      v      v      v      v      v      v      v      v
- parsed_ qa_     |   qa_    qa_    data_  training  adapter/ merged_
- docs    alpaca  |   scored augmented analysis data       model/
- .json   .json   |   .json  .json  .json  .jsonl        Modelfile
+  ---    ---    ---    ---    ---    ---    ---    ---    ---
+   1      2      3     3a     3b     3c      4      5      6
+ Parse  Gene-  Vali-  Score  Aug-   Ana-   Con-   Train  Export
+        rate   date          ment   lyze   vert
+  ---    ---    ---    ---    ---    ---    ---    ---    ---
+parsed_ qa_          qa_    qa_    data_  training adapter/ merged_
+docs    alpaca       scored augmented analysis data       model/
+.json   .json        .json  .json  .json  .jsonl        Modelfile
 
                     Config (config.py)
               Injected into all components
