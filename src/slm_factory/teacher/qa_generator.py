@@ -13,6 +13,8 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeRemainingColumn
+
 if TYPE_CHECKING:
     from ..config import QuestionsConfig, SLMConfig, TeacherConfig
     from ..models import ParsedDocument
@@ -318,24 +320,46 @@ class QAGenerator:
             logger.warning("No questions configured")
             return []
 
-        tasks: list[asyncio.Task[QAPair | None]] = []
-        for doc in docs:
-            for question in all_questions:
-                task = asyncio.create_task(
-                    self._generate_one_async(semaphore, doc, question)
-                )
-                tasks.append(task)
+        progress = Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("{task.completed}/{task.total}"),
+            TimeRemainingColumn(),
+        )
 
-        total = len(tasks)
+        total = len(docs) * len(all_questions)
+        
         logger.info(
             "Generating %d QA pairs (concurrency=%d)...",
             total,
             max_concurrency,
         )
 
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
         pairs: list[QAPair] = []
+
+        with progress:
+            task_id = progress.add_task("QA 쌍 생성 중...", total=total)
+
+            async def _generate_with_progress(
+                semaphore: asyncio.Semaphore,
+                doc: ParsedDocument,
+                question: str,
+            ) -> QAPair | None:
+                result = await self._generate_one_async(semaphore, doc, question)
+                progress.advance(task_id)
+                return result
+
+            tasks: list[asyncio.Task[QAPair | None]] = []
+            for doc in docs:
+                for question in all_questions:
+                    task = asyncio.create_task(
+                        _generate_with_progress(semaphore, doc, question)
+                    )
+                    tasks.append(task)
+
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
         for result in results:
             if isinstance(result, Exception):
                 logger.error("Task failed: %s", result)

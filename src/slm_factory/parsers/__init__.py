@@ -6,6 +6,12 @@ from .hwpx import HWPXParser
 from .html import HTMLParser
 from .text import TextParser
 
+# DOCX 파서는 선택적 종속성입니다
+try:
+    from .docx import DOCXParser  # noqa: F401
+except ImportError:
+    DOCXParser = None  # type: ignore
+
 __all__ = [
     "BaseParser",
     "ParsedDocument",
@@ -14,6 +20,7 @@ __all__ = [
     "HWPXParser",
     "HTMLParser",
     "TextParser",
+    "DOCXParser",
 ]
 
 registry = ParserRegistry()
@@ -21,3 +28,6 @@ registry.register(PDFParser)
 registry.register(HWPXParser)
 registry.register(HTMLParser)
 registry.register(TextParser)
+
+if DOCXParser is not None:
+    registry.register(DOCXParser)

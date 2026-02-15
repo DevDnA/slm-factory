@@ -7,6 +7,8 @@ import json
 import re
 from typing import TYPE_CHECKING, Any
 
+from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeRemainingColumn
+
 if TYPE_CHECKING:
     from .config import ScoringConfig, TeacherConfig
     from .teacher.base import BaseTeacher
@@ -93,18 +95,31 @@ class QualityScorer:
         """전체 QA 쌍을 점수 평가하고 threshold 기준으로 필터링합니다."""
         semaphore = asyncio.Semaphore(self.config.max_concurrency)
 
-        async def _bounded_score(pair: QAPair) -> tuple[QAPair, int, str]:
-            async with semaphore:
-                return await self.score_one(pair)
-
-        tasks = [_bounded_score(pair) for pair in pairs]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        progress = Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("{task.completed}/{task.total}"),
+            TimeRemainingColumn(),
+        )
 
         accepted: list[QAPair] = []
         filtered: list[tuple[QAPair, int, str]] = []
 
+        with progress:
+            task_id = progress.add_task("품질 점수 평가 중...", total=len(pairs))
+
+            async def _bounded_score(pair: QAPair) -> tuple[QAPair, int, str]:
+                async with semaphore:
+                    result = await self.score_one(pair)
+                    progress.advance(task_id)
+                    return result
+
+            tasks = [_bounded_score(pair) for pair in pairs]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
         for result in results:
-            if isinstance(result, Exception):
+            if isinstance(result, BaseException):
                 logger.error("점수 평가 실패: %s", result)
                 continue
             pair, score, reason = result

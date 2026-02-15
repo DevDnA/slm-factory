@@ -35,6 +35,9 @@ validation = [
 pdfplumber = [
     "pdfplumber>=0.11.0",
 ]
+docx = [
+    "python-docx>=1.0.0",
+]
 dev = [
     "pytest>=8.0",
     "pytest-mock>=3.12",

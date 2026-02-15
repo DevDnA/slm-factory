@@ -7,6 +7,8 @@ import json
 import re
 from typing import TYPE_CHECKING, Any
 
+from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeRemainingColumn
+
 if TYPE_CHECKING:
     from .config import AugmentConfig, TeacherConfig
     from .teacher.base import BaseTeacher
@@ -93,18 +95,31 @@ class DataAugmenter:
         """전체 QA 쌍을 증강합니다. 원본 + 증강 쌍을 반환합니다."""
         semaphore = asyncio.Semaphore(self.config.max_concurrency)
 
-        async def _bounded_paraphrase(pair: QAPair) -> list[QAPair]:
-            async with semaphore:
-                return await self.paraphrase_one(pair)
+        progress = Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("{task.completed}/{task.total}"),
+            TimeRemainingColumn(),
+        )
 
         original_pairs = [p for p in pairs if not p.is_augmented]
-        
-        tasks = [_bounded_paraphrase(pair) for pair in original_pairs]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-
         augmented: list[QAPair] = []
+
+        with progress:
+            task_id = progress.add_task("데이터 증강 중...", total=len(original_pairs))
+
+            async def _bounded_paraphrase(pair: QAPair) -> list[QAPair]:
+                async with semaphore:
+                    result = await self.paraphrase_one(pair)
+                    progress.advance(task_id)
+                    return result
+
+            tasks = [_bounded_paraphrase(pair) for pair in original_pairs]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
         for result in results:
-            if isinstance(result, Exception):
+            if isinstance(result, BaseException):
                 logger.error("증강 태스크 실패: %s", result)
                 continue
             augmented.extend(result)

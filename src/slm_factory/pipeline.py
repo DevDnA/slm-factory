@@ -29,6 +29,26 @@ class Pipeline:
         self.output_dir = Path(config.paths.output)
 
     # ------------------------------------------------------------------
+    # 유틸리티 헬퍼
+    # ------------------------------------------------------------------
+
+    def _save_pairs(self, pairs: list[QAPair], path: Path) -> None:
+        """QA 쌍을 JSON 파일로 저장합니다."""
+        data = [asdict(p) for p in pairs]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            json.dumps(data, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+    def _load_pairs(self, path: Path) -> list[QAPair]:
+        """JSON 파일에서 QA 쌍을 로드합니다."""
+        from .models import QAPair
+
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return [QAPair(**item) for item in data]
+
+    # ------------------------------------------------------------------
     # 단계 1: 문서 파싱
     # ------------------------------------------------------------------
 
@@ -209,9 +229,11 @@ class Pipeline:
         scorer = QualityScorer(teacher, self.config.scoring, self.config.teacher)
         accepted, filtered = asyncio.run(scorer.score_all(pairs))
 
+        scored_path = self.output_dir / "qa_scored.json"
+        self._save_pairs(accepted, scored_path)
         logger.info(
-            "Scoring complete: %d accepted, %d filtered",
-            len(accepted), len(filtered),
+            "Scoring complete: %d accepted, %d filtered — saved to %s",
+            len(accepted), len(filtered), scored_path,
         )
         return accepted
 
@@ -245,7 +267,12 @@ class Pipeline:
         augmenter = DataAugmenter(teacher, self.config.augment, self.config.teacher)
         augmented = asyncio.run(augmenter.augment_all(pairs))
 
-        logger.info("Augmentation complete: %d → %d pairs", len(pairs), len(augmented))
+        augmented_path = self.output_dir / "qa_augmented.json"
+        self._save_pairs(augmented, augmented_path)
+        logger.info(
+            "Augmentation complete: %d → %d pairs — saved to %s",
+            len(pairs), len(augmented), augmented_path,
+        )
         return augmented
 
     # ------------------------------------------------------------------

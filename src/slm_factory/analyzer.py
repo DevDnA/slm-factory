@@ -7,6 +7,7 @@ import statistics
 from collections import Counter
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -70,7 +71,7 @@ class DataAnalyzer:
         
         return report
     
-    def _compute_stats(self, values: list[int | float]) -> dict[str, float]:
+    def _compute_stats(self, values: Sequence[int | float]) -> dict[str, float]:
         """수치 리스트에서 기초 통계를 계산합니다."""
         if not values:
             return {}
