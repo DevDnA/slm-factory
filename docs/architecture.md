@@ -626,6 +626,8 @@ Analyzer는 LLM 의존성 없이 순수 통계 분석을 수행합니다.
 - 토큰 길이 초과: 디버그 로그 출력 후 건너뜀
 - 토크나이저 로드 실패: 예외 발생 및 파이프라인 중단
 
+convert와 export 단계는 CLI에서 단독 실행할 수 있습니다 (`slm-factory convert`, `slm-factory export`). 이를 통해 전체 파이프라인을 재실행하지 않고 특정 단계만 반복할 수 있습니다.
+
 ### 4.8 Step 5: train
 
 **입력:**
@@ -1043,6 +1045,8 @@ training:
 - 예외 발생 시 Rich Console로 포맷팅된 에러 메시지 출력
 - `typer.Exit(1)`로 비정상 종료 코드 반환
 
+cli.py는 `@app.callback(invoke_without_command=True)` 패턴으로 전역 옵션(`--verbose`, `--quiet`)을 처리합니다. 콜백은 모든 명령어 실행 전에 로그 레벨을 설정하며, 하위 명령어가 없으면 도움말을 출력합니다.
+
 ```python
 @app.command()
 def run(config_path: Path = typer.Option("project.yaml")):
@@ -1221,6 +1225,9 @@ def train(self):
 | `python -m` 실행 | `__main__.py` 자동 포함 | `__main__.py` | 매우 쉬움 |
 | 파이프라인 재개 | `--resume` 옵션으로 중간 파일에서 재개 | `cli.py` | 매우 쉬움 |
 | 설정 검증 | `slm-factory check` 명령 | `cli.py` | 매우 쉬움 |
+| CLI 유틸리티 명령어 | `status`, `clean`, `convert`, `export` 내장 | `cli.py` | 매우 쉬움 |
+| 전역 로그 레벨 | `--verbose`/`--quiet` 콜백 | `cli.py` | 매우 쉬움 |
+| 설정 자동 탐색 | `_find_config()` 디렉토리 탐색 | `cli.py` | 매우 쉬움 |
 
 ### 7.1 확장 예제: 새 파서 추가
 

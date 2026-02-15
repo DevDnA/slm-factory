@@ -969,6 +969,8 @@ export:
 slm-factory check --config project.yaml
 ```
 
+참고: `--config`를 생략하면 현재 디렉토리와 상위 디렉토리(2단계)에서 `project.yaml`을 자동으로 검색합니다.
+
 이 명령은 다음 항목을 자동으로 검증합니다:
 
 - **설정 파일**: YAML 로드 및 Pydantic 검증
@@ -989,6 +991,8 @@ $ slm-factory check --config project.yaml
 ```
 
 설정 파일에 오류가 있으면(YAML 구문 오류, 잘못된 타입, 알 수 없는 필드 등) Pydantic 검증 단계에서 상세한 에러 메시지를 출력합니다.
+
+**디버그 로깅**: 설정 문제를 진단할 때 `slm-factory -v check` 명령으로 상세 로그를 확인할 수 있습니다.
 
 ---
 

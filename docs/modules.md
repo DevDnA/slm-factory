@@ -9,7 +9,7 @@ src/slm_factory/
 ├── __init__.py              (4줄)     패키지 초기화 + 버전
 ├── __main__.py              (7줄)     python -m slm_factory 진입점
 ├── config.py                (298줄)   설정 시스템
-├── cli.py                   (~660줄)  CLI 인터페이스
+├── cli.py                   (~945줄)  CLI 인터페이스
 ├── pipeline.py              (~464줄)  파이프라인 오케스트레이터
 ├── converter.py             (~265줄)  채팅 포맷터 (converter/ 통합)
 ├── models.py                (~37줄)   공유 데이터 모델 (QAPair, ParsedDocument)
@@ -368,11 +368,11 @@ Pydantic v2의 강력한 타입 검증을 활용하여 런타임 에러를 사�
 
 ---
 
-## 3. cli.py — CLI 인터페이스 (~660줄)
+## 3. cli.py — CLI 인터페이스 (~945줄)
 
 ### 3.1 역할
 
-사용자 진입점입니다. Typer 프레임워크를 기반으로 10개의 CLI 명령어를 제공하며, Rich 라이브러리를 사용하여 시각적으로 풍부한 출력을 생성합니다.
+사용자 진입점입니다. Typer 프레임워크를 기반으로 15개의 CLI 명령어를 제공하며, Rich 라이브러리를 사용하여 시각적으로 풍부한 출력을 생성합니다.
 
 ### 3.2 주요 구성
 
@@ -616,7 +616,117 @@ slm-factory augment project.yaml --resume
 - 비용 절감 (Teacher LLM API 호출 최소화)
 - 디버깅 효율성 향상
 
-### 3.6 진입점 설정
+### 3.6 status — 파이프라인 진행 상태 확인
+
+```python
+@app.command()
+def status(
+    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+) -> None:
+    """파이프라인 진행 상태를 확인합니다."""
+```
+
+**동작:**
+1. 설정 파일 로드 (자동 탐색 포함)
+2. output 디렉토리에서 8개 단계의 중간 파일 존재 여부 확인
+3. Rich Table로 단계별 파일명, 존재 여부, 건수 표시
+4. `--resume` 실행 시 재개 지점 안내
+
+**확인 대상 파일:**
+| 단계 | 파일 | 건수 계산 |
+|------|------|-----------|
+| parse | parsed_documents.json | JSON 배열 길이 |
+| generate | qa_alpaca.json | JSON 배열 길이 |
+| score | qa_scored.json | JSON 배열 길이 |
+| augment | qa_augmented.json | JSON 배열 길이 |
+| analyze | data_analysis.json | 존재 여부 |
+| convert | training_data.jsonl | 줄 수 |
+| train | checkpoints/adapter/ | 디렉토리 존재 |
+| export | merged_model/ | 디렉토리 존재 |
+
+### 3.7 clean — 중간 생성 파일 정리
+
+```python
+@app.command()
+def clean(
+    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+    all_files: bool = typer.Option(False, "--all", help="모든 출력 파일을 삭제합니다"),
+) -> None:
+    """중간 생성 파일을 정리합니다."""
+```
+
+**동작:**
+- 기본: 중간 파일만 삭제 (qa_scored.json, qa_augmented.json, data_analysis.json)
+- `--all`: output 디렉토리 전체 내용 삭제
+- 삭제 전 `typer.confirm()` 확인 프롬프트 표시
+- Rich Table로 삭제 결과 출력
+
+### 3.8 convert — QA 데이터 변환 (단독)
+
+```python
+@app.command()
+def convert(
+    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+    data: Optional[str] = typer.Option(None, "--data", help="QA 데이터 파일 경로"),
+) -> None:
+    """QA 데이터를 훈련용 JSONL 형식으로 변환합니다."""
+```
+
+**동작:**
+1. `--data` 지정 시: 해당 파일에서 QA 쌍 로드
+2. 미지정 시: output에서 자동 감지 (qa_augmented.json → qa_scored.json → qa_alpaca.json 순)
+3. `pipeline.step_convert(pairs)` 호출하여 training_data.jsonl 생성
+
+### 3.9 export — 모델 내보내기 (단독)
+
+```python
+@app.command(name="export")
+def export_model(
+    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+    adapter: Optional[str] = typer.Option(None, "--adapter", help="어댑터 디렉토리 경로"),
+) -> None:
+    """훈련된 모델을 내보냅니다 (LoRA 병합 + Ollama Modelfile)."""
+```
+
+**동작:**
+1. `--adapter` 지정 시: 해당 경로 사용
+2. 미지정 시: output/checkpoints/adapter/ 자동 감지
+3. `pipeline.step_export(adapter_path)` 호출
+
+### 3.10 전역 옵션 (--verbose / --quiet)
+
+```python
+@app.callback(invoke_without_command=True)
+def main_callback(
+    ctx: typer.Context,
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="디버그 로그를 표시합니다"),
+    quiet: bool = typer.Option(False, "--quiet", "-q", help="경고와 에러만 표시합니다"),
+) -> None:
+```
+
+모든 명령어 실행 전에 로그 레벨을 설정합니다:
+- `--verbose` (`-v`): `logging.DEBUG` — 상세 디버그 로그 출력
+- `--quiet` (`-q`): `logging.WARNING` — 경고와 에러만 출력
+- 미지정: `logging.INFO` (기본값)
+
+사용 예시: `slm-factory -v run --config project.yaml`
+
+### 3.11 _find_config() — 설정 파일 자동 탐색
+
+```python
+def _find_config(config_path: str) -> str:
+    """설정 파일을 자동으로 탐색합니다."""
+```
+
+**탐색 순서:**
+1. 전달된 경로가 파일이면 그대로 사용
+2. 현재 디렉토리에서 `project.yaml` 검색
+3. 상위 디렉토리로 2단계까지 검색
+4. 찾지 못하면 원래 경로 반환 (이후 `load_config`에서 에러 발생)
+
+이 기능으로 `--config`를 생략하고 `slm-factory status`만 실행해도 현재 디렉토리의 project.yaml이 자동으로 사용됩니다.
+
+### 3.12 진입점 설정
 
 `pyproject.toml`에서 CLI 진입점을 정의합니다:
 
@@ -627,7 +737,7 @@ slm-factory = "slm_factory.cli:app"
 
 설치 후 `slm-factory` 명령어로 직접 실행 가능합니다.
 
-### 3.7 에러 처리 패턴
+### 3.13 에러 처리 패턴
 
 모든 명령어는 일관된 에러 처리 패턴을 따릅니다:
 
@@ -3433,7 +3543,7 @@ SLM Factory는 29개 파일, 약 3,900줄의 코드로 구성된 모듈형 파�
 
 **핵심 모듈:**
 - **config.py**: 중앙 설정 시스템 (Pydantic 검증)
-- **cli.py**: CLI 인터페이스 (check, --resume 옵션 포함)
+- **cli.py**: CLI 인터페이스 (15개 명령어: init, run, parse, generate, validate, score, augment, analyze, train, check, status, clean, convert, export, version)
 - **__main__.py**: python -m 실행 진입점
 - **pipeline.py**: 9단계 오케스트레이터
 - **models.py**: 공유 데이터 모델 (QAPair, ParsedDocument)
