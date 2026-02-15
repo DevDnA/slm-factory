@@ -7,7 +7,7 @@ from typing import ClassVar
 
 from ..models import ParsedDocument
 from ..utils import get_logger
-from .base import BaseParser, extract_date_from_filename
+from .base import BaseParser, extract_date_from_filename, rows_to_markdown
 
 logger = get_logger("parsers.docx")
 
@@ -97,23 +97,9 @@ class DOCXParser(BaseParser):
                 rows.append(cells)
 
             if rows:
-                # 마크다운 표로 변환
-                header = "| " + " | ".join(rows[0]) + " |"
-                separator = "| " + " | ".join(["---"] * len(rows[0])) + " |"
-
-                if len(rows) > 1:
-                    body_lines = []
-                    for row in rows[1:]:
-                        # 행을 헤더 길이에 맞게 패딩
-                        while len(row) < len(rows[0]):
-                            row.append("")
-                        body_lines.append("| " + " | ".join(row[: len(rows[0])]) + " |")
-                    body = "\n".join(body_lines)
-                    md_table = f"{header}\n{separator}\n{body}"
-                else:
-                    md_table = f"{header}\n{separator}"
-
-                tables_md.append(md_table)
+                md_table = rows_to_markdown(rows)
+                if md_table:
+                    tables_md.append(md_table)
 
         # ------------------------------------------------------------------
         # 제목 추출

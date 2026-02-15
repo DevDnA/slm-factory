@@ -96,7 +96,8 @@ def scan_pipeline(output_dir: Path) -> PipelineSnapshot:
             # JSONL 파일 줄 수 카운트
             if filepath.is_file():
                 info.exists = True
-                info.count = sum(1 for _ in filepath.open(encoding="utf-8"))
+                with filepath.open(encoding="utf-8") as fh:
+                    info.count = sum(1 for _ in fh)
         elif filepath.is_file():
             # JSON 파일 항목 카운트
             info.exists = True

@@ -823,7 +823,8 @@ def status(
                 table.add_row(stage_name, filename, "[red]없음[/red]", "-")
         elif filename.endswith(".jsonl"):
             if filepath.is_file():
-                line_count = sum(1 for _ in filepath.open(encoding="utf-8"))
+                with filepath.open(encoding="utf-8") as fh:
+                    line_count = sum(1 for _ in fh)
                 table.add_row(
                     stage_name, filename, "[green]존재[/green]",
                     f"{line_count}개 {unit}",
