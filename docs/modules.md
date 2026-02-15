@@ -9,7 +9,7 @@ src/slm_factory/
 ├── __init__.py              (4줄)     패키지 초기화 + 버전
 ├── __main__.py              (7줄)     python -m slm_factory 진입점
 ├── config.py                (298줄)   설정 시스템
-├── cli.py                   (~945줄)  CLI 인터페이스
+├── cli.py                   (~1191줄) CLI 인터페이스
 ├── pipeline.py              (~464줄)  파이프라인 오케스트레이터
 ├── converter.py             (~265줄)  채팅 포맷터 (converter/ 통합)
 ├── models.py                (~37줄)   공유 데이터 모델 (QAPair, ParsedDocument)
@@ -19,7 +19,7 @@ src/slm_factory/
 ├── analyzer.py              (173줄)   학습 데이터 분석
 ├── parsers/
 │   ├── __init__.py          (~30줄)   파서 레지스트리
-│   ├── base.py              (163줄)   기본 클래스
+│   ├── base.py              (169줄)   기본 클래스
 │   ├── pdf.py               (165줄)   PDF 파서
 │   ├── hwpx.py              (181줄)   HWPX 파서
 │   ├── html.py              (180줄)   HTML 파서
@@ -372,7 +372,7 @@ Pydantic v2의 강력한 타입 검증을 활용하여 런타임 에러를 사�
 
 ### 3.1 역할
 
-사용자 진입점입니다. Typer 프레임워크를 기반으로 15개의 CLI 명령어를 제공하며, Rich 라이브러리를 사용하여 시각적으로 풍부한 출력을 생성합니다.
+사용자 진입점입니다. Typer 프레임워크를 기반으로 16개의 CLI 명령어를 제공하며, Rich 라이브러리를 사용하여 시각적으로 풍부한 출력을 생성합니다.
 
 ### 3.2 주요 구성
 
@@ -754,6 +754,92 @@ slm-factory = "slm_factory.cli:app"
    ```
 
 3. **종료 코드**: 에러 발생 시 항상 `1` 반환 (스크립트 통합 용이)
+
+### 3.14 wizard — 대화형 파이프라인
+
+```python
+@app.command()
+def wizard(
+    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+) -> None:
+    """대화형 파이프라인 — 단계별로 확인하며 실행합니다."""
+```
+
+**동작:**
+
+전체 9단계 파이프라인을 대화형으로 실행합니다. 각 단계마다 사용자 확인을 거치며, 선택적 단계(품질 평가, 데이터 증강)는 `project.yaml` 설정의 기본값을 반영합니다.
+
+**Step 1. 설정 파일 선택:**
+1. `_find_config()`로 설정 파일 자동 탐색
+2. 찾지 못하면 `Prompt.ask()`로 직접 입력 요청
+3. 프로젝트 이름, Teacher/Student 모델 정보 출력
+
+**Step 2. 문서 선택:**
+1. 문서 디렉토리에서 지원 형식 파일 목록 스캔
+2. `Rich Table`로 번호/파일명/크기 표시
+3. `Confirm.ask("모두 사용하시겠습니까?")`
+4. 거부 시 쉼표 구분 번호 입력으로 개별 선택
+
+**Step 3. 문서 파싱:**
+- `pipeline.step_parse(files=selected_files)` 호출
+- 선택된 파일만 파싱 (전체 선택 시 `files=None`)
+
+**Step 4. QA 쌍 생성:**
+- Teacher 모델 정보 표시
+- `Confirm.ask("QA 쌍을 생성하시겠습니까?")` — 거부 시 파싱 결과 경로 안내 후 종료
+
+**Step 5. QA 검증:**
+- 자동 수행 (건너뛰기 없음)
+- 수락/거부 건수 출력
+
+**Step 6. 품질 점수 평가:**
+- `config.scoring.enabled` 기본값 표시
+- `Confirm.ask("품질 점수 평가를 하시겠습니까?", default=scoring.enabled)`
+- 건너뛸 경우 `⏭ 건너뜀` 출력
+
+**Step 7. 데이터 증강:**
+- `config.augment.enabled` 기본값 표시
+- `Confirm.ask("데이터 증강을 하시겠습니까?", default=augment.enabled)`
+- 원본 → 증강 후 건수 변화 출력
+
+**분석:** `pipeline.step_analyze()` 자동 수행
+
+**Step 8. 모델 학습:**
+1. `pipeline.step_convert(pairs)` 자동 수행 (학습 데이터 변환)
+2. `Confirm.ask("LoRA 학습을 진행하시겠습니까?")` — 거부 시 나중에 실행할 명령어 안내
+3. `pipeline.step_train(training_data_path)` 실행
+
+**Step 9. 모델 내보내기:**
+- `Confirm.ask("모델을 내보내시겠습니까?")` — 거부 시 어댑터 경로와 나중에 실행할 명령어 안내
+
+**완료:**
+```
+┌───────────────────────────────────────┐
+│ 파이프라인 완료!                       │
+│                                       │
+│ 모델: output/final_model              │
+│                                       │
+│ Ollama 배포:                          │
+│   cd output/final_model               │
+│   ollama create my-model -f Modelfile │
+│   ollama run my-model                 │
+└───────────────────────────────────────┘
+```
+
+**건너뛰기 동작:**
+각 선택적 단계를 건너뛸 때 나중에 실행할 수 있는 CLI 명령어를 안내합니다:
+- QA 생성 건너뜀 → `slm-factory generate --config {path}`
+- 학습 건너뜀 → `slm-factory train --config {path} --data {data_path}`
+- 내보내기 건너뜀 → `slm-factory export --config {path} --adapter {adapter_path}`
+
+**사용 예시:**
+```bash
+# 기본 사용
+slm-factory wizard
+
+# 특정 설정 파일 지정
+slm-factory wizard --config my-project/project.yaml
+```
 
 ---
 

@@ -43,6 +43,22 @@ htmlcov/
 output/
 */output/
 
+# User documents (created by slm-factory init)
+documents/
+*/documents/
+
+# Training artifacts
+checkpoints/
+*/checkpoints/
+merged_model/
+*/merged_model/
+final_model/
+*/final_model/
+
+# Ollama
+Modelfile
+*.gguf
+
 # Logs
 *.log
 

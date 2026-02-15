@@ -1394,6 +1394,92 @@ export:
 
 ---
 
+## 8. Wizard 대화형 모드 아키텍처
+
+### 8.1 설계 목표
+
+Wizard 모드는 "시키는 대로 따라하면 되는" 대화형 파이프라인입니다. CLI의 16개 명령어를 개별로 호출하는 대신, 단일 `wizard` 명령으로 전체 파이프라인을 단계별 확인하며 실행할 수 있습니다.
+
+**핵심 원칙:**
+- **무지식 실행**: 사용자가 파이프라인 구조를 몰라도 진행 가능
+- **탈출 가능**: 어느 단계에서든 건너뛸 수 있고, 나중에 개별 CLI 명령으로 재개
+- **설정 반영**: 선택적 단계의 기본값은 `project.yaml` 설정을 따름
+- **피드백 즉시 제공**: 각 단계 완료 시 건수/경로 등 결과 즉시 표시
+
+### 8.2 실행 흐름
+
+```
+wizard
+  ├─ Step 1. 설정 파일 ──────────── _find_config() → _load_pipeline()
+  │    └─ 자동 탐색 실패 시 Prompt.ask()
+  │
+  ├─ Step 2. 문서 선택 ──────────── 디렉토리 스캔 → Rich Table → Confirm/번호 입력
+  │    └─ 전체 선택 또는 개별 번호 입력
+  │
+  ├─ Step 3. 문서 파싱 ──────────── pipeline.step_parse(files=selected)
+  │    └─ 자동 진행 (확인 없음)
+  │
+  ├─ Step 4. QA 생성 ────────────── Confirm → pipeline.step_generate(docs)
+  │    └─ 거부 시 → 파싱 결과 경로 안내 후 종료
+  │
+  ├─ Step 5. 검증 ───────────────── pipeline.step_validate(pairs, docs)
+  │    └─ 자동 진행 (확인 없음)
+  │
+  ├─ Step 6. 품질 평가 (선택적) ──── Confirm(default=scoring.enabled) → step_score()
+  │    └─ config.scoring.enabled 기본값 반영
+  │
+  ├─ Step 7. 데이터 증강 (선택적) ── Confirm(default=augment.enabled) → step_augment()
+  │    └─ config.augment.enabled 기본값 반영
+  │
+  ├─ 분석 ───────────────────────── pipeline.step_analyze(pairs)
+  │    └─ 자동 진행 (확인 없음)
+  │
+  ├─ Step 8. 학습 ───────────────── step_convert() → Confirm → step_train()
+  │    └─ 거부 시 → 학습 데이터 경로 + train 명령어 안내 후 종료
+  │
+  └─ Step 9. 내보내기 ──────────── Confirm → step_export()
+       └─ 거부 시 → 어댑터 경로 + export 명령어 안내 후 종료
+```
+
+### 8.3 단계 분류
+
+| 분류 | 단계 | 확인 방식 | 기본값 |
+|------|------|----------|--------|
+| **필수** | 설정, 파싱, 검증, 분석 | 자동 진행 | — |
+| **선택+진행** | QA 생성, 학습, 내보내기 | `Confirm.ask(default=True)` | Y |
+| **선택+설정** | 품질 평가, 증강 | `Confirm.ask(default=config값)` | config 의존 |
+
+### 8.4 탈출 시 복구 전략
+
+각 단계를 건너뛸 때 wizard는 나중에 해당 단계를 개별 실행할 수 있는 정확한 CLI 명령어를 안내합니다:
+
+```python
+# QA 생성 건너뜀
+console.print(f"나중에 실행: slm-factory generate --config {resolved}")
+
+# 학습 건너뜀
+console.print(f"나중에 실행: slm-factory train --config {resolved} --data {training_data_path}")
+
+# 내보내기 건너뜀
+console.print(f"나중에 실행: slm-factory export --config {resolved} --adapter {adapter_path}")
+```
+
+이 설계로 wizard를 중간에 중단하더라도 중간 결과 파일이 보존되어 `--resume` 옵션 또는 개별 명령어로 이어서 진행할 수 있습니다.
+
+### 8.5 Rich UI 컴포넌트
+
+wizard는 다음 Rich 컴포넌트를 사용합니다:
+
+| 컴포넌트 | 용도 |
+|----------|------|
+| `Panel` | 시작 배너, 완료 요약 |
+| `Table` | 문서 목록 (번호/파일명/크기) |
+| `Confirm.ask()` | Y/n 선택 (기본값 지원) |
+| `Prompt.ask()` | 텍스트 입력 (설정 파일 경로, 문서 번호) |
+| 색상 마커 | `[green]✓` 성공, `[red]✗` 실패, `[yellow]⏭` 건너뜀 |
+
+---
+
 ## 관련 문서
 
 - [README](../README.md) — 프로젝트 소개, 설치, 빠른 시작, CLI 레퍼런스
