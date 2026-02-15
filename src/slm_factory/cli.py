@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 import typer
 from rich.console import Console
@@ -553,9 +553,7 @@ def train(
         if data is not None:
             training_data_path = Path(data)
             if not training_data_path.is_file():
-                console.print(
-                    f"\n[bold red]오류:[/bold red] 훈련 데이터를 찾을 수 없음: {training_data_path}"
-                )
+                _print_error("훈련 데이터 미발견", f"파일을 찾을 수 없음: {training_data_path}", ["--data 옵션의 경로를 확인하세요"])
                 raise typer.Exit(code=1)
         elif resume:
             step, loaded = _find_resume_point(pipeline)
@@ -906,9 +904,7 @@ def convert(
         if data is not None:
             data_path = Path(data)
             if not data_path.is_file():
-                console.print(
-                    f"\n[bold red]오류:[/bold red] 파일을 찾을 수 없음: {data_path}"
-                )
+                _print_error("QA 데이터 파일 미발견", f"파일을 찾을 수 없음: {data_path}", ["--data 옵션의 경로를 확인하세요"])
                 raise typer.Exit(code=1)
             pairs = pipeline._load_pairs(data_path)
         else:
@@ -924,9 +920,7 @@ def convert(
                     data_path = candidate
                     break
             if data_path is None:
-                console.print(
-                    "\n[bold red]오류:[/bold red] QA 데이터 파일을 찾을 수 없습니다"
-                )
+                _print_error("QA 데이터 파일 미발견", "출력 디렉토리에 QA 데이터 파일이 없습니다", ["generate 명령을 먼저 실행하세요"])
                 raise typer.Exit(code=1)
             console.print(f"[yellow]자동 감지:[/yellow] {data_path}")
             pairs = pipeline._load_pairs(data_path)
@@ -961,17 +955,12 @@ def export_model(
         if adapter is not None:
             adapter_path = Path(adapter)
             if not adapter_path.is_dir():
-                console.print(
-                    f"\n[bold red]오류:[/bold red] 어댑터 디렉토리를 찾을 수 없음: {adapter_path}"
-                )
+                _print_error("어댑터 디렉토리 미발견", f"디렉토리를 찾을 수 없음: {adapter_path}", ["--adapter 옵션의 경로를 확인하세요"])
                 raise typer.Exit(code=1)
         else:
             adapter_path = pipeline.output_dir / "checkpoints" / "adapter"
             if not adapter_path.is_dir():
-                console.print(
-                    f"\n[bold red]오류:[/bold red] 어댑터 디렉토리를 찾을 수 없음: {adapter_path}\n"
-                    "[dim]--adapter 옵션으로 경로를 지정하거나 train 명령을 먼저 실행하세요[/dim]"
-                )
+                _print_error("어댑터 디렉토리 미발견", f"디렉토리를 찾을 수 없음: {adapter_path}", ["--adapter 옵션으로 경로를 지정하거나 train 명령을 먼저 실행하세요"])
                 raise typer.Exit(code=1)
 
         model_dir = pipeline.step_export(adapter_path)
@@ -998,6 +987,7 @@ def version() -> None:
 @app.command(rich_help_panel="🚀 시작하기")
 def wizard(
     config: str = typer.Option("project.yaml", "--config", help="프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다."),
+    resume: bool = typer.Option(False, "--resume", "-r", help="이전 실행의 중간 결과에서 재개합니다"),
 ) -> None:
     """대화형 파이프라인 — 단계별로 확인하며 실행합니다."""
     from rich.panel import Panel
@@ -1032,159 +1022,222 @@ def wizard(
 
     pipeline.config.paths.ensure_dirs()
 
+    # ── 재개 지점 감지 ────────────────────────────────────────────
+    skip_to_step = 1
+    docs = None
+    pairs: Any = []
+    if resume:
+        _resume_step, _resume_data = _find_resume_point(pipeline)
+        if _resume_step == "generate":
+            docs = _resume_data
+            skip_to_step = 4
+        elif _resume_step == "validate":
+            pairs = _resume_data
+            skip_to_step = 5
+        elif _resume_step == "augment":
+            pairs = _resume_data
+            skip_to_step = 7
+        elif _resume_step == "analyze":
+            pairs = _resume_data
+            skip_to_step = 8
+        if _resume_step != "start":
+            console.print(f"  [blue]ℹ[/blue] 이전 결과를 감지하여 재개합니다")
+
     # ── Step 2: 문서 선택 ─────────────────────────────────────────
     console.print("\n[bold]━━━ [2/9] 문서 선택 ━━━[/bold]")
-    doc_dir = pipeline.config.paths.documents
-    if not doc_dir.is_dir():
-        console.print(f"  [red]✗[/red] 문서 디렉토리 없음: {doc_dir}")
-        raise typer.Exit(code=1)
-
-    extensions = [
-        ext if ext.startswith(".") else f".{ext}"
-        for ext in pipeline.config.parsing.formats
-    ]
-    all_files = sorted(
-        f for f in doc_dir.iterdir()
-        if f.is_file() and f.suffix.lower() in extensions
-    )
-
-    if not all_files:
-        console.print(
-            f"  [red]✗[/red] 지원되는 문서가 없습니다 ({doc_dir})\n"
-            f"      지원 형식: {extensions}"
-        )
-        raise typer.Exit(code=1)
-
-    file_table = Table(show_header=True, title=f"문서 목록 ({doc_dir})")
-    file_table.add_column("#", style="dim", width=4)
-    file_table.add_column("파일명", style="cyan")
-    file_table.add_column("크기", justify="right")
-    for i, f in enumerate(all_files, 1):
-        size = f.stat().st_size
-        if size < 1024:
-            size_str = f"{size}B"
-        elif size < 1024 * 1024:
-            size_str = f"{size / 1024:.1f}KB"
-        else:
-            size_str = f"{size / 1024 / 1024:.1f}MB"
-        file_table.add_row(str(i), f.name, size_str)
-    console.print(file_table)
-
-    use_all = Confirm.ask(
-        f"  {len(all_files)}개 문서를 모두 사용하시겠습니까?", default=True,
-    )
     selected_files: list[Path] | None = None
-    if not use_all:
-        selection = Prompt.ask(
-            "  사용할 문서 번호 (쉼표 구분)",
-            default=",".join(str(i) for i in range(1, len(all_files) + 1)),
-        )
-        indices = []
-        for part in selection.split(","):
-            s = part.strip()
-            if s.isdigit():
-                idx = int(s) - 1
-                if 0 <= idx < len(all_files):
-                    indices.append(idx)
-                else:
-                    console.print(f"  [yellow]⚠ 번호 {s}은(는) 범위 밖입니다 (1~{len(all_files)})[/yellow]")
-        if not indices:
-            console.print(f"  [red]✗ 선택된 문서가 없습니다. 1~{len(all_files)} 범위의 번호를 입력하세요.[/red]")
+    if skip_to_step > 2:
+        console.print("  [yellow]⏭ 건너뜀 (이전 결과 사용)[/yellow]")
+    else:
+        doc_dir = pipeline.config.paths.documents
+        if not doc_dir.is_dir():
+            _print_error("문서 디렉토리 없음", f"디렉토리를 찾을 수 없음: {doc_dir}", ["documents 디렉토리를 생성하고 문서를 추가하세요"])
             raise typer.Exit(code=1)
-        selected_files = [all_files[i] for i in indices]
-        console.print(f"  [green]✓[/green] {len(selected_files)}개 문서 선택됨")
+
+        extensions = [
+            ext if ext.startswith(".") else f".{ext}"
+            for ext in pipeline.config.parsing.formats
+        ]
+        all_files = sorted(
+            f for f in doc_dir.iterdir()
+            if f.is_file() and f.suffix.lower() in extensions
+        )
+
+        if not all_files:
+            _print_error("지원되는 문서 없음", f"디렉토리에 지원되는 문서가 없습니다: {doc_dir}", [f"지원 형식: {', '.join(extensions)}"])
+            raise typer.Exit(code=1)
+
+        file_table = Table(show_header=True, title=f"문서 목록 ({doc_dir})")
+        file_table.add_column("#", style="dim", width=4)
+        file_table.add_column("파일명", style="cyan")
+        file_table.add_column("크기", justify="right")
+        for i, f in enumerate(all_files, 1):
+            size = f.stat().st_size
+            if size < 1024:
+                size_str = f"{size}B"
+            elif size < 1024 * 1024:
+                size_str = f"{size / 1024:.1f}KB"
+            else:
+                size_str = f"{size / 1024 / 1024:.1f}MB"
+            file_table.add_row(str(i), f.name, size_str)
+        console.print(file_table)
+
+        use_all = Confirm.ask(
+            f"  {len(all_files)}개 문서를 모두 사용하시겠습니까?", default=True,
+        )
+        if not use_all:
+            selection = Prompt.ask(
+                "  사용할 문서 번호 (쉼표 구분)",
+                default=",".join(str(i) for i in range(1, len(all_files) + 1)),
+            )
+            indices = []
+            for part in selection.split(","):
+                s = part.strip()
+                if s.isdigit():
+                    idx = int(s) - 1
+                    if 0 <= idx < len(all_files):
+                        indices.append(idx)
+                    else:
+                        console.print(f"  [yellow]⚠ 번호 {s}은(는) 범위 밖입니다 (1~{len(all_files)})[/yellow]")
+            if not indices:
+                console.print(f"  [red]✗ 선택된 문서가 없습니다. 1~{len(all_files)} 범위의 번호를 입력하세요.[/red]")
+                raise typer.Exit(code=1)
+            selected_files = [all_files[i] for i in indices]
+            console.print(f"  [green]✓[/green] {len(selected_files)}개 문서 선택됨")
 
     # ── Step 3: 파싱 ──────────────────────────────────────────────
     console.print("\n[bold]━━━ [3/9] 문서 파싱 ━━━[/bold]")
-    try:
-        docs = pipeline.step_parse(files=selected_files)
-        console.print(f"  [green]✓[/green] {len(docs)}개 문서 파싱 완료")
-    except Exception as e:
-        _print_error("파싱 실패", e, hints=_get_error_hints(e))
-        raise typer.Exit(code=1)
+    if skip_to_step > 3:
+        console.print("  [yellow]⏭ 건너뜀 (이전 결과 사용)[/yellow]")
+    else:
+        try:
+            docs = pipeline.step_parse(files=selected_files)
+            console.print(f"  [green]✓[/green] {len(docs)}개 문서 파싱 완료")
+        except Exception as e:
+            _print_error("파싱 실패", e, hints=_get_error_hints(e))
+            raise typer.Exit(code=1)
 
     # ── Step 4: QA 생성 ───────────────────────────────────────────
     console.print("\n[bold]━━━ [4/9] QA 쌍 생성 ━━━[/bold]")
-    console.print(
-        f"  Teacher: {pipeline.config.teacher.model} "
-        f"({pipeline.config.teacher.backend})"
-    )
-    console.print("  [dim]Teacher LLM으로 문서 기반 질문-답변 쌍을 생성합니다. Ollama 실행이 필요합니다.[/dim]")
-    if not Confirm.ask("  QA 쌍을 생성하시겠습니까?", default=True):
-        console.print("  [yellow]⏭ 건너뜀[/yellow]")
+    if skip_to_step > 4:
+        console.print("  [yellow]⏭ 건너뜀 (이전 결과 사용)[/yellow]")
+    else:
         console.print(
-            f"\n  파싱 결과: [cyan]{pipeline.output_dir / 'parsed_documents.json'}[/cyan]"
+            f"  Teacher: {pipeline.config.teacher.model} "
+            f"({pipeline.config.teacher.backend})"
         )
-        return
+        console.print("  [dim]Teacher LLM으로 문서 기반 질문-답변 쌍을 생성합니다. Ollama 실행이 필요합니다.[/dim]")
+        if pipeline.config.teacher.backend == "ollama":
+            import httpx
 
-    try:
-        pairs = pipeline.step_generate(docs)
-        console.print(f"  [green]✓[/green] {len(pairs)}개 QA 쌍 생성 완료")
-    except Exception as e:
-        _print_error("QA 생성 실패", e, hints=_get_error_hints(e))
-        raise typer.Exit(code=1)
+            try:
+                resp = httpx.get(f"{pipeline.config.teacher.api_base}/api/tags", timeout=5)
+                models = [m["name"] for m in resp.json().get("models", [])]
+                teacher_model = pipeline.config.teacher.model
+                model_found = any(
+                    teacher_model == m or teacher_model == m.split(":")[0]
+                    for m in models
+                )
+                if not model_found:
+                    console.print(f"  [yellow]⚠ Teacher 모델 '{teacher_model}'이(가) Ollama에 없습니다[/yellow]")
+                    console.print(f"  [dim]다운로드: ollama pull {teacher_model}[/dim]")
+            except Exception:
+                console.print("  [yellow]⚠ Ollama 서버에 연결할 수 없습니다[/yellow]")
+                console.print("  [dim]실행: ollama serve[/dim]")
+                if not Confirm.ask("  계속 진행하시겠습니까?", default=False):
+                    raise typer.Exit(code=0)
+        if not Confirm.ask("  QA 쌍을 생성하시겠습니까?", default=True):
+            console.print("  [yellow]⏭ 건너뜀[/yellow]")
+            console.print(Panel(
+                f"[bold yellow]파이프라인 중단[/bold yellow]\n\n"
+                f"  파싱된 문서: [cyan]{len(docs) if docs else 0}[/cyan]개\n"
+                f"  파싱 결과: [cyan]{pipeline.output_dir / 'parsed_documents.json'}[/cyan]",
+                expand=False,
+            ))
+            return
+
+        assert docs is not None
+        try:
+            pairs = pipeline.step_generate(docs)
+            console.print(f"  [green]✓[/green] {len(pairs)}개 QA 쌍 생성 완료")
+        except Exception as e:
+            _print_error("QA 생성 실패", e, hints=_get_error_hints(e))
+            raise typer.Exit(code=1)
 
     # ── Step 5: 검증 ──────────────────────────────────────────────
     console.print("\n[bold]━━━ [5/9] QA 검증 ━━━[/bold]")
-    try:
-        total_before = len(pairs)
-        pairs = pipeline.step_validate(pairs, docs=docs)
-        rejected = total_before - len(pairs)
-        console.print(
-            f"  [green]✓[/green] {len(pairs)}개 수락, {rejected}개 거부"
-        )
-    except Exception as e:
-        _print_error("검증 실패", e, hints=_get_error_hints(e))
-        raise typer.Exit(code=1)
+    if skip_to_step > 5:
+        console.print("  [yellow]⏭ 건너뜀 (이전 결과 사용)[/yellow]")
+    else:
+        try:
+            total_before = len(pairs)
+            if docs is not None:
+                pairs = pipeline.step_validate(pairs, docs=docs)
+            else:
+                pairs = pipeline.step_validate(pairs)
+            rejected = total_before - len(pairs)
+            console.print(
+                f"  [green]✓[/green] {len(pairs)}개 수락, {rejected}개 거부"
+            )
+        except Exception as e:
+            _print_error("검증 실패", e, hints=_get_error_hints(e))
+            raise typer.Exit(code=1)
 
     # ── Step 6: 품질 평가 ─────────────────────────────────────────
     console.print("\n[bold]━━━ [6/9] 품질 점수 평가 ━━━[/bold]")
-    score_default = pipeline.config.scoring.enabled
-    console.print("  [dim]Teacher LLM이 각 QA 쌍을 1~5점으로 평가하여 저품질 데이터를 제거합니다.[/dim]")
-    console.print(
-        f"  [dim]설정: scoring.enabled = {str(score_default).lower()}[/dim]"
-    )
-    if Confirm.ask("  품질 점수 평가를 하시겠습니까?", default=score_default):
-        pipeline.config.scoring.enabled = True
-        try:
-            before = len(pairs)
-            pairs = pipeline.step_score(pairs)
-            console.print(
-                f"  [green]✓[/green] {len(pairs)}개 통과, "
-                f"{before - len(pairs)}개 제거"
-            )
-        except Exception as e:
-            _print_error("점수 평가 실패", e, hints=_get_error_hints(e))
-            raise typer.Exit(code=1)
+    if skip_to_step > 6:
+        console.print("  [yellow]⏭ 건너뜀 (이전 결과 사용)[/yellow]")
     else:
-        console.print("  [yellow]⏭ 건너뜀[/yellow]")
+        score_default = pipeline.config.scoring.enabled
+        console.print("  [dim]Teacher LLM이 각 QA 쌍을 1~5점으로 평가하여 저품질 데이터를 제거합니다.[/dim]")
+        console.print(
+            f"  [dim]설정: scoring.enabled = {str(score_default).lower()}[/dim]"
+        )
+        if Confirm.ask("  품질 점수 평가를 하시겠습니까?", default=score_default):
+            pipeline.config.scoring.enabled = True
+            try:
+                before = len(pairs)
+                pairs = pipeline.step_score(pairs)
+                console.print(
+                    f"  [green]✓[/green] {len(pairs)}개 통과, "
+                    f"{before - len(pairs)}개 제거"
+                )
+            except Exception as e:
+                _print_error("점수 평가 실패", e, hints=_get_error_hints(e))
+                raise typer.Exit(code=1)
+        else:
+            console.print("  [yellow]⏭ 건너뜀[/yellow]")
 
     # ── Step 7: 데이터 증강 ───────────────────────────────────────
     console.print("\n[bold]━━━ [7/9] 데이터 증강 ━━━[/bold]")
-    augment_default = pipeline.config.augment.enabled
-    console.print(
-        f"  [dim]질문을 다양한 표현으로 변형하여 학습 데이터를 늘립니다 (설정: {pipeline.config.augment.num_variants}배).[/dim]"
-    )
-    console.print(
-        f"  [dim]설정: augment.enabled = {str(augment_default).lower()}[/dim]"
-    )
-    if Confirm.ask("  데이터 증강을 하시겠습니까?", default=augment_default):
-        pipeline.config.augment.enabled = True
-        try:
-            before = len(pairs)
-            pairs = pipeline.step_augment(pairs)
-            console.print(
-                f"  [green]✓[/green] {before}개 → {len(pairs)}개 "
-                f"({len(pairs) - before}개 증강)"
-            )
-        except Exception as e:
-            _print_error("증강 실패", e, hints=_get_error_hints(e))
-            raise typer.Exit(code=1)
+    if skip_to_step > 7:
+        console.print("  [yellow]⏭ 건너뜀 (이전 결과 사용)[/yellow]")
     else:
-        console.print("  [yellow]⏭ 건너뜀[/yellow]")
+        augment_default = pipeline.config.augment.enabled
+        console.print(
+            f"  [dim]질문을 다양한 표현으로 변형하여 학습 데이터를 늘립니다 (설정: {pipeline.config.augment.num_variants}배).[/dim]"
+        )
+        console.print(
+            f"  [dim]설정: augment.enabled = {str(augment_default).lower()}[/dim]"
+        )
+        if Confirm.ask("  데이터 증강을 하시겠습니까?", default=augment_default):
+            pipeline.config.augment.enabled = True
+            try:
+                before = len(pairs)
+                pairs = pipeline.step_augment(pairs)
+                console.print(
+                    f"  [green]✓[/green] {before}개 → {len(pairs)}개 "
+                    f"({len(pairs) - before}개 증강)"
+                )
+            except Exception as e:
+                _print_error("증강 실패", e, hints=_get_error_hints(e))
+                raise typer.Exit(code=1)
+        else:
+            console.print("  [yellow]⏭ 건너뜀[/yellow]")
 
     # ── 분석 (자동) ───────────────────────────────────────────────
-    pipeline.step_analyze(pairs)
+    if skip_to_step < 8:
+        pipeline.step_analyze(pairs)
 
     # ── Step 8: 학습 ──────────────────────────────────────────────
     console.print("\n[bold]━━━ [8/9] 모델 학습 ━━━[/bold]")
@@ -1201,11 +1254,15 @@ def wizard(
 
     if not Confirm.ask("  LoRA 학습을 진행하시겠습니까?", default=True):
         console.print("  [yellow]⏭ 건너뜀[/yellow]")
-        console.print(
-            f"\n  학습 데이터: [cyan]{training_data_path}[/cyan]\n"
-            f"  나중에 실행: [cyan]slm-factory train --config {resolved}"
-            f" --data {training_data_path}[/cyan]"
-        )
+        console.print(Panel(
+            f"[bold yellow]파이프라인 중단 (학습 건너뜀)[/bold yellow]\n\n"
+            f"  총 QA 쌍: [cyan]{len(pairs)}[/cyan]개\n"
+            f"  학습 데이터: [cyan]{training_data_path}[/cyan]\n\n"
+            f"[bold]나중에 실행:[/bold]\n"
+            f"  [cyan]slm-factory train --config {resolved}"
+            f" --data {training_data_path}[/cyan]",
+            expand=False,
+        ))
         return
 
     try:
@@ -1220,11 +1277,15 @@ def wizard(
     console.print("  [dim]LoRA 어댑터를 기본 모델에 병합하고 Ollama 모델로 등록합니다.[/dim]")
     if not Confirm.ask("  모델을 내보내시겠습니까?", default=True):
         console.print("  [yellow]⏭ 건너뜀[/yellow]")
-        console.print(
-            f"\n  어댑터: [cyan]{adapter_path}[/cyan]\n"
-            f"  나중에 실행: [cyan]slm-factory export --config {resolved}"
-            f" --adapter {adapter_path}[/cyan]"
-        )
+        console.print(Panel(
+            f"[bold yellow]파이프라인 중단 (내보내기 건너뜀)[/bold yellow]\n\n"
+            f"  총 QA 쌍: [cyan]{len(pairs)}[/cyan]개\n"
+            f"  어댑터: [cyan]{adapter_path}[/cyan]\n\n"
+            f"[bold]나중에 실행:[/bold]\n"
+            f"  [cyan]slm-factory export --config {resolved}"
+            f" --adapter {adapter_path}[/cyan]",
+            expand=False,
+        ))
         return
 
     try:
@@ -1238,18 +1299,15 @@ def wizard(
 
     # ── 완료 ──────────────────────────────────────────────────────
     console.print()
-    console.print(
-        Panel(
-            f"[bold green]파이프라인 완료![/bold green]\n\n"
-            f"모델: [cyan]{model_dir}[/cyan]\n\n"
-            f"Ollama 배포:\n"
-            f"  cd {model_dir}\n"
-            f"  ollama create "
-            f"{pipeline.config.export.ollama.model_name} -f Modelfile\n"
-            f"  ollama run {pipeline.config.export.ollama.model_name}",
-            expand=False,
-        )
+    summary = (
+        f"[bold green]파이프라인 완료![/bold green]\n\n"
+        f"  총 QA 쌍: [cyan]{len(pairs)}[/cyan]개\n"
+        f"  Student 모델: [cyan]{pipeline.config.student.model}[/cyan]\n"
+        f"  모델 출력: [cyan]{model_dir}[/cyan]\n\n"
+        f"[bold]모델 실행:[/bold]\n"
+        f"  [cyan]ollama run {pipeline.config.export.ollama.model_name}[/cyan]"
     )
+    console.print(Panel(summary, expand=False))
 
 
 # ---------------------------------------------------------------------------
