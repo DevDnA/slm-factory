@@ -158,3 +158,205 @@ class TestWizardCommand:
         result = runner.invoke(app, ["wizard", "--help"])
         assert result.exit_code == 0
         assert "대화형" in result.output
+
+
+# ---------------------------------------------------------------------------
+# config validation
+# ---------------------------------------------------------------------------
+
+
+class TestConfigValidation:
+    """config.py 필드 검증 테스트입니다."""
+
+    def test_프로젝트명_빈문자열_거부(self):
+        """ProjectConfig.name에 빈 문자열을 넣으면 ValidationError가 발생하는지 확인합니다."""
+        from pydantic import ValidationError
+        from slm_factory.config import ProjectConfig
+        with pytest.raises(ValidationError):
+            ProjectConfig(name="")
+
+    def test_교사모델명_빈문자열_거부(self):
+        """TeacherConfig.model에 빈 문자열을 넣으면 ValidationError가 발생하는지 확인합니다."""
+        from pydantic import ValidationError
+        from slm_factory.config import TeacherConfig
+        with pytest.raises(ValidationError):
+            TeacherConfig(model="")
+
+    def test_교사_api_base_빈문자열_거부(self):
+        from pydantic import ValidationError
+        from slm_factory.config import TeacherConfig
+        with pytest.raises(ValidationError):
+            TeacherConfig(api_base="")
+
+    def test_학생모델명_빈문자열_거부(self):
+        from pydantic import ValidationError
+        from slm_factory.config import StudentConfig
+        with pytest.raises(ValidationError):
+            StudentConfig(model="")
+
+    def test_ollama_모델명_빈문자열_거부(self):
+        from pydantic import ValidationError
+        from slm_factory.config import OllamaExportConfig
+        with pytest.raises(ValidationError):
+            OllamaExportConfig(model_name="")
+
+    def test_정상값_통과(self):
+        """기본값이 유효한지 확인합니다."""
+        from slm_factory.config import ProjectConfig, TeacherConfig, StudentConfig, OllamaExportConfig
+        # 기본값으로 생성 시 에러 없어야 함
+        ProjectConfig()
+        TeacherConfig()
+        StudentConfig()
+        OllamaExportConfig()
+
+
+# ---------------------------------------------------------------------------
+# wizard --resume
+# ---------------------------------------------------------------------------
+
+
+class TestWizardResume:
+    """wizard --resume 옵션 테스트입니다."""
+
+    def test_resume_옵션_존재(self):
+        """wizard --help에 --resume 옵션이 표시되는지 확인합니다."""
+        result = runner.invoke(app, ["wizard", "--help"])
+        assert result.exit_code == 0
+        assert "--resume" in result.output
+
+
+# ---------------------------------------------------------------------------
+# check
+# ---------------------------------------------------------------------------
+
+
+class TestCheckCommand:
+    """check 명령어의 테스트입니다."""
+
+    def test_존재하지_않는_config(self):
+        """존재하지 않는 설정 파일을 지정하면 exit code 1로 종료하는지 확인합니다."""
+        result = runner.invoke(app, ["check", "--config", "/nonexistent/path.yaml"])
+        assert result.exit_code == 1
+
+
+# ---------------------------------------------------------------------------
+# status
+# ---------------------------------------------------------------------------
+
+
+class TestStatusCommand:
+    """status 명령어의 테스트입니다."""
+
+    def test_존재하지_않는_config(self):
+        """존재하지 않는 설정 파일을 지정하면 exit code 1로 종료하는지 확인합니다."""
+        result = runner.invoke(app, ["status", "--config", "/nonexistent/path.yaml"])
+        assert result.exit_code == 1
+
+
+# ---------------------------------------------------------------------------
+# clean
+# ---------------------------------------------------------------------------
+
+
+class TestCleanCommand:
+    """clean 명령어의 테스트입니다."""
+
+    def test_존재하지_않는_config(self):
+        """존재하지 않는 설정 파일을 지정하면 exit code 1로 종료하는지 확인합니다."""
+        result = runner.invoke(app, ["clean", "--config", "/nonexistent/path.yaml"])
+        assert result.exit_code == 1
+
+
+# ---------------------------------------------------------------------------
+# score
+# ---------------------------------------------------------------------------
+
+
+class TestScoreCommand:
+    """score 명령어의 테스트입니다."""
+
+    def test_load_pipeline_호출(self, mocker):
+        mock_pipeline = MagicMock()
+        mock_pipeline.step_parse.return_value = [MagicMock()]
+        mock_pipeline.step_generate.return_value = [MagicMock()]
+        mock_pipeline.step_validate.return_value = [MagicMock()]
+        mock_pipeline.step_score.return_value = [MagicMock()]
+        mock_pipeline.config.paths.ensure_dirs = MagicMock()
+        mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
+
+        result = runner.invoke(app, ["score", "--config", "test.yaml"])
+        assert result.exit_code == 0
+        mock_pipeline.step_score.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# augment
+# ---------------------------------------------------------------------------
+
+
+class TestAugmentCommand:
+    """augment 명령어의 테스트입니다."""
+
+    def test_load_pipeline_호출(self, mocker):
+        mock_pipeline = MagicMock()
+        mock_pipeline.step_parse.return_value = [MagicMock()]
+        mock_pipeline.step_generate.return_value = [MagicMock()]
+        mock_pipeline.step_validate.return_value = [MagicMock()]
+        mock_pipeline.step_score.return_value = [MagicMock()]
+        mock_pipeline.step_augment.return_value = [MagicMock()]
+        mock_pipeline.config.paths.ensure_dirs = MagicMock()
+        mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
+
+        result = runner.invoke(app, ["augment", "--config", "test.yaml"])
+        assert result.exit_code == 0
+        mock_pipeline.step_augment.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# analyze
+# ---------------------------------------------------------------------------
+
+
+class TestAnalyzeCommand:
+    """analyze 명령어의 테스트입니다."""
+
+    def test_load_pipeline_호출(self, mocker):
+        mock_pipeline = MagicMock()
+        mock_pipeline.step_parse.return_value = [MagicMock()]
+        mock_pipeline.step_generate.return_value = [MagicMock()]
+        mock_pipeline.step_validate.return_value = [MagicMock()]
+        mock_pipeline.step_score.return_value = [MagicMock()]
+        mock_pipeline.step_augment.return_value = [MagicMock()]
+        mock_pipeline.step_analyze.return_value = None
+        mock_pipeline.config.paths.ensure_dirs = MagicMock()
+        mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
+
+        result = runner.invoke(app, ["analyze", "--config", "test.yaml"])
+        assert result.exit_code == 0
+        mock_pipeline.step_analyze.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# convert
+# ---------------------------------------------------------------------------
+
+
+class TestConvertCommand:
+    """convert 명령어의 테스트입니다."""
+
+    def test_존재하지_않는_config(self):
+        result = runner.invoke(app, ["convert", "--config", "/nonexistent/path.yaml"])
+        assert result.exit_code == 1
+
+
+# ---------------------------------------------------------------------------
+# export
+# ---------------------------------------------------------------------------
+
+
+class TestExportCommand:
+    """export 명령어의 테스트입니다."""
+
+    def test_존재하지_않는_config(self):
+        result = runner.invoke(app, ["export", "--config", "/nonexistent/path.yaml"])
+        assert result.exit_code == 1
