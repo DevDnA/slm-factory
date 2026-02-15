@@ -12,7 +12,7 @@ paths:
 
 # -- 1단계: 문서 파싱(Document Parsing) ------------------------------------
 parsing:
-  formats: ["pdf"]                      # pdf, hwpx, html, txt, md 지원
+  formats: ["pdf", "txt", "html"]        # pdf, hwpx, html, txt, md, docx 지원
   pdf:
     extract_tables: true
   hwpx:

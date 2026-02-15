@@ -55,7 +55,7 @@ class HwpxOptions(BaseModel):
 class ParsingConfig(BaseModel):
     """문서 파싱 설정입니다."""
 
-    formats: list[str] = Field(default_factory=lambda: ["pdf"])
+    formats: list[str] = Field(default_factory=lambda: ["pdf", "txt", "html"])
     pdf: PdfOptions = Field(default_factory=PdfOptions)
     hwpx: HwpxOptions = Field(default_factory=HwpxOptions)
 
@@ -268,6 +268,9 @@ _TEMPLATE_PATH = "templates/project.yaml"
 def load_config(path: str | Path) -> SLMConfig:
     """프로젝트 YAML 설정 파일을 로드하고 검증합니다.
 
+    ``paths.documents``와 ``paths.output``이 상대 경로인 경우,
+    설정 파일이 위치한 디렉토리를 기준으로 절대 경로로 변환합니다.
+
     매개변수
     ----------
     path:
@@ -287,12 +290,20 @@ def load_config(path: str | Path) -> SLMConfig:
     pydantic.ValidationError
         YAML 내용이 예상 스키마와 일치하지 않으면 발생합니다.
     """
-    filepath = Path(path)
+    filepath = Path(path).resolve()
     if not filepath.is_file():
         raise FileNotFoundError(f"Config file not found: {filepath}")
 
     raw = yaml.safe_load(filepath.read_text(encoding="utf-8")) or {}
-    return SLMConfig.model_validate(raw)
+    config = SLMConfig.model_validate(raw)
+
+    config_dir = filepath.parent
+    if not config.paths.documents.is_absolute():
+        config.paths.documents = (config_dir / config.paths.documents).resolve()
+    if not config.paths.output.is_absolute():
+        config.paths.output = (config_dir / config.paths.output).resolve()
+
+    return config
 
 
 def create_default_config() -> str:
