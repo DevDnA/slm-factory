@@ -132,12 +132,29 @@ class ValidationConfig(BaseModel):
     ])
     groundedness: GroundednessConfig = Field(default_factory=GroundednessConfig)
 
+    @model_validator(mode="after")
+    def _check_answer_length_range(self) -> "ValidationConfig":
+        """min_answer_length가 max_answer_length보다 작은지 검증합니다."""
+        if self.min_answer_length >= self.max_answer_length:
+            raise ValueError(
+                f"min_answer_length({self.min_answer_length})는 "
+                f"max_answer_length({self.max_answer_length})보다 작아야 합니다"
+            )
+        return self
+
 
 class ScoringConfig(BaseModel):
     """교사 LLM을 사용한 QA 쌍 품질 점수 설정입니다."""
     enabled: bool = False
     threshold: float = 3.0
     max_concurrency: int = 4
+
+    @model_validator(mode="after")
+    def _check_scoring_threshold(self) -> "ScoringConfig":
+        """점수 기준값의 유효성을 검증합니다."""
+        if self.enabled and not (1.0 <= self.threshold <= 5.0):
+            raise ValueError(f"threshold({self.threshold})는 1.0~5.0 범위여야 합니다")
+        return self
 
 
 class AugmentConfig(BaseModel):
@@ -201,6 +218,15 @@ class TrainingConfig(BaseModel):
     train_split: float = 0.9
     save_strategy: str = "epoch"
     quantization: QuantizationConfig = Field(default_factory=QuantizationConfig)
+
+    @model_validator(mode="after")
+    def _check_training_params(self) -> "TrainingConfig":
+        """학습 파라미터의 유효성을 검증합니다."""
+        if not (0.0 < self.train_split < 1.0):
+            raise ValueError(f"train_split({self.train_split})은 0과 1 사이여야 합니다")
+        if self.learning_rate <= 0:
+            raise ValueError(f"learning_rate({self.learning_rate})는 양수여야 합니다")
+        return self
 
 
 class OllamaExportConfig(BaseModel):
