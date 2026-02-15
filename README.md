@@ -341,8 +341,12 @@ slm-factory export --config my-project/project.yaml      # 모델 내보내기
 
 **사용법**:
 ```bash
-slm-factory wizard [--config <설정파일경로>]
+slm-factory wizard [--config <설정파일경로>] [--resume]
 ```
+
+**옵션**:
+- `--config` (선택, 기본값: `project.yaml`): 프로젝트 설정 파일 경로
+- `--resume` / `-r` (선택): 이전 실행의 중간 결과에서 재개합니다
 
 **진행 단계**:
 1. 설정 파일 로드 (자동 탐색 또는 직접 입력)
@@ -382,19 +386,25 @@ slm-factory init --name policy-assistant
 
 **출력**:
 ```
-Project 'policy-assistant' created at ./policy-assistant
+✓ 프로젝트 'policy-assistant'가 생성되었습니다: ./policy-assistant
 
-Project structure:
+프로젝트 구조:
   ./policy-assistant/
   ./policy-assistant/documents/
   ./policy-assistant/output/
   ./policy-assistant/project.yaml
 
-Next steps:
-  1. Add your documents to ./policy-assistant/documents
-  2. Edit ./policy-assistant/project.yaml to customize settings
-  3. Run: slm-factory run --config ./policy-assistant/project.yaml
+사전 준비:
+  1. ./policy-assistant/documents 디렉토리에 학습할 문서(PDF, TXT 등)를 추가하세요
+  2. 별도 터미널에서 Ollama를 실행하세요: ollama serve
+  3. Teacher 모델을 다운로드하세요: ollama pull qwen3:8b
+
+실행:
+  4. 환경 점검: slm-factory check --config ./policy-assistant/project.yaml
+  5. wizard 실행: slm-factory wizard --config ./policy-assistant/project.yaml
 ```
+
+기존 프로젝트에 `project.yaml`이 있으면 덮어쓰기 확인 프롬프트가 표시됩니다.
 
 ---
 
@@ -404,15 +414,19 @@ Next steps:
 
 **사용법**:
 ```bash
-slm-factory run [--config <설정파일경로>]
+slm-factory run [--config <설정파일경로>] [--resume]
 ```
 
 **옵션**:
 - `--config` (선택, 기본값: `project.yaml`): 프로젝트 설정 파일 경로
+- `--resume` / `-r` (선택): 중간 저장 파일에서 재개합니다
 
 **예시**:
 ```bash
 slm-factory run --config ./my-project/project.yaml
+
+# 중단된 지점에서 재개
+slm-factory run --config ./my-project/project.yaml --resume
 ```
 
 **실행 단계**:
@@ -508,8 +522,12 @@ Validation complete: 142 accepted, 8 rejected (out of 150 generated)
 
 **사용법**:
 ```bash
-slm-factory score [--config <설정파일경로>]
+slm-factory score [--config <설정파일경로>] [--resume]
 ```
+
+**옵션**:
+- `--config` (선택, 기본값: `project.yaml`): 프로젝트 설정 파일 경로
+- `--resume` / `-r` (선택): 중간 저장 파일에서 재개합니다
 
 **예시**:
 ```bash
@@ -531,8 +549,12 @@ Note: scoring.enabled가 false(기본값)이면 점수 평가를 건너뜁니다
 
 **사용법**:
 ```bash
-slm-factory augment [--config <설정파일경로>]
+slm-factory augment [--config <설정파일경로>] [--resume]
 ```
+
+**옵션**:
+- `--config` (선택, 기본값: `project.yaml`): 프로젝트 설정 파일 경로
+- `--resume` / `-r` (선택): 중간 저장 파일에서 재개합니다
 
 **예시**:
 ```bash
@@ -554,8 +576,12 @@ Note: augment.enabled가 false(기본값)이면 증강을 건너뜁니다.
 
 **사용법**:
 ```bash
-slm-factory analyze [--config <설정파일경로>]
+slm-factory analyze [--config <설정파일경로>] [--resume]
 ```
+
+**옵션**:
+- `--config` (선택, 기본값: `project.yaml`): 프로젝트 설정 파일 경로
+- `--resume` / `-r` (선택): 중간 저장 파일에서 재개합니다
 
 **예시**:
 ```bash
@@ -572,12 +598,13 @@ LoRA 파인튜닝을 실행합니다. 기존 학습 데이터를 사용하거나
 
 **사용법**:
 ```bash
-slm-factory train [--config <설정파일경로>] [--data <학습데이터경로>]
+slm-factory train [--config <설정파일경로>] [--data <학습데이터경로>] [--resume]
 ```
 
 **옵션**:
 - `--config` (선택, 기본값: `project.yaml`): 프로젝트 설정 파일
 - `--data` (선택): 기존 `training_data.jsonl` 파일 경로. 지정하지 않으면 전체 파이프라인 실행
+- `--resume` / `-r` (선택): 중간 저장 파일에서 재개합니다
 
 **예시 1**: 전체 파이프라인 실행 후 학습
 ```bash
@@ -606,7 +633,7 @@ Training complete! Adapter saved to: ./output/checkpoints/adapter
 ```
 ┌──────────────────────────────────────────────────────┐
   단계       파일                    상태   건수
-├──────────────────────────────────────────────────────┤
+
   parse      parsed_documents.json   존재   5개 문서
   generate   qa_alpaca.json          존재   150개 쌍
   score      qa_scored.json          없음   -
@@ -665,7 +692,9 @@ QA 데이터를 훈련용 JSONL 형식으로 변환합니다. 파이프라인 �
 - Ollama 서버 연결 (backend=ollama일 때)
 - Teacher 모델 사용 가능 여부
 
-모든 항목 통과 시 "모든 점검 통과!" 메시지와 함께 종료 코드 0을 반환합니다.
+모든 항목 통과 시 "모든 점검 통과!" 메시지와 wizard 실행 명령을 안내하며 종료 코드 0을 반환합니다.
+
+실패 항목이 있으면 일반적인 해결 방법(문서 추가, Ollama 실행, 모델 다운로드)을 안내하며 종료 코드 1을 반환합니다.
 
 ---
 
@@ -857,10 +886,10 @@ output/
 ├── compare_results.json       # 모델 비교 결과 (Before/After)
 ├── training_data.jsonl        # 채팅 템플릿 적용된 학습 데이터
 ├── checkpoints/
-│   └── adapter/               # LoRA 어댑터 가중치
-│       ├── adapter_config.json
-│       ├── adapter_model.safetensors
-│       └── ...
+    └── adapter/               # LoRA 어댑터 가중치
+        ├── adapter_config.json
+        ├── adapter_model.safetensors
+        └── ...
 └── merged_model/              # 병합된 최종 모델
     ├── config.json
     ├── model.safetensors
@@ -1226,61 +1255,61 @@ questions:
 ```
 slm-factory/
 ├── src/
-│   └── slm_factory/
-│       ├── __init__.py              # 패키지 초기화 및 버전 정보
-│       ├── __main__.py              # python -m slm_factory 진입점
-│       ├── cli.py                   # CLI 진입점 및 명령어 정의
-│       ├── config.py                # Pydantic 기반 설정 스키마
-│       ├── models.py                # 공유 데이터 모델 (QAPair, ParsedDocument)
-│       ├── pipeline.py              # 파이프라인 오케스트레이터
-│       ├── scorer.py                # QA 품질 점수 평가 (Teacher LLM)
-│       ├── augmenter.py             # QA 데이터 증강 (질문 패러프레이즈)
-│       ├── analyzer.py              # 학습 데이터 통계 분석
-│       ├── evaluator.py             # 모델 자동 평가 (BLEU/ROUGE)
-│       ├── comparator.py            # 모델 비교 (Before/After)
-│       ├── incremental.py           # 증분 학습 추적
-│       ├── converter.py             # 채팅 템플릿 변환기
-│       ├── utils.py                 # 유틸리티 및 로깅 설정
-│       ├── tui/
-│       │   ├── __init__.py          # TUI 패키지
-│       │   ├── widgets.py           # TUI 위젯 (QACard, StatusBar)
-│       │   ├── reviewer.py          # QA 수동 리뷰 TUI
-│       │   └── dashboard.py         # 파이프라인 대시보드 TUI
-│       ├── parsers/
-│       │   ├── __init__.py          # 파서 레지스트리
-│       │   ├── base.py              # 파서 기본 클래스
-│       │   ├── pdf.py               # PDF 파서 (PyMuPDF)
-│       │   ├── hwpx.py              # HWPX 파서 (한글 문서)
-│       │   ├── html.py              # HTML 파서 (BeautifulSoup)
-│       │   ├── text.py              # TXT/MD 파서
-│       │   └── docx.py              # DOCX 파서 (python-docx)
-│       ├── teacher/
-│       │   ├── __init__.py          # Teacher LLM 팩토리
-│       │   ├── base.py              # Teacher 기본 클래스
-│       │   ├── ollama.py            # Ollama 백엔드
-│       │   ├── openai_compat.py     # OpenAI 호환 API 백엔드
-│       │   ├── qa_generator.py      # QA 쌍 생성 로직
-│       │   └── dialogue_generator.py  # 멀티턴 대화 생성
-│       ├── validator/
-│       │   ├── __init__.py          # 검증 모듈 초기화
-│       │   ├── rules.py             # 규칙 기반 검증 (길이, 패턴 등)
-│       │   └── similarity.py        # 임베딩 기반 groundedness 체크
-│       ├── trainer/
-│       │   ├── __init__.py          # 학습 모듈 초기화
-│       │   └── lora_trainer.py      # LoRA 파인튜닝 (SFTTrainer, DataLoader 포함)
-│       └── exporter/
-│           ├── __init__.py          # 내보내기 모듈 초기화
-│           ├── hf_export.py         # HuggingFace 모델 병합
-│           ├── ollama_export.py     # Ollama Modelfile 생성
-│           └── gguf_export.py       # GGUF 양자화 변환
+    └── slm_factory/
+        ├── __init__.py              # 패키지 초기화 및 버전 정보
+        ├── __main__.py              # python -m slm_factory 진입점
+        ├── cli.py                   # CLI 진입점 및 명령어 정의
+        ├── config.py                # Pydantic 기반 설정 스키마
+        ├── models.py                # 공유 데이터 모델 (QAPair, ParsedDocument)
+        ├── pipeline.py              # 파이프라인 오케스트레이터
+        ├── scorer.py                # QA 품질 점수 평가 (Teacher LLM)
+        ├── augmenter.py             # QA 데이터 증강 (질문 패러프레이즈)
+        ├── analyzer.py              # 학습 데이터 통계 분석
+        ├── evaluator.py             # 모델 자동 평가 (BLEU/ROUGE)
+        ├── comparator.py            # 모델 비교 (Before/After)
+        ├── incremental.py           # 증분 학습 추적
+        ├── converter.py             # 채팅 템플릿 변환기
+        ├── utils.py                 # 유틸리티 및 로깅 설정
+        ├── tui/
+            ├── __init__.py          # TUI 패키지
+            ├── widgets.py           # TUI 위젯 (QACard, StatusBar)
+            ├── reviewer.py          # QA 수동 리뷰 TUI
+            └── dashboard.py         # 파이프라인 대시보드 TUI
+        ├── parsers/
+            ├── __init__.py          # 파서 레지스트리
+            ├── base.py              # 파서 기본 클래스
+            ├── pdf.py               # PDF 파서 (PyMuPDF)
+            ├── hwpx.py              # HWPX 파서 (한글 문서)
+            ├── html.py              # HTML 파서 (BeautifulSoup)
+            ├── text.py              # TXT/MD 파서
+            └── docx.py              # DOCX 파서 (python-docx)
+        ├── teacher/
+            ├── __init__.py          # Teacher LLM 팩토리
+            ├── base.py              # Teacher 기본 클래스
+            ├── ollama.py            # Ollama 백엔드
+            ├── openai_compat.py     # OpenAI 호환 API 백엔드
+            ├── qa_generator.py      # QA 쌍 생성 로직
+            └── dialogue_generator.py  # 멀티턴 대화 생성
+        ├── validator/
+            ├── __init__.py          # 검증 모듈 초기화
+            ├── rules.py             # 규칙 기반 검증 (길이, 패턴 등)
+            └── similarity.py        # 임베딩 기반 groundedness 체크
+        ├── trainer/
+            ├── __init__.py          # 학습 모듈 초기화
+            └── lora_trainer.py      # LoRA 파인튜닝 (SFTTrainer, DataLoader 포함)
+        └── exporter/
+            ├── __init__.py          # 내보내기 모듈 초기화
+            ├── hf_export.py         # HuggingFace 모델 병합
+            ├── ollama_export.py     # Ollama Modelfile 생성
+            └── gguf_export.py       # GGUF 양자화 변환
 ├── templates/
-│   └── project.yaml                 # 기본 프로젝트 템플릿
+    └── project.yaml                 # 기본 프로젝트 템플릿
 ├── tests/
-│   └── __init__.py                  # 테스트 패키지
+    └── __init__.py                  # 테스트 패키지
 ├── docs/
-│   ├── architecture.md              # 아키텍처 가이드
-│   ├── configuration.md             # 설정 레퍼런스
-│   └── modules.md                   # 모듈별 상세 문서
+    ├── architecture.md              # 아키텍처 가이드
+    ├── configuration.md             # 설정 레퍼런스
+    └── modules.md                   # 모듈별 상세 문서
 ├── pyproject.toml                   # 프로젝트 메타데이터 및 의존성
 └── README.md                        # 이 문서
 ```
