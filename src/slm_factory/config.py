@@ -23,7 +23,7 @@ from pydantic import BaseModel, Field, model_validator
 class ProjectConfig(BaseModel):
     """최상위 프로젝트 메타데이터입니다."""
 
-    name: str = "my-project"
+    name: str = Field("my-project", min_length=1)
     version: str = "1.0.0"
     language: str = "en"
 
@@ -64,8 +64,8 @@ class TeacherConfig(BaseModel):
     """QA 생성을 위한 교사 LLM 설정입니다."""
 
     backend: Literal["ollama", "openai"] = "ollama"
-    model: str = "qwen3:8b"
-    api_base: str = "http://localhost:11434"
+    model: str = Field("qwen3:8b", min_length=1)
+    api_base: str = Field("http://localhost:11434", min_length=1)
     api_key: str | None = None
     temperature: float = 0.3
     timeout: int = 180
@@ -173,7 +173,7 @@ class AnalyzerConfig(BaseModel):
 class StudentConfig(BaseModel):
     """학생 (미세조정된) 모델 설정입니다."""
 
-    model: str = "google/gemma-3-1b-it"
+    model: str = Field("google/gemma-3-1b-it", min_length=1)
     max_seq_length: int = 4096
 
 
@@ -233,7 +233,7 @@ class OllamaExportConfig(BaseModel):
     """Ollama 특화 내보내기 설정입니다."""
 
     enabled: bool = True
-    model_name: str = "my-project-model"
+    model_name: str = Field("my-project-model", min_length=1)
     system_prompt: str = "You are a helpful domain-specific assistant."
     parameters: dict[str, Any] = Field(default_factory=lambda: {
         "temperature": 0.7,

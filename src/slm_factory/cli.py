@@ -1086,22 +1086,25 @@ def wizard(
             f"  {len(all_files)}개 문서를 모두 사용하시겠습니까?", default=True,
         )
         if not use_all:
-            selection = Prompt.ask(
-                "  사용할 문서 번호 (쉼표 구분)",
-                default=",".join(str(i) for i in range(1, len(all_files) + 1)),
-            )
-            indices = []
-            for part in selection.split(","):
-                s = part.strip()
-                if s.isdigit():
-                    idx = int(s) - 1
-                    if 0 <= idx < len(all_files):
-                        indices.append(idx)
-                    else:
-                        console.print(f"  [yellow]⚠ 번호 {s}은(는) 범위 밖입니다 (1~{len(all_files)})[/yellow]")
-            if not indices:
-                console.print(f"  [red]✗ 선택된 문서가 없습니다. 1~{len(all_files)} 범위의 번호를 입력하세요.[/red]")
-                raise typer.Exit(code=1)
+            while True:
+                selection = Prompt.ask(
+                    "  사용할 문서 번호 (쉼표 구분)",
+                    default=",".join(str(i) for i in range(1, len(all_files) + 1)),
+                )
+                indices = []
+                for part in selection.split(","):
+                    s = part.strip()
+                    if s.isdigit():
+                        idx = int(s) - 1
+                        if 0 <= idx < len(all_files):
+                            indices.append(idx)
+                        else:
+                            console.print(f"  [yellow]⚠ 번호 {s}은(는) 범위 밖입니다 (1~{len(all_files)})[/yellow]")
+                    elif s:
+                        console.print(f"  [yellow]⚠ '{s}'은(는) 유효한 번호가 아닙니다[/yellow]")
+                if indices:
+                    break
+                console.print(f"  [red]✗ 유효한 문서가 선택되지 않았습니다. 1~{len(all_files)} 범위의 번호를 입력하세요.[/red]")
             selected_files = [all_files[i] for i in indices]
             console.print(f"  [green]✓[/green] {len(selected_files)}개 문서 선택됨")
 
