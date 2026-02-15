@@ -12,6 +12,7 @@ from rich.console import Console
 from . import __version__
 
 if TYPE_CHECKING:
+    from .models import QAPair
     from .pipeline import Pipeline
 
 app = typer.Typer(
@@ -101,6 +102,49 @@ def _find_config(config_path: str) -> str:
                 break
 
     return config_path
+
+
+def _load_qa_data(
+    pipeline: Pipeline,
+    data: str | None,
+    extra_candidates: list[str] | None = None,
+) -> list[QAPair]:
+    """QA 데이터를 로드합니다 (명시 경로 또는 출력 디렉토리 자동 감지).
+
+    ``--data`` 옵션이 있으면 해당 파일을, 없으면 출력 디렉토리에서
+    qa_augmented → qa_scored → qa_alpaca 순으로 탐색합니다.
+    """
+    from .models import QAPair
+
+    if data is not None:
+        data_path = Path(data)
+        if not data_path.is_file():
+            _print_error(
+                "QA 데이터 파일 미발견",
+                f"파일을 찾을 수 없음: {data_path}",
+                ["--data 옵션의 경로를 확인하세요"],
+            )
+            raise typer.Exit(code=1)
+        return pipeline._load_pairs(data_path)
+
+    output_dir = pipeline.output_dir
+    candidate_names = list(extra_candidates or []) + [
+        "qa_augmented.json",
+        "qa_scored.json",
+        "qa_alpaca.json",
+    ]
+    for name in candidate_names:
+        candidate = output_dir / name
+        if candidate.is_file():
+            console.print(f"[yellow]자동 감지:[/yellow] {candidate}")
+            return pipeline._load_pairs(candidate)
+
+    _print_error(
+        "QA 데이터 파일 미발견",
+        "출력 디렉토리에 QA 데이터 파일이 없습니다",
+        ["generate 명령을 먼저 실행하거나 --data 옵션으로 경로를 지정하세요"],
+    )
+    raise typer.Exit(code=1)
 
 
 def _load_pipeline(config_path: str) -> Pipeline:
@@ -901,29 +945,7 @@ def convert(
         pipeline = _load_pipeline(config)
         pipeline.config.paths.ensure_dirs()
 
-        if data is not None:
-            data_path = Path(data)
-            if not data_path.is_file():
-                _print_error("QA 데이터 파일 미발견", f"파일을 찾을 수 없음: {data_path}", ["--data 옵션의 경로를 확인하세요"])
-                raise typer.Exit(code=1)
-            pairs = pipeline._load_pairs(data_path)
-        else:
-            output_dir = pipeline.output_dir
-            candidates = [
-                output_dir / "qa_augmented.json",
-                output_dir / "qa_scored.json",
-                output_dir / "qa_alpaca.json",
-            ]
-            data_path = None
-            for candidate in candidates:
-                if candidate.is_file():
-                    data_path = candidate
-                    break
-            if data_path is None:
-                _print_error("QA 데이터 파일 미발견", "출력 디렉토리에 QA 데이터 파일이 없습니다", ["generate 명령을 먼저 실행하세요"])
-                raise typer.Exit(code=1)
-            console.print(f"[yellow]자동 감지:[/yellow] {data_path}")
-            pairs = pipeline._load_pairs(data_path)
+        pairs = _load_qa_data(pipeline, data)
 
         training_data_path = pipeline.step_convert(pairs)
 
@@ -1004,7 +1026,7 @@ def wizard(
     )
 
     # ── Step 1: 설정 파일 ─────────────────────────────────────────
-    console.print("\n[bold]━━━ [1/9] 설정 파일 ━━━[/bold]")
+    console.print("\n[bold]━━━ [1/12] 설정 파일 ━━━[/bold]")
     resolved = _find_config(config)
     if not Path(resolved).is_file():
         resolved = Prompt.ask("  설정 파일 경로를 입력하세요", default="project.yaml")
@@ -1044,7 +1066,7 @@ def wizard(
             console.print(f"  [blue]ℹ[/blue] 이전 결과를 감지하여 재개합니다")
 
     # ── Step 2: 문서 선택 ─────────────────────────────────────────
-    console.print("\n[bold]━━━ [2/9] 문서 선택 ━━━[/bold]")
+    console.print("\n[bold]━━━ [2/12] 문서 선택 ━━━[/bold]")
     selected_files: list[Path] | None = None
     if skip_to_step > 2:
         console.print("  [yellow]⏭ 건너뜀 (이전 결과 사용)[/yellow]")
@@ -1109,7 +1131,7 @@ def wizard(
             console.print(f"  [green]✓[/green] {len(selected_files)}개 문서 선택됨")
 
     # ── Step 3: 파싱 ──────────────────────────────────────────────
-    console.print("\n[bold]━━━ [3/9] 문서 파싱 ━━━[/bold]")
+    console.print("\n[bold]━━━ [3/12] 문서 파싱 ━━━[/bold]")
     if skip_to_step > 3:
         console.print("  [yellow]⏭ 건너뜀 (이전 결과 사용)[/yellow]")
     else:
@@ -1121,7 +1143,7 @@ def wizard(
             raise typer.Exit(code=1)
 
     # ── Step 4: QA 생성 ───────────────────────────────────────────
-    console.print("\n[bold]━━━ [4/9] QA 쌍 생성 ━━━[/bold]")
+    console.print("\n[bold]━━━ [4/12] QA 쌍 생성 ━━━[/bold]")
     if skip_to_step > 4:
         console.print("  [yellow]⏭ 건너뜀 (이전 결과 사용)[/yellow]")
     else:
@@ -1168,7 +1190,7 @@ def wizard(
             raise typer.Exit(code=1)
 
     # ── Step 5: 검증 ──────────────────────────────────────────────
-    console.print("\n[bold]━━━ [5/9] QA 검증 ━━━[/bold]")
+    console.print("\n[bold]━━━ [5/12] QA 검증 ━━━[/bold]")
     if skip_to_step > 5:
         console.print("  [yellow]⏭ 건너뜀 (이전 결과 사용)[/yellow]")
     else:
@@ -1187,7 +1209,7 @@ def wizard(
             raise typer.Exit(code=1)
 
     # ── Step 6: 품질 평가 ─────────────────────────────────────────
-    console.print("\n[bold]━━━ [6/9] 품질 점수 평가 ━━━[/bold]")
+    console.print("\n[bold]━━━ [6/12] 품질 점수 평가 ━━━[/bold]")
     if skip_to_step > 6:
         console.print("  [yellow]⏭ 건너뜀 (이전 결과 사용)[/yellow]")
     else:
@@ -1212,7 +1234,7 @@ def wizard(
             console.print("  [yellow]⏭ 건너뜀[/yellow]")
 
     # ── Step 7: 데이터 증강 ───────────────────────────────────────
-    console.print("\n[bold]━━━ [7/9] 데이터 증강 ━━━[/bold]")
+    console.print("\n[bold]━━━ [7/12] 데이터 증강 ━━━[/bold]")
     if skip_to_step > 7:
         console.print("  [yellow]⏭ 건너뜀 (이전 결과 사용)[/yellow]")
     else:
@@ -1243,7 +1265,7 @@ def wizard(
         pipeline.step_analyze(pairs)
 
     # ── Step 8: 학습 ──────────────────────────────────────────────
-    console.print("\n[bold]━━━ [8/9] 모델 학습 ━━━[/bold]")
+    console.print("\n[bold]━━━ [8/12] 모델 학습 ━━━[/bold]")
     console.print(f"  Student: {pipeline.config.student.model}")
     console.print("  [dim]Student 모델에 LoRA 어댑터를 적용하여 파인튜닝합니다. GPU 필요, 약 30분~2시간 소요.[/dim]")
     try:
@@ -1276,7 +1298,7 @@ def wizard(
         raise typer.Exit(code=1)
 
     # ── Step 9: 내보내기 ──────────────────────────────────────────
-    console.print("\n[bold]━━━ [9/9] 모델 내보내기 ━━━[/bold]")
+    console.print("\n[bold]━━━ [9/12] 모델 내보내기 ━━━[/bold]")
     console.print("  [dim]LoRA 어댑터를 기본 모델에 병합하고 Ollama 모델로 등록합니다.[/dim]")
     if not Confirm.ask("  모델을 내보내시겠습니까?", default=True):
         console.print("  [yellow]⏭ 건너뜀[/yellow]")
@@ -1299,6 +1321,67 @@ def wizard(
     except Exception as e:
         _print_error("내보내기 실패", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
+
+    # ── Step 10: 멀티턴 대화 생성 (선택) ────────────────────────────
+    console.print("\n[bold]━━━ [10/12] 멀티턴 대화 생성 (선택) ━━━[/bold]")
+    console.print("  [dim]QA 쌍을 멀티턴 대화 형식으로 확장합니다. Ollama 실행 필요.[/dim]")
+    if Confirm.ask("  멀티턴 대화를 생성하시겠습니까?", default=False):
+        try:
+            import asyncio as _aio
+
+            from .teacher import create_teacher
+            from .teacher.dialogue_generator import DialogueGenerator
+
+            teacher = create_teacher(pipeline.config.teacher)
+            gen = DialogueGenerator(teacher, pipeline.config.dialogue, pipeline.config.teacher)
+            dialogues = _aio.run(gen.generate_all(pairs))
+            dialogue_path = pipeline.output_dir / "dialogues.json"
+            gen.save_dialogues(dialogues, dialogue_path)
+            console.print(f"  [green]✓[/green] {len(dialogues)}개 대화 생성 → [cyan]{dialogue_path}[/cyan]")
+        except Exception as e:
+            _print_error("대화 생성 실패", e, hints=_get_error_hints(e))
+            console.print("  [yellow]⏭ 건너뛰고 계속합니다[/yellow]")
+    else:
+        console.print("  [yellow]⏭ 건너뜀[/yellow]")
+
+    # ── Step 11: GGUF 변환 (선택) ─────────────────────────────────
+    console.print("\n[bold]━━━ [11/12] GGUF 변환 (선택) ━━━[/bold]")
+    console.print(f"  [dim]모델을 GGUF 양자화 형식으로 변환합니다 (llama.cpp). 양자화: {pipeline.config.gguf_export.quantization_type}[/dim]")
+    if Confirm.ask("  GGUF 변환을 하시겠습니까?", default=False):
+        try:
+            from .exporter.gguf_export import GGUFExporter
+
+            exporter = GGUFExporter(pipeline.config)
+            gguf_path = exporter.export(model_dir)
+            console.print(f"  [green]✓[/green] GGUF 변환 완료 → [cyan]{gguf_path}[/cyan]")
+        except Exception as e:
+            _print_error("GGUF 변환 실패", e, hints=_get_error_hints(e))
+            console.print("  [yellow]⏭ 건너뛰고 계속합니다[/yellow]")
+    else:
+        console.print("  [yellow]⏭ 건너뜀[/yellow]")
+
+    # ── Step 12: 모델 평가 (선택) ─────────────────────────────────
+    console.print("\n[bold]━━━ [12/12] 모델 평가 (선택) ━━━[/bold]")
+    console.print(f"  [dim]학습된 모델의 품질을 QA 데이터로 평가합니다 (BLEU/ROUGE). Ollama 실행 필요.[/dim]")
+    if Confirm.ask("  모델 평가를 하시겠습니까?", default=False):
+        eval_model_name = Prompt.ask(
+            "  평가할 모델 이름",
+            default=pipeline.config.export.ollama.model_name,
+        )
+        try:
+            from .evaluator import ModelEvaluator
+
+            evaluator = ModelEvaluator(pipeline.config)
+            results = evaluator.evaluate(pairs, eval_model_name)
+            eval_path = pipeline.output_dir / pipeline.config.eval.output_file
+            evaluator.save_results(results, eval_path)
+            evaluator.print_summary(results)
+            console.print(f"  [green]✓[/green] 평가 완료 ({len(results)}건) → [cyan]{eval_path}[/cyan]")
+        except Exception as e:
+            _print_error("평가 실패", e, hints=_get_error_hints(e))
+            console.print("  [yellow]⏭ 건너뛰고 계속합니다[/yellow]")
+    else:
+        console.print("  [yellow]⏭ 건너뜀[/yellow]")
 
     # ── 완료 ──────────────────────────────────────────────────────
     console.print()
@@ -1328,37 +1411,7 @@ def eval_model(
         pipeline = _load_pipeline(config)
         pipeline.config.paths.ensure_dirs()
 
-        if data is not None:
-            data_path = Path(data)
-            if not data_path.is_file():
-                _print_error(
-                    "QA 데이터 파일 미발견",
-                    f"파일을 찾을 수 없음: {data_path}",
-                    ["--data 옵션의 경로를 확인하세요"],
-                )
-                raise typer.Exit(code=1)
-            pairs = pipeline._load_pairs(data_path)
-        else:
-            output_dir = pipeline.output_dir
-            candidates = [
-                output_dir / "qa_augmented.json",
-                output_dir / "qa_scored.json",
-                output_dir / "qa_alpaca.json",
-            ]
-            data_path = None
-            for candidate in candidates:
-                if candidate.is_file():
-                    data_path = candidate
-                    break
-            if data_path is None:
-                _print_error(
-                    "QA 데이터 파일 미발견",
-                    "출력 디렉토리에 QA 데이터 파일이 없습니다",
-                    ["generate 명령을 먼저 실행하거나 --data 옵션으로 경로를 지정하세요"],
-                )
-                raise typer.Exit(code=1)
-            console.print(f"[yellow]자동 감지:[/yellow] {data_path}")
-            pairs = pipeline._load_pairs(data_path)
+        pairs = _load_qa_data(pipeline, data)
 
         evaluator = ModelEvaluator(pipeline.config)
         results = evaluator.evaluate(pairs, model)
@@ -1489,37 +1542,7 @@ def generate_dialogue(
         pipeline = _load_pipeline(config)
         pipeline.config.paths.ensure_dirs()
 
-        if data is not None:
-            data_path = Path(data)
-            if not data_path.is_file():
-                _print_error(
-                    "QA 데이터 파일 미발견",
-                    f"파일을 찾을 수 없음: {data_path}",
-                    ["--data 옵션의 경로를 확인하세요"],
-                )
-                raise typer.Exit(code=1)
-            pairs = pipeline._load_pairs(data_path)
-        else:
-            output_dir = pipeline.output_dir
-            candidates = [
-                output_dir / "qa_augmented.json",
-                output_dir / "qa_scored.json",
-                output_dir / "qa_alpaca.json",
-            ]
-            data_path = None
-            for candidate in candidates:
-                if candidate.is_file():
-                    data_path = candidate
-                    break
-            if data_path is None:
-                _print_error(
-                    "QA 데이터 파일 미발견",
-                    "출력 디렉토리에 QA 데이터 파일이 없습니다",
-                    ["generate 명령을 먼저 실행하세요"],
-                )
-                raise typer.Exit(code=1)
-            console.print(f"[yellow]자동 감지:[/yellow] {data_path}")
-            pairs = pipeline._load_pairs(data_path)
+        pairs = _load_qa_data(pipeline, data)
 
         from .teacher import create_teacher
         from .teacher.dialogue_generator import DialogueGenerator
@@ -1560,37 +1583,7 @@ def compare_models(
         pipeline = _load_pipeline(config)
         pipeline.config.paths.ensure_dirs()
 
-        if data is not None:
-            data_path = Path(data)
-            if not data_path.is_file():
-                _print_error(
-                    "QA 데이터 파일 미발견",
-                    f"파일을 찾을 수 없음: {data_path}",
-                    ["--data 옵션의 경로를 확인하세요"],
-                )
-                raise typer.Exit(code=1)
-            pairs = pipeline._load_pairs(data_path)
-        else:
-            output_dir = pipeline.output_dir
-            candidates = [
-                output_dir / "qa_augmented.json",
-                output_dir / "qa_scored.json",
-                output_dir / "qa_alpaca.json",
-            ]
-            data_path = None
-            for candidate in candidates:
-                if candidate.is_file():
-                    data_path = candidate
-                    break
-            if data_path is None:
-                _print_error(
-                    "QA 데이터 파일 미발견",
-                    "출력 디렉토리에 QA 데이터 파일이 없습니다",
-                    ["generate 명령을 먼저 실행하거나 --data 옵션으로 경로를 지정하세요"],
-                )
-                raise typer.Exit(code=1)
-            console.print(f"[yellow]자동 감지:[/yellow] {data_path}")
-            pairs = pipeline._load_pairs(data_path)
+        pairs = _load_qa_data(pipeline, data)
 
         pipeline.config.compare.base_model = base_model
         pipeline.config.compare.finetuned_model = finetuned_model
@@ -1653,38 +1646,9 @@ def review_qa(
         pipeline = _load_pipeline(config)
         pipeline.config.paths.ensure_dirs()
 
-        if data is not None:
-            data_path = Path(data)
-            if not data_path.is_file():
-                _print_error(
-                    "QA 데이터 파일 미발견",
-                    f"파일을 찾을 수 없음: {data_path}",
-                    ["--data 옵션의 경로를 확인하세요"],
-                )
-                raise typer.Exit(code=1)
-            pairs = pipeline._load_pairs(data_path)
-        else:
-            output_dir = pipeline.output_dir
-            candidates = [
-                output_dir / "qa_reviewed.json",
-                output_dir / "qa_augmented.json",
-                output_dir / "qa_scored.json",
-                output_dir / "qa_alpaca.json",
-            ]
-            data_path = None
-            for candidate in candidates:
-                if candidate.is_file():
-                    data_path = candidate
-                    break
-            if data_path is None:
-                _print_error(
-                    "QA 데이터 파일 미발견",
-                    "출력 디렉토리에 QA 데이터 파일이 없습니다",
-                    ["generate 명령을 먼저 실행하거나 --data 옵션으로 경로를 지정하세요"],
-                )
-                raise typer.Exit(code=1)
-            console.print(f"[yellow]자동 감지:[/yellow] {data_path}")
-            pairs = pipeline._load_pairs(data_path)
+        pairs = _load_qa_data(
+            pipeline, data, extra_candidates=["qa_reviewed.json"],
+        )
 
         output_path = pipeline.output_dir / pipeline.config.review.output_file
 

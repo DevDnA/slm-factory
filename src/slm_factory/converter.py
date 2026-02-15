@@ -71,57 +71,29 @@ class ChatFormatter:
         
         return messages
     
-    def format_one(self, pair: QAPair) -> str | None:
-        """모델의 채팅 템플릿을 사용하여 단일 QA 쌍을 형식화합니다.
-        
-        tokenizer.apply_chat_template()을 적용하여 메시지를 학생 모델의 올바른 형식으로 변환합니다.
-        모델이 시스템 역할을 지원하지 않으면(예: Gemma) 시스템 역할 없이 재시도합니다.
-        
-        매개변수
-        ----------
-        pair : QAPair
-            형식화할 질문-답변 쌍.
-        
-        반환값
-        -------
-        str or None
-            학습 준비가 된 형식화된 문자열, 또는 형식화 실패 시 None.
-        """
-        messages = self.build_messages(pair)
-        
+    def _apply_template(self, messages: list[dict[str, str]]) -> str | None:
+        """채팅 템플릿을 적용합니다. 시스템 역할 실패 시 자동 fallback합니다."""
         try:
-            # 먼저 시스템 메시지로 시도
-            formatted = self.tokenizer.apply_chat_template(
-                messages,
-                tokenize=False,
-                add_generation_prompt=False,
+            return self.tokenizer.apply_chat_template(
+                messages, tokenize=False, add_generation_prompt=False,
             )
-            return formatted
         except Exception as e:
-            # 일부 모델(예: Gemma)은 시스템 역할을 지원하지 않음
-            # 시스템 메시지 없이 재시도
             logger.debug(
                 "%s에서 시스템 역할 실패 (오류: %s), 시스템 없이 재시도 중",
-                self.model_name,
-                type(e).__name__,
+                self.model_name, type(e).__name__,
             )
-            
-            # 시스템 없이 메시지 재구성
             messages_no_system = [m for m in messages if m["role"] != "system"]
-            
             try:
-                formatted = self.tokenizer.apply_chat_template(
-                    messages_no_system,
-                    tokenize=False,
-                    add_generation_prompt=False,
+                return self.tokenizer.apply_chat_template(
+                    messages_no_system, tokenize=False, add_generation_prompt=False,
                 )
-                return formatted
             except Exception as e2:
-                logger.error(
-                    "시스템 역할 없이도 쌍 형식화 실패: %s",
-                    type(e2).__name__,
-                )
+                logger.error("형식화 실패: %s", type(e2).__name__)
                 return None
+
+    def format_one(self, pair: QAPair) -> str | None:
+        """단일 QA 쌍을 채팅 템플릿으로 형식화합니다."""
+        return self._apply_template(self.build_messages(pair))
     
     def format_batch(self, pairs: list[QAPair]) -> list[dict[str, str]]:
         """QA 쌍 배치를 형식화하고 max_seq_length로 필터링합니다.
@@ -298,38 +270,8 @@ class ChatFormatter:
         return messages
 
     def format_dialogue(self, dialogue: MultiTurnDialogue) -> str | None:
-        """대화를 채팅 템플릿으로 형식화합니다."""
-        messages = self.build_dialogue_messages(dialogue)
-
-        try:
-            formatted = self.tokenizer.apply_chat_template(
-                messages,
-                tokenize=False,
-                add_generation_prompt=False,
-            )
-            return formatted
-        except Exception as e:
-            logger.debug(
-                "%s에서 시스템 역할 실패 (오류: %s), 시스템 없이 재시도 중",
-                self.model_name,
-                type(e).__name__,
-            )
-
-            messages_no_system = [m for m in messages if m["role"] != "system"]
-
-            try:
-                formatted = self.tokenizer.apply_chat_template(
-                    messages_no_system,
-                    tokenize=False,
-                    add_generation_prompt=False,
-                )
-                return formatted
-            except Exception as e2:
-                logger.error(
-                    "시스템 역할 없이도 대화 형식화 실패: %s",
-                    type(e2).__name__,
-                )
-                return None
+        """멀티턴 대화를 채팅 템플릿으로 형식화합니다."""
+        return self._apply_template(self.build_dialogue_messages(dialogue))
 
     def save_dialogue_training_data(
         self,

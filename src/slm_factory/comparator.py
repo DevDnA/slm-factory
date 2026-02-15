@@ -15,22 +15,11 @@ from rich.table import Table
 if TYPE_CHECKING:
     from .config import CompareConfig, SLMConfig
 
+from .evaluator import _load_bleu, _load_rouge
 from .models import CompareResult, QAPair
 from .utils import get_logger
 
 logger = get_logger("comparator")
-
-
-def _load_bleu():
-    import evaluate
-
-    return evaluate.load("bleu")
-
-
-def _load_rouge():
-    import evaluate
-
-    return evaluate.load("rouge")
 
 
 class ModelComparator:
