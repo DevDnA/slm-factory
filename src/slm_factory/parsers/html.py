@@ -111,7 +111,11 @@ class HTMLParser(BaseParser):
             encoding = _detect_encoding(raw_content)
             html_content = raw_content.decode(encoding)
         except Exception as exc:
-            raise RuntimeError(f"Failed to read HTML file: {path}") from exc
+            raise RuntimeError(
+                f"HTML 파일을 읽을 수 없습니다: {path}\n"
+                f"원인: 파일 인코딩이 UTF-8이 아니거나 접근 권한이 없을 수 있습니다.\n"
+                f"해결: UTF-8로 다시 저장하거나 파일 권한을 확인하세요."
+            ) from exc
 
         # ------------------------------------------------------------------
         # HTML 파싱
@@ -119,7 +123,11 @@ class HTMLParser(BaseParser):
         try:
             soup = BeautifulSoup(html_content, "html.parser")
         except Exception as exc:
-            raise RuntimeError(f"Failed to parse HTML: {path}") from exc
+            raise RuntimeError(
+                f"HTML 파싱에 실패했습니다: {path}\n"
+                f"원인: 유효하지 않은 HTML 구조이거나 인코딩 문제일 수 있습니다.\n"
+                f"해결: 브라우저에서 정상 표시되는지 확인하고, UTF-8로 저장하세요."
+            ) from exc
 
         # ------------------------------------------------------------------
         # 텍스트 추출 전에 script 및 style 태그 제거

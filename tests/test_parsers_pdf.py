@@ -273,7 +273,7 @@ class TestPDFParserErrors:
         bad_pdf.write_bytes(b"this is not a valid pdf")
 
         parser = PDFParser()
-        with pytest.raises(RuntimeError, match="Failed to open PDF"):
+        with pytest.raises(RuntimeError, match="PDF 파일을 열 수 없습니다"):
             parser.parse(bad_pdf)
 
 

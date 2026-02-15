@@ -87,7 +87,11 @@ class PDFParser(BaseParser):
         try:
             doc = fitz.open(str(path))  # type: ignore[attr-defined]
         except Exception as exc:
-            raise RuntimeError(f"Failed to open PDF: {path}") from exc
+            raise RuntimeError(
+                f"PDF 파일을 열 수 없습니다: {path}\n"
+                f"원인: 파일이 손상되었거나, 암호화되었거나, 지원하지 않는 형식일 수 있습니다.\n"
+                f"해결: 다른 PDF 뷰어에서 열어 정상 파일인지 확인하세요."
+            ) from exc
 
         # ------------------------------------------------------------------
         # 텍스트 추출

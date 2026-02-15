@@ -57,7 +57,12 @@ class DOCXParser(BaseParser):
         try:
             doc = Document(str(path))
         except Exception as exc:
-            raise RuntimeError(f"Failed to parse DOCX: {path}") from exc
+            raise RuntimeError(
+                f"DOCX 파일을 파싱할 수 없습니다: {path}\n"
+                f"원인: 파일이 손상되었거나 python-docx가 지원하지 않는 형식일 수 있습니다.\n"
+                f"해결: Word에서 다시 저장하거나 PDF로 변환하세요. "
+                f"python-docx 설치 확인: pip install python-docx"
+            ) from exc
 
         # ------------------------------------------------------------------
         # 텍스트 추출

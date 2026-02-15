@@ -62,7 +62,11 @@ class TextParser(BaseParser):
             encoding = _detect_encoding(raw_content)
             content = raw_content.decode(encoding)
         except Exception as exc:
-            raise RuntimeError(f"Failed to read text file: {path}") from exc
+            raise RuntimeError(
+                f"텍스트 파일을 읽을 수 없습니다: {path}\n"
+                f"원인: 파일 인코딩이 UTF-8이 아닐 수 있습니다.\n"
+                f"해결: UTF-8로 다시 저장하세요. (VS Code: 하단 인코딩 클릭 → Save with Encoding → UTF-8)"
+            ) from exc
 
         # ------------------------------------------------------------------
         # 제목 추출

@@ -104,9 +104,17 @@ class HWPXParser(BaseParser):
             with zipfile.ZipFile(path, "r") as zf:
                 xml_content = zf.read("Contents/section0.xml").decode("utf-8")
         except FileNotFoundError as exc:
-            raise RuntimeError(f"Contents/section0.xml not found in {path}") from exc
+            raise RuntimeError(
+                f"HWPX 파일 구조가 올바르지 않습니다: {path}\n"
+                f"원인: Contents/section0.xml을 찾을 수 없습니다. 파일이 손상되었을 수 있습니다.\n"
+                f"해결: 한글에서 다시 저장하거나 PDF로 변환하여 사용하세요."
+            ) from exc
         except Exception as exc:
-            raise RuntimeError(f"Failed to read HWPX file: {path}") from exc
+            raise RuntimeError(
+                f"HWPX 파일을 읽을 수 없습니다: {path}\n"
+                f"원인: ZIP 구조가 손상되었거나 암호화되어 있을 수 있습니다.\n"
+                f"해결: 한글에서 열어 '다른 이름으로 저장'하거나 PDF로 변환하세요."
+            ) from exc
 
         # ------------------------------------------------------------------
         # BeautifulSoup으로 XML 파싱
@@ -114,7 +122,11 @@ class HWPXParser(BaseParser):
         try:
             soup = BeautifulSoup(xml_content, "xml")
         except Exception as exc:
-            raise RuntimeError(f"Failed to parse XML in {path}") from exc
+            raise RuntimeError(
+                f"HWPX 내부 XML 파싱에 실패했습니다: {path}\n"
+                f"원인: XML 구조가 올바르지 않습니다.\n"
+                f"해결: 한글에서 다시 저장하거나 PDF로 변환하여 사용하세요."
+            ) from exc
 
         # ------------------------------------------------------------------
         # 단락 추출 (중첩된 것 건너뜀)

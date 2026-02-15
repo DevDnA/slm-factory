@@ -353,7 +353,7 @@ class TestHWPXParserErrors:
             zf.writestr("dummy.txt", "not a valid hwpx")
 
         parser = HWPXParser()
-        with pytest.raises(RuntimeError, match="Failed to read HWPX file"):
+        with pytest.raises(RuntimeError, match="HWPX 파일을 읽을 수 없습니다"):
             parser.parse(bad_hwpx)
 
     def test_invalid_zip(self, tmp_path: Path):
@@ -362,7 +362,7 @@ class TestHWPXParserErrors:
         bad_file.write_bytes(b"this is not a zip file")
 
         parser = HWPXParser()
-        with pytest.raises(RuntimeError, match="Failed to read HWPX file"):
+        with pytest.raises(RuntimeError, match="HWPX 파일을 읽을 수 없습니다"):
             parser.parse(bad_file)
 
 
