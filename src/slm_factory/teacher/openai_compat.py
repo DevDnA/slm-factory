@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import time
 from typing import Any
 
 import httpx
@@ -11,6 +13,10 @@ from ..utils import get_logger
 from .base import BaseTeacher
 
 logger = get_logger("teacher.openai_compat")
+
+# Retry 설정
+_MAX_RETRIES = 3
+_RETRY_BASE_DELAY = 1.0  # 초
 
 
 class OpenAICompatTeacher(BaseTeacher):
@@ -70,37 +76,54 @@ class OpenAICompatTeacher(BaseTeacher):
 
         logger.debug("POST %s  model=%s  temp=%.2f", url, model, temperature)
 
-        try:
-            resp = httpx.post(
-                url,
-                json=payload,
-                headers=self._headers(),
-                timeout=self.timeout,
-            )
-            resp.raise_for_status()
-        except httpx.TimeoutException:
-            logger.error("OpenAI-compat request timed out after %ds", self.timeout)
-            raise RuntimeError(
-                f"OpenAI-compat request timed out after {self.timeout}s "
-                f"(model={model}, url={url})"
-            ) from None
-        except httpx.ConnectError:
-            logger.error("Cannot connect to %s", self.api_base)
-            raise RuntimeError(
-                f"Cannot connect to OpenAI-compatible API at {self.api_base}. "
-                "Is the server running?"
-            ) from None
-        except httpx.HTTPStatusError as exc:
-            logger.error(
-                "OpenAI-compat HTTP %d: %s",
-                exc.response.status_code,
-                exc.response.text[:200],
-            )
-            raise RuntimeError(
-                f"OpenAI-compat HTTP {exc.response.status_code}: "
-                f"{exc.response.text[:200]}"
-            ) from exc
+        resp: httpx.Response | None = None
+        last_error: Exception | None = None
+        for attempt in range(_MAX_RETRIES):
+            try:
+                resp = httpx.post(
+                    url,
+                    json=payload,
+                    headers=self._headers(),
+                    timeout=self.timeout,
+                )
+                resp.raise_for_status()
+                break
+            except httpx.TimeoutException as e:
+                last_error = e
+                if attempt < _MAX_RETRIES - 1:
+                    delay = _RETRY_BASE_DELAY * (2 ** attempt)
+                    logger.warning(
+                        "OpenAI 호환 API 요청 타임아웃 (시도 %d/%d), %.0f초 후 재시도...",
+                        attempt + 1, _MAX_RETRIES, delay,
+                    )
+                    time.sleep(delay)
+                    continue
+                raise RuntimeError(
+                    f"OpenAI 호환 API 요청이 {_MAX_RETRIES}회 시도 후에도 타임아웃되었습니다 "
+                    f"(model={model}, url={url}, timeout={self.timeout}s). "
+                    f"서버 상태를 확인하거나 teacher.timeout 값을 늘려보세요."
+                ) from e
+            except httpx.ConnectError as e:
+                last_error = e
+                if attempt < _MAX_RETRIES - 1:
+                    delay = _RETRY_BASE_DELAY * (2 ** attempt)
+                    logger.warning(
+                        "OpenAI 호환 API 연결 실패 (시도 %d/%d), %.0f초 후 재시도...",
+                        attempt + 1, _MAX_RETRIES, delay,
+                    )
+                    time.sleep(delay)
+                    continue
+                raise RuntimeError(
+                    f"OpenAI 호환 API({self.api_base})에 {_MAX_RETRIES}회 시도 후에도 연결할 수 없습니다. "
+                    "서버가 실행 중인지 확인하세요."
+                ) from e
+            except httpx.HTTPStatusError as exc:
+                raise RuntimeError(
+                    f"OpenAI 호환 API HTTP {exc.response.status_code}: "
+                    f"{exc.response.text[:200]}"
+                ) from exc
 
+        assert resp is not None
         data: dict[str, Any] = resp.json()
 
         try:
@@ -131,31 +154,55 @@ class OpenAICompatTeacher(BaseTeacher):
             "temperature": temperature,
         }
 
-        try:
-            async with httpx.AsyncClient() as client:
-                resp = await client.post(
-                    url,
-                    json=payload,
-                    headers=self._headers(),
-                    timeout=self.timeout,
-                )
-                resp.raise_for_status()
-        except httpx.TimeoutException:
-            raise RuntimeError(
-                f"OpenAI-compat request timed out after {self.timeout}s "
-                f"(model={model}, url={url})"
-            ) from None
-        except httpx.ConnectError:
-            raise RuntimeError(
-                f"Cannot connect to OpenAI-compatible API at {self.api_base}. "
-                "Is the server running?"
-            ) from None
-        except httpx.HTTPStatusError as exc:
-            raise RuntimeError(
-                f"OpenAI-compat HTTP {exc.response.status_code}: "
-                f"{exc.response.text[:200]}"
-            ) from exc
+        resp: httpx.Response | None = None
+        last_error: Exception | None = None
+        for attempt in range(_MAX_RETRIES):
+            try:
+                async with httpx.AsyncClient() as client:
+                    resp = await client.post(
+                        url,
+                        json=payload,
+                        headers=self._headers(),
+                        timeout=self.timeout,
+                    )
+                    resp.raise_for_status()
+                break
+            except httpx.TimeoutException as e:
+                last_error = e
+                if attempt < _MAX_RETRIES - 1:
+                    delay = _RETRY_BASE_DELAY * (2 ** attempt)
+                    logger.warning(
+                        "OpenAI 호환 API 요청 타임아웃 (시도 %d/%d), %.0f초 후 재시도...",
+                        attempt + 1, _MAX_RETRIES, delay,
+                    )
+                    await asyncio.sleep(delay)
+                    continue
+                raise RuntimeError(
+                    f"OpenAI 호환 API 요청이 {_MAX_RETRIES}회 시도 후에도 타임아웃되었습니다 "
+                    f"(model={model}, url={url}, timeout={self.timeout}s). "
+                    f"서버 상태를 확인하거나 teacher.timeout 값을 늘려보세요."
+                ) from e
+            except httpx.ConnectError as e:
+                last_error = e
+                if attempt < _MAX_RETRIES - 1:
+                    delay = _RETRY_BASE_DELAY * (2 ** attempt)
+                    logger.warning(
+                        "OpenAI 호환 API 연결 실패 (시도 %d/%d), %.0f초 후 재시도...",
+                        attempt + 1, _MAX_RETRIES, delay,
+                    )
+                    await asyncio.sleep(delay)
+                    continue
+                raise RuntimeError(
+                    f"OpenAI 호환 API({self.api_base})에 {_MAX_RETRIES}회 시도 후에도 연결할 수 없습니다. "
+                    "서버가 실행 중인지 확인하세요."
+                ) from e
+            except httpx.HTTPStatusError as exc:
+                raise RuntimeError(
+                    f"OpenAI 호환 API HTTP {exc.response.status_code}: "
+                    f"{exc.response.text[:200]}"
+                ) from exc
 
+        assert resp is not None
         data: dict[str, Any] = resp.json()
 
         try:

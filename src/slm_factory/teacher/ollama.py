@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import time
 from typing import Any
 
 import httpx
@@ -11,6 +13,10 @@ from ..utils import get_logger
 from .base import BaseTeacher
 
 logger = get_logger("teacher.ollama")
+
+# Retry 설정
+_MAX_RETRIES = 3
+_RETRY_BASE_DELAY = 1.0  # 초
 
 # 사고 과정 추론을 유출하는 토큰 — 제거하거나 억제합니다.
 _STOP_TOKENS: list[str] = [
@@ -73,32 +79,49 @@ class OllamaTeacher(BaseTeacher):
 
         logger.debug("POST %s  model=%s  temp=%.2f", url, model, temperature)
 
-        try:
-            resp = httpx.post(url, json=payload, timeout=self.timeout)
-            resp.raise_for_status()
-        except httpx.TimeoutException:
-            logger.error("Ollama request timed out after %ds", self.timeout)
-            raise RuntimeError(
-                f"Ollama request timed out after {self.timeout}s "
-                f"(model={model}, url={url})"
-            ) from None
-        except httpx.ConnectError:
-            logger.error("Cannot connect to Ollama at %s", self.api_base)
-            raise RuntimeError(
-                f"Cannot connect to Ollama at {self.api_base}. "
-                "Is the server running?"
-            ) from None
-        except httpx.HTTPStatusError as exc:
-            logger.error(
-                "Ollama returned HTTP %d: %s",
-                exc.response.status_code,
-                exc.response.text[:200],
-            )
-            raise RuntimeError(
-                f"Ollama HTTP {exc.response.status_code}: "
-                f"{exc.response.text[:200]}"
-            ) from exc
+        resp: httpx.Response | None = None
+        last_error: Exception | None = None
+        for attempt in range(_MAX_RETRIES):
+            try:
+                resp = httpx.post(url, json=payload, timeout=self.timeout)
+                resp.raise_for_status()
+                break
+            except httpx.TimeoutException as e:
+                last_error = e
+                if attempt < _MAX_RETRIES - 1:
+                    delay = _RETRY_BASE_DELAY * (2 ** attempt)
+                    logger.warning(
+                        "Ollama 요청 타임아웃 (시도 %d/%d), %.0f초 후 재시도...",
+                        attempt + 1, _MAX_RETRIES, delay,
+                    )
+                    time.sleep(delay)
+                    continue
+                raise RuntimeError(
+                    f"Ollama 요청이 {_MAX_RETRIES}회 시도 후에도 타임아웃되었습니다 "
+                    f"(model={model}, url={url}, timeout={self.timeout}s). "
+                    f"서버 상태를 확인하거나 teacher.timeout 값을 늘려보세요."
+                ) from e
+            except httpx.ConnectError as e:
+                last_error = e
+                if attempt < _MAX_RETRIES - 1:
+                    delay = _RETRY_BASE_DELAY * (2 ** attempt)
+                    logger.warning(
+                        "Ollama 연결 실패 (시도 %d/%d), %.0f초 후 재시도...",
+                        attempt + 1, _MAX_RETRIES, delay,
+                    )
+                    time.sleep(delay)
+                    continue
+                raise RuntimeError(
+                    f"Ollama({self.api_base})에 {_MAX_RETRIES}회 시도 후에도 연결할 수 없습니다. "
+                    "서버가 실행 중인지 확인하세요: ollama serve"
+                ) from e
+            except httpx.HTTPStatusError as exc:
+                raise RuntimeError(
+                    f"Ollama HTTP {exc.response.status_code}: "
+                    f"{exc.response.text[:200]}"
+                ) from exc
 
+        assert resp is not None
         data: dict[str, Any] = resp.json()
         text: str = data.get("response", "").strip()
 
@@ -127,26 +150,50 @@ class OllamaTeacher(BaseTeacher):
         if fmt is not None:
             payload["format"] = fmt
 
-        try:
-            async with httpx.AsyncClient() as client:
-                resp = await client.post(url, json=payload, timeout=self.timeout)
-                resp.raise_for_status()
-        except httpx.TimeoutException:
-            raise RuntimeError(
-                f"Ollama request timed out after {self.timeout}s "
-                f"(model={model}, url={url})"
-            ) from None
-        except httpx.ConnectError:
-            raise RuntimeError(
-                f"Cannot connect to Ollama at {self.api_base}. "
-                "Is the server running?"
-            ) from None
-        except httpx.HTTPStatusError as exc:
-            raise RuntimeError(
-                f"Ollama HTTP {exc.response.status_code}: "
-                f"{exc.response.text[:200]}"
-            ) from exc
+        resp: httpx.Response | None = None
+        last_error: Exception | None = None
+        for attempt in range(_MAX_RETRIES):
+            try:
+                async with httpx.AsyncClient() as client:
+                    resp = await client.post(url, json=payload, timeout=self.timeout)
+                    resp.raise_for_status()
+                break
+            except httpx.TimeoutException as e:
+                last_error = e
+                if attempt < _MAX_RETRIES - 1:
+                    delay = _RETRY_BASE_DELAY * (2 ** attempt)
+                    logger.warning(
+                        "Ollama 요청 타임아웃 (시도 %d/%d), %.0f초 후 재시도...",
+                        attempt + 1, _MAX_RETRIES, delay,
+                    )
+                    await asyncio.sleep(delay)
+                    continue
+                raise RuntimeError(
+                    f"Ollama 요청이 {_MAX_RETRIES}회 시도 후에도 타임아웃되었습니다 "
+                    f"(model={model}, url={url}, timeout={self.timeout}s). "
+                    f"서버 상태를 확인하거나 teacher.timeout 값을 늘려보세요."
+                ) from e
+            except httpx.ConnectError as e:
+                last_error = e
+                if attempt < _MAX_RETRIES - 1:
+                    delay = _RETRY_BASE_DELAY * (2 ** attempt)
+                    logger.warning(
+                        "Ollama 연결 실패 (시도 %d/%d), %.0f초 후 재시도...",
+                        attempt + 1, _MAX_RETRIES, delay,
+                    )
+                    await asyncio.sleep(delay)
+                    continue
+                raise RuntimeError(
+                    f"Ollama({self.api_base})에 {_MAX_RETRIES}회 시도 후에도 연결할 수 없습니다. "
+                    "서버가 실행 중인지 확인하세요: ollama serve"
+                ) from e
+            except httpx.HTTPStatusError as exc:
+                raise RuntimeError(
+                    f"Ollama HTTP {exc.response.status_code}: "
+                    f"{exc.response.text[:200]}"
+                ) from exc
 
+        assert resp is not None
         data: dict[str, Any] = resp.json()
         text: str = data.get("response", "").strip()
 
