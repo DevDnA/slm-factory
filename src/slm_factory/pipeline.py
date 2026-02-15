@@ -92,9 +92,9 @@ class Pipeline:
 
         if not docs:
             raise RuntimeError(
-                f"No documents found in {self.config.paths.documents} "
-                f"with formats {extensions}. "
-                "Check that the directory exists and contains supported files."
+                f"{self.config.paths.documents} 디렉토리에서 "
+                f"{extensions} 형식의 문서를 찾을 수 없습니다. "
+                "디렉토리가 존재하고 지원되는 파일이 있는지 확인하세요."
             )
 
         # 파싱된 문서를 JSON으로 저장 (디버깅 및 재개용)
@@ -422,7 +422,7 @@ class Pipeline:
 
         try:
             logger.info(
-                "Starting slm-factory pipeline for project '%s'",
+                "프로젝트 '%s' 파이프라인을 시작합니다",
                 self.config.project.name,
             )
 
@@ -430,35 +430,35 @@ class Pipeline:
             self.config.paths.ensure_dirs()
 
             # 단계 1: 파싱
+            logger.info("━━━ [1/6] 문서 파싱 ━━━")
             docs = self.step_parse()
 
             # 단계 2: QA 생성
+            logger.info("━━━ [2/6] QA 쌍 생성 ━━━")
             pairs = self.step_generate(docs)
 
-            # 단계 3: 검증
+            # 단계 3: 검증 + 점수 + 증강 + 분석
+            logger.info("━━━ [3/6] 검증 및 품질 관리 ━━━")
             pairs = self.step_validate(pairs, docs=docs)
-
-            # 단계 3a: 품질 점수 평가
             pairs = self.step_score(pairs)
-
-            # 단계 3b: 데이터 증강
             pairs = self.step_augment(pairs)
-
-            # 단계 3c: 데이터 분석
             self.step_analyze(pairs)
 
             # 단계 4: 변환
+            logger.info("━━━ [4/6] 훈련 데이터 변환 ━━━")
             training_data_path = self.step_convert(pairs)
 
             # 단계 5: 훈련
+            logger.info("━━━ [5/6] LoRA 학습 ━━━")
             adapter_path = self.step_train(training_data_path)
 
             # 단계 6: 내보내기
+            logger.info("━━━ [6/6] 모델 내보내기 ━━━")
             model_dir = self.step_export(adapter_path)
 
             elapsed = time.time() - start
             logger.info(
-                "Pipeline complete in %.1fs — model at %s",
+                "파이프라인 완료 (%.1f초) — 모델 위치: %s",
                 elapsed,
                 model_dir,
             )
@@ -466,5 +466,5 @@ class Pipeline:
 
         except Exception:
             elapsed = time.time() - start
-            logger.exception("Pipeline failed after %.1fs", elapsed)
+            logger.exception("파이프라인이 %.1f초 후 실패했습니다", elapsed)
             raise

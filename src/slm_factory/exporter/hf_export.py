@@ -61,29 +61,53 @@ class HFExporter:
         device_map = "auto" if torch.cuda.is_available() else None
         
         # 기본 모델 로드
-        base_model = AutoModelForCausalLM.from_pretrained(
-            self.student_model,
-            device_map=device_map,
-            torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
-        )
+        try:
+            base_model = AutoModelForCausalLM.from_pretrained(
+                self.student_model,
+                device_map=device_map,
+                torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
+            )
+        except OSError as e:
+            raise RuntimeError(
+                f"기본 모델 '{self.student_model}'을(를) 로드할 수 없습니다. "
+                f"모델명이 정확한지 확인하세요: {e}"
+            ) from e
         
         logger.info(f"LoRA 어댑터 로드 중: {adapter_path}")
         
         # LoRA 어댑터 로드
-        model = PeftModel.from_pretrained(base_model, adapter_path)
+        try:
+            model = PeftModel.from_pretrained(base_model, adapter_path)
+        except Exception as e:
+            raise RuntimeError(
+                f"LoRA 어댑터를 로드할 수 없습니다 ({adapter_path}). "
+                f"학습이 정상 완료되었는지 확인하세요: {e}"
+            ) from e
         
         logger.info("LoRA 가중치를 기본 모델에 병합 중...")
         
         # 병합 및 언로드
-        model = model.merge_and_unload()
+        try:
+            model = model.merge_and_unload()
+            model.save_pretrained(
+                output_dir,
+                safe_serialization=True,
+            )
+        except RuntimeError as e:
+            if "out of memory" in str(e).lower():
+                raise RuntimeError(
+                    "모델 병합 중 메모리가 부족합니다. "
+                    "충분한 RAM/VRAM이 있는지 확인하거나, "
+                    "export.merge_lora를 false로 설정하여 어댑터만 저장하세요."
+                ) from e
+            raise
+        except OSError as e:
+            raise RuntimeError(
+                f"모델을 저장할 수 없습니다 ({output_dir}). "
+                f"디스크 공간이 충분한지 확인하세요: {e}"
+            ) from e
         
         logger.info(f"병합된 모델을 저장 중: {output_dir}")
-        
-        # 병합된 모델 저장
-        model.save_pretrained(
-            output_dir,
-            safe_serialization=True,  # safetensors 형식 사용
-        )
         
         # 토크나이저 저장
         logger.info("토크나이저 저장 중...")
