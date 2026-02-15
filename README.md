@@ -56,19 +56,19 @@ slm-factory는 "도메인 문서 → 파인튜닝된 SLM" 전환 과정을 완�
 Documents          Step 1           Step 2           Step 3
 PDF/HWPX/   --->   Parse     --->   Generate  --->   Validate
 HTML/TXT           문서 파싱         QA 쌍 생성       QA 검증
-                     ---               ---               ---
+                   --------         ----------       ----------
                ParsedDocument   QA Pairs (Alpaca)  Filtered QA Pairs
 
 Step 3a            Step 3b          Step 3c
 Score       --->   Augment   --->   Analyze
 품질 평가           데이터 증강       통계 분석
-  ---                ---               ---
+---------          ---------        ------------------
 Scored QA Pairs   Augmented Pairs   data_analysis.json
 
 Step 4             Step 5           Step 6
 Convert     --->   Train     --->   Export
 채팅 템플릿         LoRA 학습         모델 배포
-  ---                ---               ---
+-------------------  ------------   --------------------------------
 training_data.jsonl  LoRA Adapter   Merged Model + Ollama Modelfile
 ```
 
