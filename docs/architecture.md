@@ -40,7 +40,7 @@ SLM Factory는 다음 5가지 핵심 원칙을 기반으로 설계되었습니�
   parsers/             teacher/             validator/
 └────────┬─────────┘ └────────┬─────────┘ └────────┬─────────┘
          ▼                    ▼                    ▼
-  parsed_docs.json     qa_alpaca.json       (filtered pairs)
+  parsed_documents.json qa_alpaca.json       (filtered pairs)
 
 ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
   3a. Score            3b. Augment          3c. Analyze
@@ -79,7 +79,8 @@ cli.py
         │     ├─→ base.py (BaseTeacher)
         │     ├─→ ollama.py (OllamaTeacher)
         │     ├─→ openai_compat.py (OpenAICompatTeacher)
-        │     └─→ qa_generator.py (QAGenerator)
+        │     ├─→ qa_generator.py (QAGenerator)
+        │     └─→ dialogue_generator.py (DialogueGenerator)
         │
         ├─→ validator/
         │     ├─→ rules.py (RuleValidator)
@@ -96,14 +97,20 @@ cli.py
         ├─→ trainer/
         │     └─→ lora_trainer.py (DataLoader, LoRATrainer)
         │
-        └─→ exporter/
-              ├─→ hf_export.py (HFExporter)
-              └─→ ollama_export.py (OllamaExporter)
+        ├─→ exporter/
+        │     ├─→ hf_export.py (HFExporter)
+        │     ├─→ ollama_export.py (OllamaExporter)
+        │     └─→ gguf_export.py (GGUFExporter)
+        │
+        ├─→ evaluator.py (ModelEvaluator)
+        ├─→ comparator.py (ModelComparator)
+        ├─→ incremental.py (IncrementalManager)
+        └─→ tui/ (ReviewApp, DashboardApp)
 
 All modules
-  ├─→ config.py (SLMConfig + 14 sub-models)
-  ├─→ models.py (QAPair, ParsedDocument)
-  └─→ utils.py (setup_logging)
+  ├─→ config.py (SLMConfig + 26 하위 모델)
+  ├─→ models.py (ParsedDocument, QAPair, EvalResult, DialogueTurn, MultiTurnDialogue, CompareResult)
+  └─→ utils.py (setup_logging, get_logger)
 ```
 
 ## 3. 핵심 설계 패턴
@@ -230,8 +237,8 @@ def create_teacher(config: TeacherConfig) -> BaseTeacher:
 **RuleValidator 체인:**
 1. **Empty 체크**: 질문 또는 답변이 비어있으면 거부
 2. **Length 체크**: 답변 길이가 `min_answer_length`(기본 20) 미만 또는 `max_answer_length`(기본 2000) 초과 시 거부
-3. **Pattern 체크**: 3개의 정규식 패턴에 매칭되면 거부 (예: "I don't have", "정보가 없습니다")
-4. **Deduplication**: 이미 처리된 질문과 중복되면 거부
+3. **Pattern 체크**: 3개의 정규식 패턴에 매칭되면 거부 (기본: "i don't know", "not (available|provided|mentioned|found)", "the document does not contain")
+4. **Deduplication**: 이미 처리된 질문-답변 쌍과 중복되면 거부
 
 **GroundednessChecker 전략:**
 - 문서를 512자 청크로 분할 (64자 오버랩)
@@ -242,13 +249,13 @@ def create_teacher(config: TeacherConfig) -> BaseTeacher:
 
 ```python
 # pipeline.py step_validate()
-rule_validator = RuleValidator(config.validation)
-accepted, rejected = rule_validator.validate_batch(qa_pairs)
+validator = RuleValidator(self.config.validation)
+accepted, rejected = validator.validate_batch(pairs)
 
-if config.validation.groundedness and config.validation.groundedness.enabled:
-    checker = GroundednessChecker(config.validation.groundedness)
-    accepted, more_rejected = checker.check_batch(accepted, documents)
-    rejected.extend(more_rejected)
+if self.config.validation.groundedness.enabled and docs is not None:
+    checker = GroundednessChecker(self.config.validation.groundedness)
+    source_texts = {doc.doc_id: doc.content for doc in docs}
+    accepted, ungrounded = checker.check_batch(accepted, source_texts)
 ```
 
 ### 3.4 Adapter 패턴 (converter.py)
@@ -264,12 +271,12 @@ if config.validation.groundedness and config.validation.groundedness.enabled:
 **변환 프로세스:**
 
 ```python
-# 1. QAPair → 메시지 리스트 구성
-messages = [
-    {"role": "system", "content": system_prompt},
-    {"role": "user", "content": qa.question},
-    {"role": "assistant", "content": qa.answer}
-]
+# 1. QAPair → 메시지 리스트 구성 (시스템 메시지는 조건부)
+messages = []
+if self.system_prompt:
+    messages.append({"role": "system", "content": self.system_prompt})
+messages.append({"role": "user", "content": pair.question})
+messages.append({"role": "assistant", "content": pair.answer})
 
 # 2. 토크나이저 템플릿 적용 (모델별 자동 처리)
 try:
@@ -366,7 +373,7 @@ Analyzer는 LLM 의존성 없이 순수 통계 분석을 수행합니다.
       "doc_id": "document1.pdf",
       "title": "문서 제목",
       "content": "추출된 텍스트 내용...",
-      "tables": [["헤더1", "헤더2"], ["값1", "값2"]],
+      "tables": ["| 헤더1 | 헤더2 |\n| --- | --- |\n| 값1 | 값2 |"],
       "metadata": {"pages": 10, "author": "작성자"}
     }
   ]
@@ -383,7 +390,7 @@ Analyzer는 LLM 의존성 없이 순수 통계 분석을 수행합니다.
 - `list[ParsedDocument]` (parsed_documents.json에서 로드)
 
 **처리 로직:**
-1. `QAGenerator.generate_all()` 호출
+1. `QAGenerator.generate_all_async()` 호출
 2. 각 문서 × 각 질문 카테고리에 대해 반복:
    - `build_prompt()`: 프롬프트 구성
      - 시스템 지시사항 (JSON 형식 요구)
@@ -425,7 +432,7 @@ Analyzer는 LLM 의존성 없이 순수 통계 분석을 수행합니다.
     {
       "question": "파이썬의 주요 특징은 무엇인가요?",
       "answer": "파이썬은 간결하고 읽기 쉬운 문법을 가진 프로그래밍 언어입니다...",
-      "source": "document1.pdf",
+      "source_doc": "document1.pdf",
       "category": "개념 설명"
     }
   ]
@@ -464,22 +471,23 @@ Analyzer는 LLM 의존성 없이 순수 통계 분석을 수행합니다.
 
   **규칙 3 - Pattern 체크:**
   ```python
-  reject_patterns = [
-      r"(?i)I don't have.*information",
-      r"(?i)정보가 없습니다",
-      r"(?i)답변할 수 없습니다"
-  ]
-  for pattern in reject_patterns:
-      if re.search(pattern, qa.answer):
-          reject("reject_pattern_match")
+   reject_patterns = [
+       r"(?i)i don't know",
+       r"(?i)not (available|provided|mentioned|found)",
+       r"(?i)the document does not contain",
+   ]
+   for pattern in self._compiled_patterns:
+       if pattern.search(pair.answer):
+           reasons.append(f"matched_reject_pattern: {pattern.pattern}")
   ```
 
   **규칙 4 - Deduplication:**
   ```python
-  question_hash = qa.question.lower().strip()
-  if question_hash in seen_questions:
-      reject("duplicate_question")
-  seen_questions.add(question_hash)
+   pair_key = f"{pair.question.strip().lower()}|{pair.answer.strip().lower()}"
+   if pair_key in self._seen_pairs:
+       reasons.append("duplicate")
+   else:
+       self._seen_pairs.add(pair_key)
   ```
 
 **2단계: GroundednessChecker.check_batch() (선택적)**
@@ -575,14 +583,13 @@ Analyzer는 LLM 의존성 없이 순수 통계 분석을 수행합니다.
 **1단계: converter.py의 ChatFormatter.format_batch()**
 - 각 QA 쌍에 대해 `build_messages()` 호출:
    ```python
-   from slm_factory.models import QAPair
-   
-   def build_messages(qa: QAPair, system_prompt: str):
-      return [
-          {"role": "system", "content": system_prompt},
-          {"role": "user", "content": qa.question},
-          {"role": "assistant", "content": qa.answer}
-      ]
+   def build_messages(self, pair: QAPair) -> list[dict[str, str]]:
+      messages = []
+      if self.system_prompt:
+          messages.append({"role": "system", "content": self.system_prompt})
+      messages.append({"role": "user", "content": pair.question})
+      messages.append({"role": "assistant", "content": pair.answer})
+      return messages
   ```
 
 **2단계: apply_chat_template()**
@@ -604,7 +611,7 @@ Analyzer는 LLM 의존성 없이 순수 통계 분석을 수행합니다.
 **3단계: 토큰 길이 체크**
 - 토큰화 후 길이 확인:
   ```python
-  tokens = tokenizer.encode(text, add_special_tokens=False)
+  tokens = tokenizer.encode(text)
   if len(tokens) > max_seq_length:
       logger.debug(f"Skipping QA (tokens={len(tokens)} > {max_seq_length})")
       continue
@@ -915,14 +922,56 @@ SLMConfig (root)
 │       ├── enabled: bool = False
 │       └── bits: int = 4
 │
-└── export: ExportConfig
-    ├── merge_lora: bool = True
-    ├── output_format: str = "safetensors"
-    └── ollama: OllamaExportConfig
-        ├── enabled: bool = True
-        ├── model_name: str = "my-project-model"
-        ├── system_prompt: str = "You are a helpful..."
-        └── parameters: dict = {temperature: 0.7, top_p: 0.9, num_ctx: 4096}
+├── export: ExportConfig
+│   ├── merge_lora: bool = True
+│   ├── output_format: str = "safetensors"
+│   └── ollama: OllamaExportConfig
+│       ├── enabled: bool = True
+│       ├── model_name: str = "my-project-model"
+│       ├── system_prompt: str = "You are a helpful..."
+│       └── parameters: dict = {temperature: 0.7, top_p: 0.9, num_ctx: 4096}
+│
+├── eval: EvalConfig
+│   ├── enabled: bool = False
+│   ├── test_split: float = 0.1
+│   ├── metrics: list[str] = ["bleu", "rouge"]
+│   ├── max_samples: int = 50
+│   └── output_file: str = "eval_results.json"
+│
+├── gguf_export: GGUFExportConfig
+│   ├── enabled: bool = False
+│   ├── quantization_type: str = "q4_k_m"
+│   └── llama_cpp_path: str = ""
+│
+├── incremental: IncrementalConfig
+│   ├── enabled: bool = False
+│   ├── hash_file: str = "document_hashes.json"
+│   ├── merge_strategy: Literal["append", "replace"] = "append"
+│   └── resume_adapter: str = ""
+│
+├── dialogue: DialogueConfig
+│   ├── enabled: bool = False
+│   ├── min_turns: int = 2
+│   ├── max_turns: int = 5
+│   └── include_single_qa: bool = True
+│
+├── review: ReviewConfig
+│   ├── enabled: bool = False
+│   ├── auto_open: bool = True
+│   └── output_file: str = "qa_reviewed.json"
+│
+├── compare: CompareConfig
+│   ├── enabled: bool = False
+│   ├── base_model: str = ""
+│   ├── finetuned_model: str = ""
+│   ├── metrics: list[str] = ["bleu", "rouge"]
+│   ├── max_samples: int = 20
+│   └── output_file: str = "compare_results.json"
+│
+└── dashboard: DashboardConfig
+    ├── enabled: bool = False
+    ├── refresh_interval: float = 2.0
+    └── theme: str = "dark"
 ```
 
 ### 5.2 설정 로드 프로세스
@@ -930,15 +979,23 @@ SLMConfig (root)
 **load_config() 흐름:**
 
 ```python
-def load_config(config_path: Path) -> SLMConfig:
-    # 1. YAML 파일 읽기
-    with open(config_path) as f:
-        raw_data = yaml.safe_load(f)
+def load_config(path: str | Path) -> SLMConfig:
+    # 1. 경로 확인
+    filepath = Path(path).resolve()
+    if not filepath.is_file():
+        raise FileNotFoundError(f"Config file not found: {filepath}")
     
-    # 2. Pydantic 검증 (자동으로 _strip_none_sections 호출됨)
-    config = SLMConfig.model_validate(raw_data)
+    # 2. YAML 파일 읽기 + Pydantic 검증
+    raw = yaml.safe_load(filepath.read_text(encoding="utf-8")) or {}
+    config = SLMConfig.model_validate(raw)
     
-    # 3. 검증된 설정 객체 반환
+    # 3. 상대 경로를 설정 파일 기준 절대 경로로 변환
+    config_dir = filepath.parent
+    if not config.paths.documents.is_absolute():
+        config.paths.documents = (config_dir / config.paths.documents).resolve()
+    if not config.paths.output.is_absolute():
+        config.paths.output = (config_dir / config.paths.output).resolve()
+    
     return config
 ```
 
@@ -977,25 +1034,25 @@ project:
 **create_default_config() 프로세스:**
 
 ```python
-def create_default_config(output_path: Path) -> None:
+def create_default_config() -> str:
+    """기본 YAML 프로젝트 템플릿을 문자열로 반환합니다."""
+    # 1. 형제 경로에서 templates/project.yaml 읽기 시도
+    pkg_root = Path(__file__).resolve().parent.parent.parent
+    template = pkg_root / "templates/project.yaml"
+    if template.is_file():
+        return template.read_text(encoding="utf-8")
+    
+    # 2. 폴백: importlib.resources (설치된 wheel)
     try:
-        # 1. 패키지 내 기본 설정 파일 읽기 시도
-        if importlib.resources.is_resource("slm_factory", "project.yaml"):
-            content = importlib.resources.read_text("slm_factory", "project.yaml")
-            with open(output_path, "w") as f:
-                f.write(content)
-        else:
-            raise FileNotFoundError
-    except (FileNotFoundError, ModuleNotFoundError):
-        # 2. 폴백: Pydantic 모델에서 기본값 생성
-        default_config = SLMConfig()
-        yaml_content = yaml.dump(
-            default_config.model_dump(mode="json", exclude_none=True),
-            allow_unicode=True,
-            sort_keys=False
+        ref = importlib.resources.files("slm_factory").joinpath(
+            "../../templates/project.yaml"
         )
-        with open(output_path, "w") as f:
-            f.write(yaml_content)
+        return ref.read_text(encoding="utf-8")
+    except Exception:
+        pass
+    
+    # 3. 최후의 수단: Pydantic 모델에서 JSON 기본값 생성
+    return SLMConfig().model_dump_json(indent=2)
 ```
 
 **생성되는 기본 설정 예제:**
@@ -1093,22 +1150,32 @@ def step_parse(self) -> list[ParsedDocument]:
 - 전체 프로세스는 계속 진행
 
 ```python
-def parse_directory(self, directory: Path) -> list[ParsedDocument]:
+def parse_directory(
+    self, dir_path: Path, formats: list[str] | None = None,
+    files: list[Path] | None = None,
+) -> list[ParsedDocument]:
     documents = []
-    files = sorted(f for f in directory.iterdir() if f.is_file())
+    if files is not None:
+        target_files = [Path(f) for f in files]
+    else:
+        target_files = sorted(
+            f for f in dir_path.iterdir()
+            if f.is_file() and self.get_parser(f) is not None
+        )
     
-    with Progress() as progress:
-        task = progress.add_task("Parsing...", total=len(files))
+    with Progress(SpinnerColumn(), ...) as progress:
+        task = progress.add_task("Parsing documents", total=len(target_files))
         
-        for file_path in files:
+        for file_path in target_files:
+            parser = self.get_parser(file_path)
+            if parser is None:
+                progress.advance(task)
+                continue
             try:
-                parser = self.get_parser(file_path)
-                if parser:
-                    doc = parser.parse(file_path)
-                    documents.append(doc)
-            except Exception as e:
-                logger.exception(f"Failed to parse {file_path}")
-                # 계속 진행
+                doc = parser.parse(file_path)
+                documents.append(doc)
+            except Exception:
+                logger.exception("Failed to parse %s", file_path.name)
             finally:
                 progress.advance(task)
     
@@ -1151,27 +1218,26 @@ def generate(self, prompt: str, **kwargs) -> str:
 - 각 규칙 실패 시 `reasons` 리스트에 추가
 
 ```python
-from dataclasses import dataclass
-from slm_factory.models import QAPair
+from dataclasses import dataclass, field
 
 @dataclass
 class ValidationResult:
-     accepted: list[QAPair]
-     rejected: list[QAPair]
-     reasons: dict[str, list[str]]  # qa_id → [reason1, reason2, ...]
+    """QA 쌍 검증 결과."""
+    passed: bool
+    reasons: list[str] = field(default_factory=list)
 
-def validate_one(self, qa: QAPair) -> tuple[bool, list[str]]:
+def validate_one(self, pair: QAPair) -> ValidationResult:
     reasons = []
     
-    if not qa.question.strip() or not qa.answer.strip():
-        reasons.append("empty_field")
+    if not pair.question.strip() or not pair.answer.strip():
+        reasons.append("empty_question_or_answer")
     
-    if len(qa.answer) < self.config.min_answer_length:
-        reasons.append("answer_too_short")
+    if len(pair.answer.strip()) < self.config.min_answer_length:
+        reasons.append(f"answer_too_short (...)")
     
     # ... 추가 규칙
     
-    return (len(reasons) == 0, reasons)
+    return ValidationResult(passed=len(reasons) == 0, reasons=reasons)
 ```
 
 **Trainer 계층 (trainer/):**
@@ -1210,7 +1276,7 @@ def train(self):
 |----------|------|----------|--------|
 | 새 파서 추가 | `BaseParser` 상속 + `@registry.register` 데코레이터 | `parsers/base.py`<br>`parsers/__init__.py` | 쉬움 |
 | 새 Teacher 백엔드 | `BaseTeacher` 상속 + `create_teacher()`에 분기 추가 | `teacher/base.py`<br>`teacher/__init__.py` | 쉬움 |
-| 커스텀 질문 카테고리 | `questions.categories` 리스트 수정 또는 `questions.file` 경로 지정 | `project.yaml` | 매우 쉬움 |
+| 커스텀 질문 카테고리 | `questions.categories` 딕셔너리 수정 또는 `questions.file` 경로 지정 | `project.yaml` | 매우 쉬움 |
 | 검증 규칙 추가 | `RuleValidator.validate_one()`에 로직 추가 | `validator/rules.py` | 보통 |
 | 품질 점수 활성화 | `scoring.enabled: true` + threshold 조정 | `project.yaml` | 매우 쉬움 |
 | 데이터 증강 활성화 | `augment.enabled: true` + num_variants 조정 | `project.yaml` | 매우 쉬움 |
@@ -1397,7 +1463,7 @@ export:
 
 ### 8.1 설계 목표
 
-Wizard 모드는 **처음 사용자에게 권장하는 기본 실행 방식**입니다. CLI의 16개 명령어를 개별로 호출하는 대신, 단일 `wizard` 명령으로 전체 파이프라인을 단계별 확인하며 실행할 수 있습니다.
+Wizard 모드는 **처음 사용자에게 권장하는 기본 실행 방식**입니다. CLI의 23개 명령어를 개별로 호출하는 대신, 단일 `wizard` 명령으로 전체 파이프라인을 단계별 확인하며 실행할 수 있습니다.
 
 **핵심 원칙:**
 - **무지식 실행**: 사용자가 파이프라인 구조를 몰라도 진행 가능
@@ -1436,8 +1502,17 @@ wizard
   ├─ Step 8. 학습 ───────────────── step_convert() → Confirm → step_train()
   │    └─ 거부 시 → 학습 데이터 경로 + train 명령어 안내 후 종료
   │
-  └─ Step 9. 내보내기 ──────────── Confirm → step_export()
-       └─ 거부 시 → 어댑터 경로 + export 명령어 안내 후 종료
+  ├─ Step 9. 내보내기 ──────────── Confirm → step_export()
+  │    └─ 거부 시 → 어댑터 경로 + export 명령어 안내 후 종료
+  │
+  ├─ Step 10. 멀티턴 대화 (선택적) ── Confirm(default=dialogue.enabled) → step_dialogue()
+  │    └─ config.dialogue.enabled 기본값 반영
+  │
+  ├─ Step 11. GGUF 변환 (선택적) ──── Confirm(default=gguf_export.enabled) → step_gguf_export()
+  │    └─ config.gguf_export.enabled 기본값 반영
+  │
+  └─ Step 12. 모델 평가 (선택적) ──── Confirm(default=eval.enabled) → step_eval()
+       └─ config.eval.enabled 기본값 반영
 ```
 
 ### 8.3 단계 분류
@@ -1446,7 +1521,7 @@ wizard
 |------|------|----------|--------|
 | **필수** | 설정, 파싱, 검증, 분석 | 자동 진행 | — |
 | **선택+진행** | QA 생성, 학습, 내보내기 | `Confirm.ask(default=True)` | Y |
-| **선택+설정** | 품질 평가, 증강 | `Confirm.ask(default=config값)` | config 의존 |
+| **선택+설정** | 품질 평가, 증강, 멀티턴 대화, GGUF 변환, 모델 평가 | `Confirm.ask(default=config값)` | config 의존 |
 
 ### 8.4 탈출 시 복구 전략
 
