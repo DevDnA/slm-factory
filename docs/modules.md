@@ -8,11 +8,11 @@
 src/slm_factory/
 ├── __init__.py              (57줄)    패키지 초기화 + 버전
 ├── __main__.py              (6줄)     python -m slm_factory 진입점
-├── config.py                (485줄)   설정 시스템
+├── config.py                (484줄)   설정 시스템
 ├── cli.py                   (~1742줄) CLI 인터페이스
-├── pipeline.py              (~615줄)  파이프라인 오케스트레이터
+├── pipeline.py              (~614줄)  파이프라인 오케스트레이터
 ├── converter.py             (~323줄)  채팅 포맷터 (converter/ 통합)
-├── models.py                (~73줄)   공유 데이터 모델 (QAPair, ParsedDocument, EvalResult 등)
+├── models.py                (~72줄)   공유 데이터 모델 (QAPair, ParsedDocument, EvalResult 등)
 ├── utils.py                 (~83줄)   로깅 유틸리티 (utils/ 통합)
 ├── scorer.py                (136줄)   QA 품질 점수 평가
 ├── augmenter.py             (130줄)   QA 데이터 증강
@@ -26,24 +26,24 @@ src/slm_factory/
 │   ├── reviewer.py          (314줄)   QA 수동 리뷰 TUI
 │   └── dashboard.py         (340줄)   파이프라인 대시보드 TUI
 ├── parsers/
-│   ├── __init__.py          (~30줄)   파서 레지스트리
+│   ├── __init__.py          (33줄)    파서 레지스트리
 │   ├── base.py              (183줄)   기본 클래스
-│   ├── pdf.py               (165줄)   PDF 파서
-│   ├── hwpx.py              (181줄)   HWPX 파서
+│   ├── pdf.py               (161줄)   PDF 파서
+│   ├── hwpx.py              (177줄)   HWPX 파서
 │   ├── html.py              (172줄)   HTML 파서
-│   ├── text.py              (101줄)   텍스트 파서
+│   ├── text.py              (103줄)   텍스트 파서
 │   └── docx.py              (133줄)   DOCX 파서
 ├── teacher/
-│   ├── __init__.py          (50줄)    팩토리 함수
-│   ├── base.py              (56줄)    기본 클래스
+│   ├── __init__.py          (49줄)    팩토리 함수
+│   ├── base.py              (55줄)    기본 클래스
 │   ├── ollama.py            (215줄)   Ollama 백엔드
 │   ├── openai_compat.py     (232줄)   OpenAI 호환 백엔드
 │   ├── qa_generator.py      (421줄)   QA 생성기
 │   └── dialogue_generator.py (175줄)   멀티턴 대화 생성
 ├── validator/
-│   ├── __init__.py          (13줄)    re-export
+│   ├── __init__.py          (12줄)    re-export
 │   ├── rules.py             (113줄)   규칙 검증기
-│   └── similarity.py        (142줄)   임베딩 검증기
+│   └── similarity.py        (141줄)   임베딩 검증기
 ├── trainer/
 │   ├── __init__.py          (5줄)
 │   └── lora_trainer.py      (~374줄)  LoRA 트레이너 (DataLoader 흡수)
@@ -99,7 +99,7 @@ LoRA 어댑터
 
 ---
 
-## 2. config.py — 설정 시스템 (485줄)
+## 2. config.py — 설정 시스템 (484줄)
 
 ### 2.1 역할
 
@@ -1041,7 +1041,7 @@ slm-factory run project.yaml
 
 ---
 
-## 4. pipeline.py — 파이프라인 오케스트레이터 (~615줄)
+## 4. pipeline.py — 파이프라인 오케스트레이터 (~614줄)
 
 ### 4.1 역할
 
@@ -1465,7 +1465,7 @@ def extract_date_from_filename(filename: str) -> str | None:
 - `"report_240115.pdf"` → `"2024-01-15"`
 - `"memo.pdf"` → `None`
 
-### 5.2 pdf.py (165줄)
+### 5.2 pdf.py (161줄)
 
 #### 5.2.1 역할
 
@@ -1553,7 +1553,7 @@ def _table_to_markdown(self, table) -> str:
     return "\n".join([header, separator] + body)
 ```
 
-### 5.3 hwpx.py (181줄)
+### 5.3 hwpx.py (177줄)
 
 #### 5.3.1 역할
 
@@ -1619,7 +1619,7 @@ pip install slm-factory[korean]
 - `apply_spacing: true` + pykospacing 설치됨 → 띄어쓰기 보정 적용
 - `apply_spacing: false` 또는 미설치 → 원본 텍스트 사용
 
-### 5.4 html.py (180줄)
+### 5.4 html.py (172줄)
 
 #### 5.4.1 역할
 
@@ -1678,7 +1678,7 @@ def _detect_encoding(self, path: Path) -> str:
         return result["encoding"] or "utf-8"
 ```
 
-### 5.5 text.py (101줄)
+### 5.5 text.py (103줄)
 
 #### 5.5.1 역할
 
@@ -1713,7 +1713,7 @@ class TextParser(BaseParser):
         )
 ```
 
-### 5.6 docx.py (143줄)
+### 5.6 docx.py (133줄)
 
 #### 5.6.1 역할
 
@@ -1802,7 +1802,7 @@ class DOCXParser(BaseParser):
 - `FileNotFoundError`: 파일이 없을 때
 - `RuntimeError`: DOCX 파일 파싱 실패 시
 
-### 5.7 __init__.py (~30줄)
+### 5.7 __init__.py (~33줄)
 
 #### 5.7.1 역할
 
@@ -1840,7 +1840,7 @@ __all__ = ["registry", "ParsedDocument"]
 
 ## 6. teacher/ — Teacher LLM 모듈
 
-### 6.1 base.py (36줄)
+### 6.1 base.py (55줄)
 
 #### 6.1.1 역할
 
@@ -1851,20 +1851,25 @@ __all__ = ["registry", "ParsedDocument"]
 ```python
 class BaseTeacher(ABC):
     @abstractmethod
-    def generate(self, prompt: str, **kwargs) -> str:
+    def generate(self, prompt: str, **kwargs: object) -> str:
         """프롬프트를 전송하고 응답 텍스트를 반환합니다."""
-        pass
+        ...
+    
+    async def agenerate(self, prompt: str, **kwargs: object) -> str:
+        """generate()의 비동기 변형. 기본 구현은 동기식 generate()를 래핑."""
+        return self.generate(prompt, **kwargs)
     
     def health_check(self) -> bool:
         """백엔드 연결 상태를 확인합니다."""
-        return True  # 기본 구현
+        return True
 ```
 
 **구현 규칙:**
 - `generate()`: 프롬프트 전송 + 응답 텍스트 반환 (필수)
+- `agenerate()`: 비동기 변형 — 기본 구현은 동기식 generate() 래핑 (선택적, 오버라이드 권장)
 - `health_check()`: 백엔드 연결 확인 (선택적, 기본 True)
 
-### 6.2 ollama.py (121줄)
+### 6.2 ollama.py (215줄)
 
 #### 6.2.1 역할
 
@@ -1933,7 +1938,7 @@ def health_check(self) -> bool:
         return False
 ```
 
-### 6.3 openai_compat.py (132줄)
+### 6.3 openai_compat.py (232줄)
 
 #### 6.3.1 역할
 
@@ -1999,7 +2004,7 @@ def health_check(self) -> bool:
         return False
 ```
 
-### 6.4 __init__.py (50줄)
+### 6.4 __init__.py (49줄)
 
 #### 6.4.1 역할
 
@@ -2031,7 +2036,7 @@ teacher = create_teacher(config.teacher)
 response = teacher.generate("질문을 생성하세요.")
 ```
 
-### 6.5 qa_generator.py (298줄)
+### 6.5 qa_generator.py (421줄)
 
 #### 6.5.1 역할
 
@@ -2261,7 +2266,7 @@ def save_alpaca(self, pairs: list[QAPair], output_path: Path) -> Path:
 
 ## 7. validator/ — QA 검증 모듈
 
-### 7.1 rules.py (123줄)
+### 7.1 rules.py (113줄)
 
 #### 7.1.1 역할
 
@@ -2292,12 +2297,11 @@ class ValidationResult:
 
 ```python
 class RuleValidator:
-    def __init__(self, config: ValidationConfig):
+    def __init__(self, config: ValidationConfig) -> None:
         self.config = config
         self._seen_pairs: set[str] = set()
-        self._compiled_patterns = [
-            re.compile(pattern, re.IGNORECASE)
-            for pattern in config.reject_patterns
+        self._compiled_patterns: list[re.Pattern] = [
+            re.compile(p) for p in config.reject_patterns
         ]
 ```
 
@@ -2305,54 +2309,51 @@ class RuleValidator:
 
 ```python
 def validate_one(self, pair: QAPair) -> ValidationResult:
-    """4단계 순차 검증을 수행합니다."""
+    """단일 QA 쌍을 검증합니다."""
     reasons = []
     
-    # 1. 빈값 검사
-    if not pair.question.strip() or not pair.answer.strip():
-        reasons.append("빈 질문 또는 답변")
+    # 1. 빈 값 확인
+    if self.config.remove_empty:
+        if not pair.question.strip() or not pair.answer.strip():
+            reasons.append("empty_question_or_answer")
+            return ValidationResult(passed=False, reasons=reasons)
     
-    # 2. 길이 검사
-    answer_len = len(pair.answer)
+    # 2. 길이 확인
+    answer_len = len(pair.answer.strip())
     if answer_len < self.config.min_answer_length:
-        reasons.append(f"답변이 너무 짧음 ({answer_len}자)")
+        reasons.append(f"answer_too_short ({answer_len} < {self.config.min_answer_length})")
     if answer_len > self.config.max_answer_length:
-        reasons.append(f"답변이 너무 김 ({answer_len}자)")
+        reasons.append(f"answer_too_long ({answer_len} > {self.config.max_answer_length})")
     
-    # 3. 패턴 매칭
+    # 3. 거부 패턴
     for pattern in self._compiled_patterns:
         if pattern.search(pair.answer):
-            reasons.append(f"거부 패턴 매칭: {pattern.pattern}")
+            reasons.append(f"matched_reject_pattern: {pattern.pattern}")
     
-    # 4. 중복 검사
+    # 4. 중복 제거
     if self.config.deduplicate:
-        key = (pair.question + pair.answer).lower()
-        if key in self._seen_pairs:
-            reasons.append("중복된 QA 쌍")
+        pair_key = f"{pair.question.strip().lower()}|{pair.answer.strip().lower()}"
+        if pair_key in self._seen_pairs:
+            reasons.append("duplicate")
         else:
-            self._seen_pairs.add(key)
+            self._seen_pairs.add(pair_key)
     
-    return ValidationResult(
-        passed=len(reasons) == 0,
-        reasons=reasons
-    )
+    return ValidationResult(passed=len(reasons) == 0, reasons=reasons)
 ```
 
 **검증 순서:**
 1. 빈값 검사
 2. 길이 검사 (20~2000자)
 3. 거부 패턴 매칭 (정규식)
-4. 중복 검사 (question+answer 소문자 조합)
+4. 중복 검사 (question|answer pipe 구분, strip + lower)
 
 #### 7.1.6 validate_batch() — 일괄 검증
 
 ```python
 def validate_batch(
-    self, 
-    pairs: list[QAPair]
-) -> tuple[list[QAPair], list[tuple[QAPair, list[str]]]]:
-    """QA 쌍 목록을 검증하고 통과/거부로 분류합니다."""
-    
+    self, pairs: list[QAPair]
+) -> tuple[list[QAPair], list[tuple[QAPair, ValidationResult]]]:
+    """QA 쌍 배치를 검증합니다."""
     accepted = []
     rejected = []
     
@@ -2361,24 +2362,31 @@ def validate_batch(
         if result.passed:
             accepted.append(pair)
         else:
-            rejected.append((pair, result.reasons))
+            rejected.append((pair, result))
     
-    # 거부 사유 통계
-    reason_counts = {}
-    for _, reasons in rejected:
-        for reason in reasons:
-            reason_counts[reason] = reason_counts.get(reason, 0) + 1
+    total = len(pairs)
+    n_accepted = len(accepted)
+    n_rejected = len(rejected)
+    logger.info(
+        "Validation complete: %d/%d accepted, %d/%d rejected",
+        n_accepted, total, n_rejected, total
+    )
     
-    self.logger.info(f"검증 완료: {len(accepted)} 통과, {len(rejected)} 거부")
-    for reason, count in reason_counts.items():
-        self.logger.info(f"  - {reason}: {count}개")
+    if rejected:
+        reason_counts: dict[str, int] = {}
+        for _, result in rejected:
+            for reason in result.reasons:
+                key = reason.split(":")[0].split("(")[0].strip()
+                reason_counts[key] = reason_counts.get(key, 0) + 1
+        for reason, count in sorted(reason_counts.items(), key=lambda x: -x[1]):
+            logger.info("  Rejection reason: %s (%d)", reason, count)
     
     return accepted, rejected
 ```
 
 **반환값:**
 - `accepted`: 검증 통과한 QA 쌍 목록
-- `rejected`: `(QAPair, 거부사유 목록)` 튜플 목록
+- `rejected`: `(QAPair, ValidationResult)` 튜플 목록
 
 #### 7.1.7 reset_dedup() — 중복 캐시 초기화
 
@@ -2388,7 +2396,7 @@ def reset_dedup(self) -> None:
     self._seen_pairs.clear()
 ```
 
-### 7.2 similarity.py (143줄)
+### 7.2 similarity.py (141줄)
 
 #### 7.2.1 역할
 
@@ -2854,7 +2862,7 @@ analyzer.save_report(report, Path("output/analysis_report.json"))
 
 ---
 
-## 11. models.py — 공유 데이터 모델 (~73줄)
+## 11. models.py — 공유 데이터 모델 (~72줄)
 
 ### 11.1 역할
 
