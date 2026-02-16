@@ -797,7 +797,168 @@ export:
 
 ---
 
-## 14. 설정 레시피 — 상황별 빠른 설정
+## 14. eval — 모델 평가 설정
+
+학습된 모델을 BLEU/ROUGE 메트릭으로 자동 평가합니다.
+
+| 필드 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `enabled` | `bool` | `false` | 모델 평가 기능 활성화 여부 |
+| `test_split` | `float` | `0.1` | 평가에 사용할 데이터 비율 (0.0~1.0) |
+| `metrics` | `list[str]` | `["bleu", "rouge"]` | 평가 메트릭 목록 |
+| `max_samples` | `int` | `50` | 평가에 사용할 최대 샘플 수 |
+| `output_file` | `str` | `"eval_results.json"` | 평가 결과 JSON 파일명. `paths.output` 디렉토리에 저장됩니다 |
+
+### 예시
+
+```yaml
+eval:
+  enabled: true
+  test_split: 0.1
+  metrics: ["bleu", "rouge"]
+  max_samples: 50
+  output_file: "eval_results.json"
+```
+
+---
+
+## 15. gguf_export — GGUF 변환 설정
+
+병합된 모델을 llama.cpp 호환 GGUF 양자화 형식으로 변환합니다.
+
+| 필드 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `enabled` | `bool` | `false` | GGUF 변환 기능 활성화 여부 |
+| `quantization_type` | `str` | `"q4_k_m"` | 양자화 타입. `q4_0`, `q4_1`, `q4_k_m`, `q4_k_s`, `q5_0`, `q5_1`, `q5_k_m`, `q5_k_s`, `q8_0`, `f16`, `f32` 중 선택 |
+| `llama_cpp_path` | `str` | `""` | llama.cpp 경로. 빈 문자열이면 시스템 PATH에서 탐색합니다 |
+
+### 예시
+
+```yaml
+gguf_export:
+  enabled: true
+  quantization_type: "q4_k_m"
+  llama_cpp_path: "/path/to/llama.cpp"
+```
+
+---
+
+## 16. incremental — 증분 학습 설정
+
+문서 추가 시 기존 QA를 유지하면서 새 문서만 처리합니다. 해시 기반으로 변경을 감지합니다.
+
+| 필드 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `enabled` | `bool` | `false` | 증분 학습 기능 활성화 여부 |
+| `hash_file` | `str` | `"document_hashes.json"` | 문서 해시를 저장할 파일명. `paths.output` 디렉토리에 저장됩니다 |
+| `merge_strategy` | `"append"` \| `"replace"` | `"append"` | 기존 QA와 새 QA의 병합 전략. `"append"`는 추가, `"replace"`는 교체 |
+| `resume_adapter` | `str` | `""` | 이전 학습의 어댑터 경로. 빈 문자열이면 새로 학습합니다 |
+
+### 예시
+
+```yaml
+incremental:
+  enabled: true
+  hash_file: "document_hashes.json"
+  merge_strategy: "append"
+  resume_adapter: "./output/checkpoints/adapter"
+```
+
+---
+
+## 17. dialogue — 멀티턴 대화 설정
+
+QA 쌍을 멀티턴 대화 형식으로 확장합니다.
+
+| 필드 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `enabled` | `bool` | `false` | 멀티턴 대화 생성 기능 활성화 여부 |
+| `min_turns` | `int` | `2` | 최소 대화 턴 수 (2 이상) |
+| `max_turns` | `int` | `5` | 최대 대화 턴 수 |
+| `include_single_qa` | `bool` | `true` | 단일 QA 쌍도 대화 데이터에 포함할지 여부 |
+
+### 예시
+
+```yaml
+dialogue:
+  enabled: true
+  min_turns: 2
+  max_turns: 5
+  include_single_qa: true
+```
+
+---
+
+## 18. review — QA 리뷰 설정
+
+TUI에서 QA 쌍을 수동으로 검토하고 승인/거부/편집합니다.
+
+| 필드 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `enabled` | `bool` | `false` | QA 수동 리뷰 기능 활성화 여부 |
+| `auto_open` | `bool` | `true` | 리뷰 완료 후 결과 파일을 자동으로 열지 여부 |
+| `output_file` | `str` | `"qa_reviewed.json"` | 리뷰 결과 JSON 파일명. `paths.output` 디렉토리에 저장됩니다 |
+
+### 예시
+
+```yaml
+review:
+  enabled: true
+  auto_open: true
+  output_file: "qa_reviewed.json"
+```
+
+---
+
+## 19. compare — 모델 비교 설정
+
+Base 모델과 Fine-tuned 모델의 답변을 나란히 비교합니다.
+
+| 필드 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `enabled` | `bool` | `false` | 모델 비교 기능 활성화 여부 |
+| `base_model` | `str` | `""` | 비교 기준 모델 이름 (Ollama) |
+| `finetuned_model` | `str` | `""` | 파인튜닝된 모델 이름 (Ollama) |
+| `metrics` | `list[str]` | `["bleu", "rouge"]` | 비교 메트릭 목록 |
+| `max_samples` | `int` | `20` | 비교에 사용할 최대 샘플 수 |
+| `output_file` | `str` | `"compare_results.json"` | 비교 결과 JSON 파일명. `paths.output` 디렉토리에 저장됩니다 |
+
+### 예시
+
+```yaml
+compare:
+  enabled: true
+  base_model: "gemma:2b"
+  finetuned_model: "my-project-model"
+  metrics: ["bleu", "rouge"]
+  max_samples: 20
+  output_file: "compare_results.json"
+```
+
+---
+
+## 20. dashboard — 대시보드 설정
+
+파이프라인 진행 상태를 실시간 TUI로 모니터링합니다.
+
+| 필드 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `enabled` | `bool` | `false` | 대시보드 기능 활성화 여부 |
+| `refresh_interval` | `float` | `2.0` | 대시보드 새로고침 간격 (초) |
+| `theme` | `str` | `"dark"` | 대시보드 테마. `"dark"` 또는 `"light"` |
+
+### 예시
+
+```yaml
+dashboard:
+  enabled: true
+  refresh_interval: 2.0
+  theme: "dark"
+```
+
+---
+
+## 21. 설정 레시피 — 상황별 빠른 설정
 
 이 섹션은 자주 사용되는 설정 패턴을 레시피 형태로 제공합니다. 각 레시피는 특정 상황에 맞게 최소한의 필드만 변경하는 방식으로 구성되어 있습니다.
 
@@ -923,7 +1084,7 @@ teacher:
 
 ---
 
-## 15. 전체 설정 예시 — 한국어 프로젝트
+## 22. 전체 설정 예시 — 한국어 프로젝트
 
 한국어 문서를 처리하는 완전한 프로젝트 설정 예시입니다.
 
@@ -1089,7 +1250,7 @@ export:
 
 ---
 
-## 16. 부록: 설정 파일 검증
+## 23. 부록: 설정 파일 검증
 
 설정 파일이 올바른지 확인하려면 `check` 명령을 사용합니다:
 

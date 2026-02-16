@@ -8,15 +8,23 @@
 src/slm_factory/
 ├── __init__.py              (4줄)     패키지 초기화 + 버전
 ├── __main__.py              (7줄)     python -m slm_factory 진입점
-├── config.py                (298줄)   설정 시스템
-├── cli.py                   (~1191줄) CLI 인터페이스
-├── pipeline.py              (~464줄)  파이프라인 오케스트레이터
+├── config.py                (485줄)   설정 시스템
+├── cli.py                   (~1587줄) CLI 인터페이스
+├── pipeline.py              (~615줄)  파이프라인 오케스트레이터
 ├── converter.py             (~265줄)  채팅 포맷터 (converter/ 통합)
-├── models.py                (~37줄)   공유 데이터 모델 (QAPair, ParsedDocument)
+├── models.py                (~73줄)   공유 데이터 모델 (QAPair, ParsedDocument, EvalResult 등)
 ├── utils.py                 (~30줄)   로깅 유틸리티 (utils/ 통합)
 ├── scorer.py                (125줄)   QA 품질 점수 평가
 ├── augmenter.py             (119줄)   QA 데이터 증강
 ├── analyzer.py              (173줄)   학습 데이터 분석
+├── evaluator.py                      모델 자동 평가 (BLEU/ROUGE)
+├── comparator.py                     모델 비교 (Before/After)
+├── incremental.py                    증분 학습 추적
+├── tui/
+│   ├── __init__.py                   TUI 패키지
+│   ├── widgets.py                    TUI 위젯 (QACard, StatusBar)
+│   ├── reviewer.py                   QA 수동 리뷰 TUI
+│   └── dashboard.py                  파이프라인 대시보드 TUI
 ├── parsers/
 │   ├── __init__.py          (~30줄)   파서 레지스트리
 │   ├── base.py              (169줄)   기본 클래스
@@ -30,7 +38,8 @@ src/slm_factory/
 │   ├── base.py              (56줄)    기본 클래스
 │   ├── ollama.py            (169줄)   Ollama 백엔드
 │   ├── openai_compat.py     (186줄)   OpenAI 호환 백엔드
-│   └── qa_generator.py      (386줄)   QA 생성기
+│   ├── qa_generator.py      (386줄)   QA 생성기
+│   └── dialogue_generator.py         멀티턴 대화 생성
 ├── validator/
 │   ├── __init__.py          (13줄)    re-export
 │   ├── rules.py             (114줄)   규칙 검증기
@@ -41,7 +50,8 @@ src/slm_factory/
 ├── exporter/
 │   ├── __init__.py          (6줄)
 │   ├── hf_export.py         (155줄)   HuggingFace 내보내기
-│   └── ollama_export.py     (177줄)   Ollama 내보내기
+│   ├── ollama_export.py     (177줄)   Ollama 내보내기
+│   └── gguf_export.py                GGUF 양자화 변환
 ```
 
 ### 1.2 모듈 의존성 요약
@@ -89,7 +99,7 @@ LoRA 어댑터
 
 ---
 
-## 2. config.py — 설정 시스템 (298줄)
+## 2. config.py — 설정 시스템 (485줄)
 
 ### 2.1 역할
 
@@ -99,7 +109,7 @@ YAML 설정 파일을 Pydantic v2 모델로 로드하고 검증합니다. 전체
 
 #### SLMConfig (루트 설정 객체)
 
-전체 프로젝트 설정을 담는 최상위 Pydantic 모델입니다. 9개의 하위 설정 모델을 포함합니다.
+전체 프로젝트 설정을 담는 최상위 Pydantic 모델입니다. 19개의 하위 설정 모델을 포함합니다.
 
 ```python
 class SLMConfig(BaseModel):
@@ -109,9 +119,19 @@ class SLMConfig(BaseModel):
     teacher: TeacherConfig
     questions: QuestionsConfig
     validation: ValidationConfig
+    scoring: ScoringConfig
+    augment: AugmentConfig
+    analyzer: AnalyzerConfig
     student: StudentConfig
     training: TrainingConfig
     export: ExportConfig
+    eval: EvalConfig
+    gguf_export: GGUFExportConfig
+    incremental: IncrementalConfig
+    dialogue: DialogueConfig
+    review: ReviewConfig
+    compare: CompareConfig
+    dashboard: DashboardConfig
 ```
 
 **주요 메서드:**
@@ -134,17 +154,18 @@ class ProjectConfig(BaseModel):
 
 ```python
 class PathsConfig(BaseModel):
-    documents: str = "documents"
-    output: str = "output"
+    documents: Path = Path("./documents")
+    output: Path = Path("./output")
     
     def ensure_dirs(self) -> None:
-        """출력 디렉토리를 자동으로 생성합니다."""
-        Path(self.output).mkdir(parents=True, exist_ok=True)
+        """설정된 디렉토리가 없으면 생성합니다."""
+        self.documents.mkdir(parents=True, exist_ok=True)
+        self.output.mkdir(parents=True, exist_ok=True)
 ```
 
 **사용 예시:**
 ```python
-config.paths.ensure_dirs()  # output/ 디렉토리 생성
+config.paths.ensure_dirs()  # documents/ 및 output/ 디렉토리 생성
 ```
 
 #### ParsingConfig
@@ -313,6 +334,122 @@ class ExportConfig(BaseModel):
 - `merge_lora: True`: 어댑터를 기본 모델에 병합
 - `merge_lora: False`: 어댑터만 저장 (PEFT 형식)
 
+#### ScoringConfig
+
+QA 쌍의 품질 점수 평가 설정입니다.
+
+```python
+class ScoringConfig(BaseModel):
+    enabled: bool = False
+    threshold: float = 3.0
+    max_concurrency: int = 4
+```
+
+#### AugmentConfig
+
+QA 쌍 데이터 증강 설정입니다.
+
+```python
+class AugmentConfig(BaseModel):
+    enabled: bool = False
+    num_variants: int = 2
+    max_concurrency: int = 4
+```
+
+#### AnalyzerConfig
+
+학습 데이터 통계 분석 설정입니다.
+
+```python
+class AnalyzerConfig(BaseModel):
+    enabled: bool = True
+    output_file: str = "data_analysis.json"
+```
+
+#### EvalConfig
+
+학습된 모델의 자동 평가 설정입니다.
+
+```python
+class EvalConfig(BaseModel):
+    enabled: bool = False
+    test_split: float = 0.1
+    metrics: list[str] = ["bleu", "rouge"]
+    max_samples: int = 50
+    output_file: str = "eval_results.json"
+```
+
+#### GGUFExportConfig
+
+GGUF 양자화 변환 설정입니다.
+
+```python
+class GGUFExportConfig(BaseModel):
+    enabled: bool = False
+    quantization_type: str = "q4_k_m"
+    llama_cpp_path: str = ""
+```
+
+#### IncrementalConfig
+
+증분 학습 설정입니다.
+
+```python
+class IncrementalConfig(BaseModel):
+    enabled: bool = False
+    hash_file: str = "document_hashes.json"
+    merge_strategy: Literal["append", "replace"] = "append"
+    resume_adapter: str = ""
+```
+
+#### DialogueConfig
+
+멀티턴 대화 생성 설정입니다.
+
+```python
+class DialogueConfig(BaseModel):
+    enabled: bool = False
+    min_turns: int = 2
+    max_turns: int = 5
+    include_single_qa: bool = True
+```
+
+#### ReviewConfig
+
+QA 수동 리뷰 설정입니다.
+
+```python
+class ReviewConfig(BaseModel):
+    enabled: bool = False
+    auto_open: bool = True
+    output_file: str = "qa_reviewed.json"
+```
+
+#### CompareConfig
+
+모델 비교 설정입니다.
+
+```python
+class CompareConfig(BaseModel):
+    enabled: bool = False
+    base_model: str = ""
+    finetuned_model: str = ""
+    metrics: list[str] = ["bleu", "rouge"]
+    max_samples: int = 20
+    output_file: str = "compare_results.json"
+```
+
+#### DashboardConfig
+
+TUI 대시보드 설정입니다.
+
+```python
+class DashboardConfig(BaseModel):
+    enabled: bool = False
+    refresh_interval: float = 2.0
+    theme: str = "dark"
+```
+
 ### 2.3 주요 함수
 
 #### load_config(path: str | Path) → SLMConfig
@@ -322,13 +459,26 @@ YAML 파일을 읽어 `SLMConfig` 객체로 변환합니다.
 ```python
 def load_config(path: str | Path) -> SLMConfig:
     """YAML 설정 파일을 로드하고 검증합니다."""
-    with open(path, encoding="utf-8") as f:
-        data = yaml.safe_load(f)
-    return SLMConfig(**data)
+    filepath = Path(path).resolve()
+    if not filepath.is_file():
+        raise FileNotFoundError(f"Config file not found: {filepath}")
+
+    raw = yaml.safe_load(filepath.read_text(encoding="utf-8")) or {}
+    config = SLMConfig.model_validate(raw)
+
+    # 상대 경로를 설정 파일 기준 절대 경로로 변환
+    config_dir = filepath.parent
+    if not config.paths.documents.is_absolute():
+        config.paths.documents = (config_dir / config.paths.documents).resolve()
+    if not config.paths.output.is_absolute():
+        config.paths.output = (config_dir / config.paths.output).resolve()
+
+    return config
 ```
 
 **에러 처리:**
 - `FileNotFoundError`: 파일이 없을 때
+- `yaml.YAMLError`: 파일이 유효한 YAML이 아닐 때
 - `ValidationError`: Pydantic 검증 실패 시 (필수 필드 누락, 타입 불일치 등)
 
 #### create_default_config() → str
@@ -350,7 +500,7 @@ def create_default_config() -> str:
 
 #### 계층적 구조
 
-9개의 독립적인 설정 섹션으로 분리하여 관심사를 명확히 구분합니다. 각 섹션은 독립적으로 수정 가능하며, `None` 값으로 설정하면 기본값이 적용됩니다.
+19개의 독립적인 설정 섹션으로 분리하여 관심사를 명확히 구분합니다. 각 섹션은 독립적으로 수정 가능하며, `None` 값으로 설정하면 기본값이 적용됩니다.
 
 #### 타입 안전성
 
@@ -368,11 +518,11 @@ Pydantic v2의 강력한 타입 검증을 활용하여 런타임 에러를 사�
 
 ---
 
-## 3. cli.py — CLI 인터페이스 (~945줄)
+## 3. cli.py — CLI 인터페이스 (~1587줄)
 
 ### 3.1 역할
 
-사용자 진입점입니다. Typer 프레임워크를 기반으로 16개의 CLI 명령어를 제공하며, Rich 라이브러리를 사용하여 시각적으로 풍부한 출력을 생성합니다.
+사용자 진입점입니다. Typer 프레임워크를 기반으로 23개의 CLI 명령어를 제공하며, Rich 라이브러리를 사용하여 시각적으로 풍부한 출력을 생성합니다.
 
 ### 3.2 주요 구성
 
@@ -382,7 +532,7 @@ from rich.console import Console
 
 app = typer.Typer(
     name="slm-factory",
-    help="Small Language Model Factory - 문서에서 SLM까지 자동화"
+    rich_markup_mode="rich",
 )
 console = Console()
 ```
@@ -415,10 +565,10 @@ def _load_pipeline(config_path: str) -> Pipeline:
 ```python
 @app.command()
 def init(
-    name: str = typer.Argument(..., help="프로젝트 이름"),
-    path: str = typer.Option(".", help="프로젝트 생성 경로")
+    name: str = typer.Option(..., "--name", help="프로젝트 이름입니다"),
+    path: str = typer.Option(".", "--path", help="프로젝트를 생성할 상위 디렉토리입니다"),
 ):
-    """새 SLM Factory 프로젝트를 초기화합니다."""
+    """새로운 slm-factory 프로젝트를 초기화합니다."""
 ```
 
 **동작:**
@@ -448,9 +598,10 @@ Project 'my-project' created at ./my-project
 ```python
 @app.command()
 def run(
-    config: str = typer.Argument(..., help="설정 파일 경로 (project.yaml)")
+    config: str = typer.Option("project.yaml", "--config", help="설정 파일 경로"),
+    resume: bool = typer.Option(False, "--resume", "-r", help="중간 결과에서 재개합니다"),
 ):
-    """전체 6단계 파이프라인을 실행합니다."""
+    """전체 파이프라인을 실행합니다 (파싱 → 생성 → 검증 → 변환 → 훈련 → 내보내기)."""
 ```
 
 **동작:**
@@ -477,7 +628,7 @@ except Exception as e:
 ```python
 @app.command()
 def parse(
-    config: str = typer.Argument(..., help="설정 파일 경로")
+    config: str = typer.Option("project.yaml", "--config", help="설정 파일 경로"),
 ):
     """문서를 파싱하여 ParsedDocument 객체로 변환합니다."""
 ```
@@ -496,7 +647,7 @@ def parse(
 ```python
 @app.command()
 def generate(
-    config: str = typer.Argument(..., help="설정 파일 경로")
+    config: str = typer.Option("project.yaml", "--config", help="설정 파일 경로"),
 ):
     """문서를 파싱하고 QA 쌍을 생성합니다."""
 ```
@@ -512,7 +663,7 @@ def generate(
 ```python
 @app.command()
 def validate(
-    config: str = typer.Argument(..., help="설정 파일 경로")
+    config: str = typer.Option("project.yaml", "--config", help="설정 파일 경로"),
 ):
     """문서 파싱, QA 생성, 검증을 수행합니다."""
 ```
@@ -528,8 +679,9 @@ def validate(
 ```python
 @app.command()
 def train(
-    config: str = typer.Argument(..., help="설정 파일 경로"),
-    data: str | None = typer.Option(None, help="기존 학습 데이터 JSONL 경로")
+    config: str = typer.Option("project.yaml", "--config", help="설정 파일 경로"),
+    data: str | None = typer.Option(None, "--data", help="기존 학습 데이터 JSONL 경로"),
+    resume: bool = typer.Option(False, "--resume", "-r", help="중간 결과에서 재개합니다"),
 ):
     """LoRA 파인튜닝을 수행합니다."""
 ```
@@ -552,9 +704,8 @@ slm-factory train project.yaml --data output/training_data.jsonl
 ```python
 @app.command()
 def version():
-    """slm-factory 버전을 출력합니다."""
-    from slm_factory import __version__
-    console.print(f"slm-factory version {__version__}")
+    """slm-factory 버전을 표시합니다."""
+    console.print(f"slm-factory [bold]{__version__}[/bold]")
 ```
 
 #### 8. check — 설정 검증
@@ -595,7 +746,7 @@ def check(
 
 1. `qa_augmented.json` → analyze 단계부터 재개
 2. `qa_scored.json` → augment 단계부터 재개
-3. `qa_alpaca.json` → score 단계부터 재개
+3. `qa_alpaca.json` → validate 단계부터 재개
 4. `parsed_documents.json` → generate 단계부터 재개
 5. 없으면 처음부터 실행
 
@@ -739,35 +890,50 @@ slm-factory = "slm_factory.cli:app"
 
 ### 3.13 에러 처리 패턴
 
-모든 명령어는 일관된 에러 처리 패턴을 따릅니다:
+모든 명령어는 `_print_error()`와 `_get_error_hints()` 헬퍼 함수를 사용하여 일관된 에러 처리를 수행합니다:
 
-1. **FileNotFoundError**: 설정 파일 또는 데이터 파일이 없을 때
-   ```python
-   console.print(f"[bold red]Error:[/] {e}")
-   raise typer.Exit(1)
-   ```
+```python
+def _print_error(title, error, hints=None, resume_cmd=None):
+    """사용자 친화적 에러 메시지를 Rich Panel로 출력합니다."""
 
-2. **일반 예외**: 파이프라인 실행 중 발생한 모든 에러
-   ```python
-   console.print(f"[bold red]Pipeline failed:[/] {e}")
-   raise typer.Exit(1)
-   ```
+def _get_error_hints(error):
+    """에러 유형에 따라 해결 힌트를 반환합니다."""
+```
 
-3. **종료 코드**: 에러 발생 시 항상 `1` 반환 (스크립트 통합 용이)
+**에러 유형별 힌트:**
+- `FileNotFoundError` → 프로젝트 생성 안내
+- 연결 에러 (Ollama, httpx) → Ollama 실행/모델 다운로드 안내
+- CUDA/OOM 에러 → batch_size 감소, 양자화 활성화 안내
+- 모델 미발견 → 모델 확인/다운로드 안내
+- 권한 에러 → 디렉토리 권한 확인 안내
+- 디스크 부족 → 디스크 정리 안내
+
+**사용 패턴:**
+```python
+try:
+    pipeline = _load_pipeline(config)
+    model_dir = pipeline.run()
+except Exception as e:
+    _print_error("파이프라인 실패", e, hints=_get_error_hints(e))
+    raise typer.Exit(code=1)
+```
+
+**종료 코드**: 에러 발생 시 항상 `1` 반환 (스크립트 통합 용이)
 
 ### 3.14 wizard — 대화형 파이프라인
 
 ```python
 @app.command()
 def wizard(
-    config: str = typer.Option("project.yaml", "--config", help="Path to project.yaml"),
+    config: str = typer.Option("project.yaml", "--config", help="설정 파일 경로"),
+    resume: bool = typer.Option(False, "--resume", "-r", help="이전 실행의 중간 결과에서 재개합니다"),
 ) -> None:
     """대화형 파이프라인 — 단계별로 확인하며 실행합니다."""
 ```
 
 **동작:**
 
-전체 9단계 파이프라인을 대화형으로 실행합니다. 각 단계마다 사용자 확인을 거치며, 선택적 단계(품질 평가, 데이터 증강)는 `project.yaml` 설정의 기본값을 반영합니다.
+전체 12단계 파이프라인을 대화형으로 실행합니다. 각 단계마다 사용자 확인을 거치며, 선택적 단계(품질 평가, 데이터 증강)는 `project.yaml` 설정의 기본값을 반영합니다.
 
 **Step 1. 설정 파일 선택:**
 1. `_find_config()`로 설정 파일 자동 탐색
@@ -816,10 +982,10 @@ def wizard(
 ```
  파이프라인 완료!
 
- 모델: output/final_model
+ 모델: output/merged_model
 
  Ollama 배포:
-   cd output/final_model
+   cd output/merged_model
    ollama create my-model -f Modelfile
    ollama run my-model
 ```
@@ -875,7 +1041,7 @@ slm-factory run project.yaml
 
 ---
 
-## 4. pipeline.py — 파이프라인 오케스트레이터 (~464줄)
+## 4. pipeline.py — 파이프라인 오케스트레이터 (~615줄)
 
 ### 4.1 역할
 
@@ -1040,7 +1206,7 @@ def step_export(self, adapter_path: Path) -> Path:
     """모델을 내보냅니다."""
     self.logger.info("Step 9/9: 내보내기 시작")
     
-    export_dir = self.output_dir / "final_model"
+    export_dir = self.output_dir / "merged_model"
     
     # HuggingFace 형식 내보내기
     hf_exporter = HFExporter(self.config)
@@ -1056,38 +1222,79 @@ def step_export(self, adapter_path: Path) -> Path:
 ```
 
 **출력 디렉토리:**
-- `output/final_model/`: 병합된 모델 또는 어댑터
-- `output/final_model/Modelfile`: Ollama 모델 정의 파일
+- `output/merged_model/`: 병합된 모델 또는 어댑터
+- `output/merged_model/Modelfile`: Ollama 모델 정의 파일
+
+#### step_score(pairs) → list[QAPair]
+
+Teacher LLM을 사용하여 QA 쌍의 품질을 1~5점으로 평가하고 threshold 미만을 필터링합니다. `config.scoring.enabled`가 `False`면 입력을 그대로 반환합니다.
+
+#### step_augment(pairs) → list[QAPair]
+
+Teacher LLM을 사용하여 질문을 패러프레이즈하여 데이터를 증강합니다. `config.augment.enabled`가 `False`면 입력을 그대로 반환합니다.
+
+#### step_analyze(pairs) → None
+
+QA 데이터의 통계 분석 보고서를 생성합니다. `config.analyzer.enabled`가 `False`면 건너뜁니다. `output/data_analysis.json`에 보고서를 저장합니다.
+
+#### step_eval(pairs) → list[EvalResult]
+
+학습된 모델을 BLEU/ROUGE 메트릭으로 평가합니다. `config.eval.enabled`가 `False`면 건너뜁니다. `output/eval_results.json`에 결과를 저장합니다.
+
+#### step_gguf_export() → Path
+
+병합된 모델을 GGUF 양자화 형식으로 변환합니다. `config.gguf_export.enabled`가 `False`면 건너뜁니다. llama.cpp의 convert 스크립트를 사용합니다.
+
+#### step_dialogue(pairs) → list[MultiTurnDialogue]
+
+QA 쌍을 멀티턴 대화 형식으로 확장합니다. `config.dialogue.enabled`가 `False`면 건너뜁니다. `output/dialogues.json`에 결과를 저장합니다.
+
+#### step_compare(pairs) → list[CompareResult]
+
+Base 모델과 Fine-tuned 모델의 답변을 나란히 비교합니다. `config.compare.enabled`가 `False`면 건너뜁니다. `output/compare_results.json`에 결과를 저장합니다.
 
 ### 4.4 전체 파이프라인 실행
 
 #### run() → Path
 
-6단계를 순차적으로 실행하고 최종 모델 경로를 반환합니다.
+9단계를 순차적으로 실행하고 최종 모델 경로를 반환합니다.
 
 ```python
 def run(self) -> Path:
     """전체 파이프라인을 실행합니다."""
-    start_time = time.time()
+    start = time.time()
     
     try:
         self.config.paths.ensure_dirs()
         
-        # Step 1-6 순차 실행
+        # 단계 1: 파싱
         docs = self.step_parse()
+        
+        # 단계 2: QA 생성
         pairs = self.step_generate(docs)
-        validated = self.step_validate(pairs, docs)
-        training_data = self.step_convert(validated)
-        adapter = self.step_train(training_data)
-        final_model = self.step_export(adapter)
         
-        elapsed = time.time() - start_time
-        self.logger.info(f"파이프라인 완료 (소요 시간: {elapsed:.1f}초)")
+        # 단계 3: 검증 + 점수 + 증강 + 분석
+        pairs = self.step_validate(pairs, docs=docs)
+        pairs = self.step_score(pairs)
+        pairs = self.step_augment(pairs)
+        self.step_analyze(pairs)
         
-        return final_model
+        # 단계 4: 변환
+        training_data_path = self.step_convert(pairs)
         
-    except Exception as e:
-        self.logger.error(f"파이프라인 실패: {e}", exc_info=True)
+        # 단계 5: 훈련
+        adapter_path = self.step_train(training_data_path)
+        
+        # 단계 6: 내보내기
+        model_dir = self.step_export(adapter_path)
+        
+        elapsed = time.time() - start
+        self.logger.info(f"파이프라인 완료 ({elapsed:.1f}초) — 모델 위치: {model_dir}")
+        
+        return model_dir
+        
+    except Exception:
+        self.logger.exception("파이프라인 실패")
         raise
 ```
 
@@ -2647,7 +2854,7 @@ analyzer.save_report(report, Path("output/analysis_report.json"))
 
 ---
 
-## 11. models.py — 공유 데이터 모델 (~37줄)
+## 11. models.py — 공유 데이터 모델 (~73줄)
 
 ### 11.1 역할
 
@@ -2687,6 +2894,8 @@ class QAPair:
     source_doc: str = ""
     category: str = ""
     is_augmented: bool = False
+    content_hash: str = ""
+    review_status: str = ""
 ```
 
 **필드 설명:**
@@ -2696,8 +2905,82 @@ class QAPair:
 - `source_doc`: 원본 문서 ID (근거성 검증에 사용)
 - `category`: 질문 카테고리 (예: "이해", "분석", "종합")
 - `is_augmented`: 증강된 QA 쌍인지 여부 (DataAugmenter가 생성한 패러프레이즈 쌍은 `True`)
+- `content_hash`: 콘텐츠 해시 (증분 학습 시 중복 감지에 사용)
+- `review_status`: 수동 리뷰 상태 (TUI 리뷰에서 승인/거부 결과 저장)
 
-### 11.4 사용 패턴
+### 11.4 EvalResult (dataclass)
+
+모델 평가 결과를 저장하는 데이터 구조입니다.
+
+```python
+@dataclass
+class EvalResult:
+    question: str
+    reference_answer: str
+    generated_answer: str
+    scores: dict = field(default_factory=dict)
+```
+
+**필드 설명:**
+- `question`: 평가 질문 텍스트
+- `reference_answer`: 정답 (QA 데이터의 답변)
+- `generated_answer`: 모델이 생성한 답변
+- `scores`: BLEU/ROUGE 등 메트릭 점수 딕셔너리
+
+### 11.5 DialogueTurn (dataclass)
+
+멀티턴 대화의 개별 턴을 나타내는 데이터 구조입니다.
+
+```python
+@dataclass
+class DialogueTurn:
+    role: str
+    content: str
+```
+
+**필드 설명:**
+- `role`: 발화자 역할 (`"user"` 또는 `"assistant"`)
+- `content`: 발화 내용 텍스트
+
+### 11.6 MultiTurnDialogue (dataclass)
+
+멀티턴 대화 전체를 나타내는 데이터 구조입니다.
+
+```python
+@dataclass
+class MultiTurnDialogue:
+    turns: list[DialogueTurn] = field(default_factory=list)
+    source_doc: str = ""
+    category: str = ""
+```
+
+**필드 설명:**
+- `turns`: 대화 턴 목록 (`DialogueTurn` 리스트)
+- `source_doc`: 원본 문서 ID
+- `category`: 대화 카테고리
+
+### 11.7 CompareResult (dataclass)
+
+모델 비교 결과를 저장하는 데이터 구조입니다.
+
+```python
+@dataclass
+class CompareResult:
+    question: str
+    reference_answer: str
+    base_answer: str
+    finetuned_answer: str
+    scores: dict = field(default_factory=dict)
+```
+
+**필드 설명:**
+- `question`: 비교 질문 텍스트
+- `reference_answer`: 정답 (QA 데이터의 답변)
+- `base_answer`: Base 모델이 생성한 답변
+- `finetuned_answer`: Fine-tuned 모델이 생성한 답변
+- `scores`: 각 모델의 메트릭 점수 딕셔너리
+
+### 11.8 사용 패턴
 
 ```python
 from slm_factory.models import ParsedDocument, QAPair
@@ -3627,20 +3910,24 @@ SLM Factory는 29개 파일, 약 3,900줄의 코드로 구성된 모듈형 파�
 
 **핵심 모듈:**
 - **config.py**: 중앙 설정 시스템 (Pydantic 검증)
-- **cli.py**: CLI 인터페이스 (15개 명령어: init, run, parse, generate, validate, score, augment, analyze, train, check, status, clean, convert, export, version)
+- **cli.py**: CLI 인터페이스 (23개 명령어: init, run, parse, generate, validate, score, augment, analyze, train, check, status, clean, convert, export, version, wizard, update, generate-dialogue, export-gguf, eval, compare, review, dashboard)
 - **__main__.py**: python -m 실행 진입점
-- **pipeline.py**: 9단계 오케스트레이터
-- **models.py**: 공유 데이터 모델 (QAPair, ParsedDocument)
+- **pipeline.py**: 12단계 오케스트레이터
+- **models.py**: 공유 데이터 모델 (QAPair, ParsedDocument, EvalResult, DialogueTurn, MultiTurnDialogue, CompareResult)
 - **converter.py**: 채팅 템플릿 변환 (최상위 모듈)
 - **utils.py**: 로깅 유틸리티 (최상위 모듈)
 - **scorer.py**: QA 품질 점수 평가 (Teacher LLM 기반)
 - **augmenter.py**: QA 데이터 증강 (질문 패러프레이즈)
 - **analyzer.py**: 학습 데이터 분석 (통계 보고서)
+- **evaluator.py**: 모델 자동 평가 (BLEU/ROUGE)
+- **comparator.py**: 모델 비교 (Before/After)
+- **incremental.py**: 증분 학습 추적
+- **tui/**: TUI 모듈 (reviewer.py, dashboard.py, widgets.py)
 - **parsers/**: 5개 형식 지원 (PDF, HWPX, HTML, TXT, DOCX)
-- **teacher/**: 2개 백엔드 (Ollama, OpenAI 호환)
+- **teacher/**: 2개 백엔드 (Ollama, OpenAI 호환) + 멀티턴 대화 생성 (dialogue_generator.py)
 - **validator/**: 규칙 + 임베딩 검증
 - **trainer/**: LoRA 파인튜닝 (DataLoader 통합)
-- **exporter/**: HuggingFace + Ollama 내보내기
+- **exporter/**: HuggingFace + Ollama + GGUF 내보내기
 
 **설계 원칙:**
 - 모듈 독립성: 각 단계를 개별 실행 가능

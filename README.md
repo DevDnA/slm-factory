@@ -142,7 +142,7 @@ slm-factory는 "도메인 문서 → 파인튜닝된 SLM" 전환 과정을 완�
 | | accelerate | >=0.28.0 | 분산 학습 |
 | | bitsandbytes | >=0.43.0 | 양자화 |
 | **Evaluation** | evaluate | >=0.4.0 | BLEU/ROUGE 메트릭 |
-| **TUI** | textual | >=0.40.0 | TUI 프레임워크 |
+| **TUI** | textual | >=0.50.0 | TUI 프레임워크 |
 | **Optional** | pykospacing | - | 한국어 띄어쓰기 교정 |
 | | sentence-transformers | >=2.6.0 | 의미적 유사도 검증 |
 | | pdfplumber | >=0.11.0 | 대체 PDF 파서 |
