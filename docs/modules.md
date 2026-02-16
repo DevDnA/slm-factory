@@ -6,52 +6,52 @@
 
 ```
 src/slm_factory/
-├── __init__.py              (4줄)     패키지 초기화 + 버전
-├── __main__.py              (7줄)     python -m slm_factory 진입점
+├── __init__.py              (57줄)    패키지 초기화 + 버전
+├── __main__.py              (6줄)     python -m slm_factory 진입점
 ├── config.py                (485줄)   설정 시스템
-├── cli.py                   (~1587줄) CLI 인터페이스
+├── cli.py                   (~1742줄) CLI 인터페이스
 ├── pipeline.py              (~615줄)  파이프라인 오케스트레이터
-├── converter.py             (~265줄)  채팅 포맷터 (converter/ 통합)
+├── converter.py             (~323줄)  채팅 포맷터 (converter/ 통합)
 ├── models.py                (~73줄)   공유 데이터 모델 (QAPair, ParsedDocument, EvalResult 등)
-├── utils.py                 (~30줄)   로깅 유틸리티 (utils/ 통합)
-├── scorer.py                (125줄)   QA 품질 점수 평가
-├── augmenter.py             (119줄)   QA 데이터 증강
+├── utils.py                 (~83줄)   로깅 유틸리티 (utils/ 통합)
+├── scorer.py                (136줄)   QA 품질 점수 평가
+├── augmenter.py             (130줄)   QA 데이터 증강
 ├── analyzer.py              (173줄)   학습 데이터 분석
-├── evaluator.py                      모델 자동 평가 (BLEU/ROUGE)
-├── comparator.py                     모델 비교 (Before/After)
-├── incremental.py                    증분 학습 추적
+├── evaluator.py             (169줄)   모델 자동 평가 (BLEU/ROUGE)
+├── comparator.py            (192줄)   모델 비교 (Before/After)
+├── incremental.py           (114줄)   증분 학습 추적
 ├── tui/
-│   ├── __init__.py                   TUI 패키지
-│   ├── widgets.py                    TUI 위젯 (QACard, StatusBar)
-│   ├── reviewer.py                   QA 수동 리뷰 TUI
-│   └── dashboard.py                  파이프라인 대시보드 TUI
+│   ├── __init__.py          (1줄)    TUI 패키지
+│   ├── widgets.py           (74줄)   TUI 위젯 (QACard, StatusBar)
+│   ├── reviewer.py          (314줄)   QA 수동 리뷰 TUI
+│   └── dashboard.py         (340줄)   파이프라인 대시보드 TUI
 ├── parsers/
 │   ├── __init__.py          (~30줄)   파서 레지스트리
-│   ├── base.py              (169줄)   기본 클래스
+│   ├── base.py              (183줄)   기본 클래스
 │   ├── pdf.py               (165줄)   PDF 파서
 │   ├── hwpx.py              (181줄)   HWPX 파서
-│   ├── html.py              (180줄)   HTML 파서
+│   ├── html.py              (172줄)   HTML 파서
 │   ├── text.py              (101줄)   텍스트 파서
-│   └── docx.py              (143줄)   DOCX 파서
+│   └── docx.py              (133줄)   DOCX 파서
 ├── teacher/
 │   ├── __init__.py          (50줄)    팩토리 함수
 │   ├── base.py              (56줄)    기본 클래스
-│   ├── ollama.py            (169줄)   Ollama 백엔드
-│   ├── openai_compat.py     (186줄)   OpenAI 호환 백엔드
-│   ├── qa_generator.py      (386줄)   QA 생성기
-│   └── dialogue_generator.py         멀티턴 대화 생성
+│   ├── ollama.py            (215줄)   Ollama 백엔드
+│   ├── openai_compat.py     (232줄)   OpenAI 호환 백엔드
+│   ├── qa_generator.py      (421줄)   QA 생성기
+│   └── dialogue_generator.py (175줄)   멀티턴 대화 생성
 ├── validator/
 │   ├── __init__.py          (13줄)    re-export
-│   ├── rules.py             (114줄)   규칙 검증기
+│   ├── rules.py             (113줄)   규칙 검증기
 │   └── similarity.py        (142줄)   임베딩 검증기
 ├── trainer/
-│   ├── __init__.py          (7줄)
-│   └── lora_trainer.py      (~315줄)  LoRA 트레이너 (DataLoader 흡수)
+│   ├── __init__.py          (5줄)
+│   └── lora_trainer.py      (~374줄)  LoRA 트레이너 (DataLoader 흡수)
 ├── exporter/
 │   ├── __init__.py          (6줄)
-│   ├── hf_export.py         (155줄)   HuggingFace 내보내기
-│   ├── ollama_export.py     (177줄)   Ollama 내보내기
-│   └── gguf_export.py                GGUF 양자화 변환
+│   ├── hf_export.py         (181줄)   HuggingFace 내보내기
+│   ├── ollama_export.py     (179줄)   Ollama 내보내기
+│   └── gguf_export.py       (162줄)   GGUF 양자화 변환
 ```
 
 ### 1.2 모듈 의존성 요약
@@ -518,7 +518,7 @@ Pydantic v2의 강력한 타입 검증을 활용하여 런타임 에러를 사�
 
 ---
 
-## 3. cli.py — CLI 인터페이스 (~1587줄)
+## 3. cli.py — CLI 인터페이스 (~1742줄)
 
 ### 3.1 역할
 
@@ -1007,7 +1007,7 @@ slm-factory wizard --config my-project/project.yaml
 
 ---
 
-## 3.8 __main__.py (7줄)
+## 3.8 __main__.py (6줄)
 
 ### 3.8.1 역할
 
@@ -1051,16 +1051,14 @@ slm-factory run project.yaml
 
 ```python
 class Pipeline:
-    def __init__(self, config: SLMConfig):
+    def __init__(self, config: SLMConfig) -> None:
         self.config = config
         self.output_dir = Path(config.paths.output)
-        self.logger = get_logger("pipeline")
 ```
 
 **초기화:**
 - 설정 객체 저장
 - 출력 디렉토리 경로 설정
-- 로거 생성
 
 ### 4.3 9단계 파이프라인
 
@@ -1069,7 +1067,7 @@ class Pipeline:
 문서 파일을 파싱하여 구조화된 객체로 변환합니다.
 
 ```python
-def step_parse(self) -> list[ParsedDocument]:
+def step_parse(self, files: list[Path] | None = None) -> list[ParsedDocument]:
     """문서를 파싱합니다."""
     self.logger.info("Step 1/9: 문서 파싱 시작")
     
@@ -2043,11 +2041,13 @@ Teacher LLM을 사용하여 문서에서 QA 쌍을 생성하는 핵심 오케스
 
 ```python
 class QAGenerator:
-    def __init__(self, config: SLMConfig):
+    def __init__(self, config: SLMConfig) -> None:
+        from ..teacher import create_teacher
+        self.config = config
         self.teacher = create_teacher(config.teacher)
         self.questions_config = config.questions
+        self.teacher_config = config.teacher
         self.max_context = config.teacher.max_context_chars
-        self.logger = get_logger("qa_generator")
 ```
 
 #### 6.5.3 build_prompt() — 프롬프트 구성
@@ -2398,19 +2398,19 @@ def reset_dedup(self) -> None:
 
 ```python
 class GroundednessChecker:
-    def __init__(self, config: GroundednessConfig):
-        self._check_sentence_transformers()
+    def __init__(self, config: GroundednessConfig) -> None:
+        _check_sentence_transformers()
+        from sentence_transformers import SentenceTransformer
         
-        self.model_name = config.model
+        self.config = config
         self.threshold = config.threshold
-        self.model = SentenceTransformer(self.model_name)
-        self.logger = get_logger("groundedness")
+        self._model = SentenceTransformer(config.model)
 ```
 
 #### 7.2.3 _check_sentence_transformers() — 의존성 확인
 
 ```python
-def _check_sentence_transformers(self) -> None:
+def _check_sentence_transformers() -> None:
     """sentence-transformers 설치 여부를 확인합니다."""
     try:
         import sentence_transformers
@@ -2532,7 +2532,7 @@ def check_batch(
 
 ---
 
-## 8. scorer.py — QA 품질 점수 평가 모듈 (125줄)
+## 8. scorer.py — QA 품질 점수 평가 모듈 (136줄)
 
 ### 8.1 역할
 
@@ -2626,7 +2626,7 @@ accepted, filtered = await scorer.score_all(qa_pairs)
 
 ---
 
-## 9. augmenter.py — QA 데이터 증강 모듈 (119줄)
+## 9. augmenter.py — QA 데이터 증강 모듈 (130줄)
 
 ### 9.1 역할
 
@@ -3006,7 +3006,7 @@ pair = QAPair(
 
 ---
 
-## 12. converter.py — 형식 변환 모듈 (~265줄)
+## 12. converter.py — 형식 변환 모듈 (~323줄)
 
 ### 12.1 역할
 
@@ -3016,12 +3016,12 @@ Alpaca 형식의 QA 쌍을 Student 모델에 맞는 채팅 템플릿으로 변�
 
 ```python
 class ChatFormatter:
-    def __init__(self, config: SLMConfig):
+    def __init__(self, config: SLMConfig) -> None:
+        self.config = config
         self.model_name = config.student.model
         self.max_seq_length = config.student.max_seq_length
-        self.system_prompt = config.export.ollama.system_prompt
-        self._tokenizer = None
-        self.logger = get_logger("formatter")
+        self.system_prompt = config.questions.system_prompt
+        self._tokenizer = None  # 지연 로딩
 ```
 
 ### 12.3 tokenizer (property) — 지연 로딩
@@ -3045,14 +3045,17 @@ def tokenizer(self):
 ### 12.4 build_messages() — 메시지 구성
 
 ```python
-def build_messages(self, pair: QAPair) -> list[dict]:
+def build_messages(self, pair: QAPair) -> list[dict[str, str]]:
     """QA 쌍을 채팅 메시지 형식으로 변환합니다."""
     
-    messages = [
-        {"role": "system", "content": self.system_prompt},
-        {"role": "user", "content": pair.question},
-        {"role": "assistant", "content": pair.answer}
-    ]
+    messages = []
+    
+    # 시스템 메시지가 있으면만 추가
+    if self.system_prompt:
+        messages.append({"role": "system", "content": self.system_prompt})
+    
+    messages.append({"role": "user", "content": pair.question})
+    messages.append({"role": "assistant", "content": pair.answer})
     
     return messages
 ```
@@ -3207,7 +3210,7 @@ def format_from_alpaca_file(
 
 ## 13. trainer/ — 학습 모듈
 
-### 13.1 lora_trainer.py (~315줄)
+### 13.1 lora_trainer.py (~374줄)
 
 #### 13.1.1 역할
 
@@ -3217,9 +3220,8 @@ JSONL 학습 데이터를 로드하고 HuggingFace TRL의 SFTTrainer를 사용�
 
 ```python
 class DataLoader:
-     def __init__(self, train_split: float = 0.9):
+     def __init__(self, train_split: float = 0.9) -> None:
          self.train_split = train_split
-         self.logger = get_logger("data_loader")
      
      def load_jsonl(self, path: Path) -> Dataset:
          """JSONL 파일을 Dataset으로 로드합니다."""
@@ -3259,7 +3261,6 @@ class LoRATrainer:
         self.training_config = config.training
         self.lora_config = config.training.lora
         self.output_dir = Path(config.paths.output) / "checkpoints"
-        self.logger = get_logger("lora_trainer")
 ```
 
 #### 13.1.4 _load_model() — 모델 로드
@@ -3448,7 +3449,7 @@ trainable params: 8,388,608 || all params: 3,008,388,608 || trainable%: 0.2788
 
 ## 14. exporter/ — 모델 내보내기 모듈
 
-### 14.1 hf_export.py (155줄)
+### 14.1 hf_export.py (181줄)
 
 #### 14.1.1 역할
 
@@ -3458,11 +3459,11 @@ LoRA 어댑터를 기본 모델에 병합하고 safetensors 형식으로 저장�
 
 ```python
 class HFExporter:
-    def __init__(self, config: SLMConfig):
+    def __init__(self, config: SLMConfig) -> None:
+        self.config = config
         self.student_model = config.student.model
         self.merge_lora = config.export.merge_lora
         self.output_format = config.export.output_format
-        self.logger = get_logger("hf_export")
 ```
 
 #### 14.1.3 merge_and_save() — 병합 및 저장
@@ -3540,7 +3541,7 @@ def export(self, adapter_path: Path, output_dir: Path) -> Path:
         return self.save_adapter_only(adapter_path, output_dir)
 ```
 
-### 14.2 ollama_export.py (177줄)
+### 14.2 ollama_export.py (179줄)
 
 #### 14.2.1 역할
 
@@ -3550,11 +3551,12 @@ Ollama Modelfile을 생성하고 선택적으로 모델을 Ollama에 등록합�
 
 ```python
 class OllamaExporter:
-    def __init__(self, config: SLMConfig):
+    def __init__(self, config: SLMConfig) -> None:
+        self.config = config
+        self.ollama_config = config.export.ollama
         self.model_name = config.export.ollama.model_name
         self.system_prompt = config.export.ollama.system_prompt
         self.parameters = config.export.ollama.parameters
-        self.logger = get_logger("ollama_export")
 ```
 
 #### 14.2.3 generate_modelfile() — Modelfile 생성
@@ -3654,7 +3656,7 @@ def export(self, model_dir: Path, output_dir: Path) -> Path:
 
 ---
 
-## 15. utils.py — 유틸리티 (~30줄)
+## 15. utils.py — 유틸리티 (~83줄)
 
 ### 15.1 역할
 
@@ -3906,13 +3908,13 @@ class RuleValidator:
 
 ## 18. 요약
 
-SLM Factory는 29개 파일, 약 3,900줄의 코드로 구성된 모듈형 파이프라인입니다. 각 모듈은 명확한 책임을 가지며, 설정 시스템을 통해 유연하게 동작을 제어할 수 있습니다. 리팩토링으로 `utils/`와 `converter/` 디렉토리가 최상위 모듈로 통합되었고, 공유 데이터 모델이 `models.py`로 중앙화되었습니다. 품질 점수 평가(scorer.py), 데이터 증강(augmenter.py), 분석(analyzer.py) 모듈이 추가되어 학습 데이터 품질 관리가 강화되었습니다.
+SLM Factory는 40개 파일, 약 8,300줄의 코드로 구성된 모듈형 파이프라인입니다. 각 모듈은 명확한 책임을 가지며, 설정 시스템을 통해 유연하게 동작을 제어할 수 있습니다. 리팩토링으로 `utils/`와 `converter/` 디렉토리가 최상위 모듈로 통합되었고, 공유 데이터 모델이 `models.py`로 중앙화되었습니다. 품질 점수 평가(scorer.py), 데이터 증강(augmenter.py), 분석(analyzer.py) 모듈이 추가되어 학습 데이터 품질 관리가 강화되었습니다.
 
 **핵심 모듈:**
 - **config.py**: 중앙 설정 시스템 (Pydantic 검증)
 - **cli.py**: CLI 인터페이스 (23개 명령어: init, run, parse, generate, validate, score, augment, analyze, train, check, status, clean, convert, export, version, wizard, update, generate-dialogue, export-gguf, eval, compare, review, dashboard)
 - **__main__.py**: python -m 실행 진입점
-- **pipeline.py**: 12단계 오케스트레이터
+- **pipeline.py**: 파이프라인 오케스트레이터 (run 9단계 + 보조 4단계, 총 13 step 메서드)
 - **models.py**: 공유 데이터 모델 (QAPair, ParsedDocument, EvalResult, DialogueTurn, MultiTurnDialogue, CompareResult)
 - **converter.py**: 채팅 템플릿 변환 (최상위 모듈)
 - **utils.py**: 로깅 유틸리티 (최상위 모듈)
