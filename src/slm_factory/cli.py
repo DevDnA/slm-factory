@@ -985,7 +985,7 @@ def wizard(
             console.print(f"  [blue]ℹ[/blue] 이전 결과를 감지하여 재개합니다")
 
     # ── Step 2: 문서 선택 ─────────────────────────────────────────
-    console.print("\n[bold]━━━ [2/12] 문서 선택 ━━━[/bold]")
+    console.print("\n[bold]━━━ [2/12] 문서 선택 (필수) ━━━[/bold]")
     selected_files: list[Path] | None = None
     if skip_to_step > 2:
         console.print("  [yellow]⏭ 건너뜀 (이전 결과 사용)[/yellow]")
@@ -1050,7 +1050,7 @@ def wizard(
             console.print(f"  [green]✓[/green] {len(selected_files)}개 문서 선택됨")
 
     # ── Step 3: 파싱 ──────────────────────────────────────────────
-    console.print("\n[bold]━━━ [3/12] 문서 파싱 ━━━[/bold]")
+    console.print("\n[bold]━━━ [3/12] 문서 파싱 (필수) ━━━[/bold]")
     if skip_to_step > 3:
         console.print("  [yellow]⏭ 건너뜀 (이전 결과 사용)[/yellow]")
     else:
@@ -1062,7 +1062,7 @@ def wizard(
             raise typer.Exit(code=1)
 
     # ── Step 4: QA 생성 ───────────────────────────────────────────
-    console.print("\n[bold]━━━ [4/12] QA 쌍 생성 ━━━[/bold]")
+    console.print("\n[bold]━━━ [4/12] QA 쌍 생성 (필수) ━━━[/bold]")
     if skip_to_step > 4:
         console.print("  [yellow]⏭ 건너뜀 (이전 결과 사용)[/yellow]")
     else:
@@ -1109,7 +1109,7 @@ def wizard(
             raise typer.Exit(code=1)
 
     # ── Step 5: 검증 ──────────────────────────────────────────────
-    console.print("\n[bold]━━━ [5/12] QA 검증 ━━━[/bold]")
+    console.print("\n[bold]━━━ [5/12] QA 검증 (필수) ━━━[/bold]")
     if skip_to_step > 5:
         console.print("  [yellow]⏭ 건너뜀 (이전 결과 사용)[/yellow]")
     else:
@@ -1128,7 +1128,7 @@ def wizard(
             raise typer.Exit(code=1)
 
     # ── Step 6: 품질 평가 ─────────────────────────────────────────
-    console.print("\n[bold]━━━ [6/12] 품질 점수 평가 ━━━[/bold]")
+    console.print("\n[bold]━━━ [6/12] 품질 점수 평가 (선택) ━━━[/bold]")
     if skip_to_step > 6:
         console.print("  [yellow]⏭ 건너뜀 (이전 결과 사용)[/yellow]")
     else:
@@ -1153,7 +1153,7 @@ def wizard(
             console.print("  [yellow]⏭ 건너뜀[/yellow]")
 
     # ── Step 7: 데이터 증강 ───────────────────────────────────────
-    console.print("\n[bold]━━━ [7/12] 데이터 증강 ━━━[/bold]")
+    console.print("\n[bold]━━━ [7/12] 데이터 증강 (선택) ━━━[/bold]")
     if skip_to_step > 7:
         console.print("  [yellow]⏭ 건너뜀 (이전 결과 사용)[/yellow]")
     else:
@@ -1184,7 +1184,7 @@ def wizard(
         pipeline.step_analyze(pairs)
 
     # ── Step 8: 학습 ──────────────────────────────────────────────
-    console.print("\n[bold]━━━ [8/12] 모델 학습 ━━━[/bold]")
+    console.print("\n[bold]━━━ [8/12] 모델 학습 (필수) ━━━[/bold]")
     console.print(f"  Student: {pipeline.config.student.model}")
     console.print("  [dim]Student 모델에 LoRA 어댑터를 적용하여 파인튜닝합니다. GPU 필요, 약 30분~2시간 소요.[/dim]")
     try:
@@ -1217,7 +1217,7 @@ def wizard(
         raise typer.Exit(code=1)
 
     # ── Step 9: 내보내기 ──────────────────────────────────────────
-    console.print("\n[bold]━━━ [9/12] 모델 내보내기 ━━━[/bold]")
+    console.print("\n[bold]━━━ [9/12] 모델 내보내기 (필수) ━━━[/bold]")
     console.print("  [dim]LoRA 어댑터를 기본 모델에 병합하고 Ollama 모델로 등록합니다.[/dim]")
     if not Confirm.ask("  모델을 내보내시겠습니까?", default=True):
         console.print("  [yellow]⏭ 건너뜀[/yellow]")

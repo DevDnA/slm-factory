@@ -65,7 +65,7 @@ slm-factory는 "도메인 문서 → 파인튜닝된 SLM" 전환 과정을 완�
 
 ┌──────────────┐      ┌──────────────┐      ┌──────────────┐
   Step 3a       ───▶    Step 3b       ───▶    Step 3c
-  Score                 Augment               Analyze
+  Score (선택)          Augment (선택)        Analyze (선택)
   품질 평가             데이터 증강           통계 분석
 └──────────────┘      └──────────────┘      └──────────────┘
          ▼                      ▼                      ▼
@@ -219,20 +219,22 @@ slm-factory tool wizard --config my-project/project.yaml
 
 wizard가 다음을 순서대로 안내합니다:
 
-1. 설정 파일 확인
-2. 문서 선택 (전체 또는 개별)
-3. 문서 파싱
-4. QA 쌍 생성 (확인 후 진행)
-5. QA 검증
-6. 품질 점수 평가 (선택)
-7. 데이터 증강 (선택)
-8. LoRA 학습 (확인 후 진행)
-9. 모델 내보내기 (확인 후 진행)
-10. 멀티턴 대화 생성 (선택)
-11. GGUF 변환 (선택)
-12. 모델 평가 (선택)
+| # | 단계 | 필수/선택 | 설명 |
+|---|------|:---------:|------|
+| 1 | 설정 파일 확인 | **필수** | project.yaml 로드 |
+| 2 | 문서 선택 | **필수** | 전체 또는 개별 문서 선택 |
+| 3 | 문서 파싱 | **필수** | 자동 진행 |
+| 4 | QA 쌍 생성 | **필수** | 확인 후 진행 |
+| 5 | QA 검증 | **필수** | 자동 진행 |
+| 6 | 품질 점수 평가 | 선택 | 건너뛸 수 있음 |
+| 7 | 데이터 증강 | 선택 | 건너뛸 수 있음 |
+| 8 | LoRA 학습 | **필수** | 확인 후 진행 |
+| 9 | 모델 내보내기 | **필수** | 확인 후 진행 |
+| 10 | 멀티턴 대화 생성 | 선택 | 건너뛸 수 있음 |
+| 11 | GGUF 변환 | 선택 | 건너뛸 수 있음 |
+| 12 | 모델 평가 | 선택 | 건너뛸 수 있음 |
 
-각 단계에서 건너뛰기를 선택하면, 나중에 실행할 명령어를 알려줍니다.
+선택 단계를 건너뛰면, 나중에 개별 실행할 수 있는 CLI 명령어를 안내합니다.
 
 > **사전 준비**: wizard 실행 전 Ollama 서버와 Teacher 모델이 필요합니다:
 > ```bash
@@ -400,14 +402,14 @@ slm-factory run [--until <단계>] [--config <설정파일경로>] [--resume]
 
 **`--until` 단계 값**:
 
-| 단계 | 설명 | 생성 파일 |
-|------|------|-----------|
-| `parse` | 문서 파싱만 실행 | `output/parsed_documents.json` |
-| `generate` | 파싱 + QA 쌍 생성 | `output/qa_alpaca.json` |
-| `validate` | + QA 검증 및 필터링 | (qa_alpaca.json 갱신) |
-| `score` | + 품질 점수 평가 (scoring.enabled 시) | `output/qa_scored.json` |
-| `augment` | + 데이터 증강 (augment.enabled 시) | `output/qa_augmented.json` |
-| `analyze` | + 데이터 통계 분석 | `output/data_analysis.json` |
+| 단계 | 필수/선택 | 설명 | 생성 파일 |
+|------|:---------:|------|-----------|
+| `parse` | **필수** | 문서 파싱만 실행 | `output/parsed_documents.json` |
+| `generate` | **필수** | 파싱 + QA 쌍 생성 | `output/qa_alpaca.json` |
+| `validate` | **필수** | + QA 검증 및 필터링 | (qa_alpaca.json 갱신) |
+| `score` | 선택 | + 품질 점수 평가 (`scoring.enabled` 시) | `output/qa_scored.json` |
+| `augment` | 선택 | + 데이터 증강 (`augment.enabled` 시) | `output/qa_augmented.json` |
+| `analyze` | 선택 | + 데이터 통계 분석 (`analyzer.enabled` 시) | `output/data_analysis.json` |
 
 `--until`을 생략하면 학습(train)과 내보내기(export)까지 전체 파이프라인을 실행합니다.
 
@@ -427,15 +429,15 @@ slm-factory run --config ./my-project/project.yaml --resume
 ```
 
 **전체 실행 단계**:
-1. 문서 파싱 (parse)
-2. QA 쌍 생성 (generate)
-3. QA 검증 (validate)
-4. 품질 점수 평가 (score) — scoring.enabled 시
-5. 데이터 증강 (augment) — augment.enabled 시
-6. 데이터 분석 (analyze) — analyzer.enabled 시
-7. 학습 데이터 변환 (convert)
-8. LoRA 학습 (train)
-9. 모델 병합 및 배포 (export)
+1. 문서 파싱 (parse) — **필수**
+2. QA 쌍 생성 (generate) — **필수**
+3. QA 검증 (validate) — **필수**
+4. 품질 점수 평가 (score) — 선택, `scoring.enabled` 시
+5. 데이터 증강 (augment) — 선택, `augment.enabled` 시
+6. 데이터 분석 (analyze) — 선택, `analyzer.enabled` 시
+7. 학습 데이터 변환 (convert) — **필수**
+8. LoRA 학습 (train) — **필수**
+9. 모델 병합 및 배포 (export) — **필수**
 
 ---
 
@@ -583,7 +585,7 @@ slm-factory eval compare --base-model gemma:2b --ft my-project-model --config pr
 
 ### `tool wizard` - 대화형 파이프라인 (권장)
 
-전체 파이프라인을 단계별로 안내하며 대화형으로 실행합니다. 각 단계에서 사용자의 확인을 받고, 선택적 단계(품질 평가, 데이터 증강)는 건너뛸 수 있습니다.
+전체 파이프라인을 단계별로 안내하며 대화형으로 실행합니다. 필수 단계는 순서대로 진행되고, 선택 단계는 건너뛸 수 있습니다.
 
 **사용법**:
 ```bash
@@ -595,20 +597,23 @@ slm-factory tool wizard [--config <설정파일경로>] [--resume]
 - `--resume` / `-r` (선택): 이전 실행의 중간 결과에서 재개합니다
 
 **진행 단계**:
-1. 설정 파일 로드 (자동 탐색 또는 직접 입력)
-2. 문서 선택 (전체 또는 개별 선택)
-3. 문서 파싱 (자동 진행)
-4. QA 쌍 생성 (확인 후 진행)
-5. QA 검증 (자동 진행)
-6. 품질 점수 평가 (선택)
-7. 데이터 증강 (선택)
-8. LoRA 학습 (확인 후 진행)
-9. 모델 내보내기 (확인 후 진행)
-10. 멀티턴 대화 생성 (선택)
-11. GGUF 변환 (선택)
-12. 모델 평가 (선택)
 
-각 단계에서 "건너뜀"을 선택하면 해당 단계의 결과물 경로와 나중에 실행할 명령어를 안내합니다.
+| # | 단계 | 필수/선택 | 설명 |
+|---|------|:---------:|------|
+| 1 | 설정 파일 로드 | **필수** | 자동 탐색 또는 직접 입력 |
+| 2 | 문서 선택 | **필수** | 전체 또는 개별 선택 |
+| 3 | 문서 파싱 | **필수** | 자동 진행 |
+| 4 | QA 쌍 생성 | **필수** | 확인 후 진행 |
+| 5 | QA 검증 | **필수** | 자동 진행 |
+| 6 | 품질 점수 평가 | 선택 | 건너뛸 수 있음 |
+| 7 | 데이터 증강 | 선택 | 건너뛸 수 있음 |
+| 8 | LoRA 학습 | **필수** | 확인 후 진행 |
+| 9 | 모델 내보내기 | **필수** | 확인 후 진행 |
+| 10 | 멀티턴 대화 생성 | 선택 | 건너뛸 수 있음 |
+| 11 | GGUF 변환 | 선택 | 건너뛸 수 있음 |
+| 12 | 모델 평가 | 선택 | 건너뛸 수 있음 |
+
+선택 단계를 건너뛰면 해당 단계의 결과물 경로와 나중에 실행할 명령어를 안내합니다.
 
 ---
 
