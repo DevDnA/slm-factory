@@ -12,6 +12,8 @@
 
 **기본값 제공**: 모든 필드에 합리적인 기본값이 설정되어 있어 필요한 부분만 수정하면 됩니다.
 
+**null 섹션 처리**: YAML에서 `null`로 지정된 섹션은 자동으로 기본값이 적용됩니다. 예를 들어 `eval: null`로 설정하면 `eval` 섹션 전체가 기본값으로 초기화됩니다.
+
 ### 설정 파일 생성
 
 새 프로젝트를 시작할 때는 다음 명령으로 기본 템플릿을 생성합니다:
@@ -43,7 +45,7 @@ my-project/
 
 | 필드 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
-| `name` | `str` | `"my-project"` | 프로젝트 식별자. 내보낸 모델 이름에 반영됩니다 |
+| `name` | `str` | `"my-project"` | 프로젝트 식별자. 내보낸 모델 이름에 반영됩니다 (빈 값 불가) |
 | `version` | `str` | `"1.0.0"` | 시맨틱 버전. 모델 버전 관리에 사용됩니다 |
 | `language` | `str` | `"en"` | 문서 언어 코드. `"en"` (영어), `"ko"` (한국어), `"ja"` (일본어) 등 |
 
@@ -126,8 +128,8 @@ parsing:
 | 필드 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
 | `backend` | `"ollama"` \| `"openai"` | `"ollama"` | 사용할 LLM 백엔드. `"ollama"`는 로컬 Ollama 서버, `"openai"`는 OpenAI 호환 API입니다 |
-| `model` | `str` | `"qwen3:8b"` | 모델 이름 또는 ID |
-| `api_base` | `str` | `"http://localhost:11434"` | API 엔드포인트 URL |
+| `model` | `str` | `"qwen3:8b"` | 모델 이름 또는 ID (빈 값 불가) |
+| `api_base` | `str` | `"http://localhost:11434"` | API 엔드포인트 URL (빈 값 불가) |
 | `api_key` | `str \| None` | `null` | API 키. `backend: "openai"`일 때 필수입니다. Ollama는 불필요합니다 |
 | `temperature` | `float` | `0.3` | 생성 온도 (0.0~1.0). 낮을수록 일관성 있는 답변을 생성합니다 |
 | `timeout` | `int` | `180` | API 요청 타임아웃 (초). 긴 문서 처리 시 늘려야 할 수 있습니다 |
@@ -230,6 +232,8 @@ questions:
 | `groundedness` | `GroundednessConfig` | (하위 참조) | 의미적 근거성 검증 설정 |
 
 기본 거부 패턴 3개: `"(?i)i don't know"`, `"(?i)not (available|provided|mentioned|found)"`, `"(?i)the document does not contain"`. `(?i)` 플래그는 대소문자를 구분하지 않습니다.
+
+**제약조건**: `min_answer_length`는 반드시 `max_answer_length`보다 작아야 합니다. 그렇지 않으면 설정 로드 시 오류가 발생합니다.
 
 ### groundedness — 의미적 검증
 
@@ -334,7 +338,7 @@ analyzer:
 
 | 필드 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
-| `model` | `str` | `"google/gemma-3-1b-it"` | HuggingFace 모델 ID. causal LM이어야 합니다 (예: GPT, Llama, Gemma) |
+| `model` | `str` | `"google/gemma-3-1b-it"` | HuggingFace 모델 ID. causal LM이어야 합니다 (예: GPT, Llama, Gemma) (빈 값 불가) |
 | `max_seq_length` | `int` | `4096` | 학습 데이터의 최대 토큰 길이. 이보다 긴 시퀀스는 잘립니다 |
 
 ```yaml
@@ -377,6 +381,8 @@ student:
 | `lora` | `LoraConfig` | (하위 참조) | LoRA 어댑터 설정 |
 | `early_stopping` | `EarlyStoppingConfig` | (하위 참조) | 조기 종료 설정 |
 | `quantization` | `QuantizationConfig` | (하위 참조) | 양자화 설정 |
+
+**제약조건**: `learning_rate`는 반드시 0보다 커야 합니다. 0 이하로 설정하면 설정 로드 시 오류가 발생합니다.
 
 ### lora — LoRA 어댑터 설정
 
@@ -447,7 +453,7 @@ training:
 | 필드 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
 | `enabled` | `bool` | `true` | Ollama 내보내기 활성화 여부. Modelfile을 생성하고 `ollama create` 명령을 실행합니다 |
-| `model_name` | `str` | `"my-project-model"` | Ollama에 등록할 모델 이름 |
+| `model_name` | `str` | `"my-project-model"` | Ollama에 등록할 모델 이름 (빈 값 불가) |
 | `system_prompt` | `str` | `"You are a helpful domain-specific assistant."` | Ollama 모델의 시스템 프롬프트. 모델의 역할과 동작을 정의합니다 |
 | `parameters` | `dict[str, Any]` | (하위 참조) | Ollama 런타임 파라미터 |
 
@@ -481,6 +487,8 @@ export:
 | `max_samples` | `int` | `50` | 평가에 사용할 최대 샘플 수 |
 | `output_file` | `str` | `"eval_results.json"` | 평가 결과 JSON 파일명. `paths.output` 디렉토리에 저장됩니다 |
 
+**제약조건**: `max_samples`는 1 이상이어야 합니다. 0 이하로 설정하면 설정 로드 시 오류가 발생합니다.
+
 ```yaml
 eval:
   enabled: true
@@ -504,6 +512,8 @@ eval:
 | `metrics` | `list[str]` | `["bleu", "rouge"]` | 비교 메트릭 목록 |
 | `max_samples` | `int` | `20` | 비교에 사용할 최대 샘플 수 |
 | `output_file` | `str` | `"compare_results.json"` | 비교 결과 JSON 파일명. `paths.output` 디렉토리에 저장됩니다 |
+
+**제약조건**: `max_samples`는 1 이상이어야 합니다. 0 이하로 설정하면 설정 로드 시 오류가 발생합니다.
 
 ```yaml
 compare:
@@ -567,6 +577,8 @@ incremental:
 | `min_turns` | `int` | `2` | 최소 대화 턴 수 (2 이상) |
 | `max_turns` | `int` | `5` | 최대 대화 턴 수 |
 | `include_single_qa` | `bool` | `true` | 단일 QA 쌍도 대화 데이터에 포함할지 여부 |
+
+**제약조건**: `min_turns`는 반드시 `max_turns`보다 작거나 같아야 합니다. 또한 `min_turns`는 2 이상이어야 합니다. 이를 위반하면 설정 로드 시 오류가 발생합니다.
 
 ```yaml
 dialogue:
