@@ -42,7 +42,7 @@ SLM Factory는 다음 5가지 핵심 원칙을 기반으로 설계되었습니�
                                     ▼
                      ┌─────────────────────────────┐
                        Pipeline (pipeline.py)
-                       Orchestrator (9 steps)
+                        Orchestrator (13 steps)
                      └──────────────┬──────────────┘
                                     ▼
 
@@ -113,10 +113,10 @@ cli.py
         ├─→ evaluator.py (ModelEvaluator)
         ├─→ comparator.py (ModelComparator)
         ├─→ incremental.py (IncrementalManager)
-        └─→ tui/ (ReviewApp, DashboardApp)
+        └─→ tui/ (QAReviewerApp, PipelineDashboard)
 
 모든 모듈
-  ├─→ config.py (SLMConfig + 20개 하위 모델)
+  ├─→ config.py (SLMConfig + 26개 하위 모델)
   ├─→ models.py (ParsedDocument, QAPair, EvalResult, DialogueTurn, MultiTurnDialogue, CompareResult)
   └─→ utils.py (setup_logging, get_logger)
 ```
@@ -212,6 +212,10 @@ results = await asyncio.gather(*tasks, return_exceptions=True)
 | convert | `list[QAPair]` | JSONL 파일 경로 | `training_data.jsonl` |
 | train | JSONL 파일 경로 | 어댑터 디렉토리 경로 | `checkpoints/adapter/` |
 | export | 어댑터 디렉토리 경로 | 병합 모델 디렉토리 경로 | `merged_model/` + `Modelfile` |
+| eval | `list[QAPair]` + 모델 이름 | `list[EvalResult]` | `eval_results.json` |
+| gguf_export | 병합된 모델 디렉토리 | GGUF 파일 경로 | `*.gguf` |
+| dialogue | `list[QAPair]` | `list[MultiTurnDialogue]` | `dialogues.json` |
+| compare | `list[QAPair]` | `list[CompareResult]` | `compare_results.json` |
 
 ### 4.2 중간 파일 체인 다이어그램
 

@@ -55,8 +55,8 @@ src/slm_factory/
 └── tui/
     ├── __init__.py
     ├── widgets.py           # 공유 TUI 위젯 (QACard, StatusBar)
-    ├── reviewer.py          # ReviewerApp (QA 수동 리뷰)
-    └── dashboard.py         # DashboardApp (파이프라인 모니터링)
+    ├── reviewer.py          # QAReviewerApp (QA 수동 리뷰)
+    └── dashboard.py         # PipelineDashboard (파이프라인 모니터링)
 ```
 
 ### 모듈 의존성
@@ -595,24 +595,24 @@ class ModelComparator:
 
 ## 9. TUI 모듈 (tui/)
 
-### ReviewerApp (reviewer.py)
+### QAReviewerApp (reviewer.py)
 
 Textual 기반 QA 수동 리뷰 앱입니다. `slm-factory tool review` 명령으로 실행됩니다.
 
 ```python
-class ReviewerApp(App):
+class QAReviewerApp(App[None]):
     """QA 쌍을 하나씩 확인하며 승인/거부/편집하는 TUI 앱입니다.
     키 바인딩: a/Enter=승인, r=거부, e=편집, q/Escape=종료
     출력: config.review.output_file (기본값: qa_reviewed.json)
     """
 ```
 
-### DashboardApp (dashboard.py)
+### PipelineDashboard (dashboard.py)
 
 Textual 기반 파이프라인 모니터링 앱입니다. `slm-factory tool dashboard` 명령으로 실행됩니다.
 
 ```python
-class DashboardApp(App):
+class PipelineDashboard(App[None]):
     """파이프라인 진행 상태를 실시간으로 모니터링하는 TUI 앱입니다.
     표시: 각 단계 출력 파일 존재 여부, 항목 수, 최근 수정 시각, 평가 결과 요약
     설정: config.dashboard.refresh_interval (기본값: 2.0초)
