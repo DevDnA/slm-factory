@@ -46,7 +46,7 @@ class TestInitCommand:
         """프로젝트 디렉토리, documents, output, project.yaml이 생성되는지 확인합니다."""
         result = runner.invoke(app, [
             "init",
-            "--name", "test-proj",
+            "test-proj",
             "--path", str(tmp_path),
         ])
 
@@ -84,7 +84,7 @@ class TestRunCommand:
 
 
 class TestParseCommand:
-    """parse 명령어의 테스트입니다."""
+    """run --until parse 명령어의 테스트입니다."""
 
     def test_load_pipeline_호출(self, mocker):
         """_load_pipeline이 올바르게 호출되는지 확인합니다."""
@@ -94,7 +94,7 @@ class TestParseCommand:
 
         mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
 
-        result = runner.invoke(app, ["parse", "--config", "test.yaml"])
+        result = runner.invoke(app, ["run", "--until", "parse", "--config", "test.yaml"])
 
         assert result.exit_code == 0
         mock_pipeline.step_parse.assert_called_once()
@@ -122,7 +122,7 @@ class TestNoArgs:
 
 
 class TestGenerateCommand:
-    """generate 명령어의 테스트입니다."""
+    """run --until generate 명령어의 테스트입니다."""
 
     def test_load_pipeline_호출(self, mocker):
         """_load_pipeline이 올바르게 호출되고 파싱+생성이 수행되는지 확인합니다."""
@@ -133,7 +133,7 @@ class TestGenerateCommand:
 
         mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
 
-        result = runner.invoke(app, ["generate", "--config", "test.yaml"])
+        result = runner.invoke(app, ["run", "--until", "generate", "--config", "test.yaml"])
 
         assert result.exit_code == 0
         mock_pipeline.step_parse.assert_called_once()
@@ -150,12 +150,12 @@ class TestWizardCommand:
 
     def test_존재하지_않는_config_exit_code_1(self):
         """존재하지 않는 설정 파일을 지정하면 exit code 1로 종료하는지 확인합니다."""
-        result = runner.invoke(app, ["wizard", "--config", "/nonexistent/path.yaml"])
+        result = runner.invoke(app, ["tool", "wizard", "--config", "/nonexistent/path.yaml"])
         assert result.exit_code == 1
 
     def test_wizard_help_포함(self):
         """wizard 명령어의 도움말에 '대화형'이 포함되는지 확인합니다."""
-        result = runner.invoke(app, ["wizard", "--help"])
+        result = runner.invoke(app, ["tool", "wizard", "--help"])
         assert result.exit_code == 0
         assert "대화형" in result.output
 
@@ -220,7 +220,7 @@ class TestWizardResume:
 
     def test_resume_옵션_존재(self):
         """wizard --help에 --resume 옵션이 표시되는지 확인합니다."""
-        result = runner.invoke(app, ["wizard", "--help"])
+        result = runner.invoke(app, ["tool", "wizard", "--help"])
         assert result.exit_code == 0
         assert "--resume" in result.output
 
@@ -273,7 +273,7 @@ class TestCleanCommand:
 
 
 class TestScoreCommand:
-    """score 명령어의 테스트입니다."""
+    """run --until score 명령어의 테스트입니다."""
 
     def test_load_pipeline_호출(self, mocker):
         mock_pipeline = MagicMock()
@@ -284,7 +284,7 @@ class TestScoreCommand:
         mock_pipeline.config.paths.ensure_dirs = MagicMock()
         mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
 
-        result = runner.invoke(app, ["score", "--config", "test.yaml"])
+        result = runner.invoke(app, ["run", "--until", "score", "--config", "test.yaml"])
         assert result.exit_code == 0
         mock_pipeline.step_score.assert_called_once()
 
@@ -295,7 +295,7 @@ class TestScoreCommand:
 
 
 class TestAugmentCommand:
-    """augment 명령어의 테스트입니다."""
+    """run --until augment 명령어의 테스트입니다."""
 
     def test_load_pipeline_호출(self, mocker):
         mock_pipeline = MagicMock()
@@ -307,7 +307,7 @@ class TestAugmentCommand:
         mock_pipeline.config.paths.ensure_dirs = MagicMock()
         mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
 
-        result = runner.invoke(app, ["augment", "--config", "test.yaml"])
+        result = runner.invoke(app, ["run", "--until", "augment", "--config", "test.yaml"])
         assert result.exit_code == 0
         mock_pipeline.step_augment.assert_called_once()
 
@@ -318,7 +318,7 @@ class TestAugmentCommand:
 
 
 class TestAnalyzeCommand:
-    """analyze 명령어의 테스트입니다."""
+    """run --until analyze 명령어의 테스트입니다."""
 
     def test_load_pipeline_호출(self, mocker):
         mock_pipeline = MagicMock()
@@ -331,7 +331,7 @@ class TestAnalyzeCommand:
         mock_pipeline.config.paths.ensure_dirs = MagicMock()
         mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
 
-        result = runner.invoke(app, ["analyze", "--config", "test.yaml"])
+        result = runner.invoke(app, ["run", "--until", "analyze", "--config", "test.yaml"])
         assert result.exit_code == 0
         mock_pipeline.step_analyze.assert_called_once()
 
@@ -345,7 +345,7 @@ class TestConvertCommand:
     """convert 명령어의 테스트입니다."""
 
     def test_존재하지_않는_config(self):
-        result = runner.invoke(app, ["convert", "--config", "/nonexistent/path.yaml"])
+        result = runner.invoke(app, ["tool", "convert", "--config", "/nonexistent/path.yaml"])
         assert result.exit_code == 1
 
 
@@ -466,7 +466,7 @@ class TestLoadQaData:
 
 
 class TestEvalCommand:
-    """eval 명령어의 테스트입니다."""
+    """eval run / eval compare 명령어의 테스트입니다."""
 
     def test_모델_평가_실행(self, mocker, tmp_path):
         """파이프라인과 평가기를 올바르게 호출하는지 확인합니다."""
@@ -484,7 +484,7 @@ class TestEvalCommand:
         )
 
         result = runner.invoke(app, [
-            "eval", "--config", "test.yaml", "--model", "test-model",
+            "eval", "run", "--config", "test.yaml", "--model", "test-model",
         ])
 
         assert result.exit_code == 0
@@ -495,7 +495,7 @@ class TestEvalCommand:
     def test_존재하지_않는_config(self):
         """존재하지 않는 설정 파일을 지정하면 exit code 1로 종료하는지 확인합니다."""
         result = runner.invoke(app, [
-            "eval", "--config", "/nonexistent/path.yaml", "--model", "test",
+            "eval", "run", "--config", "/nonexistent/path.yaml", "--model", "test",
         ])
         assert result.exit_code == 1
 
@@ -506,7 +506,7 @@ class TestEvalCommand:
 
 
 class TestExportGgufCommand:
-    """export-gguf 명령어의 테스트입니다."""
+    """tool gguf 명령어의 테스트입니다."""
 
     def test_gguf_변환_실행(self, mocker, tmp_path):
         """파이프라인과 GGUFExporter를 올바르게 호출하는지 확인합니다."""
@@ -525,7 +525,7 @@ class TestExportGgufCommand:
         )
 
         result = runner.invoke(app, [
-            "export-gguf", "--config", "test.yaml",
+            "tool", "gguf", "--config", "test.yaml",
             "--model-dir", str(model_dir),
         ])
 
@@ -539,7 +539,7 @@ class TestExportGgufCommand:
         mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
 
         result = runner.invoke(app, [
-            "export-gguf", "--config", "test.yaml",
+            "tool", "gguf", "--config", "test.yaml",
             "--model-dir", "/nonexistent/dir",
         ])
 
@@ -548,7 +548,7 @@ class TestExportGgufCommand:
     def test_존재하지_않는_config(self):
         """존재하지 않는 설정 파일을 지정하면 exit code 1로 종료하는지 확인합니다."""
         result = runner.invoke(app, [
-            "export-gguf", "--config", "/nonexistent/path.yaml",
+            "tool", "gguf", "--config", "/nonexistent/path.yaml",
         ])
         assert result.exit_code == 1
 
@@ -559,7 +559,7 @@ class TestExportGgufCommand:
 
 
 class TestUpdateCommand:
-    """update 명령어의 테스트입니다."""
+    """tool update 명령어의 테스트입니다."""
 
     def test_증분_업데이트_실행(self, mocker, tmp_path):
         """변경 문서 감지 및 증분 업데이트가 수행되는지 확인합니다."""
@@ -579,7 +579,7 @@ class TestUpdateCommand:
             return_value=mock_tracker,
         )
 
-        result = runner.invoke(app, ["update", "--config", "test.yaml"])
+        result = runner.invoke(app, ["tool", "update", "--config", "test.yaml"])
 
         assert result.exit_code == 0
         mock_tracker.get_changed_files.assert_called_once()
@@ -598,7 +598,7 @@ class TestUpdateCommand:
             return_value=mock_tracker,
         )
 
-        result = runner.invoke(app, ["update", "--config", "test.yaml"])
+        result = runner.invoke(app, ["tool", "update", "--config", "test.yaml"])
 
         assert result.exit_code == 0
         mock_pipeline.step_parse.assert_not_called()
@@ -606,7 +606,7 @@ class TestUpdateCommand:
     def test_존재하지_않는_config(self):
         """존재하지 않는 설정 파일을 지정하면 exit code 1로 종료하는지 확인합니다."""
         result = runner.invoke(app, [
-            "update", "--config", "/nonexistent/path.yaml",
+            "tool", "update", "--config", "/nonexistent/path.yaml",
         ])
         assert result.exit_code == 1
 
@@ -617,7 +617,7 @@ class TestUpdateCommand:
 
 
 class TestGenerateDialogueCommand:
-    """generate-dialogue 명령어의 테스트입니다."""
+    """tool dialogue 명령어의 테스트입니다."""
 
     def test_대화_생성_실행(self, mocker, tmp_path):
         """파이프라인과 DialogueGenerator를 올바르게 호출하는지 확인합니다."""
@@ -640,7 +640,7 @@ class TestGenerateDialogueCommand:
         mocker.patch("asyncio.run", return_value=[MagicMock()])
 
         result = runner.invoke(app, [
-            "generate-dialogue", "--config", "test.yaml",
+            "tool", "dialogue", "--config", "test.yaml",
         ])
 
         assert result.exit_code == 0
@@ -649,7 +649,7 @@ class TestGenerateDialogueCommand:
     def test_존재하지_않는_config(self):
         """존재하지 않는 설정 파일을 지정하면 exit code 1로 종료하는지 확인합니다."""
         result = runner.invoke(app, [
-            "generate-dialogue", "--config", "/nonexistent/path.yaml",
+            "tool", "dialogue", "--config", "/nonexistent/path.yaml",
         ])
         assert result.exit_code == 1
 
@@ -660,7 +660,7 @@ class TestGenerateDialogueCommand:
 
 
 class TestCompareCommand:
-    """compare 명령어의 테스트입니다."""
+    """eval compare 명령어의 테스트입니다."""
 
     def test_모델_비교_실행(self, mocker, tmp_path):
         """파이프라인과 ModelComparator를 올바르게 호출하는지 확인합니다."""
@@ -678,8 +678,8 @@ class TestCompareCommand:
         )
 
         result = runner.invoke(app, [
-            "compare", "--config", "test.yaml",
-            "--base-model", "base", "--finetuned-model", "finetuned",
+            "eval", "compare", "--config", "test.yaml",
+            "--base-model", "base", "--ft", "finetuned",
         ])
 
         assert result.exit_code == 0
@@ -690,8 +690,8 @@ class TestCompareCommand:
     def test_존재하지_않는_config(self):
         """존재하지 않는 설정 파일을 지정하면 exit code 1로 종료하는지 확인합니다."""
         result = runner.invoke(app, [
-            "compare", "--config", "/nonexistent/path.yaml",
-            "--base-model", "base", "--finetuned-model", "finetuned",
+            "eval", "compare", "--config", "/nonexistent/path.yaml",
+            "--base-model", "base", "--ft", "finetuned",
         ])
         assert result.exit_code == 1
 
@@ -718,7 +718,7 @@ class TestDashboardCommand:
             return_value=mock_dashboard,
         )
 
-        result = runner.invoke(app, ["dashboard", "--config", "test.yaml"])
+        result = runner.invoke(app, ["tool", "dashboard", "--config", "test.yaml"])
 
         assert result.exit_code == 0
         mock_dashboard.run.assert_called_once()
@@ -726,7 +726,7 @@ class TestDashboardCommand:
     def test_존재하지_않는_config(self):
         """존재하지 않는 설정 파일을 지정하면 exit code 1로 종료하는지 확인합니다."""
         result = runner.invoke(app, [
-            "dashboard", "--config", "/nonexistent/path.yaml",
+            "tool", "dashboard", "--config", "/nonexistent/path.yaml",
         ])
         assert result.exit_code == 1
 
@@ -755,7 +755,7 @@ class TestReviewCommand:
             "slm_factory.tui.reviewer.QAReviewerApp", mock_reviewer_cls,
         )
 
-        result = runner.invoke(app, ["review", "--config", "test.yaml"])
+        result = runner.invoke(app, ["tool", "review", "--config", "test.yaml"])
 
         assert result.exit_code == 0
         mock_reviewer_cls.return_value.run.assert_called_once()
@@ -764,6 +764,6 @@ class TestReviewCommand:
     def test_존재하지_않는_config(self):
         """존재하지 않는 설정 파일을 지정하면 exit code 1로 종료하는지 확인합니다."""
         result = runner.invoke(app, [
-            "review", "--config", "/nonexistent/path.yaml",
+            "tool", "review", "--config", "/nonexistent/path.yaml",
         ])
         assert result.exit_code == 1

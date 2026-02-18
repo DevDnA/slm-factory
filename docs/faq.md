@@ -90,7 +90,7 @@
 
 4. wizard 명령으로 파이프라인을 시작합니다:
    ```bash
-   slm-factory wizard --config my-project/project.yaml
+   slm-factory tool wizard --config my-project/project.yaml
    ```
 
 5. wizard가 단계별로 안내하며, 각 단계에서 확인을 요청합니다. 처음 사용자는 wizard만 실행하면 됩니다.
@@ -248,7 +248,7 @@ Warning: No QA pairs generated
 
 2. 문서가 실제로 텍스트를 포함하는지 확인합니다:
    ```bash
-   slm-factory parse --config project.yaml
+   slm-factory run --until parse --config project.yaml
    # 출력에서 "Parsed 5 documents" 확인
    ```
 
@@ -486,7 +486,7 @@ torch.cuda.OutOfMemoryError
 
 2. **wizard로 재실행** (자동으로 중단 지점부터 재개):
    ```bash
-   slm-factory wizard --config project.yaml
+   slm-factory tool wizard --config project.yaml
    # wizard가 기존 파일을 감지하고 재개 여부를 묻습니다
    ```
 

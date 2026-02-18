@@ -632,7 +632,7 @@ Analyzer는 LLM 의존성 없이 순수 통계 분석을 수행합니다.
 - 토큰 길이 초과: 디버그 로그 출력 후 건너뜀
 - 토크나이저 로드 실패: 예외 발생 및 파이프라인 중단
 
-convert와 export 단계는 CLI에서 단독 실행할 수 있습니다 (`slm-factory convert`, `slm-factory export`). 이를 통해 전체 파이프라인을 재실행하지 않고 특정 단계만 반복할 수 있습니다.
+convert와 export 단계는 CLI에서 단독 실행할 수 있습니다 (`slm-factory tool convert`, `slm-factory export`). 이를 통해 전체 파이프라인을 재실행하지 않고 특정 단계만 반복할 수 있습니다.
 
 ### 4.8 Step 5: train
 
@@ -1344,7 +1344,7 @@ registry.register(MarkdownParser)
 
 ```bash
 # documents/ 디렉토리에 .md 파일 추가 후
-slm-factory parse
+slm-factory run --until parse
 ```
 
 ### 7.2 확장 예제: 커스텀 검증 규칙
@@ -1529,7 +1529,7 @@ wizard
 
 ```python
 # QA 생성 건너뜀
-console.print(f"나중에 실행: slm-factory generate --config {resolved}")
+console.print(f"나중에 실행: slm-factory run --until generate --config {resolved}")
 
 # 학습 건너뜀
 console.print(f"나중에 실행: slm-factory train --config {resolved} --data {training_data_path}")

@@ -77,7 +77,6 @@ class OpenAICompatTeacher(BaseTeacher):
         logger.debug("POST %s  model=%s  temp=%.2f", url, model, temperature)
 
         resp: httpx.Response | None = None
-        last_error: Exception | None = None
         for attempt in range(_MAX_RETRIES):
             try:
                 resp = httpx.post(
@@ -89,7 +88,6 @@ class OpenAICompatTeacher(BaseTeacher):
                 resp.raise_for_status()
                 break
             except httpx.TimeoutException as e:
-                last_error = e
                 if attempt < _MAX_RETRIES - 1:
                     delay = _RETRY_BASE_DELAY * (2 ** attempt)
                     logger.warning(
@@ -104,7 +102,6 @@ class OpenAICompatTeacher(BaseTeacher):
                     f"서버 상태를 확인하거나 teacher.timeout 값을 늘려보세요."
                 ) from e
             except httpx.ConnectError as e:
-                last_error = e
                 if attempt < _MAX_RETRIES - 1:
                     delay = _RETRY_BASE_DELAY * (2 ** attempt)
                     logger.warning(
@@ -155,7 +152,6 @@ class OpenAICompatTeacher(BaseTeacher):
         }
 
         resp: httpx.Response | None = None
-        last_error: Exception | None = None
         for attempt in range(_MAX_RETRIES):
             try:
                 async with httpx.AsyncClient() as client:
@@ -168,7 +164,6 @@ class OpenAICompatTeacher(BaseTeacher):
                     resp.raise_for_status()
                 break
             except httpx.TimeoutException as e:
-                last_error = e
                 if attempt < _MAX_RETRIES - 1:
                     delay = _RETRY_BASE_DELAY * (2 ** attempt)
                     logger.warning(
@@ -183,7 +178,6 @@ class OpenAICompatTeacher(BaseTeacher):
                     f"서버 상태를 확인하거나 teacher.timeout 값을 늘려보세요."
                 ) from e
             except httpx.ConnectError as e:
-                last_error = e
                 if attempt < _MAX_RETRIES - 1:
                     delay = _RETRY_BASE_DELAY * (2 ** attempt)
                     logger.warning(

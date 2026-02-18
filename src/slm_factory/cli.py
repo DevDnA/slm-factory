@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import enum
 import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
@@ -15,11 +16,28 @@ if TYPE_CHECKING:
     from .models import QAPair
     from .pipeline import Pipeline
 
+
+class PipelineStep(str, enum.Enum):
+    """run --until에 사용되는 파이프라인 단계입니다."""
+    parse = "parse"
+    generate = "generate"
+    validate = "validate"
+    score = "score"
+    augment = "augment"
+    analyze = "analyze"
+
+
 app = typer.Typer(
     name="slm-factory",
     rich_markup_mode="rich",
 )
 console = Console()
+
+eval_app = typer.Typer(help="모델 평가 및 비교")
+tool_app = typer.Typer(help="유틸리티 도구 모음")
+
+app.add_typer(eval_app, name="eval", rich_help_panel="📊 평가")
+app.add_typer(tool_app, name="tool", rich_help_panel="🔧 도구")
 
 
 @app.callback(invoke_without_command=True)
@@ -289,7 +307,7 @@ def _find_resume_point(pipeline: Pipeline) -> tuple[str, list]:
 
 @app.command(rich_help_panel="🚀 시작하기")
 def init(
-    name: str = typer.Option(..., "--name", help="프로젝트 이름입니다"),
+    name: str = typer.Argument(help="프로젝트 이름"),
     path: str = typer.Option(".", "--path", help="프로젝트를 생성할 상위 디렉토리입니다"),
 ) -> None:
     """새로운 slm-factory 프로젝트를 초기화합니다."""
@@ -332,7 +350,76 @@ def init(
     console.print(f"  3. Teacher 모델을 다운로드하세요: [cyan]ollama pull qwen3:8b[/cyan]")
     console.print(f"\n[bold]실행:[/bold]")
     console.print(f"  4. 환경 점검: [cyan]slm-factory check --config {config_path}[/cyan]")
-    console.print(f"  5. wizard 실행: [cyan]slm-factory wizard --config {config_path}[/cyan]\n")
+    console.print(f"  5. wizard 실행: [cyan]slm-factory tool wizard --config {config_path}[/cyan]\n")
+
+
+_STEP_ORDER = ["parse", "generate", "validate", "score", "augment", "analyze"]
+
+_RESUME_TO_STEP_IDX: dict[str, int] = {
+    "generate": 1,
+    "validate": 2,
+    "augment": 4,
+    "analyze": 5,
+}
+
+
+def _run_until_step(pipeline: Pipeline, target: str, resume: bool) -> None:
+    target_idx = _STEP_ORDER.index(target)
+
+    docs = None
+    pairs: list[QAPair] = []
+    start_idx = 0
+
+    if resume:
+        resume_step, resume_data = _find_resume_point(pipeline)
+        if resume_step != "start":
+            start_idx = _RESUME_TO_STEP_IDX.get(resume_step, 0)
+            if resume_step == "generate":
+                docs = resume_data
+            else:
+                pairs = resume_data
+
+    if start_idx > target_idx:
+        console.print(
+            f"\n[bold green]{target} 단계는 이미 완료되었습니다[/bold green]\n"
+        )
+        return
+
+    for idx in range(start_idx, target_idx + 1):
+        step = _STEP_ORDER[idx]
+
+        if step == "parse":
+            docs = pipeline.step_parse()
+            console.print(f"  [green]✓[/green] {len(docs)}개 문서 파싱 완료")
+
+        elif step == "generate":
+            if docs is None:
+                docs = pipeline.step_parse()
+            pairs = pipeline.step_generate(docs)
+            console.print(f"  [green]✓[/green] {len(pairs)}개 QA 쌍 생성 완료")
+
+        elif step == "validate":
+            before = len(pairs)
+            pairs = pipeline.step_validate(pairs, docs=docs) if docs else pipeline.step_validate(pairs)
+            console.print(
+                f"  [green]✓[/green] 검증 완료: {len(pairs)}개 수락, {before - len(pairs)}개 거부"
+            )
+
+        elif step == "score":
+            before = len(pairs)
+            pairs = pipeline.step_score(pairs)
+            console.print(
+                f"  [green]✓[/green] 점수 평가: {len(pairs)}개 통과, {before - len(pairs)}개 제거"
+            )
+
+        elif step == "augment":
+            before = len(pairs)
+            pairs = pipeline.step_augment(pairs)
+            console.print(f"  [green]✓[/green] 데이터 증강: {before}개 → {len(pairs)}개")
+
+        elif step == "analyze":
+            pipeline.step_analyze(pairs)
+            console.print(f"  [green]✓[/green] {len(pairs)}개 QA 쌍 분석 완료")
 
 
 @app.command(rich_help_panel="⚙️ 파이프라인")
@@ -341,19 +428,32 @@ def run(
     resume: bool = typer.Option(
         False, "--resume", "-r", help=_RESUME_HELP
     ),
+    until: Optional[PipelineStep] = typer.Option(
+        None, "--until", help="지정된 단계까지만 실행 (parse|generate|validate|score|augment|analyze)"
+    ),
 ) -> None:
-    """전체 파이프라인을 실행합니다 (파싱 → 생성 → 검증 → 변환 → 훈련 → 내보내기)."""
+    """파이프라인을 실행합니다. --until로 단계를 지정하면 해당 단계까지만 실행합니다."""
     try:
+        pipeline = _load_pipeline(config)
+        pipeline.config.paths.ensure_dirs()
+
+        if until is not None:
+            console.print(
+                f"\n[bold blue]slm-factory[/bold blue] — {until.value} 단계까지 실행 중...\n"
+            )
+            _run_until_step(pipeline, until.value, resume)
+            console.print(
+                f"\n[bold green]{until.value} 단계까지 완료![/bold green]\n"
+            )
+            return
+
         console.print(
             "\n[bold blue]slm-factory[/bold blue] — 전체 파이프라인 시작 중...\n"
         )
 
-        pipeline = _load_pipeline(config)
-
         if not resume:
             model_dir = pipeline.run()
         else:
-            pipeline.config.paths.ensure_dirs()
             step, data = _find_resume_point(pipeline)
 
             if step == "start":
@@ -388,246 +488,6 @@ def run(
         raise typer.Exit(code=1)
     except Exception as e:
         _print_error("파이프라인 실패", e, hints=_get_error_hints(e))
-        raise typer.Exit(code=1)
-
-
-@app.command(rich_help_panel="⚙️ 파이프라인")
-def parse(
-    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
-) -> None:
-    """문서 파싱 단계만 실행합니다."""
-    try:
-        pipeline = _load_pipeline(config)
-        pipeline.config.paths.ensure_dirs()
-        docs = pipeline.step_parse()
-
-        console.print(
-            f"\n[bold green]{len(docs)}개 문서 파싱 완료[/bold green]\n"
-        )
-
-    except FileNotFoundError as e:
-        _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
-        raise typer.Exit(code=1)
-    except Exception as e:
-        _print_error("파싱 실패", e, hints=_get_error_hints(e))
-        raise typer.Exit(code=1)
-
-
-@app.command(rich_help_panel="⚙️ 파이프라인")
-def generate(
-    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
-) -> None:
-    """파싱 + QA 생성 단계를 실행합니다."""
-    try:
-        pipeline = _load_pipeline(config)
-        pipeline.config.paths.ensure_dirs()
-
-        docs = pipeline.step_parse()
-        pairs = pipeline.step_generate(docs)
-
-        console.print(
-            f"\n[bold green]{len(docs)}개 문서에서 {len(pairs)}개 QA 쌍 생성 완료[/bold green]\n"
-        )
-
-    except FileNotFoundError as e:
-        _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
-        raise typer.Exit(code=1)
-    except Exception as e:
-        _print_error("생성 실패", e, hints=_get_error_hints(e))
-        raise typer.Exit(code=1)
-
-
-@app.command(rich_help_panel="⚙️ 파이프라인")
-def validate(
-    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
-) -> None:
-    """파싱 + 생성 + 검증 단계를 실행합니다."""
-    try:
-        pipeline = _load_pipeline(config)
-        pipeline.config.paths.ensure_dirs()
-
-        docs = pipeline.step_parse()
-        pairs = pipeline.step_generate(docs)
-        total_generated = len(pairs)
-
-        accepted = pipeline.step_validate(pairs, docs=docs)
-        rejected_count = total_generated - len(accepted)
-
-        console.print(
-            f"\n[bold green]검증 완료:[/bold green] "
-            f"{len(accepted)}개 수락, {rejected_count}개 거부 "
-            f"({total_generated}개 생성 중)\n"
-        )
-
-    except FileNotFoundError as e:
-        _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
-        raise typer.Exit(code=1)
-    except Exception as e:
-        _print_error("검증 실패", e, hints=_get_error_hints(e))
-        raise typer.Exit(code=1)
-
-
-@app.command(rich_help_panel="⚙️ 파이프라인")
-def score(
-    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
-    resume: bool = typer.Option(
-        False, "--resume", "-r", help=_RESUME_HELP
-    ),
-) -> None:
-    """파싱 + 생성 + 검증 + 품질 점수 평가를 실행합니다."""
-    try:
-        pipeline = _load_pipeline(config)
-        pipeline.config.paths.ensure_dirs()
-
-        if resume:
-            step, data = _find_resume_point(pipeline)
-            if step == "generate":
-                docs = data
-                pairs = pipeline.step_generate(docs)
-                pairs = pipeline.step_validate(pairs, docs=docs)
-            elif step == "validate":
-                pairs = pipeline.step_validate(data)
-            elif step in ("augment", "analyze"):
-                console.print(
-                    f"\n[bold green]점수 평가 이미 완료됨 ({len(data)}개 쌍)[/bold green]\n"
-                )
-                return
-            else:
-                docs = pipeline.step_parse()
-                pairs = pipeline.step_generate(docs)
-                pairs = pipeline.step_validate(pairs, docs=docs)
-        else:
-            docs = pipeline.step_parse()
-            pairs = pipeline.step_generate(docs)
-            pairs = pipeline.step_validate(pairs, docs=docs)
-
-        before = len(pairs)
-        pairs = pipeline.step_score(pairs)
-
-        console.print(
-            f"\n[bold green]점수 평가 완료:[/bold green] "
-            f"{len(pairs)}개 통과, {before - len(pairs)}개 제거 "
-            f"({before}개 대상 중)\n"
-        )
-
-    except FileNotFoundError as e:
-        _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
-        raise typer.Exit(code=1)
-    except Exception as e:
-        _print_error("점수 평가 실패", e, hints=_get_error_hints(e))
-        raise typer.Exit(code=1)
-
-
-@app.command(rich_help_panel="⚙️ 파이프라인")
-def augment(
-    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
-    resume: bool = typer.Option(
-        False, "--resume", "-r", help=_RESUME_HELP
-    ),
-) -> None:
-    """파싱 + 생성 + 검증 + 점수 평가 + 데이터 증강을 실행합니다."""
-    try:
-        pipeline = _load_pipeline(config)
-        pipeline.config.paths.ensure_dirs()
-
-        if resume:
-            step, data = _find_resume_point(pipeline)
-            if step == "generate":
-                docs = data
-                pairs = pipeline.step_generate(docs)
-                pairs = pipeline.step_validate(pairs, docs=docs)
-                pairs = pipeline.step_score(pairs)
-            elif step == "validate":
-                pairs = pipeline.step_validate(data)
-                pairs = pipeline.step_score(pairs)
-            elif step == "augment":
-                pairs = data
-            elif step == "analyze":
-                console.print(
-                    f"\n[bold green]데이터 증강 이미 완료됨 ({len(data)}개 쌍)[/bold green]\n"
-                )
-                return
-            else:
-                docs = pipeline.step_parse()
-                pairs = pipeline.step_generate(docs)
-                pairs = pipeline.step_validate(pairs, docs=docs)
-                pairs = pipeline.step_score(pairs)
-        else:
-            docs = pipeline.step_parse()
-            pairs = pipeline.step_generate(docs)
-            pairs = pipeline.step_validate(pairs, docs=docs)
-            pairs = pipeline.step_score(pairs)
-
-        before = len(pairs)
-        pairs = pipeline.step_augment(pairs)
-
-        console.print(
-            f"\n[bold green]데이터 증강 완료:[/bold green] "
-            f"{before}개 → {len(pairs)}개 "
-            f"(증강 {len(pairs) - before}개 추가)\n"
-        )
-
-    except FileNotFoundError as e:
-        _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
-        raise typer.Exit(code=1)
-    except Exception as e:
-        _print_error("증강 실패", e, hints=_get_error_hints(e))
-        raise typer.Exit(code=1)
-
-
-@app.command(rich_help_panel="⚙️ 파이프라인")
-def analyze(
-    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
-    resume: bool = typer.Option(
-        False, "--resume", "-r", help=_RESUME_HELP
-    ),
-) -> None:
-    """파싱 + 생성 + 검증 + 점수 평가 + 증강 후 데이터 분석을 실행합니다."""
-    try:
-        pipeline = _load_pipeline(config)
-        pipeline.config.paths.ensure_dirs()
-
-        if resume:
-            step, data = _find_resume_point(pipeline)
-            if step == "generate":
-                docs = data
-                pairs = pipeline.step_generate(docs)
-                pairs = pipeline.step_validate(pairs, docs=docs)
-                pairs = pipeline.step_score(pairs)
-                pairs = pipeline.step_augment(pairs)
-            elif step == "validate":
-                pairs = pipeline.step_validate(data)
-                pairs = pipeline.step_score(pairs)
-                pairs = pipeline.step_augment(pairs)
-            elif step == "augment":
-                pairs = pipeline.step_augment(data)
-            elif step == "analyze":
-                pairs = data
-            else:
-                docs = pipeline.step_parse()
-                pairs = pipeline.step_generate(docs)
-                pairs = pipeline.step_validate(pairs, docs=docs)
-                pairs = pipeline.step_score(pairs)
-                pairs = pipeline.step_augment(pairs)
-        else:
-            docs = pipeline.step_parse()
-            pairs = pipeline.step_generate(docs)
-            pairs = pipeline.step_validate(pairs, docs=docs)
-            pairs = pipeline.step_score(pairs)
-            pairs = pipeline.step_augment(pairs)
-
-        pipeline.step_analyze(pairs)
-
-        console.print(
-            f"\n[bold green]분석 완료:[/bold green] "
-            f"{len(pairs)}개 QA 쌍 분석됨\n"
-        )
-
-    except FileNotFoundError as e:
-        _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
-        raise typer.Exit(code=1)
-    except Exception as e:
-        _print_error("분석 실패", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
 
 
@@ -827,7 +687,7 @@ def check(
     console.print(table)
     if all_ok:
         console.print("\n[bold green]모든 점검 통과![/bold green]")
-        console.print(f"  wizard 실행: [cyan]slm-factory wizard --config {resolved}[/cyan]\n")
+        console.print(f"  wizard 실행: [cyan]slm-factory tool wizard --config {resolved}[/cyan]\n")
     else:
         console.print("\n[bold yellow]일부 항목에 주의가 필요합니다.[/bold yellow]")
         console.print("\n[dim]일반적인 해결 방법:[/dim]")
@@ -837,7 +697,7 @@ def check(
         raise typer.Exit(code=1)
 
 
-@app.command(rich_help_panel="🔧 유틸리티")
+@app.command(rich_help_panel="ℹ️ 정보")
 def status(
     config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
 ) -> None:
@@ -927,7 +787,7 @@ def status(
         )
 
 
-@app.command(rich_help_panel="🔧 유틸리티")
+@app.command(rich_help_panel="ℹ️ 정보")
 def clean(
     config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
     all_files: bool = typer.Option(False, "--all", help="모든 출력 파일을 삭제합니다"),
@@ -991,7 +851,7 @@ def clean(
     console.print(f"\n[bold green]{len(deleted)}개 항목 삭제 완료[/bold green]\n")
 
 
-@app.command(rich_help_panel="⚙️ 파이프라인")
+@tool_app.command(name="convert")
 def convert(
     config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
     data: Optional[str] = typer.Option(
@@ -1058,13 +918,13 @@ def export_model(
         raise typer.Exit(code=1)
 
 
-@app.command(rich_help_panel="🔧 유틸리티")
+@app.command(rich_help_panel="ℹ️ 정보")
 def version() -> None:
     """slm-factory 버전을 표시합니다."""
     console.print(f"slm-factory [bold]{__version__}[/bold]")
 
 
-@app.command(rich_help_panel="🚀 시작하기")
+@tool_app.command(name="wizard")
 def wizard(
     config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
     resume: bool = typer.Option(False, "--resume", "-r", help="이전 실행의 중간 결과에서 재개합니다"),
@@ -1101,7 +961,7 @@ def wizard(
         raise typer.Exit(code=1)
 
     pipeline.config.paths.ensure_dirs()
-    _resume_cmd = f"slm-factory wizard --resume --config {resolved}"
+    _resume_cmd = f"slm-factory tool wizard --resume --config {resolved}"
 
     # ── 재개 지점 감지 ────────────────────────────────────────────
     skip_to_step = 1
@@ -1455,7 +1315,7 @@ def wizard(
     console.print(Panel(summary, expand=False))
 
 
-@app.command(name="eval", rich_help_panel="📊 평가")
+@eval_app.command(name="run")
 def eval_model(
     config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
     model: str = typer.Option(..., "--model", help="평가할 Ollama 모델 이름입니다"),
@@ -1492,7 +1352,7 @@ def eval_model(
         raise typer.Exit(code=1)
 
 
-@app.command(name="export-gguf", rich_help_panel="⚙️ 파이프라인")
+@tool_app.command(name="gguf")
 def export_gguf(
     config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
     model_dir: Optional[str] = typer.Option(
@@ -1535,7 +1395,7 @@ def export_gguf(
         raise typer.Exit(code=1)
 
 
-@app.command(name="update", rich_help_panel="⚙️ 파이프라인")
+@tool_app.command(name="update")
 def update(
     config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
 ) -> None:
@@ -1587,7 +1447,7 @@ def update(
         raise typer.Exit(code=1)
 
 
-@app.command(name="generate-dialogue", rich_help_panel="⚙️ 파이프라인")
+@tool_app.command(name="dialogue")
 def generate_dialogue(
     config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
     data: Optional[str] = typer.Option(
@@ -1628,11 +1488,11 @@ def generate_dialogue(
         raise typer.Exit(code=1)
 
 
-@app.command(name="compare", rich_help_panel="📊 평가")
+@eval_app.command(name="compare")
 def compare_models(
     config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
     base_model: str = typer.Option(..., "--base-model", help="비교 기준 모델 이름 (Ollama)"),
-    finetuned_model: str = typer.Option(..., "--finetuned-model", help="파인튜닝된 모델 이름 (Ollama)"),
+    finetuned_model: str = typer.Option(..., "--ft", help="파인튜닝된 모델 이름 (Ollama)"),
     data: Optional[str] = typer.Option(None, "--data", help="QA 데이터 파일 경로"),
 ) -> None:
     """Base 모델과 Fine-tuned 모델의 답변을 비교합니다."""
@@ -1667,7 +1527,7 @@ def compare_models(
         raise typer.Exit(code=1)
 
 
-@app.command(name="dashboard", rich_help_panel="🔧 유틸리티")
+@tool_app.command(name="dashboard")
 def dashboard(
     config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
 ) -> None:
@@ -1695,7 +1555,7 @@ def dashboard(
         raise typer.Exit(code=1)
 
 
-@app.command(name="review", rich_help_panel="🔧 유틸리티")
+@tool_app.command(name="review")
 def review_qa(
     config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
     data: Optional[str] = typer.Option(None, "--data", help="QA 데이터 파일 경로"),

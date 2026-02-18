@@ -77,6 +77,8 @@ class DialogueGenerator:
 
             turns: list[DialogueTurn] = []
             for t in raw_turns:
+                if not isinstance(t, dict):
+                    continue
                 role = str(t.get("role", ""))
                 content = str(t.get("content", ""))
                 if role in ("user", "assistant") and content:

@@ -755,11 +755,11 @@ def check(
 # 중단된 파이프라인 재개
 slm-factory run project.yaml --resume
 
-# 점수 평가부터 재개
-slm-factory score project.yaml -r
+# 점수 평가 단계까지 실행 (재개)
+slm-factory run --until score --config project.yaml -r
 
-# 증강부터 재개
-slm-factory augment project.yaml --resume
+# 증강 단계까지 실행 (재개)
+slm-factory run --until augment --config project.yaml --resume
 ```
 
 **장점:**
@@ -992,17 +992,17 @@ def wizard(
 
 **건너뛰기 동작:**
 각 선택적 단계를 건너뛸 때 나중에 실행할 수 있는 CLI 명령어를 안내합니다:
-- QA 생성 건너뜀 → `slm-factory generate --config {path}`
+- QA 생성 건너뜀 → `slm-factory run --until generate --config {path}`
 - 학습 건너뜀 → `slm-factory train --config {path} --data {data_path}`
 - 내보내기 건너뜀 → `slm-factory export --config {path} --adapter {adapter_path}`
 
 **사용 예시:**
 ```bash
 # 기본 사용
-slm-factory wizard
+slm-factory tool wizard
 
 # 특정 설정 파일 지정
-slm-factory wizard --config my-project/project.yaml
+slm-factory tool wizard --config my-project/project.yaml
 ```
 
 ---
