@@ -164,7 +164,7 @@ ollama run my-project-model
                  export [--adapter dir]   모델 내보내기
 
 평가             eval run --model name    BLEU/ROUGE 평가
-                 eval compare             Base vs Fine-tuned 비교
+                 eval compare --base-model --ft   Base vs Fine-tuned 비교
 
 도구             tool wizard              대화형 파이프라인 (권장)
                  tool review              QA 수동 리뷰 TUI

@@ -18,11 +18,10 @@ slm-factory [전역 옵션] <명령어> [옵션]
 | `--verbose` | `-v` | DEBUG 레벨 로그를 출력합니다. 문제 진단 시 사용합니다. |
 | `--quiet` | `-q` | WARNING 이상의 로그만 출력합니다. 스크립트 자동화에 적합합니다. |
 | `--help` | | 도움말을 출력합니다. |
-| `--version` | | 버전 정보를 출력합니다. |
 | `--install-completion` | | 현재 셸에 자동완성을 설치합니다. |
 | `--show-completion` | | 자동완성 스크립트를 출력합니다. |
 
-`--verbose`와 `--quiet`는 동시에 사용할 수 없습니다. 두 옵션 모두 지정하면 `--verbose`가 우선합니다.
+`--verbose`와 `--quiet`를 동시에 지정하면 `--verbose`가 우선 적용됩니다.
 
 ---
 
@@ -482,7 +481,8 @@ slm-factory tool wizard [OPTIONS]
 | 5 | QA 검증 | 필수 | 규칙 기반 및 임베딩 기반 검증을 자동으로 실행합니다 |
 | 6 | 품질 점수 평가 | 선택 | Teacher LLM이 QA 쌍을 1~5점으로 평가합니다. 건너뛸 수 있습니다. |
 | 7 | 데이터 증강 | 선택 | 질문을 다양한 표현으로 변형하여 데이터를 늘립니다. 건너뛸 수 있습니다. |
-| 8 | LoRA 학습 | 필수 | Student 모델에 LoRA 어댑터를 적용하여 파인튜닝합니다. 확인 후 진행합니다. |
+| — | 데이터 분석 | 자동 | 증강 완료 후 QA 쌍 통계 분석을 자동 실행합니다 |
+| 8 | 모델 학습 | 필수 | Student 모델에 LoRA 어댑터를 적용하여 파인튜닝합니다. 확인 후 진행합니다. |
 | 9 | 모델 내보내기 | 필수 | LoRA 어댑터를 병합하고 Ollama Modelfile을 생성합니다. 확인 후 진행합니다. |
 | 10 | 멀티턴 대화 생성 | 선택 | QA 쌍을 멀티턴 대화 형식으로 확장합니다. 건너뛸 수 있습니다. |
 | 11 | GGUF 변환 | 선택 | 모델을 llama.cpp 호환 GGUF 형식으로 변환합니다. 건너뛸 수 있습니다. |
@@ -893,6 +893,7 @@ output/
 │       ├── adapter_config.json
 │       ├── adapter_model.safetensors
 │       └── ...
+├── *.gguf                      # tool gguf 출력 (선택)
 └── merged_model/               # export 단계 출력
     ├── config.json
     ├── model.safetensors
@@ -916,6 +917,7 @@ output/
 | `compare_results.json` | `eval compare` | 각 질문에 대한 Base 모델과 Fine-tuned 모델의 답변을 나란히 기록한 비교 결과입니다. |
 | `training_data.jsonl` | `tool convert` | Student 모델의 채팅 템플릿이 적용된 학습 데이터입니다. 각 줄은 `{"text": "..."}` 형식입니다. |
 | `checkpoints/adapter/` | `train` | PEFT 형식의 LoRA 어댑터 가중치입니다. `export` 명령으로 기본 모델과 병합합니다. |
+| `*.gguf` | `tool gguf` | GGUF 양자화 형식으로 변환된 모델 파일입니다. llama.cpp 호환 형식입니다. |
 | `merged_model/` | `export` | LoRA 어댑터가 병합된 최종 모델입니다. `Modelfile`로 Ollama에 즉시 배포할 수 있습니다. |
 
 ---

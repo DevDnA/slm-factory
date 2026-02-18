@@ -69,7 +69,7 @@ slm-factory tool wizard --config my-project/project.yaml
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|-----------|
 | `slm-factory eval run` | BLEU/ROUGE 평가 | `--model <이름>`, `--config`, `--data` |
-| `slm-factory eval compare` | Base vs Fine-tuned 비교 | `--base-model <이름>`, `--ft <이름>`, `--config` |
+| `slm-factory eval compare` | Base vs Fine-tuned 비교 | `--base-model <이름>`, `--ft <이름>`, `--config`, `--data` |
 
 ### 🔧 도구
 
@@ -196,6 +196,7 @@ output/
 │   └── adapter/                # LoRA 어댑터 가중치 (PEFT 형식)
 │       ├── adapter_config.json
 │       └── adapter_model.safetensors
+├── *.gguf                      # GGUF 양자화 변환 결과 (선택)
 └── merged_model/               # 병합된 최종 모델 (HuggingFace 형식)
     ├── config.json
     ├── model.safetensors
