@@ -169,9 +169,13 @@ slm-factory는 "도메인 문서 → 파인튜닝된 SLM" 전환 과정을 완�
 ```bash
 git clone https://github.com/DevDnA/slm-factory.git
 cd slm-factory
+python3 -m venv .venv
+source .venv/bin/activate    # Windows: .venv\Scripts\activate
 pip install -e ".[all]"
 slm-factory --install-completion
 ```
+
+> **Note**: 가상환경(venv) 활성화는 필수입니다. 시스템 Python에 직접 설치하면 `externally-managed-environment` 에러가 발생합니다 (PEP 668).
 
 모든 기능이 포함됩니다: PDF/HTML/TXT/HWPX/DOCX 파싱, 한국어 띄어쓰기 교정, 임베딩 기반 검증, 테스트 도구, Shell 자동완성.
 
