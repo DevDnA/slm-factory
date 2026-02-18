@@ -142,12 +142,16 @@ slm-factory는 "도메인 문서 → 파인튜닝된 SLM" 전환 과정을 완�
 | | accelerate | >=0.28.0 | 분산 학습 |
 | | bitsandbytes | >=0.43.0 | 양자화 |
 | **Evaluation** | evaluate | >=0.4.0 | BLEU/ROUGE 메트릭 |
+| | rouge-score | >=0.1.2 | ROUGE 점수 계산 |
+| | nltk | >=3.8 | BLEU 점수 계산 |
 | **TUI** | textual | >=0.50.0 | TUI 프레임워크 |
 | **Optional** | pykospacing | - | 한국어 띄어쓰기 교정 |
 | | sentence-transformers | >=2.6.0 | 의미적 유사도 검증 |
 | | pdfplumber | >=0.11.0 | 대체 PDF 파서 |
-| | python-docx | - | DOCX(Word) 파싱 |
+| | python-docx | >=1.0.0 | DOCX(Word) 파싱 |
 | | pytest | >=8.0 | 테스트 프레임워크 |
+| | pytest-mock | >=3.12 | 테스트 모킹 |
+| | pytest-asyncio | >=0.23.0 | 비동기 테스트 |
 
 ---
 
@@ -1305,11 +1309,34 @@ slm-factory/
 ├── templates/
     └── project.yaml                 # 기본 프로젝트 템플릿
 ├── tests/
-    └── __init__.py                  # 테스트 패키지
+    ├── __init__.py                  # 테스트 패키지
+    ├── conftest.py                  # pytest 공통 픽스처
+    ├── test_cli.py                  # CLI 명령어 테스트
+    ├── test_config.py               # 설정 검증 테스트
+    ├── test_pipeline.py             # 파이프라인 테스트
+    ├── test_parsers_*.py            # 파서별 테스트 (pdf, hwpx, html, text, docx, base)
+    ├── test_teacher.py              # Teacher LLM 테스트
+    ├── test_qa_generator.py         # QA 생성 테스트
+    ├── test_validator_*.py          # 검증기 테스트 (rules, similarity)
+    ├── test_scorer.py               # 품질 평가 테스트
+    ├── test_augmenter.py            # 데이터 증강 테스트
+    ├── test_analyzer.py             # 통계 분석 테스트
+    ├── test_converter.py            # 데이터 변환 테스트
+    ├── test_exporter.py             # 모델 내보내기 테스트
+    ├── test_exporter_gguf.py        # GGUF 변환 테스트
+    ├── test_evaluator.py            # 모델 평가 테스트
+    ├── test_comparator.py           # 모델 비교 테스트
+    ├── test_incremental.py          # 증분 학습 테스트
+    ├── test_dialogue_generator.py   # 대화 생성 테스트
+    ├── test_models.py               # 데이터 모델 테스트
+    ├── test_utils.py                # 유틸리티 테스트
+    ├── test_reviewer.py             # QA 리뷰 TUI 테스트
+    └── test_dashboard.py            # 대시보드 TUI 테스트
 ├── docs/
     ├── architecture.md              # 아키텍처 가이드
     ├── configuration.md             # 설정 레퍼런스
-    └── modules.md                   # 모듈별 상세 문서
+    ├── modules.md                   # 모듈별 상세 문서
+    └── faq.md                       # 자주 묻는 질문
 ├── pyproject.toml                   # 프로젝트 메타데이터 및 의존성
 └── README.md                        # 이 문서
 ```
