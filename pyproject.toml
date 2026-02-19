@@ -22,10 +22,12 @@ dependencies = [
     "peft>=0.10.0",
     "trl>=0.8.0",
     "accelerate>=0.28.0",
-    "bitsandbytes>=0.43.0",
 ]
 
 [project.optional-dependencies]
+cuda = [
+    "bitsandbytes>=0.43.0",
+]
 korean = [
     "pykospacing @ git+https://github.com/haven-jeon/PyKoSpacing.git",
 ]
@@ -52,6 +54,7 @@ dev = [
     "pytest-asyncio>=0.23.0",
 ]
 all = [
+    "bitsandbytes>=0.43.0; sys_platform != 'darwin'",
     "pykospacing @ git+https://github.com/haven-jeon/PyKoSpacing.git",
     "sentence-transformers>=2.6.0",
     "pdfplumber>=0.11.0",
