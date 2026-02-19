@@ -26,12 +26,14 @@ slm-factory를 실행하려면 다음 환경이 필요합니다.
 | 항목 | 최소 요구사항 | 권장 사양 |
 |------|-------------|---------|
 | **Python** | 3.11 이상 | 3.11 또는 3.12 |
-| **GPU** | CPU 가능 (매우 느림) | CUDA 지원 GPU, VRAM 8GB 이상 |
+| **GPU** | CPU 가능 (매우 느림) | NVIDIA CUDA GPU (VRAM 8GB+) 또는 Apple Silicon (M1/M2/M3/M4/M5) |
 | **Ollama** | 1.0 이상 | 최신 버전 |
 | **디스크** | 5GB 이상 | 20GB 이상 (모델 여러 개 보관 시) |
 | **RAM** | 8GB | 16GB 이상 |
 
 GPU 없이도 학습이 가능하지만, GPU 대비 10~100배 느립니다. 테스트 목적이 아니라면 GPU 환경을 권장합니다.
+
+> **Apple Silicon Mac**: M1/M2/M3/M4/M5 칩의 GPU를 MPS(Metal Performance Shaders) 백엔드로 자동 감지합니다. Unified Memory 구조 덕분에 시스템 RAM 전체를 GPU가 공유하여 양자화 없이도 비교적 큰 모델을 로드할 수 있습니다. 학습 정밀도와 옵티마이저는 자동으로 Apple Silicon에 맞게 조정됩니다. `slm-factory check` 명령으로 디바이스 감지 상태를 확인할 수 있습니다.
 
 ---
 
@@ -769,12 +771,14 @@ RuntimeError: Cannot connect to Ollama. Ollama가 실행 중인지 확인하세�
 
 ---
 
-### GPU 메모리 부족 (CUDA OOM)
+### GPU 메모리 부족 (CUDA OOM / MPS OOM)
 
 **증상**:
 ```
 RuntimeError: CUDA out of memory. Tried to allocate X.XX GiB
 torch.cuda.OutOfMemoryError
+# 또는 Apple Silicon:
+RuntimeError: MPS backend out of memory
 ```
 
 **해결 방법**:

@@ -87,19 +87,24 @@
 |---------|------------|------|
 | **Core** | typer, pydantic, pyyaml, rich, httpx | CLI, 설정, 출력 |
 | **Parsing** | pymupdf, beautifulsoup4, lxml, python-docx | 문서 파싱 |
-| **ML/Training** | torch, transformers, peft, trl, accelerate, bitsandbytes | LoRA 학습 |
+| **ML/Training** | torch, transformers, peft, trl, accelerate | LoRA 학습 |
 | **Evaluation** | evaluate, rouge-score, nltk | 모델 평가 |
 | **TUI** | textual | 대시보드, 리뷰 |
-| **Optional** | pykospacing, sentence-transformers, pdfplumber | 한국어 교정, 임베딩 |
+| **Optional** | pykospacing, sentence-transformers, pdfplumber, bitsandbytes | 한국어 교정, 임베딩, CUDA 양자화 |
 
 ---
 
 ## 시스템 요구사항
 
 - **Python** 3.11 이상
-- **GPU**: CUDA 지원 GPU 권장 (VRAM 8GB 이상, CPU 학습도 가능)
+- **GPU** (자동 감지):
+  - **NVIDIA GPU** — CUDA 지원, VRAM 8GB 이상 권장
+  - **Apple Silicon** (M1/M2/M3/M4/M5) — MPS 백엔드, Unified Memory 활용
+  - **CPU** — GPU 미감지 시 자동 폴백 (학습 속도 느림)
 - **Ollama**: Teacher LLM으로 사용 시 설치 필요 ([ollama.com](https://ollama.com))
 - **디스크**: 약 5GB 이상 (모델 다운로드 + 체크포인트)
+
+> **Apple Silicon 참고**: macOS에서는 BitsAndBytes 양자화를 사용할 수 없지만, Unified Memory 구조 덕분에 시스템 RAM 전체를 GPU가 공유하므로 양자화 없이도 비교적 큰 모델을 로드할 수 있습니다. 학습 정밀도는 자동으로 float16으로 설정됩니다.
 
 ---
 
