@@ -143,9 +143,9 @@ training:
                                         # → 줄이면(0.005) 미세한 개선도 인정 → 더 오래 학습
                                         # → 올리면(0.05) 큰 개선만 인정 → 더 빨리 종료
 
-  optimizer: "adamw_torch_fused"         # GPU 최적화 버전. CPU 학습 시 "adamw_torch"로 변경
-  bf16: true                             # 메모리 절반 사용 + 학습 속도 향상. RTX 30xx/A100 이상 지원
-                                        # → GPU가 미지원 시 false로 변경 (오류 메시지로 확인 가능)
+  optimizer: "adamw_torch_fused"         # 디바이스에 따라 자동 조정됩니다 (CUDA: adamw_torch_fused, MPS/CPU: adamw_torch)
+  bf16: true                             # 디바이스에 따라 자동 조정됩니다 (CUDA: bf16, MPS/CPU: fp16)
+                                         # → 수동 변경 불필요. 실행 시 디바이스를 감지하여 최적 설정을 적용합니다
   train_split: 0.9                       # QA 데이터 중 90%는 학습용, 10%는 성능 측정용으로 분리
                                         # → 데이터가 적으면(<50개) 0.95로 올려 학습 데이터를 확보
   save_strategy: "epoch"                 # 매 에포크 끝에 체크포인트 저장 + 성능 측정 실행

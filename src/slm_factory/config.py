@@ -214,8 +214,8 @@ class TrainingConfig(BaseModel):
     warmup_ratio: float = 0.1
     num_epochs: int = 20
     early_stopping: EarlyStoppingConfig = Field(default_factory=EarlyStoppingConfig)
-    optimizer: str = "adamw_torch_fused"
-    bf16: bool = True
+    optimizer: str = "adamw_torch_fused"  # 디바이스 자동 감지로 런타임에 조정됨
+    bf16: bool = True  # 디바이스 자동 감지로 런타임에 조정됨
     train_split: float = 0.9
     save_strategy: str = "epoch"
     quantization: QuantizationConfig = Field(default_factory=QuantizationConfig)
