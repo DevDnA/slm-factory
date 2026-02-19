@@ -10,7 +10,7 @@
 git clone https://github.com/DevDnA/slm-factory.git
 cd slm-factory
 python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -e ".[all]"
+pip install -e ".[all]"       # ⏳ PyTorch/CUDA 포함, 초회 10~20분 소요
 slm-factory --install-completion
 ```
 

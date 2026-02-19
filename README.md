@@ -116,6 +116,8 @@ pip install -e ".[all]"
 slm-factory --install-completion
 ```
 
+> ⏳ `pip install -e ".[all]"`은 PyTorch, CUDA 런타임 등 대용량 패키지를 포함하므로 **초회 설치 시 10~20분 이상** 소요될 수 있습니다. 네트워크 환경에 따라 다를 수 있으니 여유를 갖고 기다려 주십시오.
+
 > 가상환경(venv) 활성화는 필수입니다. 시스템 Python에 직접 설치하면 `externally-managed-environment` 에러가 발생합니다 (PEP 668).
 
 ### 2. 사전 준비

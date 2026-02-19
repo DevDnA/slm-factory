@@ -102,7 +102,7 @@ slm-factory version
 
 > **주의**: 가상환경 활성화는 필수입니다. 시스템 Python에 직접 설치하면 `externally-managed-environment` 오류가 발생합니다 (PEP 668).
 
-`pip install -e ".[all]"` 명령은 PDF/HTML/TXT/HWPX/DOCX 파싱, 한국어 띄어쓰기 교정, 임베딩 기반 검증, 테스트 도구, Shell 자동완성을 포함한 모든 기능을 설치합니다.
+`pip install -e ".[all]"` 명령은 PDF/HTML/TXT/HWPX/DOCX 파싱, 한국어 띄어쓰기 교정, 임베딩 기반 검증, 테스트 도구, Shell 자동완성을 포함한 모든 기능을 설치합니다. PyTorch, CUDA 런타임 등 대용량 패키지가 포함되어 있어 **초회 설치 시 10~20분 이상** 소요될 수 있습니다.
 
 ---
 
