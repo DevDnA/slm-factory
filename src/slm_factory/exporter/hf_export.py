@@ -48,26 +48,29 @@ class HFExporter:
         from peft import PeftModel
         from transformers import AutoModelForCausalLM, AutoTokenizer
         from rich.console import Console
-        import torch
-        
+
+        from ..device import detect_device
+
         console = Console()
-        
+        device = detect_device()
+
         adapter_path = Path(adapter_path)
         if output_dir is None:
             output_dir = self.config.paths.output / "merged_model"
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
-        
-        # 디바이스 결정
-        device_map = "auto" if torch.cuda.is_available() else None
-        
+
+        logger.info(
+            "내보내기 디바이스: %s (dtype=%s)", device.name, device.dtype_name
+        )
+
         # 기본 모델 로드
         try:
             with console.status(f"[bold blue]기본 모델 로드 중: {self.student_model}[/bold blue]"):
                 base_model = AutoModelForCausalLM.from_pretrained(
                     self.student_model,
-                    device_map=device_map,
-                    torch_dtype=torch.bfloat16 if torch.cuda.is_available() else torch.float32,
+                    device_map=device.device_map,
+                    torch_dtype=device.torch_dtype,
                 )
         except OSError as e:
             raise RuntimeError(
