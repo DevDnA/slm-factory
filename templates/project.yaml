@@ -29,7 +29,7 @@ teacher:
   api_key: null                         # ollama는 불필요. openai 백엔드 사용 시 필수
   temperature: 0.3                      # 낮을수록 일관된 답변 (0.1~0.5 권장)
   timeout: 180                          # 초 단위. 긴 문서 처리 시 300~600으로 증가
-  max_context_chars: 12000              # 문서 청크 최대 크기. 모델 컨텍스트에 맞게 조절
+  max_context_chars: 12000              # Teacher 모델에 한 번에 보내는 문서 글자 수. 문서가 길면 이 단위로 나눠서 처리
   max_concurrency: 4                    # 동시 요청 수. Ollama: 1~2, vLLM: 8~16 권장
 
 questions:
@@ -103,38 +103,59 @@ analyzer:
 student:
   model: "google/gemma-3-1b-it"         # ⚠ 첫 실행 시 HuggingFace에서 자동 다운로드 (~2GB)
                                         # 추천: gemma-3-1b-it (경량), Qwen/Qwen3-1.7B (다국어)
-  max_seq_length: 4096                  # 학습 시 최대 시퀀스 길이. VRAM 부족 시 2048로 감소
+  max_seq_length: 4096                  # 이 토큰 수를 초과하는 QA 쌍은 convert 단계에서 제외됩니다
+                                        # → 줄이면 긴 QA가 버려지지만 VRAM 사용량 감소. 부족 시 2048
 
 training:
   # --- LoRA 설정 ---
+  # LoRA: 모델 전체를 학습하지 않고 일부분만 학습하여 VRAM을 절약하는 기법
   lora:
-    r: 16                               # LoRA rank. 높을수록 표현력↑ 메모리↑ (8, 16, 32, 64)
-    alpha: 32                            # 보통 r의 2배
-    dropout: 0.05                        # 과적합 방지 (0.0~0.1)
-    target_modules: "auto"               # "auto"는 모델에 맞게 자동 선택
-    use_rslora: false                    # Rank-Stabilized LoRA. r이 큰 경우 활성화 권장
+    r: 16                               # 높이면 → 더 많이 학습하여 품질↑, 대신 VRAM↑ 학습시간↑
+                                        # 낮추면 → 가볍고 빠르지만 학습 품질 제한 (8, 16, 32, 64)
+    alpha: 32                            # 학습 내용이 모델에 반영되는 강도. 보통 r의 2배로 설정
+                                        # → 높이면 도메인 답변 비중↑, 낮추면 원래 모델의 답변 스타일 유지
+    dropout: 0.05                        # 학습 데이터에만 맞춰지는 현상(과적합)을 방지 (0.0~0.1)
+                                        # → QA가 적을 때(<100개) 0.1로 올리면 새 질문에도 잘 대답
+    target_modules: "auto"               # 모델에서 학습할 부분을 자동 선택. 대부분 "auto"로 충분
+                                        # → 고급 사용자만 직접 지정: ["q_proj", "v_proj"]
+    use_rslora: false                    # r을 32 이상으로 크게 설정할 때 학습이 불안정해지는 것을 방지
+                                        # → r이 16 이하면 false로 충분
 
-  batch_size: 4                         # GPU VRAM에 따라: 8GB→2, 16GB→4~8, 24GB→8~16
-  gradient_accumulation_steps: 4         # 실질 배치 = batch_size × 이 값 (기본 16)
-  learning_rate: 2.0e-5                 # 일반적으로 1e-5 ~ 5e-5. 데이터 적으면 낮게
-  lr_scheduler: "cosine"                # "cosine" | "linear" | "constant"
-  warmup_ratio: 0.1                     # 전체 스텝의 10%를 워밍업에 사용
-  num_epochs: 20                        # 데이터 100개 이하: 10~20, 1000개 이상: 3~5 권장
-                                        # early_stopping이 자동으로 조기 종료합니다
+  batch_size: 4                         # 한 번에 학습하는 QA 샘플 수. VRAM 사용량을 가장 크게 좌우
+                                        # → VRAM별 권장값: 8GB→2, 16GB→4~8, 24GB→8~16
+  gradient_accumulation_steps: 4         # 이 횟수만큼 모아서 한 번에 학습. 실질 배치 = 4 × 4 = 16
+                                        # → VRAM 부족으로 batch_size를 줄였을 때, 이 값을 올리면 보완됨
+  learning_rate: 2.0e-5                 # 한 번에 얼마나 많이 배울지. 클수록 빠르지만 불안정해질 수 있음
+                                        # → QA 데이터가 적으면(<100개) 1e-5로 낮추는 것을 권장
+  lr_scheduler: "cosine"                # 학습이 진행될수록 learning_rate를 어떻게 줄일지 결정
+                                        # → "cosine": 후반부에 서서히 감소 (권장)
+                                        # → "linear": 일정하게 감소 | "constant": 줄이지 않음
+  warmup_ratio: 0.1                     # 학습 초반에 learning_rate를 천천히 올리는 구간 (전체의 10%)
+                                        # → 초반 학습이 불안정할 때 이 값을 0.15~0.2로 올려보세요
+  num_epochs: 20                        # 전체 QA 데이터를 최대 몇 바퀴 반복 학습할지 (상한선)
+                                        # → early_stopping이 켜져 있으면 이 수 전에 자동 종료됩니다
+                                        # → QA 100개 이하: 10~20, 1000개 이상: 3~5 권장
 
   early_stopping:
-    enabled: true                        # 검증 손실이 개선되지 않으면 자동 종료
-    patience: 3                          # N 에포크 동안 개선 없으면 종료
-    threshold: 0.01                      # 이 값 이상 개선되어야 "개선"으로 인정
+    enabled: true                        # 학습 효과가 없으면 num_epochs 전에 자동으로 멈춥니다
+    patience: 3                          # 연속 3회 평가에서 나아지지 않으면 학습 중단
+    threshold: 0.01                      # 손실(loss)이 0.01 이상 줄어야 "나아졌다"고 판단
+                                        # → 줄이면(0.005) 미세한 개선도 인정 → 더 오래 학습
+                                        # → 올리면(0.05) 큰 개선만 인정 → 더 빨리 종료
 
-  optimizer: "adamw_torch_fused"         # GPU에서 가장 빠른 옵티마이저
-  bf16: true                             # bfloat16 학습. GPU가 미지원 시 false로 변경
-  train_split: 0.9                       # 90% 학습, 10% 검증
-  save_strategy: "epoch"                 # "epoch" | "steps". 체크포인트 저장 주기
+  optimizer: "adamw_torch_fused"         # GPU 최적화 버전. CPU 학습 시 "adamw_torch"로 변경
+  bf16: true                             # 메모리 절반 사용 + 학습 속도 향상. RTX 30xx/A100 이상 지원
+                                        # → GPU가 미지원 시 false로 변경 (오류 메시지로 확인 가능)
+  train_split: 0.9                       # QA 데이터 중 90%는 학습용, 10%는 성능 측정용으로 분리
+                                        # → 데이터가 적으면(<50개) 0.95로 올려 학습 데이터를 확보
+  save_strategy: "epoch"                 # 매 에포크 끝에 체크포인트 저장 + 성능 측정 실행
+                                        # → early_stopping 판단도 이 주기마다 실행됩니다
+                                        # → "steps": 에포크 대신 일정 스텝마다 실행
 
   quantization:
-    enabled: false                       # QLoRA 활성화 (VRAM 절약, 속도 감소)
-    bits: 4                              # 4-bit 양자화 (4 | 8)
+    enabled: false                       # true로 바꾸면 모델을 4비트로 압축 로드하여 VRAM 크게 절약
+                                        # → VRAM 8GB 이하에서 학습해야 할 때 활성화 (속도는 다소 감소)
+    bits: 4                              # 양자화 비트 수. 4가 기본 (4 | 8)
 
 # -- 자동 평가(Evaluation) -------------------------------------------------
 # eval:
@@ -187,7 +208,7 @@ training:
 
 # -- 6단계: 모델 내보내기(Export) -------------------------------------------
 export:
-  merge_lora: true                      # LoRA 어댑터를 기본 모델에 병합
+  merge_lora: true                      # 학습 결과를 원래 모델에 합쳐서 하나의 완성 모델로 저장
   output_format: "safetensors"          # "safetensors" (권장) | "pytorch"
   ollama:
     enabled: true                       # Ollama 모델로 내보내기 (ollama create 실행)
@@ -197,5 +218,5 @@ export:
                                         # 모델의 기본 시스템 프롬프트
     parameters:
       temperature: 0.7                  # 추론 시 온도. 높을수록 다양한 답변
-      top_p: 0.9                        # 누적 확률 기반 샘플링
-      num_ctx: 4096                     # 추론 시 컨텍스트 길이
+      top_p: 0.9                        # 답변 다양성 조절. 낮추면(0.5) 안전한 답변, 높이면(0.95) 다양한 표현
+      num_ctx: 4096                     # 모델이 한 번에 읽을 수 있는 글자 수 (질문 + 답변 포함)
