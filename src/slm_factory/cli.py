@@ -97,12 +97,13 @@ def _get_error_hints(error: Exception) -> list[str]:
     ):
         return ["documents 디렉토리에 문서(PDF, TXT 등)를 추가하세요"]
 
-    if "cuda" in error_str or "out of memory" in error_str or "oom" in error_str:
+    if "cuda" in error_str or "mps" in error_str or "out of memory" in error_str or "oom" in error_str:
         return [
             "GPU 메모리가 부족합니다. 다음을 시도하세요:",
             "  training.batch_size를 줄이세요 (예: 2 또는 1)",
             "  lora.r 값을 줄이세요 (예: 8)",
             "  gradient_accumulation_steps를 늘리세요",
+            "  Apple Silicon: PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0 환경변수 설정",
         ]
 
     if "model" in error_str and ("not found" in error_str or "does not exist" in error_str):
@@ -683,6 +684,54 @@ def check(
             f"{cfg.teacher.backend} ({cfg.teacher.api_base})",
         )
 
+    # ── 컴퓨팅 디바이스 감지 ─────────────────────────────────────
+    try:
+        from .device import detect_device
+
+        device = detect_device()
+
+        type_label = {
+            "cuda": "[green]NVIDIA GPU (CUDA)[/green]",
+            "mps": "[green]Apple Silicon GPU (MPS)[/green]",
+            "cpu": "[yellow]CPU[/yellow]",
+        }
+        table.add_row(
+            "컴퓨팅 디바이스",
+            type_label.get(device.type, device.type),
+            device.name,
+        )
+
+        precision = {
+            "bfloat16": "bfloat16 (bf16)",
+            "float16": "float16 (fp16)",
+            "float32": "float32",
+        }
+        table.add_row(
+            "학습 정밀도",
+            "[green]OK[/green]" if device.is_gpu else "[yellow]WARN[/yellow]",
+            precision.get(device.dtype_name, device.dtype_name),
+        )
+
+        if device.type == "cuda":
+            bnb_status = "[green]OK[/green]" if device.quantization_available else "[yellow]WARN[/yellow]"
+            bnb_detail = "사용 가능" if device.quantization_available else "미설치 (pip install bitsandbytes)"
+            table.add_row("4bit 양자화", bnb_status, bnb_detail)
+        elif device.type == "mps":
+            table.add_row(
+                "4bit 양자화",
+                "[dim]N/A[/dim]",
+                "Apple Silicon — Unified Memory로 대체",
+            )
+
+        if not device.is_gpu:
+            all_ok = False
+    except Exception:
+        table.add_row(
+            "컴퓨팅 디바이스",
+            "[yellow]WARN[/yellow]",
+            "PyTorch 미설치 (학습 시 필요)",
+        )
+
     console.print()
     console.print(table)
     if all_ok:
@@ -943,6 +992,16 @@ def wizard(
         )
     )
 
+    # ── 컴퓨팅 디바이스 감지 ──────────────────────────────────────
+    _wizard_device = None
+    try:
+        from .device import detect_device, print_device_summary
+
+        _wizard_device = detect_device()
+        print_device_summary(_wizard_device)
+    except Exception:
+        console.print("  [yellow]⚠ 디바이스 감지 실패 (PyTorch 미설치?)[/yellow]")
+
     # ── Step 1: 설정 파일 ─────────────────────────────────────────
     console.print("\n[bold]━━━ [1/12] 설정 파일 ━━━[/bold]")
     resolved = _find_config(config)
@@ -1186,7 +1245,10 @@ def wizard(
     # ── Step 8: 학습 ──────────────────────────────────────────────
     console.print("\n[bold]━━━ [8/12] 모델 학습 (필수) ━━━[/bold]")
     console.print(f"  Student: {pipeline.config.student.model}")
-    console.print("  [dim]Student 모델에 LoRA 어댑터를 적용하여 파인튜닝합니다. GPU 필요, 약 30분~2시간 소요.[/dim]")
+    if _wizard_device is not None:
+        _dev_label = {"cuda": "NVIDIA GPU (CUDA)", "mps": "Apple Silicon GPU (MPS)", "cpu": "CPU"}
+        console.print(f"  디바이스: [bold]{_dev_label.get(_wizard_device.type, _wizard_device.type)}[/bold] — {_wizard_device.name}")
+    console.print("  [dim]Student 모델에 LoRA 어댑터를 적용하여 파인튜닝합니다.[/dim]")
     try:
         training_data_path = pipeline.step_convert(pairs)
         console.print(
