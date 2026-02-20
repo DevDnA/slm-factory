@@ -200,6 +200,15 @@ training:
 #   max_samples: 20                     # 비교할 최대 질문 수
 #   output_file: "compare_results.json" # 비교 결과 저장 파일
 
+# -- 자동 진화(Evolution) ---------------------------------------------------
+# evolve:
+#   quality_gate: true                    # 이전 모델보다 나은 경우에만 배포합니다
+#   gate_metric: "rougeL"                 # 품질 비교 메트릭: bleu, rouge1, rouge2, rougeL
+#   gate_min_improvement: 0.0             # 최소 개선율(%). 0이면 어떤 개선이든 통과
+#   version_format: "date"                # 버전 형식: "date" (vYYYYMMDD)
+#   history_file: "evolve_history.json"   # 진화 히스토리 파일명
+#   keep_previous_versions: 3             # 보관할 이전 버전 수 (초과분 ollama rm)
+
 # -- TUI 대시보드(Dashboard) ------------------------------------------------
 # dashboard:
 #   enabled: false                      # 터미널 대시보드로 파이프라인 모니터링

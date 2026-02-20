@@ -359,6 +359,49 @@ class CompareConfig(BaseModel):
         return self
 
 
+class EvolveConfig(BaseModel):
+    """자동 진화 파이프라인 설정입니다.
+
+    ``tool evolve`` 명령의 동작을 제어합니다.
+    증분 업데이트 → 전체 재학습 → 품질 게이트 → 조건부 배포를
+    단일 명령으로 실행합니다.
+    """
+
+    quality_gate: bool = True
+    """품질 게이트 활성화 여부입니다. True이면 이전 모델보다 나은 경우에만 배포합니다."""
+
+    gate_metric: str = "rougeL"
+    """품질 비교에 사용할 메트릭입니다 (bleu, rouge1, rouge2, rougeL)."""
+
+    gate_min_improvement: float = 0.0
+    """최소 개선율(%)입니다. 0이면 어떤 개선이든 통과합니다."""
+
+    version_format: str = "date"
+    """버전 형식입니다. 현재 ``date`` (vYYYYMMDD) 형식만 지원합니다."""
+
+    history_file: str = "evolve_history.json"
+    """진화 히스토리 파일명입니다 (출력 디렉토리에 저장)."""
+
+    keep_previous_versions: int = 3
+    """보관할 이전 버전 수입니다. 초과분은 ``ollama rm``으로 제거됩니다."""
+
+    @model_validator(mode="after")
+    def _check_evolve_params(self) -> "EvolveConfig":
+        """진화 설정의 유효성을 검증합니다."""
+        valid_metrics = {"bleu", "rouge1", "rouge2", "rougeL"}
+        if self.gate_metric not in valid_metrics:
+            raise ValueError(
+                f"gate_metric({self.gate_metric})이 올바르지 않습니다. "
+                f"지원: {', '.join(sorted(valid_metrics))}"
+            )
+        if self.keep_previous_versions < 0:
+            raise ValueError(
+                f"keep_previous_versions({self.keep_previous_versions})는 "
+                "0 이상이어야 합니다"
+            )
+        return self
+
+
 class DashboardConfig(BaseModel):
     """TUI 대시보드 설정입니다."""
 
@@ -397,6 +440,7 @@ class SLMConfig(BaseModel):
     dialogue: DialogueConfig = Field(default_factory=DialogueConfig)
     review: ReviewConfig = Field(default_factory=ReviewConfig)
     compare: CompareConfig = Field(default_factory=CompareConfig)
+    evolve: EvolveConfig = Field(default_factory=EvolveConfig)
     dashboard: DashboardConfig = Field(default_factory=DashboardConfig)
 
     @model_validator(mode="before")

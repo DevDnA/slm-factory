@@ -703,6 +703,103 @@ GGUF 변환 완료! 파일: ./my-project/output/merged_model.gguf
 
 ---
 
+### `tool evolve`
+
+문서 변경을 감지하고 증분 처리한 뒤, 자동으로 재학습 및 배포하는 통합 명령어입니다. 품질 게이트를 통과한 경우에만 새 모델을 배포하며, 진화 히스토리를 기록합니다.
+
+**사용법**
+
+```
+slm-factory tool evolve [OPTIONS]
+```
+
+**옵션**
+
+| 플래그 | 단축키 | 타입 | 기본값 | 설명 |
+|--------|--------|------|--------|------|
+| `--config` | | `TEXT` | `project.yaml` | 프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다. |
+| `--force-update` | | `FLAG` | `False` | 변경 감지를 건너뛰고 모든 문서를 처리합니다. |
+| `--skip-gate` | | `FLAG` | `False` | 품질 게이트를 건너뛰고 무조건 배포합니다. |
+
+**5단계 진화 흐름**
+
+| # | 단계 | 설명 |
+|---|------|------|
+| 1 | 증분 업데이트 | 문서 변경을 감지하고 새 QA를 생성하여 기존 QA와 병합합니다 |
+| 2 | 검증/점수/증강 | 병합된 QA를 검증하고, 선택적으로 점수 평가 및 데이터 증강을 실행합니다 |
+| 3 | 학습/내보내기 | 전처리된 데이터로 LoRA 파인튜닝을 실행하고 모델을 병합합니다 |
+| 4 | 품질 게이트 | 새 모델을 이전 모델과 비교하여 개선 여부를 판단합니다 (설정 가능) |
+| 5 | 정리/완료 | 배포 성공 시 히스토리를 기록하고 이전 버전을 관리합니다 |
+
+**예시**
+
+```bash
+# 기본 진화 (변경 감지 + 품질 게이트 적용)
+slm-factory tool evolve --config my-project/project.yaml
+
+# 모든 문서 재처리 (변경 감지 건너뜀)
+slm-factory tool evolve --config my-project/project.yaml --force-update
+
+# 품질 게이트 건너뜀 (무조건 배포)
+slm-factory tool evolve --config my-project/project.yaml --skip-gate
+
+# 모든 옵션 적용
+slm-factory tool evolve --config my-project/project.yaml --force-update --skip-gate
+```
+
+**출력 예시 (성공)**
+
+```
+진화 시작: my-project
+
+[1/5] 증분 업데이트
+  변경 문서: 2개 감지
+  새 QA: 40개 생성
+  전체 QA: 190개 (전략: append)
+
+[2/5] 검증/점수/증강
+  검증: 190개 → 185개 (5개 거부)
+  점수 평가: 185개 → 175개 (10개 제거)
+  데이터 증강: 175개 → 525개
+
+[3/5] 학습/내보내기
+  학습 완료: 20 에포크 (early stopping)
+  모델 병합 완료
+
+[4/5] 품질 게이트
+  이전 모델: rougeL=0.45
+  새 모델: rougeL=0.48
+  개선율: +6.7% ✓ 통과
+
+[5/5] 정리/완료
+  배포 완료: v20250220
+  이전 버전 보관: v20250219, v20250218, v20250217
+  히스토리 저장: evolve_history.json
+
+진화 완료! 새 모델: my-project-model (v20250220)
+```
+
+**출력 예시 (품질 게이트 실패)**
+
+```
+[4/5] 품질 게이트
+  이전 모델: rougeL=0.45
+  새 모델: rougeL=0.44
+  개선율: -2.2% ✗ 실패
+
+배포 취소됨. 이전 모델 유지: my-project-model (v20250219)
+```
+
+**참고**
+
+- 진화 명령은 `tool update` + `run --until analyze` + `train` + `export` + `eval compare` + 버전 관리를 자동으로 수행합니다.
+- 품질 게이트 설정(`quality_gate`, `gate_metric`, `gate_min_improvement`)은 `project.yaml`의 `evolve` 섹션에서 설정합니다. [설정 레퍼런스](configuration.md)를 참조하십시오.
+- 진화 히스토리는 `evolve_history.json`에 기록되며, 각 진화 단계의 메트릭과 타임스탬프를 포함합니다.
+- `--force-update` 사용 시 모든 문서를 재처리하므로 처리 시간이 증가합니다.
+- `--skip-gate` 사용 시 품질 검증 없이 배포되므로 신중하게 사용하십시오.
+
+---
+
 ### `tool update`
 
 문서 디렉토리를 스캔하여 변경된 파일만 감지하고, 새 QA를 생성하여 기존 QA와 병합합니다. 문서를 추가하거나 수정했을 때 전체 파이프라인을 재실행하지 않고 증분 처리할 수 있습니다.

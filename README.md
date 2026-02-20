@@ -59,9 +59,7 @@ slm-factory tool wizard --config fault-response/project.yaml
 
 ```bash
 cp new-incident.pdf fault-response/documents/
-slm-factory tool update --config fault-response/project.yaml    # 증분 QA 생성+병합
-slm-factory train --resume --config fault-response/project.yaml # 재학습
-slm-factory export --config fault-response/project.yaml         # 재배포
+slm-factory tool evolve --config fault-response/project.yaml    # 단일 명령: 증분→학습→품질게이트→버전배포
 ```
 
 **외부 시스템 연동**
@@ -131,6 +129,7 @@ curl http://localhost:11434/api/generate -d '{
 - **원클릭 Ollama 배포** — Modelfile 자동 생성, 즉시 서비스
 - **GGUF 양자화** — llama.cpp 호환 형식 변환
 - **증분 학습** — 문서 추가 시 기존 QA 유지, 새 문서만 처리
+- **자동 진화** — 단일 명령으로 증분 업데이트 → 재학습 → 품질 게이트 → 버전된 모델 배포
 - **멀티턴 대화 생성** — QA 쌍을 다중 턴 대화로 확장
 - **QA 수동 리뷰 (TUI)** — 승인/거부/편집 인터페이스
 - **파이프라인 대시보드 (TUI)** — 실시간 진행 모니터링
@@ -229,6 +228,7 @@ ollama run my-project-model
                  eval compare --base-model --ft   Base vs Fine-tuned 비교
 
 도구             tool wizard              대화형 파이프라인 (권장)
+                 tool evolve              자동 진화 (증분→학습→품질게이트→배포)
                  tool review              QA 수동 리뷰 TUI
                  tool dashboard           대시보드 TUI
                  tool convert             QA → JSONL 변환

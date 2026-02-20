@@ -1457,6 +1457,214 @@ def export_gguf(
         raise typer.Exit(code=1)
 
 
+@tool_app.command(name="evolve")
+def evolve(
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
+    force_update: bool = typer.Option(
+        False, "--force-update", help="변경 감지를 무시하고 전체 문서를 재처리합니다",
+    ),
+    skip_gate: bool = typer.Option(
+        False, "--skip-gate", help="품질 게이트를 건너뛰고 무조건 배포합니다",
+    ),
+) -> None:
+    """증분 업데이트 → 재학습 → 품질 게이트 → 버전된 모델 배포를 단일 명령으로 실행합니다."""
+    from rich.panel import Panel
+
+    try:
+        from .evolve_history import EvolveHistory
+        from .incremental import IncrementalTracker
+
+        pipeline = _load_pipeline(config)
+        pipeline.config.paths.ensure_dirs()
+
+        history = EvolveHistory(pipeline.config)
+        tracker = IncrementalTracker(pipeline.config)
+
+        # ── 1. 증분 업데이트 ──────────────────────────────────────
+        console.print("\n[bold]━━━ [1/5] 증분 업데이트 ━━━[/bold]")
+
+        if force_update:
+            console.print("  [yellow]--force-update: 전체 문서 재처리[/yellow]")
+            docs = pipeline.step_parse()
+            pairs = pipeline.step_generate(docs)
+        else:
+            changed_files = tracker.get_changed_files(pipeline.config.paths.documents)
+            if not changed_files:
+                console.print("  변경된 문서가 없습니다")
+                console.print(
+                    "\n[dim]힌트: --force-update 옵션으로 전체 재처리할 수 있습니다[/dim]\n"
+                )
+                return
+
+            console.print(f"  {len(changed_files)}개 변경 문서 감지")
+            docs = pipeline.step_parse(files=changed_files)
+            pairs = pipeline.step_generate(docs)
+
+        existing_path = pipeline.output_dir / "qa_alpaca.json"
+        if existing_path.is_file():
+            existing_pairs = pipeline._load_pairs(existing_path)
+        else:
+            existing_pairs = []
+
+        strategy = pipeline.config.incremental.merge_strategy
+        merged = tracker.merge_qa_pairs(existing_pairs, pairs, strategy)
+        pipeline._save_pairs(merged, existing_path)
+        console.print(
+            f"  [green]✓[/green] 새 QA {len(pairs)}개, 전체 {len(merged)}개 (전략: {strategy})"
+        )
+
+        # ── 2. 검증 + 점수 + 증강 ────────────────────────────────
+        console.print("\n[bold]━━━ [2/5] 검증 · 점수 · 증강 ━━━[/bold]")
+        pairs = pipeline.step_validate(merged, docs=docs)
+        console.print(f"  [green]✓[/green] 검증: {len(pairs)}개 통과")
+
+        pairs = pipeline.step_score(pairs)
+        pairs = pipeline.step_augment(pairs)
+        pipeline.step_analyze(pairs)
+        console.print(f"  [green]✓[/green] 최종 학습 데이터: {len(pairs)}개")
+
+        # ── 3. 변환 + 학습 + 내보내기 ────────────────────────────
+        console.print("\n[bold]━━━ [3/5] 학습 · 내보내기 ━━━[/bold]")
+        training_data_path = pipeline.step_convert(pairs)
+        adapter_path = pipeline.step_train(training_data_path)
+
+        from .exporter import HFExporter
+
+        hf_exporter = HFExporter(pipeline.config)
+        model_dir = hf_exporter.export(adapter_path)
+        console.print(f"  [green]✓[/green] 모델 병합: {model_dir}")
+
+        # ── 4. 버전 생성 + 품질 게이트 ───────────────────────────
+        console.print("\n[bold]━━━ [4/5] 품질 게이트 ━━━[/bold]")
+        version = history.generate_version_name()
+        versioned_name = history.generate_model_name(version)
+        is_first = history.is_first_run()
+
+        if is_first or skip_gate:
+            reason = "첫 실행 (비교 대상 없음)" if is_first else "--skip-gate"
+            console.print(f"  [yellow]품질 게이트 건너뜀:[/yellow] {reason}")
+
+            if pipeline.config.export.ollama.enabled:
+                from .exporter import OllamaExporter
+
+                ollama_exporter = OllamaExporter(pipeline.config)
+                modelfile_path = ollama_exporter.generate_modelfile(model_dir)
+                success = ollama_exporter.create_model(
+                    modelfile_path, model_name_override=versioned_name,
+                )
+                if success:
+                    console.print(f"  [green]✓[/green] Ollama 모델 생성: {versioned_name}")
+                else:
+                    console.print(f"  [yellow]⚠[/yellow] Ollama 모델 생성 실패 (수동: ollama create {versioned_name} -f {modelfile_path})")
+
+            history.record_version(
+                version, versioned_name, qa_count=len(pairs), promoted=True,
+            )
+        else:
+            previous_name = history.get_current_model_name()
+            if previous_name is None:
+                console.print("  [yellow]이전 모델 정보 없음 — 무조건 배포[/yellow]")
+                gate_passed = True
+                gate_scores: dict[str, float] = {}
+            else:
+                console.print(
+                    f"  비교: {previous_name} vs {versioned_name}"
+                )
+
+                if pipeline.config.export.ollama.enabled:
+                    from .exporter import OllamaExporter
+
+                    ollama_exporter = OllamaExporter(pipeline.config)
+                    modelfile_path = ollama_exporter.generate_modelfile(model_dir)
+                    ollama_exporter.create_model(
+                        modelfile_path, model_name_override=versioned_name,
+                    )
+
+                pipeline.config.compare.enabled = True
+                pipeline.config.compare.base_model = previous_name
+                pipeline.config.compare.finetuned_model = versioned_name
+
+                try:
+                    compare_results = pipeline.step_compare(pairs)
+                    gate_passed, gate_scores = history.check_quality_gate(compare_results)
+                except Exception as e:
+                    console.print(f"  [yellow]⚠[/yellow] 품질 비교 실패: {e}")
+                    console.print("  [yellow]모델은 생성되었으나 품질 검증 미완료[/yellow]")
+                    history.record_version(
+                        version, versioned_name, qa_count=len(pairs), promoted=False,
+                    )
+                    console.print(
+                        Panel(
+                            f"[bold yellow]진화 부분 완료[/bold yellow]\n\n"
+                            f"  버전: [cyan]{version}[/cyan]\n"
+                            f"  모델: [cyan]{versioned_name}[/cyan]\n"
+                            f"  상태: 품질 검증 보류\n\n"
+                            f"Ollama 실행 후 수동 비교:\n"
+                            f"  [cyan]slm-factory eval compare --base-model {previous_name} --ft {versioned_name}[/cyan]",
+                            expand=False,
+                        )
+                    )
+                    return
+
+            if gate_passed:
+                improvement = gate_scores.get("improvement_pct", 0)
+                console.print(
+                    f"  [green]✓[/green] 품질 게이트 통과 ({improvement:+.1f}%)"
+                )
+                history.record_version(
+                    version, versioned_name, scores=gate_scores,
+                    qa_count=len(pairs), promoted=True,
+                )
+            else:
+                improvement = gate_scores.get("improvement_pct", 0)
+                console.print(
+                    f"  [red]✗[/red] 품질 게이트 실패 ({improvement:+.1f}%)"
+                )
+                history.record_version(
+                    version, versioned_name, scores=gate_scores,
+                    qa_count=len(pairs), promoted=False,
+                )
+                console.print(
+                    Panel(
+                        f"[bold red]진화 중단 — 품질 미달[/bold red]\n\n"
+                        f"  버전: [cyan]{version}[/cyan]\n"
+                        f"  모델: [cyan]{versioned_name}[/cyan] (미배포)\n"
+                        f"  메트릭: {pipeline.config.evolve.gate_metric}\n"
+                        f"  개선율: {improvement:+.1f}% "
+                        f"(최소 {pipeline.config.evolve.gate_min_improvement}% 필요)\n\n"
+                        f"현재 활성 모델: [green]{previous_name}[/green]",
+                        expand=False,
+                    )
+                )
+                return
+
+        # ── 5. 정리 + 완료 ───────────────────────────────────────
+        console.print("\n[bold]━━━ [5/5] 완료 ━━━[/bold]")
+        removed = history.cleanup_old_versions()
+        if removed:
+            console.print(f"  이전 버전 정리: {', '.join(removed)}")
+
+        console.print(
+            Panel(
+                f"[bold green]진화 완료![/bold green]\n\n"
+                f"  버전: [cyan]{version}[/cyan]\n"
+                f"  모델: [cyan]{versioned_name}[/cyan]\n"
+                f"  QA 쌍: [cyan]{len(pairs)}[/cyan]개\n"
+                f"  모델 경로: [cyan]{model_dir}[/cyan]\n\n"
+                f"모델 실행:\n"
+                f"  [cyan]ollama run {versioned_name}[/cyan]",
+                expand=False,
+            )
+        )
+
+    except FileNotFoundError as e:
+        _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
+        raise typer.Exit(code=1)
+    except Exception as e:
+        _print_error("진화 실패", e, hints=_get_error_hints(e))
+        raise typer.Exit(code=1)
+
+
 @tool_app.command(name="update")
 def update(
     config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
