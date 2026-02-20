@@ -21,6 +21,64 @@
 
 ---
 
+## 활용 예시: 자동 진화형 장애 대응 AI
+
+장애 매뉴얼과 사고 보고서를 넣으면 **자동으로 진화하는 장애 대응 AI**가 만들어집니다. 기존 모니터링·장애 예측 시스템과 결합하여, 장애 감지 즉시 대응 가이드를 추천하는 경량 AI를 구축할 수 있습니다. 새로운 장애 사례가 추가될 때마다 모델이 자동으로 학습하여 지속적으로 진화합니다.
+
+```
+장애 문서 (매뉴얼/사고 보고서/복구 절차서)
+  ▼
+┌────────────────────────────────────────────────────────┐
+  slm-factory 파이프라인
+  문서 파싱 → QA 생성 → 검증 → LoRA 학습 → Ollama 배포
+└──────────────────────────┬─────────────────────────────┘
+                           ▼
+              ┌──────────────────────────┐
+                장애 대응 특화 SLM 완성
+                Ollama API로 즉시 서빙
+              └──────────────────────────┘
+
+  새 장애 사례 추가 → tool update → 재학습 → 재배포 (진화 사이클 반복)
+```
+
+| 시점 | 투입 문서 | 모델이 학습한 지식 |
+|------|----------|------------------|
+| **초기 배포** | 장애 매뉴얼 10건 | DB, 네트워크, 서버 장애 대응 |
+| **1개월 후** | + 신규 사고 보고서 5건 | + K8s 장애, 메모리 릭 대응 추가 |
+| **3개월 후** | + 복구 절차서 8건 | + 클라우드 장애, 보안 사고 대응 추가 |
+
+**첫 모델 생성**
+
+```bash
+slm-factory init fault-response
+cp incident-reports/*.pdf fault-response/documents/
+slm-factory tool wizard --config fault-response/project.yaml
+```
+
+**모델 진화 — 새 장애 사례 추가 시**
+
+```bash
+cp new-incident.pdf fault-response/documents/
+slm-factory tool update --config fault-response/project.yaml    # 증분 QA 생성+병합
+slm-factory train --resume --config fault-response/project.yaml # 재학습
+slm-factory export --config fault-response/project.yaml         # 재배포
+```
+
+**외부 시스템 연동**
+
+```bash
+# 모니터링/장애 예측 시스템에서 Ollama API로 대응 가이드 즉시 요청
+curl http://localhost:11434/api/generate -d '{
+  "model": "fault-response-model",
+  "prompt": "DB 커넥션 풀 사용률 95% 초과, 응답 지연 급증. 대응 방안은?",
+  "stream": false
+}'
+```
+
+> 장애 대응 외에도 **사내 규정 Q&A**, **제품 기술 지원**, **의료 가이드라인**, **법률 자문** 등 도메인 문서가 축적되는 모든 분야에 동일하게 적용할 수 있습니다.
+
+---
+
 ## 파이프라인 개요
 
 ```
