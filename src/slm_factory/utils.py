@@ -72,15 +72,36 @@ async def ollama_generate(
     model_name: str,
     question: str,
     timeout: float,
+    *,
+    max_retries: int = 3,
 ) -> str:
-    """Ollama /api/generate 엔드포인트로 답변을 생성합니다."""
-    resp = await client.post(
-        f"{api_base}/api/generate",
-        json={"model": model_name, "prompt": question, "stream": False},
-        timeout=timeout,
-    )
-    resp.raise_for_status()
-    return resp.json().get("response", "")
+    """Ollama /api/generate 엔드포인트로 답변을 생성합니다.
+
+    일시적 오류(HTTP 5xx, 타임아웃, 연결 오류)에 대해
+    지수 백오프로 재시도합니다.
+    """
+    import asyncio as _asyncio
+
+    last_exc: Exception | None = None
+    for attempt in range(max_retries):
+        try:
+            resp = await client.post(
+                f"{api_base}/api/generate",
+                json={"model": model_name, "prompt": question, "stream": False},
+                timeout=timeout,
+            )
+            resp.raise_for_status()
+            return resp.json().get("response", "")
+        except Exception as exc:  # noqa: BLE001
+            last_exc = exc
+            if attempt < max_retries - 1:
+                wait = 2 ** attempt
+                get_logger("utils").debug(
+                    "ollama_generate 재시도 %d/%d (%s): %.1f초 대기",
+                    attempt + 1, max_retries, exc, wait,
+                )
+                await _asyncio.sleep(wait)
+    raise last_exc  # type: ignore[misc]
 
 
 def run_async(coro: Awaitable[T]) -> T:
