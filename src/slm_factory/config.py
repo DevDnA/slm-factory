@@ -107,6 +107,10 @@ class QuestionsConfig(BaseModel):
                     for line in path.read_text(encoding="utf-8").splitlines()
                     if line.strip()
                 ]
+            raise FileNotFoundError(
+                f"질문 파일을 찾을 수 없습니다: {path}. "
+                f"questions.file 경로를 확인하세요."
+            )
         return [q for questions in self.categories.values() for q in questions]
 
 
@@ -356,6 +360,14 @@ class CompareConfig(BaseModel):
             raise ValueError(
                 f"max_samples({self.max_samples})는 1 이상이어야 합니다"
             )
+        if self.enabled and not self.base_model:
+            raise ValueError(
+                "compare.enabled가 true일 때 base_model은 필수입니다"
+            )
+        if self.enabled and not self.finetuned_model:
+            raise ValueError(
+                "compare.enabled가 true일 때 finetuned_model은 필수입니다"
+            )
         return self
 
 
@@ -524,5 +536,10 @@ def create_default_config() -> str:
             "importlib.resources에서 템플릿 로드 실패: %s", e
         )
 
-    # 최후의 수단: 최소한의 내장 기본값 반환
-    return SLMConfig().model_dump_json(indent=2)
+    # 최후의 수단: 최소한의 내장 기본값 반환 (YAML 형식)
+    return yaml.dump(
+        SLMConfig().model_dump(),
+        default_flow_style=False,
+        allow_unicode=True,
+        sort_keys=False,
+    )
