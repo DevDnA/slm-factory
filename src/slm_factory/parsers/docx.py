@@ -74,10 +74,11 @@ class DOCXParser(BaseParser):
                 # 헤딩 스타일 처리
                 if para.style and hasattr(para.style, "name") and isinstance(para.style.name, str):
                     if para.style.name.startswith("Heading"):
-                        # Heading 1, Heading 2 등에서 숫자 추출
+                        # Heading 1, Heading 2, Heading 10 등에서 숫자 추출
                         level = 1
-                        if para.style.name[-1].isdigit():
-                            level = int(para.style.name[-1])
+                        level_part = para.style.name.replace("Heading", "").strip()
+                        if level_part.isdigit():
+                            level = max(1, min(int(level_part), 6))
                         paragraphs.append(f"{'#' * level} {text}")
                     else:
                         paragraphs.append(text)

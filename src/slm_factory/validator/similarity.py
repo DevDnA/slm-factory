@@ -46,16 +46,21 @@ class GroundednessChecker:
         logger.info("Loaded embedding model: %s", config.model)
     
     def _chunk_text(self, text: str, chunk_size: int = 512, overlap: int = 64) -> list[str]:
-        """임베딩 비교를 위해 텍스트를 겹치는 청크로 분할합니다.
-        
+        """임베딩 비교를 위해 텍스트를 격치는 청크로 분할합니다.
+
         매개변수:
             text: 원본 문서 텍스트.
             chunk_size: 청크당 문자 수.
-            overlap: 청크 간 문자 겹침.
-            
+            overlap: 청크 간 문자 격치.
+
         반환값:
             텍스트 청크 리스트.
         """
+        if not text:
+            return [text]
+        # overlap이 chunk_size 이상이면 무한루프 방지
+        if overlap >= chunk_size:
+            overlap = chunk_size // 4
         chunks = []
         start = 0
         while start < len(text):
