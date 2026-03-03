@@ -16,21 +16,29 @@ if TYPE_CHECKING:
     from .config import EvalConfig, SLMConfig
 
 from .models import EvalResult, QAPair
-from .utils import get_logger, ollama_generate, run_bounded
+from .utils import get_logger, ollama_generate, run_async, run_bounded
 
 logger = get_logger("evaluator")
 
 
-def _load_bleu():
-    import evaluate
+_bleu_metric = None
+_rouge_metric = None
 
-    return evaluate.load("bleu")
+
+def _load_bleu():
+    global _bleu_metric
+    if _bleu_metric is None:
+        import evaluate
+        _bleu_metric = evaluate.load("bleu")
+    return _bleu_metric
 
 
 def _load_rouge():
-    import evaluate
-
-    return evaluate.load("rouge")
+    global _rouge_metric
+    if _rouge_metric is None:
+        import evaluate
+        _rouge_metric = evaluate.load("rouge")
+    return _rouge_metric
 
 
 class ModelEvaluator:
@@ -124,7 +132,7 @@ class ModelEvaluator:
             return []
 
         samples = qa_pairs[: self.eval_config.max_samples]
-        return asyncio.run(self._evaluate_async(samples, model_name))
+        return run_async(self._evaluate_async(samples, model_name))
 
     def save_results(self, results: list[EvalResult], path: Path) -> None:
         """평가 결과를 JSON 파일로 저장합니다."""

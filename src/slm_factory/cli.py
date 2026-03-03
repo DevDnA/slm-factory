@@ -1308,14 +1308,14 @@ def wizard(
     console.print("  [dim]QA 쌍을 멀티턴 대화 형식으로 확장합니다. Ollama 실행 필요.[/dim]")
     if Confirm.ask("  멀티턴 대화를 생성하시겠습니까?", default=False):
         try:
-            import asyncio as _aio
+            from .utils import run_async
 
             from .teacher import create_teacher
             from .teacher.dialogue_generator import DialogueGenerator
 
             teacher = create_teacher(pipeline.config.teacher)
             gen = DialogueGenerator(teacher, pipeline.config.dialogue, pipeline.config.teacher)
-            dialogues = _aio.run(gen.generate_all(pairs))
+            dialogues = run_async(gen.generate_all(pairs))
             dialogue_path = pipeline.output_dir / "dialogues.json"
             gen.save_dialogues(dialogues, dialogue_path)
             console.print(f"  [green]✓[/green] {len(dialogues)}개 대화 생성 → [cyan]{dialogue_path}[/cyan]")
@@ -1509,6 +1509,7 @@ def evolve(
         strategy = pipeline.config.incremental.merge_strategy
         merged = tracker.merge_qa_pairs(existing_pairs, pairs, strategy)
         pipeline._save_pairs(merged, existing_path)
+        tracker.commit_hashes()  # 처리 성공 후 해시 확정
         console.print(
             f"  [green]✓[/green] 새 QA {len(pairs)}개, 전체 {len(merged)}개 (전략: {strategy})"
         )
@@ -1700,6 +1701,7 @@ def update(
         merged = tracker.merge_qa_pairs(existing_pairs, pairs, strategy)
 
         pipeline._save_pairs(merged, existing_path)
+        tracker.commit_hashes()  # 처리 성공 후 해시 확정
 
         console.print(
             f"\n[bold green]증분 업데이트 완료![/bold green] "
@@ -1726,7 +1728,7 @@ def generate_dialogue(
 ) -> None:
     """QA 쌍에서 멀티턴 대화 데이터를 생성합니다."""
     try:
-        import asyncio
+        from .utils import run_async
 
         pipeline = _load_pipeline(config)
         pipeline.config.paths.ensure_dirs()
@@ -1740,7 +1742,7 @@ def generate_dialogue(
         generator = DialogueGenerator(
             teacher, pipeline.config.dialogue, pipeline.config.teacher
         )
-        dialogues = asyncio.run(generator.generate_all(pairs))
+        dialogues = run_async(generator.generate_all(pairs))
 
         dialogue_path = pipeline.output_dir / "dialogues.json"
         generator.save_dialogues(dialogues, dialogue_path)

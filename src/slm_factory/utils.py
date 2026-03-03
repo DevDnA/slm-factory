@@ -81,3 +81,31 @@ async def ollama_generate(
     )
     resp.raise_for_status()
     return resp.json().get("response", "")
+
+
+def run_async(coro: Awaitable[T]) -> T:
+    """이벤트 루프 유무에 관계없이 코루틴을 실행합니다.
+
+    일반 환경에서는 ``asyncio.run()``을 사용하고,
+    Jupyter 등 이미 이벤트 루프가 실행 중인 환경에서는
+    ``nest_asyncio``를 적용하여 중첩 실행을 허용합니다.
+    """
+    import asyncio
+
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        # 실행 중인 루프 없음 — 일반적인 경우
+        return asyncio.run(coro)
+
+    # 이미 이벤트 루프가 실행 중 (Jupyter 등)
+    try:
+        import nest_asyncio
+        nest_asyncio.apply()
+        return asyncio.run(coro)
+    except ImportError:
+        raise RuntimeError(
+            "이미 실행 중인 이벤트 루프에서 호출되었습니다. "
+            "Jupyter 등에서 사용하려면 nest_asyncio를 설치하세요: "
+            "pip install nest_asyncio"
+        )

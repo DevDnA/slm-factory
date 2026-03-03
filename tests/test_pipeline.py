@@ -120,7 +120,7 @@ class TestStepGenerate:
         mock_generator.generate_all_async = MagicMock(return_value=[expected_pair])
 
         # asyncio.run을 mock하여 코루틴 실행 없이 결과 반환
-        mocker.patch("slm_factory.pipeline.asyncio.run", return_value=[expected_pair])
+        mocker.patch("slm_factory.pipeline.run_async", return_value=[expected_pair])
 
         pairs = pipeline.step_generate([mock_doc])
 
@@ -557,7 +557,7 @@ class TestStepDialogue:
             "slm_factory.teacher.dialogue_generator.DialogueGenerator"
         )
         mock_generator = mock_generator_cls.return_value
-        mocker.patch("slm_factory.pipeline.asyncio.run", return_value=mock_dialogues)
+        mocker.patch("slm_factory.pipeline.run_async", return_value=mock_dialogues)
         mock_generator.save_dialogues = MagicMock()
 
         result = pipeline.step_dialogue(pairs)
@@ -582,7 +582,7 @@ class TestStepDialogue:
             "slm_factory.teacher.dialogue_generator.DialogueGenerator"
         )
         mock_generator = mock_generator_cls.return_value
-        mocker.patch("slm_factory.pipeline.asyncio.run", return_value=mock_dialogues)
+        mocker.patch("slm_factory.pipeline.run_async", return_value=mock_dialogues)
         mock_generator.save_dialogues = MagicMock()
 
         pipeline.step_dialogue(pairs)

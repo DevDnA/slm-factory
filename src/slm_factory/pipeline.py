@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 import time
 from dataclasses import asdict
@@ -16,7 +15,7 @@ if TYPE_CHECKING:
     from .config import SLMConfig
     from .models import CompareResult, EvalResult, MultiTurnDialogue, ParsedDocument, QAPair
 
-from .utils import get_logger
+from .utils import get_logger, run_async
 
 logger = get_logger("pipeline")
 
@@ -135,7 +134,7 @@ class Pipeline:
         logger.info("Generating QA pairs from %d documents...", len(docs))
 
         generator = QAGenerator(self.config)
-        pairs = asyncio.run(generator.generate_all_async(docs))
+        pairs = run_async(generator.generate_all_async(docs))
 
         # 중간 출력을 위해 Alpaca JSON 저장
         alpaca_path = self.output_dir / "qa_alpaca.json"
@@ -234,7 +233,7 @@ class Pipeline:
 
         teacher = create_teacher(self.config.teacher)
         scorer = QualityScorer(teacher, self.config.scoring, self.config.teacher)
-        accepted, filtered = asyncio.run(scorer.score_all(pairs))
+        accepted, filtered = run_async(scorer.score_all(pairs))
 
         scored_path = self.output_dir / "qa_scored.json"
         self._save_pairs(accepted, scored_path)
@@ -272,7 +271,7 @@ class Pipeline:
 
         teacher = create_teacher(self.config.teacher)
         augmenter = DataAugmenter(teacher, self.config.augment, self.config.teacher)
-        augmented = asyncio.run(augmenter.augment_all(pairs))
+        augmented = run_async(augmenter.augment_all(pairs))
 
         augmented_path = self.output_dir / "qa_augmented.json"
         self._save_pairs(augmented, augmented_path)
@@ -504,7 +503,7 @@ class Pipeline:
 
         teacher = create_teacher(self.config.teacher)
         generator = DialogueGenerator(teacher, self.config.dialogue, self.config.teacher)
-        dialogues = asyncio.run(generator.generate_all(pairs))
+        dialogues = run_async(generator.generate_all(pairs))
 
         dialogue_path = self.output_dir / "dialogues.json"
         generator.save_dialogues(dialogues, dialogue_path)

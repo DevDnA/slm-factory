@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 from .evaluator import _load_bleu, _load_rouge
 from .models import CompareResult, QAPair
-from .utils import get_logger, ollama_generate, run_bounded
+from .utils import get_logger, ollama_generate, run_async, run_bounded
 
 logger = get_logger("comparator")
 
@@ -130,7 +130,7 @@ class ModelComparator:
             return []
 
         samples = qa_pairs[: self.compare_config.max_samples]
-        return asyncio.run(self._compare_async(samples))
+        return run_async(self._compare_async(samples))
 
     def save_results(self, results: list[CompareResult], path: Path) -> None:
         """비교 결과를 JSON 파일로 저장합니다."""

@@ -249,6 +249,8 @@ class QAGenerator:
     ) -> list[QAPair]:
         """여러 문서에 대한 QA 쌍을 생성합니다.
         
+        내부적으로 generate_all_async()를 사용하여 동시 요청으로 성능을 향상합니다.
+        
         Args:
             docs: 파싱된 문서 목록
             questions: 선택적 질문 목록(기본값: config.questions.get_all_questions())
@@ -256,14 +258,8 @@ class QAGenerator:
         Returns:
             생성된 모든 QAPair 객체의 평탄화된 목록
         """
-        all_pairs: list[QAPair] = []
-        
-        for doc in docs:
-            pairs = self.generate_for_document(doc, questions=questions)
-            all_pairs.extend(pairs)
-        
-        logger.info("Generated %d QA pairs from %d documents", len(all_pairs), len(docs))
-        return all_pairs
+        from ..utils import run_async
+        return run_async(self.generate_all_async(docs, questions=questions))
     
     # ------------------------------------------------------------------
     # 비동기 생성(세마포어를 사용한 동시 요청)
