@@ -132,7 +132,8 @@ class SLMConfig(BaseModel):
     export: ExportConfig;        eval: EvalConfig
     gguf_export: GGUFExportConfig; incremental: IncrementalConfig
     dialogue: DialogueConfig;    review: ReviewConfig
-    compare: CompareConfig;      dashboard: DashboardConfig
+    compare: CompareConfig;      evolve: EvolveConfig
+    dashboard: DashboardConfig
 ```
 
 각 서브 모델의 필드 상세는 [configuration.md](configuration.md)를 참조하십시오.
@@ -224,8 +225,9 @@ def compute_file_hash(path: str | Path, algorithm: str = "sha256") -> str: ...
     # 파일의 해시값을 계산합니다.
 async def run_bounded(semaphore, coro, progress, task_id) -> T: ...
     # 세마포어 제한 하에 코루틴을 실행하고 진행률을 갱신합니다.
-async def ollama_generate(client, api_base, model_name, question, timeout) -> str: ...
+async def ollama_generate(client, api_base, model_name, question, timeout, *, max_retries=3) -> str: ...
     # Ollama /api/generate 엔드포인트로 답변을 생성합니다.
+    # 일시적 오류(HTTP 5xx, 타임아웃, 연결 오류)에 대해 지수 백오프로 재시도합니다.
 ```
 
 ---

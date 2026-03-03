@@ -112,11 +112,11 @@ cli.py
         │
         ├─→ evaluator.py (ModelEvaluator)
         ├─→ comparator.py (ModelComparator)
-        ├─→ incremental.py (IncrementalManager)
+        ├─→ incremental.py (IncrementalTracker)
         └─→ tui/ (QAReviewerApp, PipelineDashboard)
 
 모든 모듈
-  ├─→ config.py (SLMConfig + 26개 하위 모델)
+  ├─→ config.py (SLMConfig + 20개 하위 모델)
   ├─→ models.py (ParsedDocument, QAPair, EvalResult, DialogueTurn, MultiTurnDialogue, CompareResult)
   └─→ utils.py (setup_logging, get_logger)
 ```
@@ -413,6 +413,14 @@ SLMConfig (root)
 │   ├── max_samples: int = 20
 │   └── output_file: str = "compare_results.json"
 │
+├── evolve: EvolveConfig
+│   ├── quality_gate: bool = True
+│   ├── gate_metric: str = "rougeL"
+│   ├── gate_min_improvement: float = 0.0
+│   ├── version_format: str = "date"
+│   ├── history_file: str = "evolve_history.json"
+│   └── keep_previous_versions: int = 3
+│
 └── dashboard: DashboardConfig
     ├── enabled: bool = False
     ├── refresh_interval: float = 2.0
@@ -478,7 +486,7 @@ def _strip_none_sections(cls, values: dict) -> dict:
 2. importlib.resources로 설치된 wheel에서 읽기 시도
         │ 실패 시
         ▼
-3. SLMConfig().model_dump_json(indent=2) — 최소 기본값 반환
+3. yaml.dump(SLMConfig().model_dump(), ...) — 최소 기본값을 YAML 형식으로 반환
 ```
 
 개발 환경(편집 가능 설치)과 배포된 wheel 모두에서 동일하게 동작합니다.
@@ -494,7 +502,7 @@ def _strip_none_sections(cls, values: dict) -> dict:
 | CLI | `FileNotFoundError`, `ValidationError`, 기타 | Rich 포맷 에러 출력 + `typer.Exit(1)` | 명확한 에러 메시지, 비정상 종료 |
 | Pipeline | 모든 예외 | `logger.exception()` 후 예외 전파 | 단계 실패 시 파이프라인 중단 |
 | Parser | 개별 파일 파싱 예외 | `logger.exception()` 후 해당 파일 건너뜀 | 나머지 파일 계속 처리 |
-| Teacher | `httpx.TimeoutException`, `ConnectError`, `HTTPStatusError` | 분류된 `RuntimeError`로 변환 | 명확한 연결/타임아웃 안내 |
+| Teacher | `httpx.TimeoutException`, `ConnectError`, `HTTPStatusError` | 분류된 `RuntimeError`로 변환, 지수 백오프 재시도 (3회) | 명확한 연결/타임아웃 안내 |
 | Validator | 규칙 위반 | `ValidationResult.reasons` 리스트에 기록 | 거부 사유 추적 가능 |
 | Trainer | `RuntimeError` (CUDA OOM 등) | OOM 감지 시 권장 사항 출력 후 재발생 | 배치 크기/양자화 조정 안내 |
 
@@ -506,7 +514,12 @@ def _strip_none_sections(cls, values: dict) -> dict:
 | QA 생성 JSON 파싱 실패 | 원본 응답 로그 출력 후 건너뜀 | `QAGenerator.parse_response()` |
 | 시스템 역할 미지원 모델 | 시스템 메시지 제거 후 재시도 | `ChatFormatter.format_one()` |
 | Teacher 타임아웃 | 설정 값 증가 권장 메시지 출력 후 실패 | `BaseTeacher.generate()` |
+| Ollama 응답 실패 | 지수 백오프로 최대 3회 재시도 후 최종 예외 발생 | `ollama_generate()` |
 | CUDA OOM | 배치 크기/양자화 권장 후 예외 재발생 | `LoRATrainer.train()` |
+| QA 생성 결과 0건 | `RuntimeError` 발생하여 파이프라인 중단 | `Pipeline.step_generate()` |
+| 변환 결과 빈 배치 | `RuntimeError` 발생하여 파이프라인 중단 | `ChatFormatter.format_batch()` |
+| JSON 파일 손상 | 빈 기본값으로 복구 후 로그 출력 | `EvolveHistory`, `IncrementalTracker` |
+| 진화 품질 게이트 실패 | 생성된 Ollama 모델 자동 삭제 후 이전 모델 유지 | `cli.py` evolve 명령 |
 | 설정 파일 없음 | 기본 설정 생성 제안 (`slm-factory init`) | `cli.py` |
 | 파이프라인 중단 | `--resume`으로 중간 파일에서 재개 | `cli.py` + 중간 파일 체인 |
 

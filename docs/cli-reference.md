@@ -43,6 +43,7 @@ slm-factory [전역 옵션] <명령어> [옵션]
 | `tool dialogue` | 🔧 도구 | QA 쌍을 멀티턴 대화 데이터로 확장합니다 |
 | `tool gguf` | 🔧 도구 | 병합된 모델을 GGUF 양자화 형식으로 변환합니다 |
 | `tool update` | 🔧 도구 | 변경된 문서만 감지하여 증분 처리합니다 |
+| `tool evolve` | 🔧 도구 | 자동 진화 (증분→학습→품질게이트→배포) |
 | `status` | ℹ️ 정보 | 각 파이프라인 단계의 진행 상태를 표시합니다 |
 | `clean` | ℹ️ 정보 | 중간 생성 파일을 정리합니다 |
 | `version` | ℹ️ 정보 | slm-factory 버전을 출력합니다 |
@@ -797,6 +798,7 @@ slm-factory tool evolve --config my-project/project.yaml --force-update --skip-g
 - 진화 히스토리는 `evolve_history.json`에 기록되며, 각 진화 단계의 메트릭과 타임스탬프를 포함합니다.
 - `--force-update` 사용 시 모든 문서를 재처리하므로 처리 시간이 증가합니다.
 - `--skip-gate` 사용 시 품질 검증 없이 배포되므로 신중하게 사용하십시오.
+- 품질 게이트 실패 시 새로 생성된 Ollama 모델은 자동으로 삭제(`ollama rm`)되며 이전 모델이 유지됩니다.
 
 ---
 

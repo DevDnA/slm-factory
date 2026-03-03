@@ -78,6 +78,7 @@ slm-factory tool wizard --config my-project/project.yaml
 | `slm-factory tool wizard` | 대화형 파이프라인 (권장) | `--config`, `--resume` / `-r` |
 | `slm-factory tool review` | QA 수동 리뷰 TUI | `--config`, `--data` |
 | `slm-factory tool dashboard` | 파이프라인 대시보드 TUI | `--config` |
+| `slm-factory tool evolve` | 자동 진화 (증분→학습→품질게이트→배포) | `--config`, `--force-update`, `--skip-gate` |
 | `slm-factory tool convert` | QA → JSONL 변환 | `--config`, `--data` |
 | `slm-factory tool dialogue` | 멀티턴 대화 생성 | `--config`, `--data` |
 | `slm-factory tool gguf` | GGUF 양자화 변환 | `--config`, `--model-dir` |

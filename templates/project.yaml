@@ -199,6 +199,7 @@ training:
 #   metrics: ["bleu", "rouge"]          # 비교에 사용할 메트릭
 #   max_samples: 20                     # 비교할 최대 질문 수
 #   output_file: "compare_results.json" # 비교 결과 저장 파일
+#   # 주의: enabled: true 시 base_model과 finetuned_model은 필수입니다
 
 # -- 자동 진화(Evolution) ---------------------------------------------------
 # evolve:

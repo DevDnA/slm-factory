@@ -173,6 +173,8 @@ teacher:
 | `system_prompt` | `str` | (하위 참조) | Teacher 모델에게 전달되는 시스템 프롬프트. 답변 스타일과 제약 조건을 정의합니다 |
 | `output_format` | `str` | `"alpaca"` | QA 데이터셋 출력 형식. 현재는 `"alpaca"` 형식만 지원합니다 |
 
+**제약조건**: `file` 경로가 설정되어 있지만 해당 파일이 존재하지 않으면 `FileNotFoundError`가 발생합니다.
+
 기본 시스템 프롬프트:
 
 ```
@@ -513,7 +515,9 @@ eval:
 | `max_samples` | `int` | `20` | 비교에 사용할 최대 샘플 수 |
 | `output_file` | `str` | `"compare_results.json"` | 비교 결과 JSON 파일명. `paths.output` 디렉토리에 저장됩니다 |
 
-**제약조건**: `max_samples`는 1 이상이어야 합니다. 0 이하로 설정하면 설정 로드 시 오류가 발생합니다.
+**제약조건**:
+- `max_samples`는 1 이상이어야 합니다. 0 이하로 설정하면 설정 로드 시 오류가 발생합니다.
+- `enabled`가 `true`일 때 `base_model`과 `finetuned_model`은 반드시 비어있지 않은 값으로 설정해야 합니다. 비어있으면 설정 로드 시 `ValidationError`가 발생합니다.
 
 ```yaml
 compare:
@@ -527,7 +531,35 @@ compare:
 
 ---
 
-## 16. gguf_export — GGUF 변환 설정
+## 16. evolve — 자동 진화 설정
+
+> 증분 업데이트 → 전체 재학습 → 품질 게이트 → 조건부 배포를 단일 명령으로 실행합니다.
+
+| 필드 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `quality_gate` | `bool` | `true` | 품질 게이트 활성화 여부. `true`이면 이전 모델보다 나은 경우에만 배포합니다 |
+| `gate_metric` | `str` | `"rougeL"` | 품질 비교에 사용할 메트릭. `bleu`, `rouge1`, `rouge2`, `rougeL` 중 선택 |
+| `gate_min_improvement` | `float` | `0.0` | 최소 개선율(%). `0`이면 어떤 개선이든 통과합니다 |
+| `version_format` | `str` | `"date"` | 버전 형식. 현재 `"date"` (`vYYYYMMDD`) 형식만 지원합니다 |
+| `history_file` | `str` | `"evolve_history.json"` | 진화 히스토리 파일명. `paths.output` 디렉토리에 저장됩니다 |
+| `keep_previous_versions` | `int` | `3` | 보관할 이전 버전 수. 초과분은 `ollama rm`으로 자동 제거됩니다 |
+
+**제약조건**:
+- `gate_metric`은 `bleu`, `rouge1`, `rouge2`, `rougeL` 중 하나여야 합니다. 다른 값을 설정하면 `ValidationError`가 발생합니다.
+- `keep_previous_versions`는 0 이상이어야 합니다.
+
+```yaml
+evolve:
+  quality_gate: true
+  gate_metric: "rougeL"
+  gate_min_improvement: 0.0
+  version_format: "date"
+  history_file: "evolve_history.json"
+  keep_previous_versions: 3
+```
+---
+
+## 17. gguf_export — GGUF 변환 설정
 
 > 병합된 모델을 llama.cpp 호환 GGUF 양자화 형식으로 변환합니다.
 
@@ -546,7 +578,7 @@ gguf_export:
 
 ---
 
-## 17. incremental — 증분 학습 설정
+## 18. incremental — 증분 학습 설정
 
 > 문서 추가 시 기존 QA를 유지하면서 새 문서만 처리합니다. 해시 기반으로 변경을 감지합니다.
 
@@ -567,7 +599,7 @@ incremental:
 
 ---
 
-## 18. dialogue — 멀티턴 대화 설정
+## 19. dialogue — 멀티턴 대화 설정
 
 > QA 쌍을 멀티턴 대화 형식으로 확장합니다.
 
@@ -590,7 +622,7 @@ dialogue:
 
 ---
 
-## 19. review — QA 리뷰 설정
+## 20. review — QA 리뷰 설정
 
 > TUI에서 QA 쌍을 수동으로 검토하고 승인/거부/편집합니다.
 
@@ -609,7 +641,7 @@ review:
 
 ---
 
-## 20. dashboard — 대시보드 설정
+## 21. dashboard — 대시보드 설정
 
 > 파이프라인 진행 상태를 실시간 TUI로 모니터링합니다.
 
@@ -628,7 +660,7 @@ dashboard:
 
 ---
 
-## 21. 설정 레시피
+## 22. 설정 레시피
 
 자주 사용되는 설정 패턴을 레시피 형태로 제공합니다. 각 레시피는 특정 상황에 맞게 최소한의 필드만 변경합니다.
 
@@ -740,7 +772,7 @@ teacher:
 
 ---
 
-## 22. 전체 설정 예시 (한국어 정책 문서 프로젝트)
+## 23. 전체 설정 예시 (한국어 정책 문서 프로젝트)
 
 한국어 회사 정책 문서를 처리하는 완전한 `project.yaml` 예시입니다.
 
@@ -920,7 +952,7 @@ dashboard:
 
 ---
 
-## 23. 설정 검증 (slm-factory check)
+## 24. 설정 검증 (slm-factory check)
 
 설정 파일이 올바른지 확인하려면 `check` 명령을 사용합니다:
 
