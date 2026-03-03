@@ -237,6 +237,26 @@ def _load_pipeline(config_path: str) -> Pipeline:
     return Pipeline(config)
 
 
+def _try_load_parsed_docs(pipeline: Pipeline) -> list | None:
+    """parsed_documents.json이 존재하면 ParsedDocument 리스트를 반환합니다.
+
+    Resume 시 groundedness 검증을 위해 파싱된 문서를 재로드합니다.
+    파일이 없으면 None을 반환하며, step_validate는 docs=None을 정상 처리합니다.
+    """
+    from .models import ParsedDocument
+
+    parsed_path = pipeline.output_dir / "parsed_documents.json"
+    if not parsed_path.is_file():
+        return None
+    try:
+        raw = json.loads(parsed_path.read_text(encoding="utf-8"))
+        return [ParsedDocument(**item) for item in raw]
+    except (json.JSONDecodeError, TypeError, KeyError):
+        import logging
+        logging.getLogger("slm_factory.cli").warning("파싱된 문서 파일 로드 실패: %s", parsed_path)
+        return None
+
+
 def _find_resume_point(pipeline: Pipeline) -> tuple[str, list]:
     """중간 저장 파일에서 가장 최근의 재개 지점을 탐색합니다."""
     from .models import ParsedDocument, QAPair
@@ -467,7 +487,9 @@ def run(
                     pairs = pipeline.step_score(pairs)
                     pairs = pipeline.step_augment(pairs)
                 elif step == "validate":
-                    pairs = pipeline.step_validate(data)
+                    # groundedness 검증을 위해 파싱된 문서 로드 시도
+                    docs = _try_load_parsed_docs(pipeline)
+                    pairs = pipeline.step_validate(data, docs=docs)
                     pairs = pipeline.step_score(pairs)
                     pairs = pipeline.step_augment(pairs)
                 elif step == "augment":
@@ -521,7 +543,8 @@ def train(
                 pairs = pipeline.step_score(pairs)
                 pairs = pipeline.step_augment(pairs)
             elif step == "validate":
-                pairs = pipeline.step_validate(loaded)
+                docs = _try_load_parsed_docs(pipeline)
+                pairs = pipeline.step_validate(loaded, docs=docs)
                 pairs = pipeline.step_score(pairs)
                 pairs = pipeline.step_augment(pairs)
             elif step == "augment":
@@ -1625,6 +1648,8 @@ def evolve(
                     version, versioned_name, scores=gate_scores,
                     qa_count=len(pairs), promoted=False,
                 )
+                # 품질 게이트 실패 시 생성된 Ollama 모델 정리
+                EvolveHistory._ollama_rm(versioned_name)
                 console.print(
                     Panel(
                         f"[bold red]진화 중단 — 품질 미달[/bold red]\n\n"
