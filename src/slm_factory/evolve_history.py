@@ -30,7 +30,14 @@ class EvolveHistory:
     def load(self) -> dict[str, Any]:
         if not self.history_path.is_file():
             return {"versions": [], "current": None}
-        return json.loads(self.history_path.read_text(encoding="utf-8"))
+        try:
+            return json.loads(self.history_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, ValueError):
+            logger.warning(
+                "진화 히스토리 파일이 손상되어 초기화합니다: %s",
+                self.history_path,
+            )
+            return {"versions": [], "current": None}
 
     def save(self, data: dict[str, Any]) -> None:
         self.history_path.parent.mkdir(parents=True, exist_ok=True)
@@ -177,6 +184,21 @@ class EvolveHistory:
                 v for v in versions
                 if v.get("version") not in removed_versions
             ]
+
+        # 비승격 버전(품질 게이트 실패)도 히스토리에서 정리
+        non_promoted = [
+            v for v in history.get("versions", [])
+            if not v.get("promoted") and v.get("version") != current
+        ]
+        if non_promoted:
+            non_promoted_versions = {v.get("version") for v in non_promoted}
+            history["versions"] = [
+                v for v in history.get("versions", [])
+                if v.get("version") not in non_promoted_versions
+            ]
+            removed_versions.update(non_promoted_versions)
+
+        if removed_versions:
             self.save(history)
 
         return removed_names

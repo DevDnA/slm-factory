@@ -46,7 +46,14 @@ class IncrementalTracker:
         path = Path(hash_file)
         if not path.is_file():
             return {}
-        return json.loads(path.read_text(encoding="utf-8"))
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, ValueError):
+            logger.warning(
+                "해시 파일이 손상되어 초기화합니다 (전체 문서 재처리 필요): %s",
+                path,
+            )
+            return {}
 
     def save_hashes(self, hashes: dict[str, str], hash_file: Path) -> None:
         """해시를 JSON 파일로 저장합니다."""
@@ -80,17 +87,23 @@ class IncrementalTracker:
         new_pairs: list[QAPair],
         strategy: str,
     ) -> list[QAPair]:
-        """기존 QA 쌍과 새 QA 쌍을 병합합니다."""
+        """기존 QA 쌍과 새 QA 쌍을 병합합니다.
+
+        append 전략에서는 새 쌍을 우선하여 업데이트된 답변이 반영되도록 합니다.
+        중복 판단 키는 (question, source_doc) 조합입니다.
+        """
         if strategy == "replace":
             merged = list(new_pairs)
         else:
-            merged = list(existing) + list(new_pairs)
+            # 새 쌍을 먼저 배치하여 업데이트 우선
+            merged = list(new_pairs) + list(existing)
 
-        seen: set[str] = set()
+        seen: set[tuple[str, str]] = set()
         deduped: list[QAPair] = []
         for pair in merged:
-            if pair.question not in seen:
-                seen.add(pair.question)
+            key = (pair.question, pair.source_doc)
+            if key not in seen:
+                seen.add(key)
                 deduped.append(pair)
 
         return deduped
