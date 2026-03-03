@@ -118,8 +118,11 @@ class GroundednessChecker:
         반환값:
             (근거있는_쌍, 근거없는_쌍_및_점수) 튜플.
         """
+        from sentence_transformers import util as st_util
+
         grounded = []
         ungrounded = []
+        chunk_cache: dict[str, object] = {}  # source_doc → chunk_embeddings 텐서
         
         for pair in pairs:
             source = source_texts.get(pair.source_doc, "")
@@ -128,11 +131,22 @@ class GroundednessChecker:
                 grounded.append(pair)
                 continue
             
-            is_ok, sim = self.check(pair, source)
-            if is_ok:
+            # 청크 임베딩 캐시 — 동일 문서의 청크는 한 번만 인코딩
+            if pair.source_doc not in chunk_cache:
+                chunks = self._chunk_text(source)
+                chunk_cache[pair.source_doc] = self._model.encode(chunks, convert_to_tensor=True)
+            
+            answer_emb = self._model.encode(pair.answer, convert_to_tensor=True)
+            sim = float(st_util.cos_sim(answer_emb, chunk_cache[pair.source_doc]).max())
+            
+            if sim >= self.threshold:
                 grounded.append(pair)
             else:
                 ungrounded.append((pair, sim))
+                logger.warning(
+                    f"Low groundedness ({sim:.3f} < {self.threshold}): "
+                    f"Q: {pair.question[:80]}..."
+                )
         
         logger.info(
             f"Groundedness check: {len(grounded)}/{len(pairs)} grounded, "

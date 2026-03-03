@@ -137,12 +137,13 @@ class TestFormatBatch:
     def test_정상_쌍과_초과_쌍_필터링(self, make_config, make_qa_pair):
         """max_seq_length를 초과하는 쌍이 필터링되는지 확인합니다."""
         formatter, mock_tok = _make_formatter(make_config)
-        # max_seq_length=512, 토큰 수는 encode 결과의 길이
+        # max_seq_length=512, 토큰 수는 batch encode 결과의 길이
         # 정상 쌍: 3 토큰, 초과 쌍: 1000 토큰
         short_tokens = list(range(3))
         long_tokens = list(range(1000))
         mock_tok.apply_chat_template.return_value = "<formatted>"
-        mock_tok.encode.side_effect = [short_tokens, long_tokens, short_tokens]
+        # format_batch는 self.tokenizer(texts, ...) 배치 호출을 사용
+        mock_tok.return_value = {"input_ids": [short_tokens, long_tokens, short_tokens]}
 
         pairs = [
             make_qa_pair(question="짧은 질문1"),
@@ -154,7 +155,6 @@ class TestFormatBatch:
 
         # 1000 토큰 쌍은 512 초과이므로 필터링
         assert len(results) == 2
-
 
 # ---------------------------------------------------------------------------
 # save_training_data
@@ -168,7 +168,8 @@ class TestSaveTrainingData:
         """JSONL 파일이 올바르게 생성되고 내용이 정확한지 확인합니다."""
         formatter, mock_tok = _make_formatter(make_config)
         mock_tok.apply_chat_template.return_value = "<formatted>"
-        mock_tok.encode.return_value = [1, 2, 3]
+        # format_batch는 self.tokenizer(texts, ...) 배치 호출을 사용
+        mock_tok.return_value = {"input_ids": [[1, 2, 3], [1, 2, 3]]}
 
         pairs = [make_qa_pair(question="Q1"), make_qa_pair(question="Q2")]
         output_path = tmp_path / "train.jsonl"
@@ -182,7 +183,6 @@ class TestSaveTrainingData:
             data = json.loads(line)
             assert "text" in data
 
-
 # ---------------------------------------------------------------------------
 # format_from_alpaca_file
 # ---------------------------------------------------------------------------
@@ -195,7 +195,8 @@ class TestFormatFromAlpacaFile:
         """Alpaca JSON 파일을 JSONL로 올바르게 변환하는지 확인합니다."""
         formatter, mock_tok = _make_formatter(make_config)
         mock_tok.apply_chat_template.return_value = "<formatted>"
-        mock_tok.encode.return_value = [1, 2, 3]
+        # format_batch는 self.tokenizer(texts, ...) 배치 호출을 사용
+        mock_tok.return_value = {"input_ids": [[1, 2, 3], [1, 2, 3]]}
 
         # Alpaca 형식 입력 파일 생성
         alpaca_data = [

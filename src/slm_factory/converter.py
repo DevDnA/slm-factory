@@ -123,6 +123,8 @@ class ChatFormatter:
             TimeRemainingColumn(),
         )
         
+        # Phase 1: 모든 쌍을 형식화 (진행률 표시)
+        valid_texts: list[str] = []
         with progress:
             task_id = progress.add_task("훈련 데이터 변환 중...", total=len(pairs))
             
@@ -131,25 +133,25 @@ class ChatFormatter:
                 
                 if formatted_text is None:
                     skipped += 1
-                    progress.advance(task_id)
-                    continue
-                
-                # 토큰 개수를 세어 max_seq_length 확인
-                tokens = self.tokenizer.encode(formatted_text)
-                token_count = len(tokens)
-                
-                if token_count > self.max_seq_length:
+                else:
+                    valid_texts.append(formatted_text)
+                progress.advance(task_id)
+        
+        # Phase 2: 배치 토큰 수 검사
+        if valid_texts:
+            batch_encoded = self.tokenizer(
+                valid_texts, padding=False, truncation=False, return_attention_mask=False,
+            )
+            for text, token_ids in zip(valid_texts, batch_encoded["input_ids"]):
+                if len(token_ids) > self.max_seq_length:
                     skipped += 1
                     logger.debug(
                         "쌍 건너뜀: %d 토큰 > max_seq_length (%d)",
-                        token_count,
+                        len(token_ids),
                         self.max_seq_length,
                     )
-                    progress.advance(task_id)
                     continue
-                
-                formatted_data.append({"text": formatted_text})
-                progress.advance(task_id)
+                formatted_data.append({"text": text})
         
         total = len(pairs)
         accepted = len(formatted_data)
@@ -285,29 +287,40 @@ class ChatFormatter:
         output_path = Path(output_path)
         formatted_data: list[dict[str, str]] = []
 
-        # 단일 QA 포함 여부
+        # 단일 QA 포함 여부 — 배치 토큰 검사
         if self.config.dialogue.include_single_qa:
+            qa_texts: list[str] = []
             for pair in pairs:
                 formatted_text = self.format_one(pair)
                 if formatted_text is not None:
-                    tokens = self.tokenizer.encode(formatted_text)
-                    if len(tokens) <= self.max_seq_length:
-                        formatted_data.append({"text": formatted_text})
+                    qa_texts.append(formatted_text)
+            if qa_texts:
+                batch_encoded = self.tokenizer(
+                    qa_texts, padding=False, truncation=False, return_attention_mask=False,
+                )
+                for text, token_ids in zip(qa_texts, batch_encoded["input_ids"]):
+                    if len(token_ids) <= self.max_seq_length:
+                        formatted_data.append({"text": text})
 
-        # 대화 데이터
+        # 대화 데이터 — 배치 토큰 검사
         skipped = 0
+        dialogue_texts: list[str] = []
         for dialogue in dialogues:
             formatted_text = self.format_dialogue(dialogue)
             if formatted_text is None:
                 skipped += 1
-                continue
+            else:
+                dialogue_texts.append(formatted_text)
 
-            tokens = self.tokenizer.encode(formatted_text)
-            if len(tokens) > self.max_seq_length:
-                skipped += 1
-                continue
-
-            formatted_data.append({"text": formatted_text})
+        if dialogue_texts:
+            batch_encoded = self.tokenizer(
+                dialogue_texts, padding=False, truncation=False, return_attention_mask=False,
+            )
+            for text, token_ids in zip(dialogue_texts, batch_encoded["input_ids"]):
+                if len(token_ids) > self.max_seq_length:
+                    skipped += 1
+                    continue
+                formatted_data.append({"text": text})
 
         with open(output_path, "w", encoding="utf-8") as f:
             for item in formatted_data:

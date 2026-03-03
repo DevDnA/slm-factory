@@ -139,18 +139,31 @@ class TestCheckBatch:
     """GroundednessChecker.check_batch 메서드의 테스트입니다."""
 
     def test_혼합_결과_분리(self, mocker, make_qa_pair):
-        """grounded와 ungrounded 쌍이 올바르게 분리되는지 확인합니다."""
+        """근거있는 쌍과 근거없는 쌍이 올바르게 분리되는지 확인합니다."""
+        import sys
+
         checker = _make_checker(threshold=0.5)
 
         pair_high = make_qa_pair(question="높은 유사도 질문", source_doc="doc1.pdf")
         pair_low = make_qa_pair(question="낮은 유사도 질문", source_doc="doc2.pdf")
 
-        # check를 호출 순서에 맞게 mock
-        mocker.patch.object(
-            checker,
-            "check",
-            side_effect=[(True, 0.8), (False, 0.2)],
-        )
+        # _model.encode를 mock — 청크 임베딩 + 답변 임베딩 번갈아 호출됨
+        mock_chunk_emb1 = MagicMock()  # doc1 청크
+        mock_chunk_emb2 = MagicMock()  # doc2 청크
+        mock_answer_emb1 = MagicMock()  # pair_high 답변
+        mock_answer_emb2 = MagicMock()  # pair_low 답변
+        checker._model.encode = MagicMock(side_effect=[
+            mock_chunk_emb1, mock_answer_emb1,
+            mock_chunk_emb2, mock_answer_emb2,
+        ])
+
+        # cos_sim mock — 첫 호출 0.8(굼거있음), 두 번째 0.2(굼거없음)
+        mock_sim_high = MagicMock()
+        mock_sim_high.max.return_value = 0.8
+        mock_sim_low = MagicMock()
+        mock_sim_low.max.return_value = 0.2
+        st_mock = sys.modules["sentence_transformers"]
+        st_mock.util.cos_sim.side_effect = [mock_sim_high, mock_sim_low]
 
         source_texts = {
             "doc1.pdf": "높은 유사도 소스 텍스트",
@@ -165,16 +178,24 @@ class TestCheckBatch:
 
     def test_source_texts에_없는_doc은_grounded에_추가(self, mocker, make_qa_pair):
         """source_texts에 해당 문서가 없으면 grounded에 추가하고 건너뛰는지 확인합니다."""
+        import sys
+
         checker = _make_checker(threshold=0.5)
 
         pair_known = make_qa_pair(question="알려진 문서 질문", source_doc="known.pdf")
         pair_unknown = make_qa_pair(question="미지 문서 질문", source_doc="unknown.pdf")
 
-        mocker.patch.object(
-            checker,
-            "check",
-            return_value=(True, 0.7),
-        )
+        # known.pdf만 위한 encode mock: 청크 임베딩 + 답변 임베딩
+        mock_chunk_emb = MagicMock()
+        mock_answer_emb = MagicMock()
+        checker._model.encode = MagicMock(side_effect=[mock_chunk_emb, mock_answer_emb])
+
+        # cos_sim mock — known.pdf는 굼거있음
+        mock_sim = MagicMock()
+        mock_sim.max.return_value = 0.7
+        st_mock = sys.modules["sentence_transformers"]
+        st_mock.util.cos_sim.side_effect = None
+        st_mock.util.cos_sim.return_value = mock_sim
 
         source_texts = {
             "known.pdf": "알려진 문서의 내용입니다.",
