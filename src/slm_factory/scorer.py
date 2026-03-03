@@ -69,8 +69,8 @@ class QualityScorer:
         if match:
             return int(match.group(1)), "점수만 추출됨"
 
-        # 패턴 2: 텍스트 내 1~5 숫자가 정확히 하나만 존재할 때만 사용
-        digits = re.findall(r'[1-5]', text)
+        # 패턴 2: 독립된 1~5 숫자가 정확히 하나만 존재할 때 (word boundary 사용)
+        digits = re.findall(r'\b([1-5])\b', text)
         if len(digits) == 1:
             return int(digits[0]), "점수만 추출됨"
 
