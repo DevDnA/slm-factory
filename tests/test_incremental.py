@@ -265,6 +265,7 @@ class TestGetChangedFiles:
         )
         tracker = IncrementalTracker(config)
         tracker.get_changed_files(docs_dir)
+        tracker.commit_hashes()
         changed = tracker.get_changed_files(docs_dir)
 
         assert changed == []
@@ -283,6 +284,7 @@ class TestGetChangedFiles:
         )
         tracker = IncrementalTracker(config)
         tracker.get_changed_files(docs_dir)
+        tracker.commit_hashes()
 
         doc_file.write_text("version 2", encoding="utf-8")
         changed = tracker.get_changed_files(docs_dir)
@@ -303,6 +305,7 @@ class TestGetChangedFiles:
         )
         tracker = IncrementalTracker(config)
         tracker.get_changed_files(docs_dir)
+        tracker.commit_hashes()
 
         hash_file = output_dir / config.incremental.hash_file
         assert hash_file.is_file()

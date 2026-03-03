@@ -19,7 +19,8 @@ class IncrementalTracker:
 
     def __init__(self, config: SLMConfig) -> None:
         self.config = config
-
+        self._pending_hashes: dict[str, str] | None = None
+        self._pending_hash_file: Path | None = None
     def compute_document_hashes(
         self, doc_dir: Path, formats: list[str],
     ) -> dict[str, str]:
@@ -95,7 +96,12 @@ class IncrementalTracker:
         return deduped
 
     def get_changed_files(self, doc_dir: Path) -> list[Path]:
-        """변경된 파일 목록을 반환하고 해시를 업데이트합니다."""
+        """변경된 파일 목록을 반환합니다.
+
+        해시는 즉시 저장하지 않고, :meth:`commit_hashes`를 호출해야
+        저장됩니다. 이로써 파이프라인 처리 중 크래시 시 해시가
+        이미 업데이트되어 변경 파일이 누락되는 문제를 방지합니다.
+        """
         doc_path = Path(doc_dir)
         formats = self.config.parsing.formats
         hash_file = Path(self.config.paths.output) / self.config.incremental.hash_file
@@ -104,7 +110,9 @@ class IncrementalTracker:
         saved = self.load_saved_hashes(hash_file)
         new_files, modified_files, _deleted = self.detect_changes(current, saved)
 
-        self.save_hashes(current, hash_file)
+        # 해시를 바로 저장하지 않고 보류 — commit_hashes()에서 저장
+        self._pending_hashes = current
+        self._pending_hash_file = hash_file
 
         changed = [doc_path / name for name in new_files + modified_files]
         logger.info(
@@ -112,3 +120,14 @@ class IncrementalTracker:
             len(new_files), len(modified_files), len(_deleted),
         )
         return changed
+
+    def commit_hashes(self) -> None:
+        """보류 중인 해시를 파일로 저장합니다.
+
+        :meth:`get_changed_files` 호출 후 실제 처리가 완료된 시점에
+        호출하여 해시를 확정합니다.
+        """
+        if self._pending_hashes is not None and self._pending_hash_file is not None:
+            self.save_hashes(self._pending_hashes, self._pending_hash_file)
+            self._pending_hashes = None
+            self._pending_hash_file = None
