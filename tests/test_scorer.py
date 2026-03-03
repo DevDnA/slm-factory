@@ -122,7 +122,8 @@ class TestScoreAll:
         assert len(accepted) == 2
         assert len(filtered) == 0
 
-    async def test_parse_failure_defaults_to_3(self, mock_teacher, scoring_config, teacher_config):
+    async def test_parse_failure_defaults_to_0(self, mock_teacher, scoring_config, teacher_config):
+        """파싱 실패 시 기본 점수 0으로 필터링됩니다."""
         scoring_config.threshold = 3.0
         scorer = QualityScorer(mock_teacher, scoring_config, teacher_config)
 
@@ -130,4 +131,5 @@ class TestScoreAll:
         mock_teacher.agenerate = AsyncMock(return_value="unparseable garbage no digits")
 
         accepted, filtered = await scorer.score_all(pairs)
-        assert len(accepted) == 1
+        assert len(accepted) == 0
+        assert len(filtered) == 1

@@ -64,9 +64,15 @@ class QualityScorer:
         except (json.JSONDecodeError, ValueError, TypeError):
             pass
 
-        match = re.search(r'[1-5]', text)
+        # 패턴 1: 'score' 또는 '점수' 키워드 뒤의 숫자
+        match = re.search(r'(?:score|점수)\D{0,10}([1-5])', text, re.IGNORECASE)
         if match:
-            return int(match.group()), "점수만 추출됨"
+            return int(match.group(1)), "점수만 추출됨"
+
+        # 패턴 2: 텍스트 내 1~5 숫자가 정확히 하나만 존재할 때만 사용
+        digits = re.findall(r'[1-5]', text)
+        if len(digits) == 1:
+            return int(digits[0]), "점수만 추출됨"
 
         logger.warning("점수 파싱 실패: %s", text[:100])
         return None
@@ -83,7 +89,7 @@ class QualityScorer:
         result = self._parse_score(response)
 
         if result is None:
-            return pair, 3, "점수 파싱 실패 — 기본값 3 적용"
+            return pair, 0, "점수 파싱 실패 — 기본값 0 적용 (필터링 대상)"
 
         score, reason = result
         return pair, score, reason
