@@ -187,6 +187,12 @@ class ChatFormatter:
         
         # 모든 쌍 형식화
         formatted_data = self.format_batch(pairs)
+
+        if not formatted_data:
+            raise RuntimeError(
+                "학습 데이터가 모두 필터링되어 0건입니다. "
+                "max_seq_length 값을 늘리거나 토크나이저/모델을 확인하세요."
+            )
         
         # JSONL로 저장 (한 줄에 하나의 JSON 객체)
         with open(output_path, "w", encoding="utf-8") as f:

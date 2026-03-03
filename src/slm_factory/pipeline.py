@@ -141,6 +141,12 @@ class Pipeline:
         generator.save_alpaca(pairs, alpaca_path)
 
         logger.info("Generated %d QA pairs", len(pairs))
+
+        if not pairs:
+            raise RuntimeError(
+                "QA 쌍이 하나도 생성되지 않았습니다. "
+                "문서 내용이 충분한지, Teacher LLM이 정상 응답하는지 확인하세요."
+            )
         return pairs
 
     # ------------------------------------------------------------------
