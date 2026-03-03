@@ -159,6 +159,7 @@ class EvolveHistory:
             return []
 
         to_remove = promoted[: len(promoted) - keep]
+        removed_versions: set[str] = set()
 
         removed_names: list[str] = []
         for entry in to_remove:
@@ -168,6 +169,15 @@ class EvolveHistory:
             if model_name:
                 self._ollama_rm(model_name)
                 removed_names.append(model_name)
+                removed_versions.add(entry.get("version", ""))
+
+        # 히스토리 JSON에서도 삭제된 버전 제거
+        if removed_versions:
+            history["versions"] = [
+                v for v in versions
+                if v.get("version") not in removed_versions
+            ]
+            self.save(history)
 
         return removed_names
 
