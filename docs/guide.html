@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="slm-factory 사용 가이드 - 설치부터 모델 배포까지 단계별 안내">
+  <title>사용 가이드 - slm-factory</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
+  <link rel="stylesheet" href="./assets/style.css">
+</head>
+<body>
+  <div class="page-wrapper">
+
+    <!-- ============================================================
+         Sidebar Navigation
+         ============================================================ -->
+    <nav class="sidebar" aria-label="문서 탐색">
+      <div class="sidebar-header">
+        <a href="index.html" class="sidebar-logo">
+          <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect width="28" height="28" rx="6" fill="#3182CE"/>
+            <path d="M7 14h4l2-4 3 8 2-4h3" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          slm-factory
+        </a>
+        <span class="sidebar-version">Documentation</span>
+      </div>
+      <ul class="sidebar-nav">
+        <li class="nav-section">시작하기</li>
+        <li><a href="index.html">문서 홈</a></li>
+        <li><a href="guide.html" class="active">사용 가이드</a></li>
+        <li><a href="quick-reference.html">빠른 참조</a></li>
+        <li class="nav-section">레퍼런스</li>
+        <li><a href="cli-reference.html">CLI 레퍼런스</a></li>
+        <li><a href="configuration.html">설정 레퍼런스</a></li>
+        <li class="nav-section">심화</li>
+        <li><a href="architecture.html">아키텍처 가이드</a></li>
+        <li><a href="development.html">개발 가이드</a></li>
+        <li><a href="autorag-integration.html">AutoRAG 연동</a></li>
+      </ul>
+    </nav>
+
+    <!-- ============================================================
+         Main Content Area
+         ============================================================ -->
+    <div class="main-content">
+
+      <!-- Page Header (Hero) -->
+      <header class="page-header">
+        <div class="content-container">
+          <span class="badge">Guide</span>
+          <h1>사용 가이드</h1>
+          <p class="subtitle">slm-factory 설치부터 모델 배포까지, 단계별로 안내합니다.</p>
+        </div>
+      </header>
+
+      <!-- Content Body -->
+      <div class="content-container">
+
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb" aria-label="경로">
+          <a href="index.html">문서</a>
+          <span class="separator">/</span>
+          <span>사용 가이드</span>
+        </nav>
+
+        <!-- Table of Contents -->
+        <nav class="toc" aria-label="목차">
+          <div class="toc-title">목차</div>
+          <ol class="toc-list">
+            <li><a href="#section-1">1. 시작하기 전에</a></li>
+            <li><a href="#section-2">2. 첫 번째 프로젝트 (튜토리얼)</a></li>
+            <li><a href="#section-3">3. 수동 파이프라인 실행</a></li>
+            <li><a href="#section-4">4. 활용 시나리오</a></li>
+            <li><a href="#section-5">5. 데이터 품질 관리</a></li>
+            <li><a href="#section-6">6. 모델 평가 및 배포</a></li>
+            <li><a href="#section-7">7. 트러블슈팅</a></li>
+            <li><a href="#related-docs">관련 문서</a></li>
+          </ol>
+        </nav>
+
+
+        <!-- ============================================================
+             Section 1: 시작하기 전에
+             ============================================================ -->
+        <section id="section-1">
+          <h2>1. 시작하기 전에</h2>
+
+          <h3 id="system-requirements">시스템 요구사항</h3>
+          <p>slm-factory를 실행하려면 다음 환경이 필요합니다.</p>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>항목</th>
+                  <th>최소 요구사항</th>
+                  <th>권장 사양</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Python</strong></td>
+                  <td>3.11 이상</td>
+                  <td>3.11 또는 3.12</td>
+                </tr>
+                <tr>
+                  <td><strong>GPU</strong></td>
+                  <td>CPU 가능 (매우 느림)</td>
+                  <td>NVIDIA CUDA GPU (VRAM 8GB+) 또는 Apple Silicon (M1/M2/M3/M4/M5)</td>
+                </tr>
+                <tr>
+                  <td><strong>Ollama</strong></td>
+                  <td>1.0 이상</td>
+                  <td>최신 버전</td>
+                </tr>
+                <tr>
+                  <td><strong>디스크</strong></td>
+                  <td>5GB 이상</td>
+                  <td>20GB 이상 (모델 여러 개 보관 시)</td>
+                </tr>
+                <tr>
+                  <td><strong>RAM</strong></td>
+                  <td>8GB</td>
+                  <td>16GB 이상</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p>GPU 없이도 학습이 가능하지만, GPU 대비 10~100배 느립니다. 테스트 목적이 아니라면 GPU 환경을 권장합니다.</p>
+
+          <blockquote>
+            <p><strong>Apple Silicon Mac</strong>: M1/M2/M3/M4/M5 칩의 GPU를 MPS(Metal Performance Shaders) 백엔드로 자동 감지합니다. Unified Memory 구조 덕분에 시스템 RAM 전체를 GPU가 공유하여 양자화 없이도 비교적 큰 모델을 로드할 수 있습니다. 학습 정밀도와 옵티마이저는 자동으로 Apple Silicon에 맞게 조정됩니다. <code>slm-factory check</code> 명령으로 디바이스 감지 상태를 확인할 수 있습니다.</p>
+          </blockquote>
+
+          <hr>
+
+          <h3 id="ollama-setup">Ollama 설치 및 설정</h3>
+          <p>slm-factory는 Teacher LLM으로 Ollama를 기본 사용합니다. 파이프라인 실행 전에 Ollama를 준비해야 합니다.</p>
+
+          <h4>1단계: Ollama 설치</h4>
+          <p><a href="https://ollama.com">ollama.com</a>에서 운영체제에 맞는 설치 파일을 다운로드합니다.</p>
+
+          <pre data-lang="bash"><code># Linux (curl 설치)
+curl -fsSL https://ollama.com/install.sh | sh
+
+# macOS: ollama.com에서 .dmg 파일 다운로드
+# Windows: ollama.com에서 .exe 파일 다운로드</code></pre>
+
+          <h4>2단계: Ollama 서버 실행</h4>
+          <p>별도 터미널 창에서 서버를 실행합니다. 파이프라인이 실행되는 동안 계속 켜두어야 합니다.</p>
+
+          <pre data-lang="bash"><code>ollama serve</code></pre>
+
+          <h4>3단계: Teacher 모델 다운로드</h4>
+          <p>한국어와 영어를 모두 지원하는 <code>qwen3:8b</code>를 권장합니다.</p>
+
+          <pre data-lang="bash"><code># 권장 Teacher 모델 (한국어/영어 모두 지원)
+ollama pull qwen3:8b
+
+# 영어 전용 대안
+ollama pull llama3.1:8b
+
+# 고품질 대안 (더 느림)
+ollama pull gemma2:9b</code></pre>
+
+          <p>다운로드 완료 후 정상 동작을 확인합니다.</p>
+
+          <pre data-lang="bash"><code>ollama run qwen3:8b "안녕하세요"</code></pre>
+
+          <hr>
+
+          <h3 id="installation">slm-factory 설치</h3>
+
+          <pre data-lang="bash"><code># 1. 저장소 클론
+git clone https://github.com/DevDnA/slm-factory.git
+cd slm-factory
+
+# 2. 가상환경 생성 및 활성화
+python3 -m venv .venv
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
+
+# 3. 전체 의존성 설치
+pip install -e ".[all]"
+
+# 4. 설치 확인
+slm-factory version</code></pre>
+
+          <blockquote>
+            <p><strong>주의</strong>: 가상환경 활성화는 필수입니다. 시스템 Python에 직접 설치하면 <code>externally-managed-environment</code> 오류가 발생합니다 (PEP 668).</p>
+          </blockquote>
+
+          <p><code>pip install -e ".[all]"</code> 명령은 PDF/HTML/TXT/HWPX/DOCX 파싱, 한국어 띄어쓰기 교정, 임베딩 기반 검증, 테스트 도구, Shell 자동완성을 포함한 모든 기능을 설치합니다. PyTorch, CUDA 런타임 등 대용량 패키지가 포함되어 있어 <strong>초회 설치 시 10~20분 이상</strong> 소요될 수 있습니다.</p>
+
+          <hr>
+
+          <h3 id="shell-completion">Shell 자동완성 설정</h3>
+          <p>Tab 키로 명령어와 옵션을 자동완성할 수 있습니다.</p>
+
+          <pre data-lang="bash"><code># 자동완성 설치 (bash/zsh/fish/PowerShell 자동 감지)
+slm-factory --install-completion
+
+# 셸 재시작 후 적용됩니다. 즉시 적용하려면:
+source ~/.bashrc    # bash
+source ~/.zshrc     # zsh</code></pre>
+
+          <p>자동완성이 작동하지 않으면 현재 셸의 스크립트를 직접 확인합니다.</p>
+
+          <pre data-lang="bash"><code>slm-factory --show-completion</code></pre>
+        </section>
+
+
+        <!-- ============================================================
+             Section 2: 첫 번째 프로젝트 (튜토리얼)
+             ============================================================ -->
+        <section id="section-2">
+          <h2>2. 첫 번째 프로젝트 (튜토리얼)</h2>
+
+          <h3 id="project-create">프로젝트 생성</h3>
+          <p><code>init</code> 명령으로 프로젝트 디렉토리와 기본 설정 파일을 생성합니다.</p>
+
+          <pre data-lang="bash"><code>slm-factory init my-first-project</code></pre>
+
+          <p>다음 구조가 생성됩니다.</p>
+
+          <!-- SVG Diagram: Project Structure -->
+          <div class="diagram">
+            <svg role="img" aria-labelledby="diagram-project-title diagram-project-desc" viewBox="0 0 420 220" xmlns="http://www.w3.org/2000/svg">
+              <title id="diagram-project-title">프로젝트 디렉토리 구조</title>
+              <desc id="diagram-project-desc">slm-factory init 명령으로 생성되는 my-first-project 디렉토리의 구조. documents, output 하위 디렉토리와 project.yaml 설정 파일로 구성됩니다.</desc>
+              <defs>
+                <marker id="ps-arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                  <polygon points="0 0, 10 3.5, 0 7" fill="#2C5282"/>
+                </marker>
+              </defs>
+
+              <!-- Background -->
+              <rect x="20" y="10" width="380" height="200" rx="12" fill="#F7F8FA" stroke="#CBD5E0" stroke-width="1"/>
+
+              <!-- Root folder -->
+              <rect x="40" y="30" width="340" height="40" rx="8" fill="#1B3A5C"/>
+              <text x="54" y="55" font-family="Pretendard, sans-serif" font-size="14" font-weight="700" fill="#FFFFFF">my-first-project/</text>
+
+              <!-- Tree lines -->
+              <line x1="60" y1="70" x2="60" y2="180" stroke="#A0AEC0" stroke-width="1.5"/>
+              <line x1="60" y1="95" x2="85" y2="95" stroke="#A0AEC0" stroke-width="1.5"/>
+              <line x1="60" y1="135" x2="85" y2="135" stroke="#A0AEC0" stroke-width="1.5"/>
+              <line x1="60" y1="180" x2="85" y2="180" stroke="#A0AEC0" stroke-width="1.5"/>
+
+              <!-- documents/ folder -->
+              <rect x="85" y="78" width="280" height="34" rx="6" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+              <!-- Folder icon -->
+              <rect x="95" y="87" width="16" height="13" rx="2" fill="#3182CE"/>
+              <rect x="95" y="85" width="10" height="5" rx="1.5" fill="#3182CE"/>
+              <text x="118" y="100" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#1A202C">documents/</text>
+              <text x="210" y="100" font-family="Pretendard, sans-serif" font-size="11" fill="#4A5568">학습할 문서를 여기에 넣습니다</text>
+
+              <!-- output/ folder -->
+              <rect x="85" y="118" width="280" height="34" rx="6" fill="#F0FFF4" stroke="#2F855A" stroke-width="1.5"/>
+              <rect x="95" y="127" width="16" height="13" rx="2" fill="#2F855A"/>
+              <rect x="95" y="125" width="10" height="5" rx="1.5" fill="#2F855A"/>
+              <text x="118" y="140" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#1A202C">output/</text>
+              <text x="195" y="140" font-family="Pretendard, sans-serif" font-size="11" fill="#4A5568">파이프라인 결과물이 저장됩니다</text>
+
+              <!-- project.yaml file -->
+              <rect x="85" y="163" width="280" height="34" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1.5"/>
+              <!-- File icon -->
+              <rect x="96" y="171" width="14" height="16" rx="1" fill="none" stroke="#C05621" stroke-width="1.5"/>
+              <polyline points="104,171 104,176 110,176" fill="none" stroke="#C05621" stroke-width="1"/>
+              <text x="118" y="185" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#1A202C">project.yaml</text>
+              <text x="220" y="185" font-family="Pretendard, sans-serif" font-size="11" fill="#4A5568">프로젝트 설정 파일</text>
+            </svg>
+            <p class="diagram-caption">그림 1. slm-factory init 명령으로 생성되는 프로젝트 디렉토리 구조</p>
+          </div>
+
+          <hr>
+
+          <h3 id="prepare-docs">문서 준비</h3>
+          <p><code>documents/</code> 디렉토리에 학습할 문서를 복사합니다. PDF, HWPX, HTML, TXT, MD, DOCX 형식을 지원합니다.</p>
+
+          <pre data-lang="bash"><code># PDF 문서 복사
+cp /path/to/your/documents/*.pdf my-first-project/documents/
+
+# 또는 여러 형식 혼합
+cp /path/to/docs/*.pdf /path/to/docs/*.txt my-first-project/documents/</code></pre>
+
+          <p>문서가 많을수록 더 많은 QA 쌍이 생성되어 학습 품질이 높아집니다. 최소 100개 이상의 QA 쌍 생성을 위해 충분한 문서를 준비하십시오.</p>
+
+          <hr>
+
+          <h3 id="env-check">환경 점검</h3>
+          <p>wizard 실행 전에 <code>check</code> 명령으로 설정과 환경을 사전 점검합니다.</p>
+
+          <pre data-lang="bash"><code>slm-factory check --config my-first-project/project.yaml</code></pre>
+
+          <p>점검 항목은 다음과 같습니다.</p>
+          <ul>
+            <li>설정 파일 로드 및 유효성 검사</li>
+            <li>문서 디렉토리 존재 여부 및 파일 유무</li>
+            <li>출력 디렉토리 쓰기 권한</li>
+            <li>Ollama 서버 연결 상태</li>
+            <li>Teacher 모델 사용 가능 여부</li>
+          </ul>
+          <p>모든 항목이 통과되면 <code>모든 점검 통과!</code> 메시지와 함께 wizard 실행 명령을 안내합니다.</p>
+
+          <hr>
+
+          <h3 id="wizard">Wizard 실행</h3>
+          <p><code>tool wizard</code>는 처음 사용자에게 권장하는 대화형 파이프라인입니다. 각 단계를 확인하며 진행하고, 선택 단계는 건너뛸 수 있습니다.</p>
+
+          <pre data-lang="bash"><code>slm-factory tool wizard --config my-first-project/project.yaml</code></pre>
+
+          <p>wizard는 다음 12단계를 순서대로 안내합니다.</p>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>단계</th>
+                  <th>필수/선택</th>
+                  <th>설명</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>1</td>
+                  <td>설정 파일 로드</td>
+                  <td><span class="tag tag-required">필수</span></td>
+                  <td><code>project.yaml</code>을 로드하고 Teacher/Student 모델을 확인합니다</td>
+                </tr>
+                <tr>
+                  <td>2</td>
+                  <td>문서 선택</td>
+                  <td><span class="tag tag-required">필수</span></td>
+                  <td>전체 또는 개별 문서를 선택합니다</td>
+                </tr>
+                <tr>
+                  <td>3</td>
+                  <td>문서 파싱</td>
+                  <td><span class="tag tag-required">필수</span></td>
+                  <td>선택한 문서에서 텍스트와 표를 자동 추출합니다</td>
+                </tr>
+                <tr>
+                  <td>4</td>
+                  <td>QA 쌍 생성</td>
+                  <td><span class="tag tag-required">필수</span></td>
+                  <td>Teacher LLM이 문서 기반 질문-답변 쌍을 생성합니다</td>
+                </tr>
+                <tr>
+                  <td>5</td>
+                  <td>QA 검증</td>
+                  <td><span class="tag tag-required">필수</span></td>
+                  <td>규칙 기반 및 임베딩 기반으로 저품질 QA를 필터링합니다</td>
+                </tr>
+                <tr>
+                  <td>6</td>
+                  <td>품질 점수 평가</td>
+                  <td><span class="tag tag-optional">선택</span></td>
+                  <td>Teacher LLM이 각 QA를 1~5점으로 평가하여 추가 필터링합니다</td>
+                </tr>
+                <tr>
+                  <td>7</td>
+                  <td>데이터 증강</td>
+                  <td><span class="tag tag-optional">선택</span></td>
+                  <td>질문을 다양한 표현으로 변형하여 학습 데이터를 늘립니다</td>
+                </tr>
+                <tr>
+                  <td>8</td>
+                  <td>LoRA 학습</td>
+                  <td><span class="tag tag-required">필수</span></td>
+                  <td>Student 모델에 LoRA 어댑터를 적용하여 파인튜닝합니다</td>
+                </tr>
+                <tr>
+                  <td>9</td>
+                  <td>모델 내보내기</td>
+                  <td><span class="tag tag-required">필수</span></td>
+                  <td>LoRA 어댑터를 기본 모델에 병합하고 Ollama Modelfile을 생성합니다</td>
+                </tr>
+                <tr>
+                  <td>10</td>
+                  <td>멀티턴 대화 생성</td>
+                  <td><span class="tag tag-optional">선택</span></td>
+                  <td>QA 쌍을 멀티턴 대화 형식으로 확장합니다</td>
+                </tr>
+                <tr>
+                  <td>11</td>
+                  <td>GGUF 변환</td>
+                  <td><span class="tag tag-optional">선택</span></td>
+                  <td>llama.cpp 호환 GGUF 양자화 형식으로 변환합니다</td>
+                </tr>
+                <tr>
+                  <td>12</td>
+                  <td>모델 평가</td>
+                  <td><span class="tag tag-optional">선택</span></td>
+                  <td>BLEU/ROUGE 메트릭으로 학습 결과를 자동 평가합니다</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p>선택 단계를 건너뛰면 나중에 개별 실행할 수 있는 CLI 명령어를 안내합니다.</p>
+
+          <!-- SVG Diagram: Pipeline Overview -->
+          <div class="diagram">
+            <svg role="img" aria-labelledby="diagram-pipeline-title diagram-pipeline-desc" viewBox="0 0 820 440" xmlns="http://www.w3.org/2000/svg">
+              <title id="diagram-pipeline-title">slm-factory 파이프라인 개요</title>
+              <desc id="diagram-pipeline-desc">slm-factory의 전체 파이프라인 흐름도. 문서 입력에서 시작하여 Parse, Generate, Validate 필수 단계를 거친 후, Score, Augment, Analyze 선택 단계를 선택적으로 수행하고, Convert, Train, Export 필수 단계를 거쳐 도메인 특화 SLM이 완성됩니다.</desc>
+              <defs>
+                <marker id="pl-arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                  <polygon points="0 0, 10 3.5, 0 7" fill="#2C5282"/>
+                </marker>
+                <marker id="pl-arrowhead-gray" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                  <polygon points="0 0, 10 3.5, 0 7" fill="#A0AEC0"/>
+                </marker>
+                <marker id="pl-arrowhead-orange" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                  <polygon points="0 0, 10 3.5, 0 7" fill="#ED8936"/>
+                </marker>
+              </defs>
+
+              <!-- Row labels -->
+              <text x="20" y="75" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#1B3A5C" text-anchor="start">필수 단계</text>
+              <text x="20" y="225" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#ED8936" text-anchor="start">선택 단계</text>
+              <text x="20" y="365" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#1B3A5C" text-anchor="start">필수 단계</text>
+
+              <!-- ── Row 1: Required stages ── -->
+              <!-- Input: Documents -->
+              <rect x="80" y="30" width="130" height="54" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
+              <text x="145" y="52" font-family="Pretendard, sans-serif" font-size="11" fill="#4A5568" text-anchor="middle">문서</text>
+              <text x="145" y="70" font-family="Pretendard, sans-serif" font-size="10" fill="#718096" text-anchor="middle">PDF/HWPX/HTML/TXT/DOCX</text>
+
+              <!-- Arrow: Input → Parse -->
+              <line x1="210" y1="57" x2="240" y2="57" stroke="#2C5282" stroke-width="2" marker-end="url(#pl-arrowhead)"/>
+
+              <!-- Parse -->
+              <rect x="250" y="35" width="120" height="44" rx="6" fill="#1B3A5C"/>
+              <text x="310" y="55" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">Parse</text>
+              <text x="310" y="70" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">문서 파싱</text>
+
+              <!-- Arrow: Parse → Generate -->
+              <line x1="370" y1="57" x2="400" y2="57" stroke="#2C5282" stroke-width="2" marker-end="url(#pl-arrowhead)"/>
+
+              <!-- Generate -->
+              <rect x="410" y="35" width="120" height="44" rx="6" fill="#1B3A5C"/>
+              <text x="470" y="55" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">Generate</text>
+              <text x="470" y="70" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">QA 생성</text>
+
+              <!-- Arrow: Generate → Validate -->
+              <line x1="530" y1="57" x2="560" y2="57" stroke="#2C5282" stroke-width="2" marker-end="url(#pl-arrowhead)"/>
+
+              <!-- Validate -->
+              <rect x="570" y="35" width="120" height="44" rx="6" fill="#1B3A5C"/>
+              <text x="630" y="55" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">Validate</text>
+              <text x="630" y="70" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">QA 검증</text>
+
+              <!-- Arrow: Validate → down to optional row -->
+              <line x1="630" y1="79" x2="630" y2="120" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3"/>
+              <line x1="630" y1="120" x2="460" y2="120" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3"/>
+
+              <!-- ── Row 2: Optional stages ── -->
+              <!-- Vertical connector down -->
+              <line x1="460" y1="120" x2="460" y2="155" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3"/>
+
+              <!-- Arrow split to 3 -->
+              <line x1="460" y1="155" x2="180" y2="155" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3"/>
+              <line x1="460" y1="155" x2="740" y2="155" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3"/>
+
+              <!-- down to Score -->
+              <line x1="180" y1="155" x2="180" y2="195" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#pl-arrowhead-gray)"/>
+              <!-- down to Augment -->
+              <line x1="460" y1="155" x2="460" y2="195" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#pl-arrowhead-gray)"/>
+              <!-- down to Analyze -->
+              <line x1="740" y1="155" x2="740" y2="195" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#pl-arrowhead-gray)"/>
+
+              <!-- Score -->
+              <rect x="110" y="200" width="140" height="50" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1.5" stroke-dasharray="6,3"/>
+              <text x="180" y="222" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">Score</text>
+              <text x="180" y="238" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">품질 평가</text>
+
+              <!-- Augment -->
+              <rect x="390" y="200" width="140" height="50" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1.5" stroke-dasharray="6,3"/>
+              <text x="460" y="222" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">Augment</text>
+              <text x="460" y="238" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">데이터 증강</text>
+
+              <!-- Analyze -->
+              <rect x="670" y="200" width="140" height="50" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1.5" stroke-dasharray="6,3"/>
+              <text x="740" y="222" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">Analyze</text>
+              <text x="740" y="238" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">통계 분석</text>
+
+              <!-- Arrows from optional → converge to row 3 -->
+              <line x1="180" y1="250" x2="180" y2="280" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3"/>
+              <line x1="460" y1="250" x2="460" y2="280" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3"/>
+
+              <!-- Converge lines -->
+              <line x1="180" y1="280" x2="460" y2="280" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3"/>
+              <line x1="460" y1="280" x2="460" y2="310" stroke="#2C5282" stroke-width="2"/>
+
+              <!-- Down arrow to Convert -->
+              <line x1="460" y1="310" x2="180" y2="310" stroke="#2C5282" stroke-width="2"/>
+              <line x1="180" y1="310" x2="180" y2="335" stroke="#2C5282" stroke-width="2" marker-end="url(#pl-arrowhead)"/>
+
+              <!-- ── Row 3: Required stages ── -->
+              <!-- Convert -->
+              <rect x="110" y="340" width="140" height="44" rx="6" fill="#1B3A5C"/>
+              <text x="180" y="360" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">Convert</text>
+              <text x="180" y="375" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">데이터 변환</text>
+
+              <!-- Arrow: Convert → Train -->
+              <line x1="250" y1="362" x2="370" y2="362" stroke="#2C5282" stroke-width="2" marker-end="url(#pl-arrowhead)"/>
+
+              <!-- Train -->
+              <rect x="380" y="340" width="140" height="44" rx="6" fill="#1B3A5C"/>
+              <text x="450" y="360" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">Train</text>
+              <text x="450" y="375" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">LoRA 학습</text>
+
+              <!-- Arrow: Train → Export -->
+              <line x1="520" y1="362" x2="570" y2="362" stroke="#2C5282" stroke-width="2" marker-end="url(#pl-arrowhead)"/>
+
+              <!-- Export -->
+              <rect x="580" y="340" width="140" height="44" rx="6" fill="#1B3A5C"/>
+              <text x="650" y="360" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">Export</text>
+              <text x="650" y="375" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">모델 배포</text>
+
+              <!-- Arrow: Export → SLM -->
+              <line x1="720" y1="362" x2="740" y2="362" stroke="#2C5282" stroke-width="2"/>
+
+              <!-- Final output: SLM -->
+              <rect x="745" y="340" width="55" height="44" rx="22" fill="#3182CE"/>
+              <text x="773" y="366" font-family="Pretendard, sans-serif" font-size="12" font-weight="700" fill="#FFFFFF" text-anchor="middle">SLM</text>
+
+              <!-- Legend -->
+              <rect x="85" y="408" width="16" height="10" rx="3" fill="#1B3A5C"/>
+              <text x="108" y="418" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568">필수 단계</text>
+
+              <rect x="200" y="408" width="16" height="10" rx="3" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="3,2"/>
+              <text x="223" y="418" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568">선택 단계</text>
+            </svg>
+            <p class="diagram-caption">그림 2. slm-factory 파이프라인 개요 - 필수 단계(navy)와 선택 단계(orange dashed)의 흐름</p>
+          </div>
+
+          <hr>
+
+          <h3 id="check-results">결과 확인</h3>
+          <p>wizard 완료 후 <code>status</code> 명령으로 각 단계의 결과물을 확인합니다.</p>
+
+          <pre data-lang="bash"><code>slm-factory status --config my-first-project/project.yaml</code></pre>
+
+          <p>출력 예시:</p>
+
+          <pre><code>┌──────────────────────────────────────────────────────────┐
+  단계       파일                      상태    건수
+  parse      parsed_documents.json     존재    5개 문서
+  generate   qa_alpaca.json            존재    150개 쌍
+  score      qa_scored.json            없음    -
+  augment    qa_augmented.json         없음    -
+  analyze    data_analysis.json        존재    1개 항목
+  convert    training_data.jsonl       존재    150개 줄
+  train      checkpoints/adapter/      존재    디렉토리
+  export     merged_model/             존재    디렉토리
+└──────────────────────────────────────────────────────────┘
+모든 단계가 완료되었습니다</code></pre>
+
+          <hr>
+
+          <h3 id="model-test">모델 테스트</h3>
+          <p>내보내기가 완료되면 Ollama에 모델을 등록하고 바로 테스트할 수 있습니다.</p>
+
+          <pre data-lang="bash"><code># 병합된 모델 디렉토리로 이동
+cd my-first-project/output/merged_model
+
+# Ollama에 모델 등록
+ollama create my-first-project-model -f Modelfile
+
+# 대화 테스트
+ollama run my-first-project-model</code></pre>
+
+          <p><code>ollama run</code> 실행 후 <code>&gt;&gt;&gt;</code> 프롬프트에서 질문을 입력하면 학습된 도메인 지식으로 답변합니다.</p>
+        </section>
+
+
+        <!-- ============================================================
+             Section 3: 수동 파이프라인 실행
+             ============================================================ -->
+        <section id="section-3">
+          <h2>3. 수동 파이프라인 실행</h2>
+          <p>wizard 없이 각 단계를 직접 제어하려면 <code>run</code> 명령을 사용합니다. 자동화 스크립트나 CI/CD 환경에 적합합니다.</p>
+
+          <h3 id="config-edit">설정 파일 편집</h3>
+          <p><code>project.yaml</code>을 열어 주요 항목을 수정합니다. 전체 설정 옵션은 <a href="configuration.html">설정 레퍼런스</a>를 참조하십시오.</p>
+
+          <pre data-lang="yaml"><code>project:
+  name: "my-project"
+  language: "ko"              # "ko" 또는 "en"
+
+teacher:
+  backend: "ollama"           # "ollama" 또는 "openai"
+  model: "qwen3:8b"           # Teacher 모델 이름
+  api_base: "http://localhost:11434"
+  temperature: 0.3
+
+student:
+  model: "google/gemma-3-1b-it"   # HuggingFace 모델 ID
+
+export:
+  ollama:
+    model_name: "my-project-model"  # Ollama에 등록할 이름
+    system_prompt: "당신은 전문 도우미입니다."</code></pre>
+
+          <hr>
+
+          <h3 id="full-pipeline">전체 파이프라인</h3>
+          <p>설정 파일 하나로 문서 파싱부터 모델 배포까지 전체 파이프라인을 한 번에 실행합니다.</p>
+
+          <pre data-lang="bash"><code>slm-factory run --config project.yaml</code></pre>
+
+          <hr>
+
+          <h3 id="step-by-step">단계별 실행</h3>
+          <p><code>--until</code> 옵션으로 특정 단계까지만 실행하고 중단할 수 있습니다. 결과를 확인하며 단계적으로 진행할 때 유용합니다.</p>
+
+          <pre data-lang="bash"><code># 문서 파싱만 실행
+slm-factory run --until parse --config project.yaml
+
+# 파싱 + QA 생성
+slm-factory run --until generate --config project.yaml
+
+# + QA 검증
+slm-factory run --until validate --config project.yaml
+
+# + 품질 점수 평가 (scoring.enabled: true 필요)
+slm-factory run --until score --config project.yaml
+
+# + 데이터 증강 (augment.enabled: true 필요)
+slm-factory run --until augment --config project.yaml
+
+# 학습만 실행 (QA 데이터가 이미 있을 때)
+slm-factory train --config project.yaml
+
+# 내보내기만 실행 (학습이 완료된 후)
+slm-factory export --config project.yaml</code></pre>
+
+          <hr>
+
+          <h3 id="resume">파이프라인 재개</h3>
+          <p>중간에 중단된 파이프라인은 <code>--resume</code> 옵션으로 이어서 실행합니다. 중간 저장 파일을 자동으로 감지하여 가장 최근 완료 단계부터 재개합니다.</p>
+
+          <pre data-lang="bash"><code>slm-factory run --resume --config project.yaml</code></pre>
+
+          <p>재개 지점은 다음 순서로 탐색합니다.</p>
+          <ol>
+            <li><code>qa_augmented.json</code> 존재 시 → analyze 단계부터</li>
+            <li><code>qa_scored.json</code> 존재 시 → augment 단계부터</li>
+            <li><code>qa_alpaca.json</code> 존재 시 → validate 단계부터</li>
+            <li><code>parsed_documents.json</code> 존재 시 → generate 단계부터</li>
+            <li>없으면 처음부터 실행</li>
+          </ol>
+
+          <p>모든 명령어 옵션은 <a href="cli-reference.html">CLI 레퍼런스</a>를 참조하십시오.</p>
+        </section>
+
+
+        <!-- ============================================================
+             Section 4: 활용 시나리오
+             ============================================================ -->
+        <section id="section-4">
+          <h2>4. 활용 시나리오</h2>
+
+          <!-- Scenario 1: Korean Policy -->
+          <article class="card">
+            <h3 id="scenario-policy" class="card-title">한국어 정책 문서 (HWPX) → 정책 전문 모델</h3>
+            <p class="card-desc">한국 정부 정책 문서(HWPX 형식)를 학습하여 정책 질의응답 모델을 생성합니다. <code>apply_spacing: true</code>로 한국어 띄어쓰기 교정을 활성화하면 파싱 품질이 향상됩니다.</p>
+
+            <h4>설정 파일 (<code>policy-project/project.yaml</code>):</h4>
+
+            <pre data-lang="yaml"><code>project:
+  name: "policy-assistant"
+  language: "ko"
+
+paths:
+  documents: "./documents"
+  output: "./output"
+
+parsing:
+  formats: ["hwpx"]
+  hwpx:
+    apply_spacing: true          # 한국어 띄어쓰기 교정 활성화
+
+teacher:
+  backend: "ollama"
+  model: "qwen3:8b"
+  api_base: "http://localhost:11434"
+  temperature: 0.3
+  timeout: 180
+  max_context_chars: 12000
+
+questions:
+  system_prompt: >
+    당신은 제공된 문서를 기반으로 질문에 답변하는 전문가입니다.
+    문서 내용에만 근거하여 정확하고 상세하게 답변하십시오.
+    구체적인 숫자, 날짜, 이름을 포함하십시오.
+    문서에 정보가 없으면 "문서에 해당 정보가 포함되어 있지 않습니다"라고 답변하십시오.
+  categories:
+    policy_overview:
+      - "이 정책의 주요 목적은 무엇입니까?"
+      - "정책 대상자는 누구입니까?"
+      - "정책의 시행 기간은 언제입니까?"
+      - "이 정책의 법적 근거는 무엇입니까?"
+    policy_details:
+      - "지원 내용과 규모는 어떻게 됩니까?"
+      - "신청 자격 요건은 무엇입니까?"
+      - "신청 절차는 어떻게 됩니까?"
+      - "지원 금액 또는 혜택의 상한선은 얼마입니까?"
+    policy_faq:
+      - "이 정책에서 제외되는 대상은 누구입니까?"
+      - "신청 기한은 언제까지입니까?"
+      - "담당 기관은 어디입니까?"
+
+validation:
+  enabled: true
+  min_answer_length: 20
+  max_answer_length: 2000
+  groundedness:
+    enabled: true
+    threshold: 0.3
+
+scoring:
+  enabled: true
+  threshold: 3.5
+
+student:
+  model: "google/gemma-3-1b-it"
+  max_seq_length: 4096
+
+training:
+  num_epochs: 20
+  batch_size: 4
+  learning_rate: 2e-5
+  quantization:
+    enabled: true
+    bits: 4
+
+export:
+  ollama:
+    model_name: "policy-assistant-ko"
+    system_prompt: "당신은 한국 정부 정책 전문 상담 도우미입니다. 정확하고 친절하게 답변하십시오."</code></pre>
+
+            <h4>실행:</h4>
+
+            <pre data-lang="bash"><code># 환경 점검
+slm-factory check --config policy-project/project.yaml
+
+# 전체 파이프라인 실행
+slm-factory run --config policy-project/project.yaml
+
+# 모델 배포 및 테스트
+cd policy-project/output/merged_model
+ollama create policy-assistant-ko -f Modelfile
+ollama run policy-assistant-ko</code></pre>
+          </article>
+
+          <hr>
+
+          <!-- Scenario 2: English Tech Docs -->
+          <article class="card">
+            <h3 id="scenario-tech" class="card-title">영문 기술 문서 (PDF) → API 문서 전문 모델</h3>
+            <p class="card-desc">소프트웨어 API 문서(PDF)를 학습하여 개발자 지원 모델을 생성합니다. 기술 문서는 낮은 temperature와 의미적 검증을 권장합니다.</p>
+
+            <h4>설정 파일 (<code>tech-docs/project.yaml</code>):</h4>
+
+            <pre data-lang="yaml"><code>project:
+  name: "api-assistant"
+  language: "en"
+
+paths:
+  documents: "./documents"
+  output: "./output"
+
+parsing:
+  formats: ["pdf"]
+  pdf:
+    extract_tables: true         # 표 추출 활성화
+
+teacher:
+  backend: "ollama"
+  model: "qwen3:8b"
+  api_base: "http://localhost:11434"
+  temperature: 0.2              # 기술 문서는 낮은 temperature 권장
+  timeout: 180
+  max_context_chars: 15000
+
+questions:
+  system_prompt: >
+    You are an expert assistant that answers questions based on the provided documentation.
+    Answer only based on the document content. Do not speculate or invent information.
+    Be concise, accurate, and include specific details such as parameter names, types, and examples.
+    If the information is not in the document, say "This information is not available in the documentation."
+  categories:
+    api_basics:
+      - "What is the purpose of this API?"
+      - "What are the authentication requirements?"
+      - "What is the base URL for API requests?"
+      - "What data formats does this API support?"
+    api_usage:
+      - "What are the available endpoints?"
+      - "What parameters does this endpoint accept?"
+      - "What is the expected response format?"
+      - "What are common error codes and their meanings?"
+      - "What are the rate limits for this API?"
+    examples:
+      - "Provide a code example for this functionality."
+      - "What are best practices for using this API?"
+      - "How do I handle authentication in a request?"
+
+validation:
+  enabled: true
+  min_answer_length: 30
+  max_answer_length: 3000
+  groundedness:
+    enabled: true               # 의미적 검증 활성화
+    threshold: 0.3
+
+scoring:
+  enabled: true
+  threshold: 3.0
+
+augment:
+  enabled: true
+  num_variants: 2
+
+student:
+  model: "google/gemma-3-1b-it"
+  max_seq_length: 4096
+
+training:
+  num_epochs: 15
+  batch_size: 4
+  learning_rate: 1.5e-5
+  quantization:
+    enabled: true
+    bits: 4
+
+export:
+  ollama:
+    model_name: "api-assistant"
+    system_prompt: "You are a helpful API documentation assistant. Provide accurate, concise answers based on the documentation."</code></pre>
+
+            <h4>실행:</h4>
+
+            <pre data-lang="bash"><code># 환경 점검
+slm-factory check --config tech-docs/project.yaml
+
+# 전체 파이프라인 실행
+slm-factory run --config tech-docs/project.yaml
+
+# 모델 배포
+cd tech-docs/output/merged_model
+ollama create api-assistant -f Modelfile
+ollama run api-assistant</code></pre>
+          </article>
+
+          <hr>
+
+          <!-- Scenario 3: Existing QA Data -->
+          <article class="card">
+            <h3 id="scenario-existing-qa" class="card-title">기존 QA 데이터로 학습만 실행</h3>
+            <p class="card-desc">이미 준비된 QA 데이터셋이 있다면 파싱과 생성 단계를 건너뛰고 학습만 실행할 수 있습니다. 외부 데이터셋을 사용하거나 하이퍼파라미터를 반복 조정할 때 유용합니다.</p>
+
+            <h4>JSONL 데이터 형식 (<code>custom_qa.jsonl</code>):</h4>
+
+            <pre data-lang="jsonl"><code>{"messages": [{"role": "user", "content": "이 정책의 주요 목적은 무엇입니까?"}, {"role": "assistant", "content": "이 정책의 주요 목적은 중소기업의 디지털 전환을 지원하는 것입니다..."}]}
+{"messages": [{"role": "user", "content": "신청 자격 요건은 무엇입니까?"}, {"role": "assistant", "content": "신청 자격은 상시 근로자 50인 미만의 중소기업으로..."}]}</code></pre>
+
+            <h4>실행:</h4>
+
+            <pre data-lang="bash"><code>slm-factory train --config project.yaml --data ./custom_qa.jsonl</code></pre>
+          </article>
+
+          <hr>
+
+          <!-- Scenario 4: Incremental Learning -->
+          <article class="card">
+            <h3 id="scenario-incremental" class="card-title">증분 학습 (문서 추가 시)</h3>
+            <p class="card-desc">기존 프로젝트에 새 문서를 추가할 때 전체 파이프라인을 재실행하지 않아도 됩니다. <code>tool update</code>는 해시 기반으로 변경된 문서만 감지하여 새 QA를 생성하고 기존 QA와 병합합니다.</p>
+
+            <pre data-lang="bash"><code># 새 문서를 documents/ 디렉토리에 추가
+cp /path/to/new-documents/*.pdf my-project/documents/
+
+# 변경된 문서만 처리하여 QA 업데이트
+slm-factory tool update --config my-project/project.yaml
+
+# 업데이트된 데이터로 재학습
+slm-factory train --config my-project/project.yaml</code></pre>
+          </article>
+        </section>
+
+
+        <!-- ============================================================
+             Section 5: 데이터 품질 관리
+             ============================================================ -->
+        <section id="section-5">
+          <h2>5. 데이터 품질 관리</h2>
+
+          <h3 id="scoring">품질 점수 평가 (scoring)</h3>
+          <p>Teacher LLM이 생성된 각 QA 쌍을 1~5점으로 평가하여 저품질 데이터를 자동으로 필터링합니다. 점수가 <code>threshold</code> 미만인 QA는 학습 데이터에서 제외됩니다.</p>
+
+          <h4>설정:</h4>
+
+          <pre data-lang="yaml"><code>scoring:
+  enabled: true
+  threshold: 3.5        # 3.5점 이상만 통과 (기본값)
+  max_concurrency: 4    # 동시 평가 요청 수</code></pre>
+
+          <p><strong>동작</strong>: Teacher LLM이 각 QA 쌍에 대해 "이 답변이 질문에 얼마나 정확하고 유용한가?"를 1~5점으로 평가합니다. 결과는 <code>output/qa_scored.json</code>에 저장됩니다.</p>
+
+          <p>품질 점수 평가는 추가 Teacher LLM 호출이 필요하므로 QA 수에 비례하여 시간이 더 소요됩니다.</p>
+
+          <hr>
+
+          <h3 id="augment">데이터 증강 (augment)</h3>
+          <p>Teacher LLM이 기존 질문을 다양한 표현으로 변형하여 학습 데이터를 늘립니다. 같은 의미의 질문을 여러 방식으로 표현하면 모델의 일반화 성능이 향상됩니다.</p>
+
+          <h4>설정:</h4>
+
+          <pre data-lang="yaml"><code>augment:
+  enabled: true
+  num_variants: 2       # 질문당 생성할 변형 수 (기본값 2)
+  max_concurrency: 4</code></pre>
+
+          <h4>패러프레이즈 예시:</h4>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>원본 질문</th>
+                  <th>증강된 변형</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>"이 정책의 주요 목적은 무엇입니까?"</td>
+                  <td>"이 정책이 추구하는 핵심 목표는 무엇인가요?"</td>
+                </tr>
+                <tr>
+                  <td>"이 정책의 주요 목적은 무엇입니까?"</td>
+                  <td>"해당 정책을 시행하는 이유가 무엇입니까?"</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p>증강 결과는 <code>output/qa_augmented.json</code>에 저장됩니다.</p>
+
+          <hr>
+
+          <h3 id="review">QA 수동 리뷰 (tool review)</h3>
+          <p>자동 검증을 통과한 QA 쌍을 TUI에서 직접 확인하고 승인/거부/편집할 수 있습니다. 중요한 도메인 모델을 만들 때 최종 품질을 보장하는 데 유용합니다.</p>
+
+          <pre data-lang="bash"><code>slm-factory tool review --config project.yaml</code></pre>
+
+          <p>TUI에서 각 QA 카드를 확인하며 다음 작업을 수행합니다.</p>
+          <ul>
+            <li><strong>승인 (A)</strong>: 해당 QA를 학습 데이터에 포함합니다</li>
+            <li><strong>거부 (R)</strong>: 해당 QA를 제외합니다</li>
+            <li><strong>편집 (E)</strong>: 질문 또는 답변을 직접 수정합니다</li>
+          </ul>
+          <p>리뷰 결과는 <code>output/qa_reviewed.json</code>에 저장됩니다.</p>
+
+          <hr>
+
+          <h3 id="analyzer">데이터 분석 리포트 (analyzer)</h3>
+          <p>파이프라인 실행 중 자동으로 생성되는 분석 보고서입니다. <code>output/data_analysis.json</code>에 저장됩니다.</p>
+
+          <h4>분석 항목:</h4>
+          <ul>
+            <li>카테고리별 QA 분포 (불균형 경고 포함)</li>
+            <li>문서별 QA 분포</li>
+            <li>질문 길이 통계 (평균, 최소, 최대)</li>
+            <li>답변 길이 통계</li>
+            <li>데이터 품질 경고 (너무 짧은 답변, 중복 질문 등)</li>
+          </ul>
+          <p>분석 보고서를 활용하여 질문 카테고리를 조정하거나 부족한 문서를 추가하면 학습 데이터 품질을 개선할 수 있습니다.</p>
+        </section>
+
+
+        <!-- ============================================================
+             Section 6: 모델 평가 및 배포
+             ============================================================ -->
+        <section id="section-6">
+          <h2>6. 모델 평가 및 배포</h2>
+
+          <h3 id="eval-run">자동 평가 (eval run)</h3>
+          <p>학습된 모델을 BLEU/ROUGE 메트릭으로 자동 평가합니다.</p>
+          <ul>
+            <li><strong>BLEU</strong>: 생성된 답변과 참조 답변의 n-gram 일치율을 측정합니다. 0~1 범위이며 높을수록 좋습니다.</li>
+            <li><strong>ROUGE</strong>: 재현율 기반 메트릭으로, 참조 답변의 내용이 생성된 답변에 얼마나 포함되는지 측정합니다.</li>
+          </ul>
+
+          <pre data-lang="bash"><code>slm-factory eval run --model my-project-model --config project.yaml</code></pre>
+
+          <p>결과는 <code>output/eval_results.json</code>에 저장됩니다.</p>
+
+          <p><strong>결과 해석</strong>: BLEU 0.3 이상, ROUGE-L 0.4 이상이면 일반적으로 양호한 수준입니다. 점수가 낮으면 학습 데이터 품질 개선이나 에포크 수 조정을 고려하십시오.</p>
+
+          <hr>
+
+          <h3 id="eval-compare">모델 비교 (eval compare)</h3>
+          <p>파인튜닝 전후 모델의 답변을 나란히 비교하여 학습 효과를 확인합니다.</p>
+
+          <pre data-lang="bash"><code>slm-factory eval compare \
+  --base-model gemma:2b \
+  --ft my-project-model \
+  --config project.yaml</code></pre>
+
+          <p>결과는 <code>output/compare_results.json</code>에 저장됩니다. 각 질문에 대한 Base 모델과 Fine-tuned 모델의 답변을 나란히 확인할 수 있습니다.</p>
+
+          <hr>
+
+          <h3 id="gguf">GGUF 변환 (tool gguf)</h3>
+          <p>병합된 모델을 llama.cpp 호환 GGUF 양자화 형식으로 변환합니다. GGUF 형식은 CPU에서도 빠르게 실행되며, 다양한 llama.cpp 기반 도구와 호환됩니다.</p>
+
+          <pre data-lang="bash"><code>slm-factory tool gguf --config project.yaml</code></pre>
+
+          <p>변환에는 llama.cpp의 convert 스크립트가 사용됩니다. 변환된 GGUF 파일은 <code>output/merged_model/</code> 디렉토리에 저장됩니다.</p>
+
+          <hr>
+
+          <h3 id="ollama-deploy">Ollama 배포</h3>
+          <p>학습이 완료된 모델을 Ollama에 등록하고 즉시 사용할 수 있습니다.</p>
+
+          <pre data-lang="bash"><code># 병합된 모델 디렉토리로 이동
+cd output/merged_model
+
+# Ollama에 모델 등록
+ollama create my-project-model -f Modelfile
+
+# 대화 테스트
+ollama run my-project-model
+
+# API 서버로 사용 (포트 11434)
+ollama serve
+# 다른 터미널에서: curl http://localhost:11434/api/chat -d '{"model":"my-project-model","messages":[{"role":"user","content":"안녕하세요"}]}'</code></pre>
+
+          <p>Ollama에 등록된 모델은 <code>ollama list</code>로 확인하고, <code>ollama rm my-project-model</code>로 삭제할 수 있습니다.</p>
+        </section>
+
+
+        <!-- ============================================================
+             Section 7: 트러블슈팅
+             ============================================================ -->
+        <section id="section-7">
+          <h2>7. 트러블슈팅</h2>
+
+          <!-- Ollama 연결 실패 -->
+          <h3 id="ts-ollama">Ollama 연결 실패</h3>
+
+          <div class="callout callout-danger">
+            <div class="callout-content">
+              <div class="callout-title">증상</div>
+              <pre><code>Error: Failed to connect to Ollama at http://localhost:11434
+RuntimeError: Cannot connect to Ollama. Ollama가 실행 중인지 확인하세요.</code></pre>
+            </div>
+          </div>
+
+          <h4>해결 방법:</h4>
+          <ol>
+            <li>
+              <p>Ollama 서버가 실행 중인지 확인합니다.</p>
+              <pre data-lang="bash"><code>ollama serve</code></pre>
+            </li>
+            <li>
+              <p>Ollama가 정상 응답하는지 테스트합니다.</p>
+              <pre data-lang="bash"><code>curl http://localhost:11434/api/tags</code></pre>
+            </li>
+            <li>
+              <p><code>project.yaml</code>의 <code>api_base</code> 포트가 올바른지 확인합니다.</p>
+              <pre data-lang="yaml"><code>teacher:
+  api_base: "http://localhost:11434"</code></pre>
+            </li>
+            <li>
+              <p>방화벽이 11434 포트를 차단하는지 확인합니다.</p>
+              <pre data-lang="bash"><code># Linux
+sudo ufw allow 11434</code></pre>
+            </li>
+          </ol>
+
+          <hr>
+
+          <!-- GPU 메모리 부족 -->
+          <h3 id="ts-gpu-oom">GPU 메모리 부족 (CUDA OOM / MPS OOM)</h3>
+
+          <div class="callout callout-danger">
+            <div class="callout-content">
+              <div class="callout-title">증상</div>
+              <pre><code>RuntimeError: CUDA out of memory. Tried to allocate X.XX GiB
+torch.cuda.OutOfMemoryError
+# 또는 Apple Silicon:
+RuntimeError: MPS backend out of memory</code></pre>
+            </div>
+          </div>
+
+          <h4>해결 방법:</h4>
+
+          <p>방법 1: 양자화 활성화 (VRAM 사용량 약 50% 감소)</p>
+          <pre data-lang="yaml"><code>training:
+  quantization:
+    enabled: true
+    bits: 4</code></pre>
+
+          <p>방법 2: 배치 크기 감소</p>
+          <pre data-lang="yaml"><code>training:
+  batch_size: 2                    # 기본값 4에서 감소
+  gradient_accumulation_steps: 8   # 총 배치 크기 유지 (2x8=16)</code></pre>
+
+          <p>방법 3: 시퀀스 길이 감소</p>
+          <pre data-lang="yaml"><code>student:
+  max_seq_length: 2048             # 기본값 4096에서 감소</code></pre>
+
+          <p>방법 4: 더 작은 Student 모델 사용</p>
+          <pre data-lang="yaml"><code>student:
+  model: "TinyLlama/TinyLlama-1.1B-Chat-v1.0"</code></pre>
+
+          <p>방법 5: CPU 학습 (느리지만 메모리 제약 없음)</p>
+          <pre data-lang="yaml"><code>training:
+  bf16: false                      # CPU는 bfloat16 미지원
+  batch_size: 1
+  gradient_accumulation_steps: 16</code></pre>
+
+          <hr>
+
+          <!-- HWPX 파싱 실패 -->
+          <h3 id="ts-hwpx">HWPX 파싱 실패</h3>
+
+          <div class="callout callout-warning">
+            <div class="callout-content">
+              <div class="callout-title">증상</div>
+              <pre><code>Error: Failed to parse HWPX file - section0.xml not found</code></pre>
+            </div>
+          </div>
+
+          <h4>해결 방법:</h4>
+          <ul>
+            <li>HWPX 파일이 손상되지 않았는지 확인합니다. 한글 프로그램에서 직접 열어보십시오.</li>
+            <li>파일이 암호화되어 있지 않은지 확인합니다.</li>
+            <li>파일 확장자가 <code>.hwpx</code>인지 확인합니다. <code>.hwp</code> 형식은 지원하지 않습니다.</li>
+            <li>최신 한글 버전에서 "다른 이름으로 저장 → HWPX"로 다시 저장해보십시오.</li>
+          </ul>
+
+          <hr>
+
+          <!-- pykospacing 설치 오류 -->
+          <h3 id="ts-pykospacing">pykospacing 설치 오류</h3>
+
+          <div class="callout callout-warning">
+            <div class="callout-content">
+              <div class="callout-title">증상</div>
+              <pre><code>ERROR: Could not install packages due to an OSError</code></pre>
+            </div>
+          </div>
+
+          <h4>해결 방법:</h4>
+
+          <p>방법 1: Python 버전 확인 (3.11 이상 필요)</p>
+          <pre data-lang="bash"><code>python --version</code></pre>
+
+          <p>방법 2: Git 설치 확인 (pykospacing은 Git 저장소에서 설치됨)</p>
+          <pre data-lang="bash"><code>git --version</code></pre>
+
+          <p>방법 3: 수동 설치 시도</p>
+          <pre data-lang="bash"><code>pip install git+https://github.com/haven-jeon/PyKoSpacing.git</code></pre>
+
+          <p>방법 4: 한국어 띄어쓰기 교정 비활성화</p>
+          <pre data-lang="yaml"><code>parsing:
+  hwpx:
+    apply_spacing: false</code></pre>
+
+          <hr>
+
+          <!-- 학습 데이터 부족 경고 -->
+          <h3 id="ts-data-shortage">학습 데이터 부족 경고</h3>
+
+          <div class="callout callout-warning">
+            <div class="callout-content">
+              <div class="callout-title">증상</div>
+              <pre><code>Warning: Only 15 QA pairs generated. Recommend at least 100 for effective training.</code></pre>
+            </div>
+          </div>
+
+          <h4>해결 방법:</h4>
+
+          <p>방법 1: 더 많은 문서 추가</p>
+          <pre data-lang="bash"><code>cp /path/to/more/documents/*.pdf ./documents/</code></pre>
+
+          <p>방법 2: 질문 카테고리 확장</p>
+          <pre data-lang="yaml"><code>questions:
+  categories:
+    overview: [...]
+    technical: [...]
+    additional:
+      - "이 문서의 핵심 내용을 요약하면 무엇입니까?"
+      - "주요 제한 사항은 무엇입니까?"
+      - "관련 법령 또는 규정은 무엇입니까?"</code></pre>
+
+          <p>방법 3: Teacher 모델의 컨텍스트 크기 증가</p>
+          <pre data-lang="yaml"><code>teacher:
+  max_context_chars: 20000         # 기본값 12000에서 증가</code></pre>
+
+          <hr>
+
+          <!-- 빈 QA 응답 생성 -->
+          <h3 id="ts-empty-qa">빈 QA 응답 생성</h3>
+
+          <div class="callout callout-warning">
+            <div class="callout-content">
+              <div class="callout-title">증상</div>
+              <p>대부분의 QA 쌍이 "The document does not contain this information." 또는 "문서에 해당 정보가 포함되어 있지 않습니다"로 생성됩니다.</p>
+            </div>
+          </div>
+
+          <h4>해결 방법:</h4>
+
+          <p>방법 1: Teacher 모델 타임아웃 증가</p>
+          <pre data-lang="yaml"><code>teacher:
+  timeout: 300                     # 기본값 180초에서 증가</code></pre>
+
+          <p>방법 2: 다른 Teacher 모델 시도</p>
+          <pre data-lang="yaml"><code>teacher:
+  model: "llama3.1:8b"             # 또는 "gemma2:9b"</code></pre>
+
+          <p>방법 3: 질문을 문서 내용에 맞게 조정합니다. 문서를 먼저 읽고 실제로 답변 가능한 질문으로 수정하십시오. 너무 일반적이거나 추상적인 질문은 피하십시오.</p>
+
+          <p>방법 4: System prompt 조정</p>
+          <pre data-lang="yaml"><code>questions:
+  system_prompt: >
+    Answer the question based on the document.
+    Provide detailed answers with specific information.
+    If the exact answer is not in the document, provide related information from the document.</code></pre>
+
+          <hr>
+
+          <!-- 한국어 문서에서 영어 QA 생성 -->
+          <h3 id="ts-wrong-lang">한국어 문서에서 영어 QA 생성</h3>
+
+          <div class="callout callout-warning">
+            <div class="callout-content">
+              <div class="callout-title">증상</div>
+              <p>한국어 문서를 파싱했지만 질문과 답변이 영어로 생성됩니다.</p>
+            </div>
+          </div>
+
+          <h4>해결 방법:</h4>
+
+          <p>방법 1: 언어 설정 변경</p>
+          <pre data-lang="yaml"><code>project:
+  language: "ko"</code></pre>
+
+          <p>방법 2: 한국어 질문 카테고리 사용</p>
+          <pre data-lang="yaml"><code>questions:
+  categories:
+    개요:
+      - "이 문서의 주요 목적은 무엇입니까?"
+      - "대상 사용자는 누구입니까?"
+    기술:
+      - "주요 기술 사양은 무엇입니까?"</code></pre>
+
+          <p>방법 3: 한국어 system_prompt 명시</p>
+          <pre data-lang="yaml"><code>questions:
+  system_prompt: >
+    당신은 제공된 문서를 기반으로 질문에 답변하는 도움이 되는 어시스턴트입니다.
+    반드시 한국어로 답변하십시오.
+    문서 내용에만 근거하여 답변하십시오.</code></pre>
+
+          <p>한국어 지원이 우수한 Teacher 모델은 <code>qwen3:8b</code>입니다. <code>llama3.1:8b</code>는 한국어 지원이 제한적입니다.</p>
+
+          <hr>
+
+          <!-- Python 버전 문제 -->
+          <h3 id="ts-python-version">Python 버전 문제</h3>
+
+          <div class="callout callout-warning">
+            <div class="callout-content">
+              <div class="callout-title">증상</div>
+              <p>설치 중 Python 버전 관련 오류가 발생하거나 패키지 설치가 실패합니다.</p>
+            </div>
+          </div>
+
+          <h4>해결 방법:</h4>
+          <p>현재 Python 버전을 확인합니다.</p>
+          <pre data-lang="bash"><code>python --version
+python3 --version</code></pre>
+
+          <p>출력이 <code>Python 3.11.x</code> 이상이어야 합니다. 이전 버전이라면 업그레이드하십시오.</p>
+
+          <pre data-lang="bash"><code># Ubuntu/Debian
+sudo apt update &amp;&amp; sudo apt install python3.11
+
+# macOS (Homebrew)
+brew install python@3.11</code></pre>
+
+          <p>여러 Python 버전이 설치된 경우 명시적으로 지정합니다.</p>
+          <pre data-lang="bash"><code>python3.11 -m venv .venv
+python3.11 -m pip install -e ".[all]"</code></pre>
+
+          <hr>
+
+          <!-- 학습 중단 시 복구 -->
+          <h3 id="ts-recovery">학습 중단 시 복구</h3>
+
+          <div class="callout callout-warning">
+            <div class="callout-content">
+              <div class="callout-title">증상</div>
+              <p>학습 중 Ctrl+C로 중단하거나 시스템이 종료되었습니다.</p>
+            </div>
+          </div>
+
+          <h4>해결 방법:</h4>
+          <p>체크포인트가 자동 저장되어 있으므로 <code>--resume</code> 옵션으로 이어서 실행합니다.</p>
+
+          <pre data-lang="bash"><code># wizard로 재개 (자동으로 중단 지점 감지)
+slm-factory tool wizard --resume --config project.yaml
+
+# 또는 학습 데이터가 있으면 학습만 재실행
+slm-factory train --config project.yaml --data output/training_data.jsonl</code></pre>
+
+          <p>체크포인트 위치를 직접 확인하려면:</p>
+          <pre data-lang="bash"><code>ls output/checkpoints/
+# checkpoint-100, checkpoint-200 등 디렉토리 확인</code></pre>
+
+          <hr>
+
+          <!-- 모델 배포 방법 -->
+          <h3 id="ts-deploy">모델 배포 방법</h3>
+
+          <div class="callout callout-info">
+            <div class="callout-content">
+              <div class="callout-title">증상</div>
+              <p>학습이 완료되었지만 모델을 어떻게 사용하는지 모릅니다.</p>
+            </div>
+          </div>
+
+          <h4>해결 방법:</h4>
+          <ol>
+            <li>
+              <p>Ollama가 설치되어 있는지 확인합니다.</p>
+              <pre data-lang="bash"><code>ollama --version</code></pre>
+            </li>
+            <li>
+              <p>병합된 모델 디렉토리에서 Ollama에 등록합니다.</p>
+              <pre data-lang="bash"><code>cd output/merged_model
+ollama create my-project-model -f Modelfile</code></pre>
+            </li>
+            <li>
+              <p>대화를 시작합니다.</p>
+              <pre data-lang="bash"><code>ollama run my-project-model</code></pre>
+            </li>
+            <li>
+              <p>등록된 모델 목록을 확인합니다.</p>
+              <pre data-lang="bash"><code>ollama list</code></pre>
+            </li>
+          </ol>
+        </section>
+
+
+        <!-- ============================================================
+             Section: 관련 문서
+             ============================================================ -->
+        <section id="related-docs">
+          <h2>관련 문서</h2>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>문서</th>
+                  <th>내용</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><a href="quick-reference.html">빠른 참조</a></td>
+                  <td>자주 쓰는 명령어 한눈에 보기</td>
+                </tr>
+                <tr>
+                  <td><a href="cli-reference.html">CLI 레퍼런스</a></td>
+                  <td>모든 명령어와 옵션 상세 설명</td>
+                </tr>
+                <tr>
+                  <td><a href="configuration.html">설정 레퍼런스</a></td>
+                  <td><code>project.yaml</code> 전체 설정 옵션</td>
+                </tr>
+                <tr>
+                  <td><a href="architecture.html">아키텍처 가이드</a></td>
+                  <td>내부 구조와 설계 원칙</td>
+                </tr>
+                <tr>
+                  <td><a href="development.html">개발 가이드</a></td>
+                  <td>기여 방법, 테스트, 모듈 확장</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+      </div><!-- /.content-container -->
+    </div><!-- /.main-content -->
+
+    <!-- Footer -->
+    <footer class="page-footer">
+      <p>slm-factory Documentation</p>
+    </footer>
+
+  </div><!-- /.page-wrapper -->
+</body>
+</html>

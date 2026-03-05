@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="slm-factory 빠른 참조 - 핵심 명령어와 워크플로우 치트시트">
+  <title>빠른 참조 - slm-factory</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendart@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
+  <link rel="stylesheet" href="./assets/style.css">
+</head>
+<body>
+  <div class="page-wrapper">
+
+    <!-- ============================================================
+         Sidebar Navigation
+         ============================================================ -->
+    <nav class="sidebar" aria-label="문서 탐색">
+      <div class="sidebar-header">
+        <a href="index.html" class="sidebar-logo">
+          <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect width="28" height="28" rx="6" fill="#3182CE"/>
+            <path d="M7 14h4l2-4 3 8 2-4h3" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          slm-factory
+        </a>
+        <span class="sidebar-version">Documentation</span>
+      </div>
+      <ul class="sidebar-nav">
+        <li class="nav-section">시작하기</li>
+        <li><a href="index.html">문서 홈</a></li>
+        <li><a href="guide.html">사용 가이드</a></li>
+        <li><a href="quick-reference.html" class="active">빠른 참조</a></li>
+        <li class="nav-section">레퍼런스</li>
+        <li><a href="cli-reference.html">CLI 레퍼런스</a></li>
+        <li><a href="configuration.html">설정 레퍼런스</a></li>
+        <li class="nav-section">심화</li>
+        <li><a href="architecture.html">아키텍처 가이드</a></li>
+        <li><a href="development.html">개발 가이드</a></li>
+        <li><a href="autorag-integration.html">AutoRAG 연동</a></li>
+      </ul>
+    </nav>
+
+    <!-- ============================================================
+         Main Content Area
+         ============================================================ -->
+    <div class="main-content">
+
+      <!-- Page Header (Hero) -->
+      <header class="page-header">
+        <div class="content-container">
+          <span class="badge">Quick Reference</span>
+          <h1>빠른 참조</h1>
+          <p class="subtitle">slm-factory의 핵심 명령어와 워크플로우를 한눈에 확인하세요. 도메인 문서를 SLM으로 변환하는 전체 파이프라인을 빠르게 참조하려는 활성 사용자를 위한 치트시트입니다.</p>
+        </div>
+      </header>
+
+      <!-- Content Body -->
+      <div class="content-container">
+
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb" aria-label="경로">
+          <a href="index.html">문서</a>
+          <span class="separator">/</span>
+          <span>빠른 참조</span>
+        </nav>
+
+        <!-- Table of Contents -->
+        <nav class="toc" aria-label="목차">
+          <div class="toc-title">목차</div>
+          <ol class="toc-list">
+            <li><a href="#installation">설치</a></li>
+            <li><a href="#prerequisites">사전 준비</a></li>
+            <li><a href="#getting-started">프로젝트 시작</a></li>
+            <li><a href="#cli-summary">CLI 명령어 요약</a></li>
+            <li><a href="#pipeline-steps">파이프라인 단계</a></li>
+            <li><a href="#workflows">자주 쓰는 워크플로우</a></li>
+            <li><a href="#output-structure">출력 파일 구조</a></li>
+            <li><a href="#config-skeleton">설정 파일 골격</a></li>
+            <li><a href="#troubleshooting">트러블슈팅 빠른 해결</a></li>
+            <li><a href="#related-docs">관련 문서</a></li>
+          </ol>
+        </nav>
+
+
+        <!-- ============================================================
+             Section: 설치
+             ============================================================ -->
+        <section id="installation">
+          <h2>설치</h2>
+
+          <pre data-lang="bash"><code>git clone https://github.com/DevDnA/slm-factory.git
+cd slm-factory
+python3 -m venv .venv &amp;&amp; source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -e ".[all]"       # PyTorch/CUDA 포함, 초회 10~20분 소요
+slm-factory --install-completion</code></pre>
+        </section>
+
+
+        <!-- ============================================================
+             Section: 사전 준비
+             ============================================================ -->
+        <section id="prerequisites">
+          <h2>사전 준비</h2>
+
+          <p>Ollama를 Teacher LLM으로 사용하는 경우, wizard 실행 전 아래 두 명령을 먼저 실행합니다.</p>
+
+          <pre data-lang="bash"><code>ollama serve           # 별도 터미널에서 실행 (백그라운드 유지)
+ollama pull qwen3:8b   # Teacher 모델 다운로드 (최초 1회)</code></pre>
+        </section>
+
+
+        <!-- ============================================================
+             Section: 프로젝트 시작
+             ============================================================ -->
+        <section id="getting-started">
+          <h2>프로젝트 시작</h2>
+
+          <pre data-lang="bash"><code># 1. 프로젝트 초기화
+slm-factory init my-project
+
+# 2. 학습할 문서 복사
+cp /path/to/documents/*.pdf my-project/documents/
+
+# 3. 환경 점검 (선택 권장)
+slm-factory check --config my-project/project.yaml
+
+# 4. 대화형 파이프라인 실행
+slm-factory tool wizard --config my-project/project.yaml</code></pre>
+        </section>
+
+
+        <!-- ============================================================
+             Section: CLI 명령어 요약
+             ============================================================ -->
+        <section id="cli-summary">
+          <h2>CLI 명령어 요약</h2>
+
+          <p>모든 명령어에 <code>--verbose</code> (<code>-v</code>) 또는 <code>--quiet</code> (<code>-q</code>) 전역 옵션을 사용할 수 있습니다.</p>
+
+          <h3 id="cli-start">시작하기</h3>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>명령어</th>
+                  <th>설명</th>
+                  <th>주요 옵션</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>slm-factory init &lt;name&gt;</code></td>
+                  <td>새 프로젝트 초기화</td>
+                  <td><code>--path &lt;디렉토리&gt;</code></td>
+                </tr>
+                <tr>
+                  <td><code>slm-factory check</code></td>
+                  <td>설정 및 환경 사전 점검</td>
+                  <td><code>--config &lt;파일&gt;</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 id="cli-pipeline">파이프라인</h3>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>명령어</th>
+                  <th>설명</th>
+                  <th>주요 옵션</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>slm-factory run</code></td>
+                  <td>전체 파이프라인 실행</td>
+                  <td><code>--config</code>, <code>--until &lt;단계&gt;</code>, <code>--resume</code> / <code>-r</code></td>
+                </tr>
+                <tr>
+                  <td><code>slm-factory train</code></td>
+                  <td>LoRA 학습 실행</td>
+                  <td><code>--config</code>, <code>--data &lt;jsonl&gt;</code>, <code>--resume</code> / <code>-r</code></td>
+                </tr>
+                <tr>
+                  <td><code>slm-factory export</code></td>
+                  <td>모델 내보내기 (LoRA 병합 + Modelfile)</td>
+                  <td><code>--config</code>, <code>--adapter &lt;경로&gt;</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 id="cli-eval">평가</h3>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>명령어</th>
+                  <th>설명</th>
+                  <th>주요 옵션</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>slm-factory eval run</code></td>
+                  <td>BLEU/ROUGE 평가</td>
+                  <td><code>--model &lt;이름&gt;</code>, <code>--config</code>, <code>--data</code></td>
+                </tr>
+                <tr>
+                  <td><code>slm-factory eval compare</code></td>
+                  <td>Base vs Fine-tuned 비교</td>
+                  <td><code>--base-model &lt;이름&gt;</code>, <code>--ft &lt;이름&gt;</code>, <code>--config</code>, <code>--data</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 id="cli-tools">도구</h3>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>명령어</th>
+                  <th>설명</th>
+                  <th>주요 옵션</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>slm-factory tool wizard</code></td>
+                  <td>대화형 파이프라인 (권장)</td>
+                  <td><code>--config</code>, <code>--resume</code> / <code>-r</code></td>
+                </tr>
+                <tr>
+                  <td><code>slm-factory tool review</code></td>
+                  <td>QA 수동 리뷰 TUI</td>
+                  <td><code>--config</code>, <code>--data</code></td>
+                </tr>
+                <tr>
+                  <td><code>slm-factory tool dashboard</code></td>
+                  <td>파이프라인 대시보드 TUI</td>
+                  <td><code>--config</code></td>
+                </tr>
+                <tr>
+                  <td><code>slm-factory tool evolve</code></td>
+                  <td>자동 진화 (증분 &rarr; 학습 &rarr; 품질게이트 &rarr; 배포)</td>
+                  <td><code>--config</code>, <code>--force-update</code>, <code>--skip-gate</code></td>
+                </tr>
+                <tr>
+                  <td><code>slm-factory tool convert</code></td>
+                  <td>QA &rarr; JSONL 변환</td>
+                  <td><code>--config</code>, <code>--data</code></td>
+                </tr>
+                <tr>
+                  <td><code>slm-factory tool dialogue</code></td>
+                  <td>멀티턴 대화 생성</td>
+                  <td><code>--config</code>, <code>--data</code></td>
+                </tr>
+                <tr>
+                  <td><code>slm-factory tool gguf</code></td>
+                  <td>GGUF 양자화 변환</td>
+                  <td><code>--config</code>, <code>--model-dir</code></td>
+                </tr>
+                <tr>
+                  <td><code>slm-factory tool update</code></td>
+                  <td>증분 업데이트 (변경 문서만)</td>
+                  <td><code>--config</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3 id="cli-info">정보</h3>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>명령어</th>
+                  <th>설명</th>
+                  <th>주요 옵션</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>slm-factory status</code></td>
+                  <td>파이프라인 진행 상태 확인</td>
+                  <td><code>--config</code></td>
+                </tr>
+                <tr>
+                  <td><code>slm-factory clean</code></td>
+                  <td>중간 파일 정리</td>
+                  <td><code>--config</code>, <code>--all</code></td>
+                </tr>
+                <tr>
+                  <td><code>slm-factory version</code></td>
+                  <td>버전 정보 출력</td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <blockquote>
+            <p>각 명령어의 전체 옵션은 <a href="cli-reference.html">CLI 레퍼런스</a>를 참조하십시오.</p>
+          </blockquote>
+        </section>
+
+
+        <!-- ============================================================
+             Section: 파이프라인 단계
+             ============================================================ -->
+        <section id="pipeline-steps">
+          <h2>파이프라인 단계</h2>
+
+          <p><code>slm-factory run</code> 실행 시 아래 순서로 진행됩니다.</p>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>단계</th>
+                  <th>유형</th>
+                  <th>설명</th>
+                  <th>출력 파일</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>1</td>
+                  <td><strong>parse</strong></td>
+                  <td><span class="tag tag-required">필수</span></td>
+                  <td>PDF/HWPX/HTML/TXT/DOCX 파싱</td>
+                  <td><code>output/parsed_documents.json</code></td>
+                </tr>
+                <tr>
+                  <td>2</td>
+                  <td><strong>generate</strong></td>
+                  <td><span class="tag tag-required">필수</span></td>
+                  <td>Teacher LLM으로 QA 쌍 생성</td>
+                  <td><code>output/qa_alpaca.json</code></td>
+                </tr>
+                <tr>
+                  <td>3</td>
+                  <td><strong>validate</strong></td>
+                  <td><span class="tag tag-required">필수</span></td>
+                  <td>규칙 + 임베딩 기반 QA 검증 및 필터링</td>
+                  <td><code>qa_alpaca.json</code> 갱신</td>
+                </tr>
+                <tr>
+                  <td>4</td>
+                  <td><strong>score</strong></td>
+                  <td><span class="tag tag-optional">선택</span></td>
+                  <td>Teacher LLM 1~5점 품질 평가 (<code>scoring.enabled: true</code>)</td>
+                  <td><code>output/qa_scored.json</code></td>
+                </tr>
+                <tr>
+                  <td>5</td>
+                  <td><strong>augment</strong></td>
+                  <td><span class="tag tag-optional">선택</span></td>
+                  <td>질문 패러프레이즈 데이터 증강 (<code>augment.enabled: true</code>)</td>
+                  <td><code>output/qa_augmented.json</code></td>
+                </tr>
+                <tr>
+                  <td>6</td>
+                  <td><strong>analyze</strong></td>
+                  <td><span class="tag tag-optional">선택</span></td>
+                  <td>통계 분석 보고서 생성 (<code>analyzer.enabled: true</code>)</td>
+                  <td><code>output/data_analysis.json</code></td>
+                </tr>
+                <tr>
+                  <td>7</td>
+                  <td><strong>convert</strong></td>
+                  <td><span class="tag tag-required">필수</span></td>
+                  <td>채팅 템플릿 적용 JSONL 변환</td>
+                  <td><code>output/training_data.jsonl</code></td>
+                </tr>
+                <tr>
+                  <td>8</td>
+                  <td><strong>train</strong></td>
+                  <td><span class="tag tag-required">필수</span></td>
+                  <td>LoRA 파인튜닝</td>
+                  <td><code>output/checkpoints/adapter/</code></td>
+                </tr>
+                <tr>
+                  <td>9</td>
+                  <td><strong>export</strong></td>
+                  <td><span class="tag tag-required">필수</span></td>
+                  <td>모델 병합 + Ollama Modelfile 생성</td>
+                  <td><code>output/merged_model/</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- SVG Diagram: Pipeline Steps Flow -->
+          <div class="diagram">
+            <svg role="img" aria-labelledby="diagram-pipeline-flow-title diagram-pipeline-flow-desc" viewBox="0 0 640 510" xmlns="http://www.w3.org/2000/svg">
+              <title id="diagram-pipeline-flow-title">파이프라인 단계 흐름도</title>
+              <desc id="diagram-pipeline-flow-desc">slm-factory의 9단계 파이프라인 흐름. parse, generate, validate 필수 단계 후 score, augment, analyze 선택 단계를 거쳐 convert, train, export 필수 단계로 완료됩니다. 각 단계의 출력 파일이 오른쪽에 표시됩니다.</desc>
+              <defs>
+                <marker id="pf-arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                  <polygon points="0 0, 10 3.5, 0 7" fill="#2C5282"/>
+                </marker>
+                <marker id="pf-arrow-gray" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                  <polygon points="0 0, 10 3.5, 0 7" fill="#A0AEC0"/>
+                </marker>
+              </defs>
+
+              <!-- Background -->
+              <rect x="10" y="5" width="620" height="495" rx="10" fill="#F7F8FA" stroke="#CBD5E0" stroke-width="1"/>
+
+              <!-- Group separators -->
+              <line x1="70" y1="164" x2="600" y2="164" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="6,4"/>
+              <line x1="70" y1="324" x2="600" y2="324" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="6,4"/>
+
+              <!-- Group labels -->
+              <text x="35" y="83" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#1B3A5C">필수</text>
+              <text x="35" y="97" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#1B3A5C">단계</text>
+
+              <text x="35" y="241" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#ED8936">선택</text>
+              <text x="35" y="255" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#ED8936">단계</text>
+
+              <text x="35" y="401" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#1B3A5C">필수</text>
+              <text x="35" y="415" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#1B3A5C">단계</text>
+
+              <!-- ── Stage 1: parse (필수) ── -->
+              <rect x="100" y="20" width="180" height="38" rx="6" fill="#1B3A5C"/>
+              <text x="190" y="35" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">parse</text>
+              <text x="190" y="49" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">문서 파싱</text>
+              <!-- Output connector + label -->
+              <line x1="280" y1="39" x2="320" y2="39" stroke="#CBD5E0" stroke-width="1"/>
+              <rect x="325" y="28" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
+              <text x="335" y="43" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">parsed_documents.json</text>
+              <!-- Arrow to next -->
+              <line x1="190" y1="58" x2="190" y2="68" stroke="#2C5282" stroke-width="2" marker-end="url(#pf-arrow)"/>
+
+              <!-- ── Stage 2: generate (필수) ── -->
+              <rect x="100" y="68" width="180" height="38" rx="6" fill="#1B3A5C"/>
+              <text x="190" y="83" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">generate</text>
+              <text x="190" y="97" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">QA 생성</text>
+              <line x1="280" y1="87" x2="320" y2="87" stroke="#CBD5E0" stroke-width="1"/>
+              <rect x="325" y="76" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
+              <text x="335" y="91" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">qa_alpaca.json</text>
+              <line x1="190" y1="106" x2="190" y2="116" stroke="#2C5282" stroke-width="2" marker-end="url(#pf-arrow)"/>
+
+              <!-- ── Stage 3: validate (필수) ── -->
+              <rect x="100" y="116" width="180" height="38" rx="6" fill="#1B3A5C"/>
+              <text x="190" y="131" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">validate</text>
+              <text x="190" y="145" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">QA 검증</text>
+              <line x1="280" y1="135" x2="320" y2="135" stroke="#CBD5E0" stroke-width="1"/>
+              <rect x="325" y="124" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
+              <text x="335" y="139" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">qa_alpaca.json (갱신)</text>
+              <!-- Dashed arrow to optional group -->
+              <line x1="190" y1="154" x2="190" y2="180" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
+
+              <!-- ── Stage 4: score (선택) ── -->
+              <rect x="100" y="180" width="180" height="38" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1.5" stroke-dasharray="6,3"/>
+              <text x="190" y="195" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">score</text>
+              <text x="190" y="209" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">품질 평가</text>
+              <line x1="280" y1="199" x2="320" y2="199" stroke="#CBD5E0" stroke-width="1"/>
+              <rect x="325" y="188" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
+              <text x="335" y="203" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">qa_scored.json</text>
+              <line x1="190" y1="218" x2="190" y2="228" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
+
+              <!-- ── Stage 5: augment (선택) ── -->
+              <rect x="100" y="228" width="180" height="38" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1.5" stroke-dasharray="6,3"/>
+              <text x="190" y="243" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">augment</text>
+              <text x="190" y="257" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">데이터 증강</text>
+              <line x1="280" y1="247" x2="320" y2="247" stroke="#CBD5E0" stroke-width="1"/>
+              <rect x="325" y="236" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
+              <text x="335" y="251" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">qa_augmented.json</text>
+              <line x1="190" y1="266" x2="190" y2="276" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
+
+              <!-- ── Stage 6: analyze (선택) ── -->
+              <rect x="100" y="276" width="180" height="38" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1.5" stroke-dasharray="6,3"/>
+              <text x="190" y="291" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">analyze</text>
+              <text x="190" y="305" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">통계 분석</text>
+              <line x1="280" y1="295" x2="320" y2="295" stroke="#CBD5E0" stroke-width="1"/>
+              <rect x="325" y="284" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
+              <text x="335" y="299" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">data_analysis.json</text>
+              <!-- Dashed arrow to required group -->
+              <line x1="190" y1="314" x2="190" y2="340" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
+
+              <!-- ── Stage 7: convert (필수) ── -->
+              <rect x="100" y="340" width="180" height="38" rx="6" fill="#1B3A5C"/>
+              <text x="190" y="355" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">convert</text>
+              <text x="190" y="369" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">데이터 변환</text>
+              <line x1="280" y1="359" x2="320" y2="359" stroke="#CBD5E0" stroke-width="1"/>
+              <rect x="325" y="348" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
+              <text x="335" y="363" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">training_data.jsonl</text>
+              <line x1="190" y1="378" x2="190" y2="388" stroke="#2C5282" stroke-width="2" marker-end="url(#pf-arrow)"/>
+
+              <!-- ── Stage 8: train (필수) ── -->
+              <rect x="100" y="388" width="180" height="38" rx="6" fill="#1B3A5C"/>
+              <text x="190" y="403" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">train</text>
+              <text x="190" y="417" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">LoRA 학습</text>
+              <line x1="280" y1="407" x2="320" y2="407" stroke="#CBD5E0" stroke-width="1"/>
+              <rect x="325" y="396" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
+              <text x="335" y="411" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">checkpoints/adapter/</text>
+              <line x1="190" y1="426" x2="190" y2="436" stroke="#2C5282" stroke-width="2" marker-end="url(#pf-arrow)"/>
+
+              <!-- ── Stage 9: export (필수) ── -->
+              <rect x="100" y="436" width="180" height="38" rx="6" fill="#1B3A5C"/>
+              <text x="190" y="451" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">export</text>
+              <text x="190" y="465" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">모델 배포</text>
+              <line x1="280" y1="455" x2="320" y2="455" stroke="#CBD5E0" stroke-width="1"/>
+              <rect x="325" y="444" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
+              <text x="335" y="459" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">merged_model/</text>
+
+              <!-- Legend -->
+              <rect x="100" y="488" width="16" height="10" rx="3" fill="#1B3A5C"/>
+              <text x="122" y="497" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568">필수 단계</text>
+
+              <rect x="210" y="488" width="16" height="10" rx="3" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="3,2"/>
+              <text x="232" y="497" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568">선택 단계</text>
+
+              <rect x="320" y="488" width="16" height="10" rx="3" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
+              <text x="342" y="497" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568">출력 파일</text>
+            </svg>
+            <p class="diagram-caption">그림 1. slm-factory 파이프라인 단계 흐름 - 필수 단계(navy)와 선택 단계(orange dashed), 각 단계의 출력 파일</p>
+          </div>
+        </section>
+
+
+        <!-- ============================================================
+             Section: 자주 쓰는 워크플로우
+             ============================================================ -->
+        <section id="workflows">
+          <h2>자주 쓰는 워크플로우</h2>
+
+          <h3 id="workflow-wizard">1. 전체 자동 실행 (wizard)</h3>
+
+          <p>처음 사용자에게 권장합니다. 각 단계를 확인하며 대화형으로 진행합니다.</p>
+
+          <pre data-lang="bash"><code>slm-factory tool wizard --config my-project/project.yaml</code></pre>
+
+          <hr>
+
+          <h3 id="workflow-run">2. 수동 전체 실행 (run)</h3>
+
+          <p>설정을 직접 제어하고 싶을 때 사용합니다.</p>
+
+          <pre data-lang="bash"><code>slm-factory run --config my-project/project.yaml</code></pre>
+
+          <hr>
+
+          <h3 id="workflow-step-by-step">3. 단계별 실행 (run --until)</h3>
+
+          <p>특정 단계까지만 실행하고 결과를 확인한 후 다음 단계로 진행합니다.</p>
+
+          <pre data-lang="bash"><code>slm-factory run --until parse    --config my-project/project.yaml
+slm-factory run --until generate --config my-project/project.yaml
+slm-factory run --until validate --config my-project/project.yaml
+slm-factory run --until score    --config my-project/project.yaml
+slm-factory run --until augment  --config my-project/project.yaml
+slm-factory train                --config my-project/project.yaml
+slm-factory export               --config my-project/project.yaml</code></pre>
+
+          <hr>
+
+          <h3 id="workflow-train-data">4. 기존 데이터로 학습만 (train --data)</h3>
+
+          <p>이미 준비된 <code>training_data.jsonl</code>이 있거나 하이퍼파라미터를 반복 실험할 때 사용합니다.</p>
+
+          <pre data-lang="bash"><code>slm-factory train --config my-project/project.yaml --data ./output/training_data.jsonl</code></pre>
+
+          <hr>
+
+          <h3 id="workflow-resume">5. 중단 후 재개 (--resume)</h3>
+
+          <p>파이프라인이 중간에 중단된 경우, 중간 저장 파일에서 자동으로 재개합니다.</p>
+
+          <pre data-lang="bash"><code>slm-factory run   --config my-project/project.yaml --resume
+slm-factory train --config my-project/project.yaml --resume
+slm-factory tool wizard --config my-project/project.yaml --resume</code></pre>
+
+          <hr>
+
+          <h3 id="workflow-eval">6. 평가 및 비교 (eval run / eval compare)</h3>
+
+          <p>학습 완료 후 모델 성능을 측정하고 Base 모델과 비교합니다.</p>
+
+          <pre data-lang="bash"><code># BLEU/ROUGE 평가
+slm-factory eval run --model my-project-model --config my-project/project.yaml
+
+# Base vs Fine-tuned 비교
+slm-factory eval compare \
+  --base-model gemma:2b \
+  --ft my-project-model \
+  --config my-project/project.yaml</code></pre>
+        </section>
+
+
+        <!-- ============================================================
+             Section: 출력 파일 구조
+             ============================================================ -->
+        <section id="output-structure">
+          <h2>출력 파일 구조</h2>
+
+          <pre><code>output/
+├── parsed_documents.json       # 파싱된 문서 텍스트 및 메타데이터
+├── qa_alpaca.json              # Teacher LLM이 생성한 QA 쌍 (Alpaca 형식)
+├── qa_scored.json              # 품질 점수 평가를 통과한 QA 쌍
+├── qa_augmented.json           # 데이터 증강이 완료된 QA 쌍
+├── qa_reviewed.json            # TUI 수동 리뷰를 거친 QA 쌍
+├── data_analysis.json          # 카테고리 분포, 길이 통계, 품질 경고
+├── dialogues.json              # 멀티턴 대화 형식으로 확장된 데이터
+├── eval_results.json           # BLEU/ROUGE 평가 점수
+├── compare_results.json        # Base vs Fine-tuned 비교 결과
+├── training_data.jsonl         # 채팅 템플릿 적용된 최종 학습 데이터
+├── checkpoints/
+│   └── adapter/                # LoRA 어댑터 가중치 (PEFT 형식)
+│       ├── adapter_config.json
+│       └── adapter_model.safetensors
+├── *.gguf                      # GGUF 양자화 변환 결과 (선택)
+└── merged_model/               # 병합된 최종 모델 (HuggingFace 형식)
+    ├── config.json
+    ├── model.safetensors
+    ├── tokenizer.json
+    └── Modelfile               # Ollama 배포용 파일</code></pre>
+        </section>
+
+
+        <!-- ============================================================
+             Section: 설정 파일 골격
+             ============================================================ -->
+        <section id="config-skeleton">
+          <h2>설정 파일 골격</h2>
+
+          <p><code>project.yaml</code>의 최소 필수 설정입니다. 나머지는 기본값으로 동작합니다.</p>
+
+          <pre data-lang="yaml"><code>project:
+  name: "my-project"
+  language: "ko"                        # "ko", "en", "ja" 등
+
+paths:
+  documents: "./documents"
+  output: "./output"
+
+teacher:
+  backend: "ollama"                     # "ollama" 또는 "openai"
+  model: "qwen3:8b"
+  api_base: "http://localhost:11434"
+  temperature: 0.3
+
+student:
+  model: "google/gemma-3-1b-it"
+
+export:
+  ollama:
+    model_name: "my-project-model"
+    system_prompt: "당신은 도메인 전문 도우미입니다."</code></pre>
+
+          <blockquote>
+            <p>전체 설정 옵션(scoring, augment, validation, training, LoRA 등)은 <a href="configuration.html">설정 레퍼런스</a>를 참조하십시오.</p>
+          </blockquote>
+        </section>
+
+
+        <!-- ============================================================
+             Section: 트러블슈팅 빠른 해결
+             ============================================================ -->
+        <section id="troubleshooting">
+          <h2>트러블슈팅 빠른 해결</h2>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>증상</th>
+                  <th>원인</th>
+                  <th>해결</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>Failed to connect to Ollama at http://localhost:11434</code></td>
+                  <td>Ollama 서버 미실행</td>
+                  <td><code>ollama serve</code> 실행 후 재시도</td>
+                </tr>
+                <tr>
+                  <td><code>CUDA out of memory</code></td>
+                  <td>GPU VRAM 부족</td>
+                  <td><code>training.batch_size: 2</code>, <code>quantization.bits: 4</code> 설정</td>
+                </tr>
+                <tr>
+                  <td><code>Failed to parse HWPX file - section0.xml not found</code></td>
+                  <td>HWPX 파일 손상 또는 <code>.hwp</code> 형식</td>
+                  <td>한글에서 <code>.hwpx</code>로 다시 저장 (<code>.hwp</code> 미지원)</td>
+                </tr>
+                <tr>
+                  <td><code>Could not install packages due to an OSError</code> (pykospacing)</td>
+                  <td>Python 버전 또는 Git 미설치</td>
+                  <td><code>python --version</code> 확인 (3.11+), <code>git --version</code> 확인</td>
+                </tr>
+                <tr>
+                  <td><code>Only N QA pairs generated. Recommend at least 100</code></td>
+                  <td>문서 부족 또는 질문 카테고리 부족</td>
+                  <td>문서 추가 또는 <code>questions.categories</code> 확장</td>
+                </tr>
+                <tr>
+                  <td>대부분의 답변이 "The document does not contain..."</td>
+                  <td>Teacher 모델 타임아웃 또는 질문 부적합</td>
+                  <td><code>teacher.timeout: 300</code>, 질문을 문서 내용에 맞게 수정</td>
+                </tr>
+                <tr>
+                  <td><code>model not found</code> (Ollama)</td>
+                  <td>Teacher 모델 미다운로드</td>
+                  <td><code>ollama pull qwen3:8b</code></td>
+                </tr>
+                <tr>
+                  <td><code>externally-managed-environment</code> (pip)</td>
+                  <td>가상환경 미활성화</td>
+                  <td><code>source .venv/bin/activate</code> 후 재설치</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <blockquote>
+            <p>상세 해결 방법은 <a href="guide.html#section-7">사용 가이드</a>를 참조하십시오.</p>
+          </blockquote>
+        </section>
+
+
+        <!-- ============================================================
+             Section: 관련 문서
+             ============================================================ -->
+        <section id="related-docs">
+          <h2>관련 문서</h2>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>문서</th>
+                  <th>내용</th>
+                  <th>대상</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><a href="guide.html">사용 가이드</a></td>
+                  <td>설치부터 배포까지 단계별 상세 안내</td>
+                  <td>처음 사용자</td>
+                </tr>
+                <tr>
+                  <td><a href="cli-reference.html">CLI 레퍼런스</a></td>
+                  <td>모든 명령어와 옵션의 완전한 설명</td>
+                  <td>명령어 확인</td>
+                </tr>
+                <tr>
+                  <td><a href="configuration.html">설정 레퍼런스</a></td>
+                  <td><code>project.yaml</code>의 모든 설정 옵션 상세 설명</td>
+                  <td>설정 커스터마이징</td>
+                </tr>
+                <tr>
+                  <td><a href="architecture.html">아키텍처 가이드</a></td>
+                  <td>내부 구조, 모듈 설계, 확장 방법</td>
+                  <td>기여자, 고급 사용자</td>
+                </tr>
+                <tr>
+                  <td><a href="development.html">개발 가이드</a></td>
+                  <td>개발 환경 설정, 테스트, 기여 방법</td>
+                  <td>기여자</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+      </div><!-- /.content-container -->
+    </div><!-- /.main-content -->
+
+    <!-- Footer -->
+    <footer class="page-footer">
+      <p>slm-factory Documentation</p>
+    </footer>
+
+  </div><!-- /.page-wrapper -->
+</body>
+</html>
