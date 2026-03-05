@@ -111,8 +111,8 @@
             <title id="svg1-title">컴포넌트 구조 다이어그램</title>
             <desc id="svg1-desc">CLI에서 Pipeline으로, Pipeline에서 9개 처리 모듈(Parse, Generate, Validate, Score, Augment, Analyze, Convert, Train, Export)로 이어지는 구조와 각 모듈의 출력 파일, 그리고 모든 컴포넌트에 주입되는 Config를 보여주는 다이어그램</desc>
             <defs>
-              <marker id="s1-arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#2C5282"/></marker>
-              <marker id="s1-arrow-gray" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#A0AEC0"/></marker>
+              <marker id="s1-arrow" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polyline points="0 0, 7 2.5, 0 5" fill="none" stroke="#2C5282" stroke-width="1.5" stroke-linejoin="round"/></marker>
+              <marker id="s1-arrow-gray" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polyline points="0 0, 7 2.5, 0 5" fill="none" stroke="#A0AEC0" stroke-width="1.5" stroke-linejoin="round"/></marker>
             </defs>
             <style>
               .s1-title { font: 700 14px Pretendard, sans-serif; fill: #FFFFFF; }
@@ -239,7 +239,7 @@
             <title id="svg2-title">모듈 의존성 다이어그램</title>
             <desc id="svg2-desc">cli.py에서 pipeline.py로, pipeline.py에서 parsers, teacher, validator, scorer, augmenter, analyzer, converter, trainer, exporter, evaluator, comparator, incremental, tui 모듈로 이어지는 의존성 트리와 모든 모듈이 공유하는 config.py, models.py, utils.py를 보여주는 다이어그램</desc>
             <defs>
-              <marker id="s2-arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#2C5282"/></marker>
+              <marker id="s2-arrow" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polyline points="0 0, 7 2.5, 0 5" fill="none" stroke="#2C5282" stroke-width="1.5" stroke-linejoin="round"/></marker>
             </defs>
             <style>
               .s2-pkg { font: 700 13px Pretendard, sans-serif; fill: #FFFFFF; }
@@ -426,8 +426,8 @@ results = await asyncio.gather(*tasks, return_exceptions=True)</code></pre>
             <title id="svg3-title">중간 파일 체인 다이어그램</title>
             <desc id="svg3-desc">documents 디렉토리에서 시작하여 parsed_documents.json, qa_alpaca.json, 메모리 단계를 거쳐 score/augment/analyze로 분기한 뒤 training_data.jsonl, adapter, merged_model로 이어지는 중간 파일 체인을 보여주는 다이어그램</desc>
             <defs>
-              <marker id="s3-arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#2C5282"/></marker>
-              <marker id="s3-arrow-green" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#2F855A"/></marker>
+              <marker id="s3-arrow" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polyline points="0 0, 7 2.5, 0 5" fill="none" stroke="#2C5282" stroke-width="1.5" stroke-linejoin="round"/></marker>
+              <marker id="s3-arrow-green" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polyline points="0 0, 7 2.5, 0 5" fill="none" stroke="#2F855A" stroke-width="1.5" stroke-linejoin="round"/></marker>
             </defs>
             <style>
               .s3-step { font: 600 11px "JetBrains Mono", monospace; fill: #3182CE; }
@@ -547,7 +547,7 @@ parsed_documents.json   →  generate 단계부터 재개
             <title id="svg4-title">설정 모델 계층 구조 다이어그램</title>
             <desc id="svg4-desc">SLMConfig 루트 모델에서 20개 하위 설정 모델(ProjectConfig, PathsConfig, ParsingConfig 등)로 이어지는 계층 구조를 Core, Pipeline, Advanced 세 그룹으로 나누어 보여주는 다이어그램</desc>
             <defs>
-              <marker id="s4-arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#2C5282"/></marker>
+              <marker id="s4-arrow" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polyline points="0 0, 7 2.5, 0 5" fill="none" stroke="#2C5282" stroke-width="1.5" stroke-linejoin="round"/></marker>
             </defs>
             <style>
               .s4-root { font: 700 15px Pretendard, sans-serif; fill: #FFFFFF; }
@@ -795,7 +795,7 @@ parsed_documents.json   →  generate 단계부터 재개
             <title id="svg5-title">설정 로드 프로세스 다이어그램</title>
             <desc id="svg5-desc">CLI에서 --config 옵션으로 시작하여 _find_config 자동 탐색, load_config 함수의 4단계 처리(절대 경로 변환, YAML 파싱, Pydantic 검증, 경로 변환)를 거쳐 SLMConfig 객체를 반환하는 흐름을 보여주는 다이어그램</desc>
             <defs>
-              <marker id="s5-arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#2C5282"/></marker>
+              <marker id="s5-arrow" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polyline points="0 0, 7 2.5, 0 5" fill="none" stroke="#2C5282" stroke-width="1.5" stroke-linejoin="round"/></marker>
             </defs>
             <style>
               .s5-title { font: 700 13px Pretendard, sans-serif; fill: #FFFFFF; }
@@ -997,8 +997,8 @@ def _strip_none_sections(cls, values: dict) -&gt; dict:
             <title id="svg6-title">Wizard 실행 흐름 다이어그램</title>
             <desc id="svg6-desc">Wizard 모드의 12단계 실행 흐름을 보여주는 다이어그램. 필수 단계(자동/확인)는 네이비 색상, 선택적 단계는 주황색 점선 테두리로 구분됩니다.</desc>
             <defs>
-              <marker id="s6-arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#2C5282"/></marker>
-              <marker id="s6-arrow-orange" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#ED8936"/></marker>
+              <marker id="s6-arrow" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polyline points="0 0, 7 2.5, 0 5" fill="none" stroke="#2C5282" stroke-width="1.5" stroke-linejoin="round"/></marker>
+              <marker id="s6-arrow-orange" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polyline points="0 0, 7 2.5, 0 5" fill="none" stroke="#ED8936" stroke-width="1.5" stroke-linejoin="round"/></marker>
             </defs>
             <style>
               .s6-req { font: 700 12px Pretendard, sans-serif; fill: #FFFFFF; }
