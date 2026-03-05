@@ -21,32 +21,33 @@
       <span class="sidebar-version">Documentation</span>
     </div>
     <ul class="sidebar-nav">
-      <li><div class="nav-section">시작하기</div></li>
-      <li><a href="index.html">홈</a></li>
-      <li><a href="quick-reference.html">빠른 참조</a></li>
-      <li><div class="nav-section">사용자 가이드</div></li>
+      <li class="nav-section">시작하기</li>
+      <li><a href="index.html">문서 홈</a></li>
       <li><a href="guide.html">사용 가이드</a></li>
+      <li><a href="quick-reference.html">빠른 참조</a></li>
+      <li class="nav-section">레퍼런스</li>
       <li><a href="cli-reference.html">CLI 레퍼런스</a></li>
       <li><a href="configuration.html">설정 레퍼런스</a></li>
-      <li><div class="nav-section">개발자</div></li>
+      <li class="nav-section">심화</li>
       <li><a href="architecture.html" class="active">아키텍처 가이드</a></li>
-      <li><a href="development.html">개발자 가이드</a></li>
-      <li><div class="nav-section">연동</div></li>
+      <li><a href="development.html">개발 가이드</a></li>
       <li><a href="autorag-integration.html">AutoRAG 연동</a></li>
     </ul>
   </nav>
 
-  <!-- ============ Hero Header ============ -->
-  <header class="page-header">
-    <div class="content-container">
-      <span class="badge">Developer Guide</span>
-      <h1>아키텍처 가이드</h1>
-      <p class="subtitle">slm-factory의 내부 설계와 동작 원리를 이해하세요.</p>
-    </div>
-  </header>
+  <!-- ============ Main Content Area ============ -->
+  <div class="main-content">
 
-  <!-- ============ Main Content ============ -->
-  <main class="main-content">
+    <!-- Page Header (Hero) -->
+    <header class="page-header">
+      <div class="content-container">
+        <span class="badge">Developer Guide</span>
+        <h1>아키텍처 가이드</h1>
+        <p class="subtitle">slm-factory의 내부 설계와 동작 원리를 이해하세요.</p>
+      </div>
+    </header>
+
+    <!-- Content Body -->
     <div class="content-container">
 
       <!-- Breadcrumb -->
@@ -1230,14 +1231,14 @@ def _strip_none_sections(cls, values: dict) -&gt; dict:
         </div>
       </section>
 
-    </div>
-  </main>
+      </div><!-- /.content-container -->
+    </div><!-- /.main-content -->
 
-  <!-- ============ Footer ============ -->
-  <footer class="page-footer">
-    <p>slm-factory Documentation &middot; <a href="index.html">홈으로 돌아가기</a></p>
-  </footer>
+    <!-- Footer -->
+    <footer class="page-footer">
+      <p>slm-factory Documentation &middot; <a href="index.html">홈으로 돌아가기</a></p>
+    </footer>
 
-</div>
+  </div><!-- /.page-wrapper -->
 </body>
 </html>
