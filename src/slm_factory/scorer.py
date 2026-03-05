@@ -62,7 +62,7 @@ class QualityScorer:
             if 1 <= score <= 5:
                 return score, reason
         except (json.JSONDecodeError, ValueError, TypeError):
-            pass
+            logger.debug("점수 JSON 파싱 실패, 정규식 fallback 시도: %s", text[:80])
 
         # 패턴 1: 'score' 또는 '점수' 키워드 뒤의 숫자
         match = re.search(r'(?:score|점수)\D{0,10}([1-5])', text, re.IGNORECASE)

@@ -119,8 +119,21 @@ class OpenAICompatTeacher(BaseTeacher):
                     f"OpenAI 호환 API HTTP {exc.response.status_code}: "
                     f"{exc.response.text[:200]}"
                 ) from exc
+            except httpx.HTTPError as e:
+                if attempt < _MAX_RETRIES - 1:
+                    delay = _RETRY_BASE_DELAY * (2 ** attempt)
+                    logger.warning(
+                        "OpenAI 호환 API 요청 실패 (시도 %d/%d, %s), %.0f초 후 재시도...",
+                        attempt + 1, _MAX_RETRIES, type(e).__name__, delay,
+                    )
+                    time.sleep(delay)
+                    continue
+                raise RuntimeError(
+                    f"OpenAI 호환 API 요청이 {_MAX_RETRIES}회 시도 후에도 실패했습니다: {e}"
+                ) from e
 
-        assert resp is not None
+        if resp is None:
+            raise RuntimeError("OpenAI 호환 API 요청에 대한 응답을 받지 못했습니다")
         data: dict[str, Any] = resp.json()
 
         try:
@@ -195,8 +208,21 @@ class OpenAICompatTeacher(BaseTeacher):
                         f"OpenAI 호환 API HTTP {exc.response.status_code}: "
                         f"{exc.response.text[:200]}"
                     ) from exc
+                except httpx.HTTPError as e:
+                    if attempt < _MAX_RETRIES - 1:
+                        delay = _RETRY_BASE_DELAY * (2 ** attempt)
+                        logger.warning(
+                            "OpenAI 호환 API 요청 실패 (시도 %d/%d, %s), %.0f초 후 재시도...",
+                            attempt + 1, _MAX_RETRIES, type(e).__name__, delay,
+                        )
+                        await asyncio.sleep(delay)
+                        continue
+                    raise RuntimeError(
+                        f"OpenAI 호환 API 요청이 {_MAX_RETRIES}회 시도 후에도 실패했습니다: {e}"
+                    ) from e
 
-        assert resp is not None
+        if resp is None:
+            raise RuntimeError("OpenAI 호환 API 요청에 대한 응답을 받지 못했습니다")
         data: dict[str, Any] = resp.json()
 
         try:

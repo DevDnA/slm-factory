@@ -57,7 +57,7 @@ class DataAugmenter:
             if isinstance(data, list):
                 return [q.strip() for q in data if isinstance(q, str) and q.strip()]
         except json.JSONDecodeError:
-            pass
+            logger.debug("패러프레이즈 JSON 파싱 실패: %s", text[:80])
 
         logger.warning("패러프레이즈 파싱 실패: %s", text[:100])
         return []

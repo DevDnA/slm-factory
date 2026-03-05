@@ -90,7 +90,10 @@ class ChatFormatter:
                     messages_no_system, tokenize=False, add_generation_prompt=False,
                 )
             except Exception as e2:
-                logger.error("형식화 실패: %s", type(e2).__name__)
+                logger.error(
+                    "형식화 실패 (%s): %s — 이 QA 쌍은 학습 데이터에서 제외됩니다",
+                    self.model_name, e2,
+                )
                 return None
 
     def format_one(self, pair: QAPair) -> str | None:

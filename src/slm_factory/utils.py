@@ -101,7 +101,11 @@ async def ollama_generate(
                     attempt + 1, max_retries, exc, wait,
                 )
                 await _asyncio.sleep(wait)
-    raise last_exc  # type: ignore[misc]
+    if last_exc is None:
+        raise RuntimeError(
+            "ollama_generate: max_retries에 도달했으나 예외가 기록되지 않았습니다"
+        )
+    raise last_exc
 
 
 def run_async(coro: Awaitable[T]) -> T:
