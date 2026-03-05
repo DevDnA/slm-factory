@@ -202,7 +202,7 @@ cp /path/to/documents/*.pdf my-project/documents/
 slm-factory tool wizard --config my-project/project.yaml
 ```
 
-wizard가 문서 선택 → 파싱 → QA 생성 → 검증 → 학습 → 배포까지 단계별로 안내합니다. 상세한 진행 방법은 [사용 가이드](docs/guide.html)를 참조하십시오.
+wizard가 문서 선택 → 파싱 → QA 생성 → 검증 → 학습 → 배포까지 단계별로 안내합니다. 상세한 진행 방법은 [사용 가이드](https://devdna.github.io/slm-factory/guide.html)를 참조하십시오.
 
 ### 4. 모델 테스트
 
@@ -241,23 +241,23 @@ ollama run my-project-model
                  version                  버전 출력
 ```
 
-전체 옵션과 사용법은 [CLI 레퍼런스](docs/cli-reference.html)를 참조하십시오.
+전체 옵션과 사용법은 [CLI 레퍼런스](https://devdna.github.io/slm-factory/cli-reference.html)를 참조하십시오.
 
 ---
 
 ## 문서 안내
 
-> **HTML 문서 포털**: [docs/index.html](docs/index.html)에서 SVG 다이어그램이 포함된 공공제안서 스타일의 문서를 확인할 수 있습니다.
+> **HTML 문서 포털**: [devdna.github.io/slm-factory](https://devdna.github.io/slm-factory/)에서 SVG 다이어그램이 포함된 공공제안서 스타일의 문서를 확인할 수 있습니다.
 
 | 문서 | 내용 | 대상 |
 |------|------|------|
-| **[빠른 참조](docs/quick-reference.html)** ([md](docs/quick-reference.md)) | 명령어 요약, 워크플로우, 빠른 해결 | 모든 사용자 |
-| **[사용 가이드](docs/guide.html)** ([md](docs/guide.md)) | 설치, 튜토리얼, 활용 예시, 트러블슈팅 | 새 사용자 + 활성 사용자 |
-| **[CLI 레퍼런스](docs/cli-reference.html)** ([md](docs/cli-reference.md)) | 모든 명령어의 전체 옵션과 사용법 | 활성 사용자 |
-| **[설정 레퍼런스](docs/configuration.html)** ([md](docs/configuration.md)) | project.yaml 전체 설정 옵션 | 활성 사용자 |
-| **[아키텍처 가이드](docs/architecture.html)** ([md](docs/architecture.md)) | 설계 철학, 패턴, 데이터 흐름 | 기여자/개발자 |
-| **[개발자 가이드](docs/development.html)** ([md](docs/development.md)) | 모듈 API, 프로젝트 구조, 확장 방법 | 기여자/개발자 |
-| **[AutoRAG 연동 가이드](docs/autorag-integration.html)** | SLM + RAG 통합 아키텍처 구축 | RAG 시스템 구축자 |
+| **[빠른 참조](https://devdna.github.io/slm-factory/quick-reference.html)** ([md](docs/quick-reference.md)) | 명령어 요약, 워크플로우, 빠른 해결 | 모든 사용자 |
+| **[사용 가이드](https://devdna.github.io/slm-factory/guide.html)** ([md](docs/guide.md)) | 설치, 튜토리얼, 활용 예시, 트러블슈팅 | 새 사용자 + 활성 사용자 |
+| **[CLI 레퍼런스](https://devdna.github.io/slm-factory/cli-reference.html)** ([md](docs/cli-reference.md)) | 모든 명령어의 전체 옵션과 사용법 | 활성 사용자 |
+| **[설정 레퍼런스](https://devdna.github.io/slm-factory/configuration.html)** ([md](docs/configuration.md)) | project.yaml 전체 설정 옵션 | 활성 사용자 |
+| **[아키텍처 가이드](https://devdna.github.io/slm-factory/architecture.html)** ([md](docs/architecture.md)) | 설계 철학, 패턴, 데이터 흐름 | 기여자/개발자 |
+| **[개발자 가이드](https://devdna.github.io/slm-factory/development.html)** ([md](docs/development.md)) | 모듈 API, 프로젝트 구조, 확장 방법 | 기여자/개발자 |
+| **[AutoRAG 연동 가이드](https://devdna.github.io/slm-factory/autorag-integration.html)** | SLM + RAG 통합 아키텍처 구축 | RAG 시스템 구축자 |
 
 ---
 
