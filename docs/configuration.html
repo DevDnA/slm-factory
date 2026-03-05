@@ -1,0 +1,1480 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>설정 레퍼런스 — slm-factory</title>
+  <meta name="description" content="slm-factory project.yaml 설정 파일의 모든 옵션을 상세히 설명하는 레퍼런스 문서입니다.">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
+  <link rel="stylesheet" href="./assets/style.css">
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- ============ Sidebar ============ -->
+  <nav class="sidebar" aria-label="문서 탐색">
+    <div class="sidebar-header">
+      <a href="index.html" class="sidebar-logo">
+        <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="28" height="28" rx="6" fill="#3182CE"/>
+          <path d="M7 14h14M14 7v14" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        slm-factory
+      </a>
+      <span class="sidebar-version">Documentation</span>
+    </div>
+    <ul class="sidebar-nav">
+      <li class="nav-section">시작하기</li>
+      <li><a href="index.html">소개</a></li>
+      <li><a href="guide.html">사용 가이드</a></li>
+      <li><a href="quick-reference.html">빠른 참조</a></li>
+      <li class="nav-section">레퍼런스</li>
+      <li><a href="configuration.html" class="active">설정 레퍼런스</a></li>
+      <li><a href="cli-reference.html">CLI 레퍼런스</a></li>
+      <li class="nav-section">심화</li>
+      <li><a href="architecture.html">아키텍처 가이드</a></li>
+      <li><a href="development.html">개발자 가이드</a></li>
+      <li><a href="autorag-integration.html">AutoRAG 통합</a></li>
+    </ul>
+  </nav>
+
+  <!-- ============ Page Header (Hero) ============ -->
+  <header class="page-header">
+    <div class="content-container">
+      <span class="badge">Reference</span>
+      <h1>설정 레퍼런스 (project.yaml)</h1>
+      <p class="subtitle"><code>project.yaml</code>의 모든 설정 옵션을 확인하세요. 문서 파싱부터 모델 내보내기까지 전체 파이프라인을 YAML 파일 하나로 제어합니다.</p>
+    </div>
+  </header>
+
+  <!-- ============ Main Content ============ -->
+  <main class="main-content">
+    <div class="content-container">
+
+      <!-- Breadcrumb -->
+      <nav class="breadcrumb" aria-label="경로">
+        <a href="index.html">문서</a>
+        <span class="separator">/</span>
+        <span>설정 레퍼런스</span>
+      </nav>
+
+      <!-- ============ Table of Contents ============ -->
+      <nav class="toc" aria-label="목차">
+        <div class="toc-title">목차</div>
+        <ol class="toc-list">
+          <li><a href="#overview">1. 개요</a></li>
+          <li><a href="#project">2. project &mdash; 프로젝트 메타데이터</a></li>
+          <li><a href="#paths">3. paths &mdash; 경로 설정</a></li>
+          <li><a href="#parsing">4. parsing &mdash; 문서 파싱 설정</a></li>
+          <li><a href="#teacher">5. teacher &mdash; Teacher LLM 설정</a></li>
+          <li><a href="#questions">6. questions &mdash; 질문 설정</a></li>
+          <li><a href="#validation">7. validation &mdash; QA 검증 설정</a>
+            <ol class="toc-list"><li class="toc-h3"><a href="#groundedness">groundedness &mdash; 의미적 검증</a></li></ol>
+          </li>
+          <li><a href="#scoring">8. scoring &mdash; 품질 점수 평가 설정</a></li>
+          <li><a href="#augment">9. augment &mdash; 데이터 증강 설정</a></li>
+          <li><a href="#analyzer">10. analyzer &mdash; 데이터 분석 설정</a></li>
+          <li><a href="#student">11. student &mdash; Student 모델 설정</a></li>
+          <li><a href="#training">12. training &mdash; 학습 설정</a>
+            <ol class="toc-list">
+              <li class="toc-h3"><a href="#lora">lora &mdash; LoRA 어댑터 설정</a></li>
+              <li class="toc-h3"><a href="#early-stopping">early_stopping &mdash; 조기 종료</a></li>
+              <li class="toc-h3"><a href="#quantization">quantization &mdash; 양자화</a></li>
+            </ol>
+          </li>
+          <li><a href="#export">13. export &mdash; 모델 내보내기 설정</a>
+            <ol class="toc-list"><li class="toc-h3"><a href="#ollama-export">ollama &mdash; Ollama 내보내기</a></li></ol>
+          </li>
+          <li><a href="#eval">14. eval &mdash; 모델 평가 설정</a></li>
+          <li><a href="#compare">15. compare &mdash; 모델 비교 설정</a></li>
+          <li><a href="#evolve">16. evolve &mdash; 자동 진화 설정</a></li>
+          <li><a href="#gguf-export">17. gguf_export &mdash; GGUF 변환 설정</a></li>
+          <li><a href="#incremental">18. incremental &mdash; 증분 학습 설정</a></li>
+          <li><a href="#dialogue">19. dialogue &mdash; 멀티턴 대화 설정</a></li>
+          <li><a href="#review">20. review &mdash; QA 리뷰 설정</a></li>
+          <li><a href="#dashboard">21. dashboard &mdash; 대시보드 설정</a></li>
+          <li><a href="#recipes">22. 설정 레시피</a></li>
+          <li><a href="#full-example">23. 전체 설정 예시</a></li>
+          <li><a href="#check">24. 설정 검증 (slm-factory check)</a></li>
+        </ol>
+      </nav>
+
+      <!-- ============================================================
+           Section 1: 개요
+           ============================================================ -->
+      <section id="overview">
+        <h2>1. 개요</h2>
+
+        <p><code>project.yaml</code>은 slm-factory 파이프라인의 모든 동작을 제어하는 중앙 설정 파일입니다. 코드 수정 없이 문서 파싱, QA 생성, 검증, 학습, 내보내기 등 전체 워크플로우를 구성할 수 있습니다.</p>
+
+        <p><strong>파이프라인 제어</strong>: 문서 파싱부터 모델 내보내기까지 전 단계를 YAML 파일 하나로 제어합니다.</p>
+        <p><strong>타입 안전성</strong>: Pydantic v2 기반 검증으로 잘못된 설정을 실행 전에 감지합니다.</p>
+        <p><strong>기본값 제공</strong>: 모든 필드에 합리적인 기본값이 설정되어 있어 필요한 부분만 수정하면 됩니다.</p>
+        <p><strong>null 섹션 처리</strong>: YAML에서 <code>null</code>로 지정된 섹션은 자동으로 기본값이 적용됩니다. 예를 들어 <code>eval: null</code>로 설정하면 <code>eval</code> 섹션 전체가 기본값으로 초기화됩니다.</p>
+
+        <h3 id="config-create">설정 파일 생성</h3>
+        <p>새 프로젝트를 시작할 때는 다음 명령으로 기본 템플릿을 생성합니다:</p>
+        <pre data-lang="bash"><code>slm-factory init my-project</code></pre>
+        <p>이 명령은 <code>my-project/project.yaml</code> 파일을 생성하며, 모든 기본값이 주석과 함께 포함되어 있습니다.</p>
+
+        <h3 id="file-location">파일 위치</h3>
+        <p><code>project.yaml</code> 파일은 프로젝트 루트 디렉토리에 위치해야 합니다:</p>
+        <pre><code>my-project/
+├── project.yaml          # 설정 파일
+├── documents/            # 입력 문서 디렉토리
+└── output/               # 출력 디렉토리 (자동 생성)</code></pre>
+        <p>설정 로딩 프로세스 상세는 <a href="architecture.html">아키텍처 가이드</a>를 참조하십시오.</p>
+
+        <!-- ===== SVG: Config Model Hierarchy Diagram ===== -->
+        <h3 id="config-hierarchy">설정 모델 계층 구조</h3>
+        <p>아래 다이어그램은 <code>SLMConfig</code> 루트 모델에서 20개 하위 설정 모델로 분기되는 전체 구조를 보여줍니다. 각 설정 섹션의 상세 내용은 이 문서의 해당 섹션을 참조하십시오.</p>
+
+        <div class="diagram">
+          <svg role="img" aria-labelledby="config-tree-title config-tree-desc" viewBox="0 0 960 340" xmlns="http://www.w3.org/2000/svg">
+            <title id="config-tree-title">SLMConfig 설정 모델 계층 구조</title>
+            <desc id="config-tree-desc">SLMConfig 루트에서 20개 하위 설정 모델로 분기되는 트리 다이어그램. Core, Data Pipeline, Training, Export, Features 5개 그룹으로 구성됩니다.</desc>
+            <defs>
+              <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                <polygon points="0 0, 10 3.5, 0 7" fill="#2C5282"/>
+              </marker>
+            </defs>
+
+            <!-- Root: SLMConfig -->
+            <rect x="380" y="10" width="200" height="40" rx="8" fill="#1B3A5C"/>
+            <text x="480" y="36" text-anchor="middle" fill="#FFFFFF" font-size="15" font-weight="700" font-family="Pretendard, sans-serif">SLMConfig</text>
+
+            <!-- Connector: root to horizontal rail -->
+            <line x1="480" y1="50" x2="480" y2="70" stroke="#2C5282" stroke-width="2"/>
+            <line x1="120" y1="70" x2="840" y2="70" stroke="#2C5282" stroke-width="2"/>
+
+            <!-- Drops to 5 group headers -->
+            <line x1="120" y1="70" x2="120" y2="82" stroke="#2C5282" stroke-width="2"/>
+            <line x1="300" y1="70" x2="300" y2="82" stroke="#2C5282" stroke-width="2"/>
+            <line x1="480" y1="70" x2="480" y2="82" stroke="#2C5282" stroke-width="2"/>
+            <line x1="660" y1="70" x2="660" y2="82" stroke="#2C5282" stroke-width="2"/>
+            <line x1="840" y1="70" x2="840" y2="82" stroke="#2C5282" stroke-width="2"/>
+
+            <!-- Group Headers -->
+            <rect x="55" y="82" width="130" height="26" rx="6" fill="#3182CE"/>
+            <text x="120" y="100" text-anchor="middle" fill="#FFFFFF" font-size="11" font-weight="700" font-family="Pretendard, sans-serif">Core</text>
+
+            <rect x="235" y="82" width="130" height="26" rx="6" fill="#3182CE"/>
+            <text x="300" y="100" text-anchor="middle" fill="#FFFFFF" font-size="11" font-weight="700" font-family="Pretendard, sans-serif">Data Pipeline</text>
+
+            <rect x="415" y="82" width="130" height="26" rx="6" fill="#3182CE"/>
+            <text x="480" y="100" text-anchor="middle" fill="#FFFFFF" font-size="11" font-weight="700" font-family="Pretendard, sans-serif">Training</text>
+
+            <rect x="595" y="82" width="130" height="26" rx="6" fill="#3182CE"/>
+            <text x="660" y="100" text-anchor="middle" fill="#FFFFFF" font-size="11" font-weight="700" font-family="Pretendard, sans-serif">Export</text>
+
+            <rect x="775" y="82" width="130" height="26" rx="6" fill="#3182CE"/>
+            <text x="840" y="100" text-anchor="middle" fill="#FFFFFF" font-size="11" font-weight="700" font-family="Pretendard, sans-serif">Features</text>
+
+            <!-- Thin vertical connectors from group headers to items -->
+            <line x1="120" y1="108" x2="120" y2="118" stroke="#A0AEC0" stroke-width="1.5"/>
+            <line x1="300" y1="108" x2="300" y2="118" stroke="#A0AEC0" stroke-width="1.5"/>
+            <line x1="480" y1="108" x2="480" y2="118" stroke="#A0AEC0" stroke-width="1.5"/>
+            <line x1="660" y1="108" x2="660" y2="118" stroke="#A0AEC0" stroke-width="1.5"/>
+            <line x1="840" y1="108" x2="840" y2="118" stroke="#A0AEC0" stroke-width="1.5"/>
+
+            <!-- ===== Core items ===== -->
+            <rect x="60" y="118" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <text x="120" y="134" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">project</text>
+
+            <rect x="60" y="148" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <text x="120" y="164" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">paths</text>
+
+            <!-- ===== Data Pipeline items ===== -->
+            <rect x="240" y="118" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <text x="300" y="134" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">parsing</text>
+
+            <rect x="240" y="148" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <text x="300" y="164" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">teacher</text>
+
+            <rect x="240" y="178" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <text x="300" y="194" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">questions</text>
+
+            <rect x="240" y="208" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <text x="300" y="224" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">validation</text>
+
+            <rect x="240" y="238" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <text x="300" y="254" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">scoring</text>
+
+            <rect x="240" y="268" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <text x="300" y="284" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">augment</text>
+
+            <rect x="240" y="298" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <text x="300" y="314" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">analyzer</text>
+
+            <!-- ===== Training items ===== -->
+            <rect x="420" y="118" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <text x="480" y="134" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">student</text>
+
+            <rect x="420" y="148" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <text x="480" y="164" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">training</text>
+
+            <!-- ===== Export items ===== -->
+            <rect x="600" y="118" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <text x="660" y="134" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">export</text>
+
+            <rect x="600" y="148" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <text x="660" y="164" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">gguf_export</text>
+
+            <!-- ===== Features items ===== -->
+            <rect x="780" y="118" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <text x="840" y="134" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">eval</text>
+
+            <rect x="780" y="148" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <text x="840" y="164" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">compare</text>
+
+            <rect x="780" y="178" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <text x="840" y="194" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">evolve</text>
+
+            <rect x="780" y="208" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <text x="840" y="224" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">incremental</text>
+
+            <rect x="780" y="238" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <text x="840" y="254" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">dialogue</text>
+
+            <rect x="780" y="268" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <text x="840" y="284" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">review</text>
+
+            <rect x="780" y="298" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <text x="840" y="314" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">dashboard</text>
+          </svg>
+          <p class="diagram-caption">그림 1. SLMConfig 설정 모델 계층 구조 &mdash; 20개 하위 설정이 5개 그룹으로 구성됩니다</p>
+        </div>
+      </section>
+
+      <hr>
+
+      <!-- ============================================================
+           Section 2: project
+           ============================================================ -->
+      <section id="project">
+        <h2>2. project &mdash; 프로젝트 메타데이터</h2>
+        <blockquote><p>프로젝트의 기본 정보를 정의합니다. 내보낸 모델의 이름과 버전 관리에 사용됩니다.</p></blockquote>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>name</code></td><td><code>str</code></td><td><code>"my-project"</code></td><td>프로젝트 식별자. 내보낸 모델 이름에 반영됩니다 (빈 값 불가)</td></tr>
+              <tr><td><code>version</code></td><td><code>str</code></td><td><code>"1.0.0"</code></td><td>시맨틱 버전. 모델 버전 관리에 사용됩니다</td></tr>
+              <tr><td><code>language</code></td><td><code>str</code></td><td><code>"en"</code></td><td>문서 언어 코드. <code>"en"</code> (영어), <code>"ko"</code> (한국어), <code>"ja"</code> (일본어) 등</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <pre data-lang="yaml"><code>project:
+  name: "company-policy-assistant"
+  version: "2.1.0"
+  language: "ko"</code></pre>
+      </section>
+
+      <hr>
+
+      <!-- ============================================================
+           Section 3: paths
+           ============================================================ -->
+      <section id="paths">
+        <h2>3. paths &mdash; 경로 설정</h2>
+        <blockquote><p>입력 문서와 출력 파일의 위치를 지정합니다. 지정된 디렉토리가 없으면 자동으로 생성됩니다.</p></blockquote>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>documents</code></td><td><code>Path</code></td><td><code>"./documents"</code></td><td>입력 문서가 저장된 디렉토리. 파싱할 PDF, HWPX 등의 파일을 여기에 배치합니다</td></tr>
+              <tr><td><code>output</code></td><td><code>Path</code></td><td><code>"./output"</code></td><td>모든 출력 파일이 저장되는 디렉토리. QA 데이터셋, 학습된 모델, 체크포인트 등이 생성됩니다</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <pre data-lang="yaml"><code>paths:
+  documents: "./data/source_docs"
+  output: "./results"</code></pre>
+
+        <p>상대 경로는 <code>project.yaml</code> 파일이 위치한 디렉토리를 기준으로 해석됩니다. 프로젝트 디렉토리 외부에서 <code>--config my-project/project.yaml</code>로 실행해도 올바른 경로를 참조합니다.</p>
+      </section>
+
+      <hr>
+
+      <!-- ============================================================
+           Section 4: parsing
+           ============================================================ -->
+      <section id="parsing">
+        <h2>4. parsing &mdash; 문서 파싱 설정</h2>
+        <blockquote><p>입력 문서를 텍스트로 변환하는 파싱 단계의 설정입니다.</p></blockquote>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>formats</code></td><td><code>list[str]</code></td><td><code>["pdf", "txt", "html"]</code></td><td>파싱할 문서 형식 목록</td></tr>
+              <tr><td><code>pdf</code></td><td><code>PdfOptions</code></td><td>(하위 참조)</td><td>PDF 파싱 옵션</td></tr>
+              <tr><td><code>hwpx</code></td><td><code>HwpxOptions</code></td><td>(하위 참조)</td><td>HWPX 파싱 옵션</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 id="supported-formats">지원 형식</h3>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>형식</th><th>확장자</th><th>필요 패키지</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>pdf</code></td><td><code>.pdf</code></td><td><code>pymupdf</code> (기본 포함)</td></tr>
+              <tr><td><code>hwpx</code></td><td><code>.hwpx</code></td><td><code>beautifulsoup4</code>, <code>lxml</code> (기본 포함), <code>pykospacing</code> (선택)</td></tr>
+              <tr><td><code>html</code></td><td><code>.html</code>, <code>.htm</code></td><td><code>beautifulsoup4</code> (기본 포함)</td></tr>
+              <tr><td><code>txt</code></td><td><code>.txt</code></td><td>없음</td></tr>
+              <tr><td><code>md</code></td><td><code>.md</code></td><td>없음</td></tr>
+              <tr><td><code>docx</code></td><td><code>.docx</code></td><td><code>python-docx</code> (<code>pip install slm-factory[docx]</code>)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 id="pdf-options">pdf 옵션</h3>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>extract_tables</code></td><td><code>bool</code></td><td><code>true</code></td><td>PDF 내 표를 마크다운 형식으로 추출합니다. <code>false</code>로 설정하면 표를 일반 텍스트로 처리합니다</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 id="hwpx-options">hwpx 옵션</h3>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>apply_spacing</code></td><td><code>bool</code></td><td><code>true</code></td><td>한국어 띄어쓰기 교정을 적용합니다. <code>pykospacing</code> 패키지가 필요합니다 (<code>pip install slm-factory[korean]</code>)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <pre data-lang="yaml"><code>parsing:
+  formats: ["pdf", "hwpx", "html", "txt", "docx"]
+  pdf:
+    extract_tables: true
+  hwpx:
+    apply_spacing: true</code></pre>
+      </section>
+
+      <hr>
+
+      <!-- ============================================================
+           Section 5: teacher
+           ============================================================ -->
+      <section id="teacher">
+        <h2>5. teacher &mdash; Teacher LLM 설정</h2>
+        <blockquote><p>QA 쌍을 생성하는 Teacher 모델의 설정입니다. Ollama 또는 OpenAI 호환 API를 사용할 수 있습니다.</p></blockquote>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>backend</code></td><td><code>"ollama" | "openai"</code></td><td><code>"ollama"</code></td><td>사용할 LLM 백엔드. <code>"ollama"</code>는 로컬 Ollama 서버, <code>"openai"</code>는 OpenAI 호환 API입니다</td></tr>
+              <tr><td><code>model</code></td><td><code>str</code></td><td><code>"qwen3:8b"</code></td><td>모델 이름 또는 ID (빈 값 불가)</td></tr>
+              <tr><td><code>api_base</code></td><td><code>str</code></td><td><code>"http://localhost:11434"</code></td><td>API 엔드포인트 URL (빈 값 불가)</td></tr>
+              <tr><td><code>api_key</code></td><td><code>str | None</code></td><td><code>null</code></td><td>API 키. <code>backend: "openai"</code>일 때 필수입니다. Ollama는 불필요합니다</td></tr>
+              <tr><td><code>temperature</code></td><td><code>float</code></td><td><code>0.3</code></td><td>생성 온도 (0.0~1.0). 낮을수록 일관성 있는 답변을 생성합니다</td></tr>
+              <tr><td><code>timeout</code></td><td><code>int</code></td><td><code>180</code></td><td>API 요청 타임아웃 (초). 긴 문서 처리 시 늘려야 할 수 있습니다</td></tr>
+              <tr><td><code>max_context_chars</code></td><td><code>int</code></td><td><code>12000</code></td><td>문서 내용 잘라내기 한계 (문자 수). 이 길이를 초과하는 문서는 앞부분만 사용됩니다</td></tr>
+              <tr><td><code>max_concurrency</code></td><td><code>int</code></td><td><code>4</code></td><td>비동기 QA 생성 시 최대 동시 요청 수. 높이면 빠르지만 서버 부하가 증가합니다</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <pre data-lang="yaml"><code>teacher:
+  backend: "ollama"
+  model: "qwen3:8b"
+  api_base: "http://localhost:11434"
+  temperature: 0.3
+  timeout: 180
+  max_context_chars: 12000
+  max_concurrency: 4</code></pre>
+
+        <p>OpenAI 호환 백엔드 (vLLM, LiteLLM, OpenRouter 등) 사용 시:</p>
+
+        <pre data-lang="yaml"><code>teacher:
+  backend: "openai"
+  model: "gpt-4o-mini"
+  api_base: "https://api.openai.com"
+  api_key: "sk-proj-..."
+  temperature: 0.3</code></pre>
+
+        <p>권장 Ollama 모델: <code>qwen3:8b</code> (한국어/다국어 우수), <code>llama3.1:8b</code> (영어 우수), <code>gemma2:9b</code> (고품질 QA 생성).</p>
+      </section>
+
+      <hr>
+
+      <!-- ============================================================
+           Section 6: questions
+           ============================================================ -->
+      <section id="questions">
+        <h2>6. questions &mdash; 질문 설정</h2>
+        <blockquote><p>Teacher 모델이 문서에 대해 생성할 질문을 정의합니다. 카테고리별 질문 목록 또는 외부 파일로 지정할 수 있습니다.</p></blockquote>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>categories</code></td><td><code>dict[str, list[str]]</code></td><td><code>{}</code></td><td>카테고리별 질문 목록. 키는 카테고리 이름, 값은 질문 문자열 리스트입니다</td></tr>
+              <tr><td><code>file</code></td><td><code>Path | None</code></td><td><code>null</code></td><td>외부 질문 파일 경로. 한 줄에 하나씩 질문을 작성합니다. 이 필드가 설정되면 <code>categories</code>는 무시됩니다</td></tr>
+              <tr><td><code>system_prompt</code></td><td><code>str</code></td><td>(하위 참조)</td><td>Teacher 모델에게 전달되는 시스템 프롬프트. 답변 스타일과 제약 조건을 정의합니다</td></tr>
+              <tr><td><code>output_format</code></td><td><code>str</code></td><td><code>"alpaca"</code></td><td>QA 데이터셋 출력 형식. 현재는 <code>"alpaca"</code> 형식만 지원합니다</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="callout-content">
+            <div class="callout-title">제약조건</div>
+            <p><code>file</code> 경로가 설정되어 있지만 해당 파일이 존재하지 않으면 <code>FileNotFoundError</code>가 발생합니다.</p>
+          </div>
+        </div>
+
+        <p>기본 시스템 프롬프트:</p>
+        <pre><code>You are a helpful assistant that answers questions based strictly on the provided document.
+Answer only from the document content. Do not speculate or fabricate information.
+Be concise and factual. Include specific numbers, dates, and names when available.
+If the document does not contain relevant information, say "The document does not contain this information."</code></pre>
+
+        <p>한국어 프로젝트 예시:</p>
+        <pre data-lang="yaml"><code>questions:
+  categories:
+    개요:
+      - "이 문서의 주요 목적은 무엇입니까?"
+      - "이 정책이 해결하려는 문제는 무엇입니까?"
+      - "대상 사용자는 누구입니까?"
+      - "주요 변경 사항은 무엇입니까?"
+      - "적용 범위와 제한 사항은 무엇입니까?"
+    기술:
+      - "주요 기술 사양은 무엇입니까?"
+      - "사용된 기술이나 도구는 무엇입니까?"
+      - "시스템 요구 사항은 무엇입니까?"
+      - "기존 방식과 어떻게 다릅니까?"
+      - "성능 지표는 무엇입니까?"
+    구현:
+      - "구현 일정은 어떻게 됩니까?"
+      - "필요한 자원은 무엇입니까?"
+      - "구현 절차는 무엇입니까?"
+      - "예상되는 위험은 무엇입니까?"
+      - "기대 효과는 무엇입니까?"
+  system_prompt: &gt;
+    당신은 제공된 문서를 기반으로 질문에 답변하는 도움이 되는 어시스턴트입니다.
+    문서 내용에만 근거하여 답변하십시오. 추측하거나 정보를 만들어내지 마십시오.
+    간결하고 사실적으로 답변하십시오. 가능한 경우 구체적인 숫자, 날짜, 이름을 포함하십시오.
+    문서에 관련 정보가 없으면 "문서에 해당 정보가 포함되어 있지 않습니다"라고 답변하십시오.
+  output_format: "alpaca"</code></pre>
+
+        <p>외부 파일로 질문을 관리하려면 <code>questions.txt</code>에 한 줄씩 작성하고 <code>file: "./questions.txt"</code>로 참조합니다. <code>file</code>이 설정되면 <code>categories</code>는 무시됩니다.</p>
+      </section>
+
+      <hr>
+
+      <!-- ============================================================
+           Section 7: validation
+           ============================================================ -->
+      <section id="validation">
+        <h2>7. validation &mdash; QA 검증 설정</h2>
+        <blockquote><p>생성된 QA 쌍의 품질을 검증하고 필터링하는 규칙을 정의합니다.</p></blockquote>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>true</code></td><td>검증 기능 활성화 여부. <code>false</code>로 설정하면 모든 검증을 건너뜁니다</td></tr>
+              <tr><td><code>min_answer_length</code></td><td><code>int</code></td><td><code>20</code></td><td>답변 최소 길이 (문자 수). 이보다 짧은 답변은 거부됩니다</td></tr>
+              <tr><td><code>max_answer_length</code></td><td><code>int</code></td><td><code>2000</code></td><td>답변 최대 길이 (문자 수). 이보다 긴 답변은 거부됩니다</td></tr>
+              <tr><td><code>remove_empty</code></td><td><code>bool</code></td><td><code>true</code></td><td>빈 질문이나 답변을 제거합니다</td></tr>
+              <tr><td><code>deduplicate</code></td><td><code>bool</code></td><td><code>true</code></td><td>중복된 질문-답변 쌍을 제거합니다</td></tr>
+              <tr><td><code>reject_patterns</code></td><td><code>list[str]</code></td><td>(하위 참조)</td><td>답변에서 거부할 정규식 패턴 목록. 패턴이 매칭되면 해당 QA 쌍을 거부합니다</td></tr>
+              <tr><td><code>groundedness</code></td><td><code>GroundednessConfig</code></td><td>(하위 참조)</td><td>의미적 근거성 검증 설정</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>기본 거부 패턴 3개: <code>"(?i)i don't know"</code>, <code>"(?i)not (available|provided|mentioned|found)"</code>, <code>"(?i)the document does not contain"</code>. <code>(?i)</code> 플래그는 대소문자를 구분하지 않습니다.</p>
+
+        <div class="callout callout-warning">
+          <div class="callout-content">
+            <div class="callout-title">제약조건</div>
+            <p><code>min_answer_length</code>는 반드시 <code>max_answer_length</code>보다 작아야 합니다. 그렇지 않으면 설정 로드 시 오류가 발생합니다.</p>
+          </div>
+        </div>
+
+        <h3 id="groundedness">groundedness &mdash; 의미적 검증</h3>
+        <blockquote><p>답변이 원본 문서 내용에 근거하고 있는지 임베딩 기반으로 검증합니다.</p></blockquote>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>의미적 검증 활성화 여부. <code>pip install slm-factory[validation]</code>이 필요합니다</td></tr>
+              <tr><td><code>model</code></td><td><code>str</code></td><td><code>"all-MiniLM-L6-v2"</code></td><td>사용할 sentence-transformers 모델</td></tr>
+              <tr><td><code>threshold</code></td><td><code>float</code></td><td><code>0.3</code></td><td>코사인 유사도 임계값 (0.0~1.0). 높을수록 엄격하게 검증합니다</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <pre data-lang="yaml"><code>validation:
+  enabled: true
+  min_answer_length: 20
+  max_answer_length: 2000
+  remove_empty: true
+  deduplicate: true
+  reject_patterns:
+    - "(?i)i don't know"
+    - "(?i)not (available|provided|mentioned|found)"
+    - "(?i)the document does not contain"
+    - "(?i)알 수 없"
+    - "(?i)정보가 없"
+    - "(?i)언급되지 않"
+    - "(?i)포함되어 있지 않"
+    - "(?i)제공되지 않"
+  groundedness:
+    enabled: true
+    model: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    threshold: 0.35</code></pre>
+
+        <p>한국어 문서에는 다국어 임베딩 모델 <code>paraphrase-multilingual-MiniLM-L12-v2</code>를 권장합니다.</p>
+      </section>
+
+      <hr>
+
+      <!-- ============================================================
+           Section 8: scoring
+           ============================================================ -->
+      <section id="scoring">
+        <h2>8. scoring &mdash; 품질 점수 평가 설정</h2>
+        <blockquote><p>생성된 QA 쌍의 품질을 Teacher LLM으로 평가하고 낮은 점수의 QA 쌍을 필터링합니다.</p></blockquote>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>품질 점수 평가 기능 활성화 여부</td></tr>
+              <tr><td><code>threshold</code></td><td><code>float</code></td><td><code>3.0</code></td><td>QA 쌍 최소 합격 점수 (1.0~5.0). 이 점수 미만의 QA 쌍은 데이터셋에서 제거됩니다</td></tr>
+              <tr><td><code>max_concurrency</code></td><td><code>int</code></td><td><code>4</code></td><td>비동기 점수 평가 시 최대 동시 요청 수</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <pre data-lang="yaml"><code>scoring:
+  enabled: true
+  threshold: 3.5
+  max_concurrency: 4</code></pre>
+
+        <p>Teacher LLM이 질문의 명확성, 답변의 정확성, 문서와의 관련성을 종합하여 1~5점으로 평가합니다. <code>threshold</code> 미만의 QA 쌍은 데이터셋에서 제거됩니다. 품질은 높아지지만 데이터셋 크기는 줄어들 수 있습니다.</p>
+      </section>
+
+      <hr>
+
+      <!-- ============================================================
+           Section 9: augment
+           ============================================================ -->
+      <section id="augment">
+        <h2>9. augment &mdash; 데이터 증강 설정</h2>
+        <blockquote><p>기존 QA 쌍의 질문을 패러프레이즈하여 데이터셋을 확장합니다.</p></blockquote>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>데이터 증강 기능 활성화 여부</td></tr>
+              <tr><td><code>num_variants</code></td><td><code>int</code></td><td><code>2</code></td><td>각 QA 쌍당 생성할 패러프레이즈 변형 수. 원본 포함 총 <code>num_variants + 1</code>개의 QA 쌍이 생성됩니다</td></tr>
+              <tr><td><code>max_concurrency</code></td><td><code>int</code></td><td><code>4</code></td><td>비동기 증강 시 최대 동시 요청 수</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <pre data-lang="yaml"><code>augment:
+  enabled: true
+  num_variants: 3
+  max_concurrency: 4</code></pre>
+
+        <p><code>num_variants: 3</code>으로 설정하면 100개의 QA 쌍이 400개로 확장됩니다. 데이터가 부족할 때 유용하지만, Teacher LLM 호출 비용이 증가합니다.</p>
+      </section>
+
+      <hr>
+
+      <!-- ============================================================
+           Section 10: analyzer
+           ============================================================ -->
+      <section id="analyzer">
+        <h2>10. analyzer &mdash; 데이터 분석 설정</h2>
+        <blockquote><p>생성된 QA 데이터셋의 통계 정보를 분석하고 보고서를 생성합니다.</p></blockquote>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>true</code></td><td>데이터 분석 기능 활성화 여부</td></tr>
+              <tr><td><code>output_file</code></td><td><code>str</code></td><td><code>"data_analysis.json"</code></td><td>분석 보고서 JSON 파일명. <code>paths.output</code> 디렉토리에 저장됩니다</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <pre data-lang="yaml"><code>analyzer:
+  enabled: true
+  output_file: "qa_analysis_report.json"</code></pre>
+
+        <p>분석 보고서에는 전체 QA 쌍 수, 카테고리 분포, 문서별 분포, 질문/답변 길이 통계, 데이터 품질 경고가 포함됩니다. LLM 호출 없이 순수 통계 분석만 수행합니다.</p>
+      </section>
+
+      <hr>
+
+      <!-- ============================================================
+           Section 11: student
+           ============================================================ -->
+      <section id="student">
+        <h2>11. student &mdash; Student 모델 설정</h2>
+        <blockquote><p>파인튜닝할 Student 모델을 지정합니다. HuggingFace Hub의 모든 causal language model을 사용할 수 있습니다.</p></blockquote>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>model</code></td><td><code>str</code></td><td><code>"google/gemma-3-1b-it"</code></td><td>HuggingFace 모델 ID. causal LM이어야 합니다 (예: GPT, Llama, Gemma) (빈 값 불가)</td></tr>
+              <tr><td><code>max_seq_length</code></td><td><code>int</code></td><td><code>4096</code></td><td>학습 데이터의 최대 토큰 길이. 이보다 긴 시퀀스는 잘립니다</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <pre data-lang="yaml"><code>student:
+  model: "Qwen/Qwen3-1.7B"
+  max_seq_length: 4096</code></pre>
+
+        <p>권장 모델:</p>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>모델</th><th>HuggingFace ID</th><th>VRAM</th><th>특징</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Gemma 3 1B IT</td><td><code>google/gemma-3-1b-it</code></td><td>~4GB</td><td>다국어 지원, 빠른 학습</td></tr>
+              <tr><td>Gemma 3 4B IT</td><td><code>google/gemma-3-4b-it</code></td><td>~10GB</td><td>고품질 출력, 균형 잡힌 성능</td></tr>
+              <tr><td>Llama 3.2 1B</td><td><code>meta-llama/Llama-3.2-1B-Instruct</code></td><td>~4GB</td><td>영어 강점, 경량</td></tr>
+              <tr><td>Llama 3.2 3B</td><td><code>meta-llama/Llama-3.2-3B-Instruct</code></td><td>~8GB</td><td>영어 강점, 중간 크기</td></tr>
+              <tr><td>Phi-4 Mini</td><td><code>microsoft/Phi-4-mini-instruct</code></td><td>~10GB</td><td>코드 생성, 추론 능력 우수</td></tr>
+              <tr><td>Qwen3 1.7B</td><td><code>Qwen/Qwen3-1.7B</code></td><td>~5GB</td><td>한국어 지원 양호, 다국어</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p>모델 선택 기준: 8GB VRAM 이하는 1B 모델 + 양자화, 한국어 문서는 <code>Qwen/Qwen3-1.7B</code> 또는 <code>google/gemma-3-1b-it</code> 권장.</p>
+      </section>
+
+      <hr>
+
+      <!-- ============================================================
+           Section 12: training
+           ============================================================ -->
+      <section id="training">
+        <h2>12. training &mdash; 학습 설정</h2>
+        <blockquote><p>LoRA 파인튜닝의 하이퍼파라미터와 학습 전략을 정의합니다.</p></blockquote>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>batch_size</code></td><td><code>int</code></td><td><code>4</code></td><td>디바이스당 배치 크기. GPU 메모리에 따라 조정합니다</td></tr>
+              <tr><td><code>gradient_accumulation_steps</code></td><td><code>int</code></td><td><code>4</code></td><td>그래디언트 누적 스텝. 실제 배치 크기는 <code>batch_size x gradient_accumulation_steps</code> (기본값: 4x4=16)</td></tr>
+              <tr><td><code>learning_rate</code></td><td><code>float</code></td><td><code>2e-5</code></td><td>학습률. LoRA 파인튜닝에는 <code>1e-5 ~ 5e-5</code> 범위를 권장합니다</td></tr>
+              <tr><td><code>lr_scheduler</code></td><td><code>str</code></td><td><code>"cosine"</code></td><td>학습률 스케줄러. <code>"cosine"</code>, <code>"linear"</code>, <code>"constant"</code> 등</td></tr>
+              <tr><td><code>warmup_ratio</code></td><td><code>float</code></td><td><code>0.1</code></td><td>워밍업 비율. 전체 학습 스텝의 10%를 워밍업에 사용합니다 (0.0~1.0)</td></tr>
+              <tr><td><code>num_epochs</code></td><td><code>int</code></td><td><code>20</code></td><td>최대 에포크 수. 조기 종료가 활성화되면 이보다 일찍 멈출 수 있습니다</td></tr>
+              <tr><td><code>optimizer</code></td><td><code>str</code></td><td><code>"adamw_torch_fused"</code></td><td>옵티마이저. <code>"adamw_torch_fused"</code>는 PyTorch의 fused AdamW로 가장 빠릅니다</td></tr>
+              <tr><td><code>bf16</code></td><td><code>bool</code></td><td><code>true</code></td><td>bfloat16 혼합 정밀도 학습. Ampere 이상 GPU (RTX 30xx, A100 등)에서만 지원됩니다</td></tr>
+              <tr><td><code>train_split</code></td><td><code>float</code></td><td><code>0.9</code></td><td>학습 데이터 비율. 0.9는 90% 학습, 10% 검증을 의미합니다 (0.0~1.0)</td></tr>
+              <tr><td><code>save_strategy</code></td><td><code>str</code></td><td><code>"epoch"</code></td><td>체크포인트 저장 전략. <code>"epoch"</code>는 에포크마다, <code>"steps"</code>는 일정 스텝마다 저장합니다</td></tr>
+              <tr><td><code>lora</code></td><td><code>LoraConfig</code></td><td>(하위 참조)</td><td>LoRA 어댑터 설정</td></tr>
+              <tr><td><code>early_stopping</code></td><td><code>EarlyStoppingConfig</code></td><td>(하위 참조)</td><td>조기 종료 설정</td></tr>
+              <tr><td><code>quantization</code></td><td><code>QuantizationConfig</code></td><td>(하위 참조)</td><td>양자화 설정</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="callout-content">
+            <div class="callout-title">제약조건</div>
+            <p><code>learning_rate</code>는 반드시 0보다 커야 합니다. 0 이하로 설정하면 설정 로드 시 오류가 발생합니다.</p>
+          </div>
+        </div>
+
+        <h3 id="lora">lora &mdash; LoRA 어댑터 설정</h3>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>r</code></td><td><code>int</code></td><td><code>16</code></td><td>LoRA rank. 높을수록 표현력이 증가하지만 메모리 사용량도 증가합니다 (일반적으로 8~64)</td></tr>
+              <tr><td><code>alpha</code></td><td><code>int</code></td><td><code>32</code></td><td>LoRA scaling factor. 일반적으로 <code>r</code>의 2배 값을 사용합니다</td></tr>
+              <tr><td><code>dropout</code></td><td><code>float</code></td><td><code>0.05</code></td><td>LoRA 레이어의 드롭아웃 비율. 과적합 방지를 위한 정규화 기법입니다 (0.0~1.0)</td></tr>
+              <tr><td><code>target_modules</code></td><td><code>str | list[str]</code></td><td><code>"auto"</code></td><td>LoRA를 적용할 모듈 이름. <code>"auto"</code>는 자동 감지, 또는 <code>["q_proj", "v_proj"]</code> 같은 리스트로 명시할 수 있습니다</td></tr>
+              <tr><td><code>use_rslora</code></td><td><code>bool</code></td><td><code>false</code></td><td>Rank-Stabilized LoRA 사용 여부. 학습 안정성을 높이지만 약간 느려집니다</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 id="early-stopping">early_stopping &mdash; 조기 종료</h3>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>true</code></td><td>조기 종료 활성화 여부</td></tr>
+              <tr><td><code>patience</code></td><td><code>int</code></td><td><code>3</code></td><td>개선이 없어도 기다릴 에포크 수. 이 횟수 동안 개선이 없으면 학습을 중단합니다</td></tr>
+              <tr><td><code>threshold</code></td><td><code>float</code></td><td><code>0.01</code></td><td>개선으로 인정할 최소 변화량. 검증 손실이 이 값 이상 낮아져야 개선으로 간주합니다</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 id="quantization">quantization &mdash; 양자화</h3>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>4비트 양자화 활성화 여부. VRAM 사용량을 약 50~60% 줄입니다</td></tr>
+              <tr><td><code>bits</code></td><td><code>int</code></td><td><code>4</code></td><td>양자화 비트 수. 현재는 4비트만 지원합니다</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <pre data-lang="yaml"><code>training:
+  lora:
+    r: 16
+    alpha: 32
+    dropout: 0.05
+    target_modules: "auto"
+    use_rslora: false
+  batch_size: 4
+  gradient_accumulation_steps: 4
+  learning_rate: 2.0e-5
+  lr_scheduler: "cosine"
+  warmup_ratio: 0.1
+  num_epochs: 20
+  early_stopping:
+    enabled: true
+    patience: 3
+    threshold: 0.01
+  optimizer: "adamw_torch_fused"
+  bf16: true
+  train_split: 0.9
+  save_strategy: "epoch"
+  quantization:
+    enabled: false
+    bits: 4</code></pre>
+      </section>
+
+      <hr>
+
+      <!-- ============================================================
+           Section 13: export
+           ============================================================ -->
+      <section id="export">
+        <h2>13. export &mdash; 모델 내보내기 설정</h2>
+        <blockquote><p>학습된 모델을 내보내는 방식을 정의합니다.</p></blockquote>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>merge_lora</code></td><td><code>bool</code></td><td><code>true</code></td><td>LoRA 어댑터를 베이스 모델에 병합할지 여부. <code>true</code>면 독립 실행 가능한 모델을 생성합니다</td></tr>
+              <tr><td><code>output_format</code></td><td><code>str</code></td><td><code>"safetensors"</code></td><td>모델 저장 형식. <code>"safetensors"</code> (권장) 또는 <code>"pytorch"</code></td></tr>
+              <tr><td><code>ollama</code></td><td><code>OllamaExportConfig</code></td><td>(하위 참조)</td><td>Ollama 내보내기 설정</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 id="ollama-export">ollama &mdash; Ollama 내보내기</h3>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>true</code></td><td>Ollama 내보내기 활성화 여부. Modelfile을 생성하고 <code>ollama create</code> 명령을 실행합니다</td></tr>
+              <tr><td><code>model_name</code></td><td><code>str</code></td><td><code>"my-project-model"</code></td><td>Ollama에 등록할 모델 이름 (빈 값 불가)</td></tr>
+              <tr><td><code>system_prompt</code></td><td><code>str</code></td><td><code>"You are a helpful domain-specific assistant."</code></td><td>Ollama 모델의 시스템 프롬프트. 모델의 역할과 동작을 정의합니다</td></tr>
+              <tr><td><code>parameters</code></td><td><code>dict[str, Any]</code></td><td>(하위 참조)</td><td>Ollama 런타임 파라미터</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <p><code>parameters</code> 기본값: <code>temperature: 0.7</code>, <code>top_p: 0.9</code>, <code>num_ctx: 4096</code>.</p>
+
+        <pre data-lang="yaml"><code>export:
+  merge_lora: true
+  output_format: "safetensors"
+  ollama:
+    enabled: true
+    model_name: "company-policy-assistant"
+    system_prompt: "당신은 회사 정책에 대해 답변하는 전문 어시스턴트입니다. 정확하고 간결하게 답변하십시오."
+    parameters:
+      temperature: 0.5
+      top_p: 0.9
+      num_ctx: 4096</code></pre>
+      </section>
+
+      <hr>
+
+      <!-- ============================================================
+           Section 14: eval
+           ============================================================ -->
+      <section id="eval">
+        <h2>14. eval &mdash; 모델 평가 설정</h2>
+        <blockquote><p>학습된 모델을 BLEU/ROUGE 메트릭으로 자동 평가합니다.</p></blockquote>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>모델 평가 기능 활성화 여부</td></tr>
+              <tr><td><code>test_split</code></td><td><code>float</code></td><td><code>0.1</code></td><td>평가에 사용할 데이터 비율 (0.0~1.0)</td></tr>
+              <tr><td><code>metrics</code></td><td><code>list[str]</code></td><td><code>["bleu", "rouge"]</code></td><td>평가 메트릭 목록</td></tr>
+              <tr><td><code>max_samples</code></td><td><code>int</code></td><td><code>50</code></td><td>평가에 사용할 최대 샘플 수</td></tr>
+              <tr><td><code>output_file</code></td><td><code>str</code></td><td><code>"eval_results.json"</code></td><td>평가 결과 JSON 파일명. <code>paths.output</code> 디렉토리에 저장됩니다</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="callout-content">
+            <div class="callout-title">제약조건</div>
+            <p><code>max_samples</code>는 1 이상이어야 합니다. 0 이하로 설정하면 설정 로드 시 오류가 발생합니다.</p>
+          </div>
+        </div>
+
+        <pre data-lang="yaml"><code>eval:
+  enabled: true
+  test_split: 0.1
+  metrics: ["bleu", "rouge"]
+  max_samples: 50
+  output_file: "eval_results.json"</code></pre>
+      </section>
+
+      <hr>
+
+      <!-- ============================================================
+           Section 15: compare
+           ============================================================ -->
+      <section id="compare">
+        <h2>15. compare &mdash; 모델 비교 설정</h2>
+        <blockquote><p>Base 모델과 Fine-tuned 모델의 답변을 나란히 비교합니다.</p></blockquote>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>모델 비교 기능 활성화 여부</td></tr>
+              <tr><td><code>base_model</code></td><td><code>str</code></td><td><code>""</code></td><td>비교 기준 모델 이름 (Ollama)</td></tr>
+              <tr><td><code>finetuned_model</code></td><td><code>str</code></td><td><code>""</code></td><td>파인튜닝된 모델 이름 (Ollama)</td></tr>
+              <tr><td><code>metrics</code></td><td><code>list[str]</code></td><td><code>["bleu", "rouge"]</code></td><td>비교 메트릭 목록</td></tr>
+              <tr><td><code>max_samples</code></td><td><code>int</code></td><td><code>20</code></td><td>비교에 사용할 최대 샘플 수</td></tr>
+              <tr><td><code>output_file</code></td><td><code>str</code></td><td><code>"compare_results.json"</code></td><td>비교 결과 JSON 파일명. <code>paths.output</code> 디렉토리에 저장됩니다</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="callout-content">
+            <div class="callout-title">제약조건</div>
+            <ul>
+              <li><code>max_samples</code>는 1 이상이어야 합니다. 0 이하로 설정하면 설정 로드 시 오류가 발생합니다.</li>
+              <li><code>enabled</code>가 <code>true</code>일 때 <code>base_model</code>과 <code>finetuned_model</code>은 반드시 비어있지 않은 값으로 설정해야 합니다. 비어있으면 설정 로드 시 <code>ValidationError</code>가 발생합니다.</li>
+            </ul>
+          </div>
+        </div>
+
+        <pre data-lang="yaml"><code>compare:
+  enabled: true
+  base_model: "gemma:2b"
+  finetuned_model: "my-project-model"
+  metrics: ["bleu", "rouge"]
+  max_samples: 20
+  output_file: "compare_results.json"</code></pre>
+      </section>
+
+      <hr>
+
+      <!-- ============================================================
+           Section 16: evolve
+           ============================================================ -->
+      <section id="evolve">
+        <h2>16. evolve &mdash; 자동 진화 설정</h2>
+        <blockquote><p>증분 업데이트 &rarr; 전체 재학습 &rarr; 품질 게이트 &rarr; 조건부 배포를 단일 명령으로 실행합니다.</p></blockquote>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>quality_gate</code></td><td><code>bool</code></td><td><code>true</code></td><td>품질 게이트 활성화 여부. <code>true</code>이면 이전 모델보다 나은 경우에만 배포합니다</td></tr>
+              <tr><td><code>gate_metric</code></td><td><code>str</code></td><td><code>"rougeL"</code></td><td>품질 비교에 사용할 메트릭. <code>bleu</code>, <code>rouge1</code>, <code>rouge2</code>, <code>rougeL</code> 중 선택</td></tr>
+              <tr><td><code>gate_min_improvement</code></td><td><code>float</code></td><td><code>0.0</code></td><td>최소 개선율(%). <code>0</code>이면 어떤 개선이든 통과합니다</td></tr>
+              <tr><td><code>version_format</code></td><td><code>str</code></td><td><code>"date"</code></td><td>버전 형식. 현재 <code>"date"</code> (<code>vYYYYMMDD</code>) 형식만 지원합니다</td></tr>
+              <tr><td><code>history_file</code></td><td><code>str</code></td><td><code>"evolve_history.json"</code></td><td>진화 히스토리 파일명. <code>paths.output</code> 디렉토리에 저장됩니다</td></tr>
+              <tr><td><code>keep_previous_versions</code></td><td><code>int</code></td><td><code>3</code></td><td>보관할 이전 버전 수. 초과분은 <code>ollama rm</code>으로 자동 제거됩니다</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="callout-content">
+            <div class="callout-title">제약조건</div>
+            <ul>
+              <li><code>gate_metric</code>은 <code>bleu</code>, <code>rouge1</code>, <code>rouge2</code>, <code>rougeL</code> 중 하나여야 합니다. 다른 값을 설정하면 <code>ValidationError</code>가 발생합니다.</li>
+              <li><code>keep_previous_versions</code>는 0 이상이어야 합니다.</li>
+            </ul>
+          </div>
+        </div>
+
+        <pre data-lang="yaml"><code>evolve:
+  quality_gate: true
+  gate_metric: "rougeL"
+  gate_min_improvement: 0.0
+  version_format: "date"
+  history_file: "evolve_history.json"
+  keep_previous_versions: 3</code></pre>
+      </section>
+
+      <hr>
+
+      <!-- ============================================================
+           Section 17: gguf_export
+           ============================================================ -->
+      <section id="gguf-export">
+        <h2>17. gguf_export &mdash; GGUF 변환 설정</h2>
+        <blockquote><p>병합된 모델을 llama.cpp 호환 GGUF 양자화 형식으로 변환합니다.</p></blockquote>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>GGUF 변환 기능 활성화 여부</td></tr>
+              <tr><td><code>quantization_type</code></td><td><code>str</code></td><td><code>"q4_k_m"</code></td><td>양자화 타입. <code>q4_0</code>, <code>q4_1</code>, <code>q4_k_m</code>, <code>q4_k_s</code>, <code>q5_0</code>, <code>q5_1</code>, <code>q5_k_m</code>, <code>q5_k_s</code>, <code>q8_0</code>, <code>f16</code>, <code>f32</code> 중 선택</td></tr>
+              <tr><td><code>llama_cpp_path</code></td><td><code>str</code></td><td><code>""</code></td><td>llama.cpp 경로. 빈 문자열이면 시스템 PATH에서 탐색합니다</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <pre data-lang="yaml"><code>gguf_export:
+  enabled: true
+  quantization_type: "q4_k_m"
+  llama_cpp_path: "/path/to/llama.cpp"</code></pre>
+      </section>
+
+      <hr>
+
+      <!-- ============================================================
+           Section 18: incremental
+           ============================================================ -->
+      <section id="incremental">
+        <h2>18. incremental &mdash; 증분 학습 설정</h2>
+        <blockquote><p>문서 추가 시 기존 QA를 유지하면서 새 문서만 처리합니다. 해시 기반으로 변경을 감지합니다.</p></blockquote>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>증분 학습 기능 활성화 여부</td></tr>
+              <tr><td><code>hash_file</code></td><td><code>str</code></td><td><code>"document_hashes.json"</code></td><td>문서 해시를 저장할 파일명. <code>paths.output</code> 디렉토리에 저장됩니다</td></tr>
+              <tr><td><code>merge_strategy</code></td><td><code>"append" | "replace"</code></td><td><code>"append"</code></td><td>기존 QA와 새 QA의 병합 전략. <code>"append"</code>는 추가, <code>"replace"</code>는 교체</td></tr>
+              <tr><td><code>resume_adapter</code></td><td><code>str</code></td><td><code>""</code></td><td>이전 학습의 어댑터 경로. 빈 문자열이면 새로 학습합니다</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <pre data-lang="yaml"><code>incremental:
+  enabled: true
+  hash_file: "document_hashes.json"
+  merge_strategy: "append"
+  resume_adapter: "./output/checkpoints/adapter"</code></pre>
+      </section>
+
+      <hr>
+
+      <!-- ============================================================
+           Section 19: dialogue
+           ============================================================ -->
+      <section id="dialogue">
+        <h2>19. dialogue &mdash; 멀티턴 대화 설정</h2>
+        <blockquote><p>QA 쌍을 멀티턴 대화 형식으로 확장합니다.</p></blockquote>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>멀티턴 대화 생성 기능 활성화 여부</td></tr>
+              <tr><td><code>min_turns</code></td><td><code>int</code></td><td><code>2</code></td><td>최소 대화 턴 수 (2 이상)</td></tr>
+              <tr><td><code>max_turns</code></td><td><code>int</code></td><td><code>5</code></td><td>최대 대화 턴 수</td></tr>
+              <tr><td><code>include_single_qa</code></td><td><code>bool</code></td><td><code>true</code></td><td>단일 QA 쌍도 대화 데이터에 포함할지 여부</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout callout-warning">
+          <div class="callout-content">
+            <div class="callout-title">제약조건</div>
+            <p><code>min_turns</code>는 반드시 <code>max_turns</code>보다 작거나 같아야 합니다. 또한 <code>min_turns</code>는 2 이상이어야 합니다. 이를 위반하면 설정 로드 시 오류가 발생합니다.</p>
+          </div>
+        </div>
+
+        <pre data-lang="yaml"><code>dialogue:
+  enabled: true
+  min_turns: 2
+  max_turns: 5
+  include_single_qa: true</code></pre>
+      </section>
+
+      <hr>
+
+      <!-- ============================================================
+           Section 20: review
+           ============================================================ -->
+      <section id="review">
+        <h2>20. review &mdash; QA 리뷰 설정</h2>
+        <blockquote><p>TUI에서 QA 쌍을 수동으로 검토하고 승인/거부/편집합니다.</p></blockquote>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>QA 수동 리뷰 기능 활성화 여부</td></tr>
+              <tr><td><code>auto_open</code></td><td><code>bool</code></td><td><code>true</code></td><td>리뷰 완료 후 결과 파일을 자동으로 열지 여부</td></tr>
+              <tr><td><code>output_file</code></td><td><code>str</code></td><td><code>"qa_reviewed.json"</code></td><td>리뷰 결과 JSON 파일명. <code>paths.output</code> 디렉토리에 저장됩니다</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <pre data-lang="yaml"><code>review:
+  enabled: true
+  auto_open: true
+  output_file: "qa_reviewed.json"</code></pre>
+      </section>
+
+      <hr>
+
+      <!-- ============================================================
+           Section 21: dashboard
+           ============================================================ -->
+      <section id="dashboard">
+        <h2>21. dashboard &mdash; 대시보드 설정</h2>
+        <blockquote><p>파이프라인 진행 상태를 실시간 TUI로 모니터링합니다.</p></blockquote>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>대시보드 기능 활성화 여부</td></tr>
+              <tr><td><code>refresh_interval</code></td><td><code>float</code></td><td><code>2.0</code></td><td>대시보드 새로고침 간격 (초)</td></tr>
+              <tr><td><code>theme</code></td><td><code>str</code></td><td><code>"dark"</code></td><td>대시보드 테마. <code>"dark"</code> 또는 <code>"light"</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <pre data-lang="yaml"><code>dashboard:
+  enabled: true
+  refresh_interval: 2.0
+  theme: "dark"</code></pre>
+      </section>
+
+      <hr>
+
+      <!-- ============================================================
+           Section 22: 설정 레시피
+           ============================================================ -->
+      <section id="recipes">
+        <h2>22. 설정 레시피</h2>
+
+        <p>자주 사용되는 설정 패턴을 레시피 형태로 제공합니다. 각 레시피는 특정 상황에 맞게 최소한의 필드만 변경합니다.</p>
+        <p>각 설정을 언제 사용할지에 대한 맥락은 <a href="guide.html">사용 가이드</a>를 참조하십시오.</p>
+
+        <!-- Recipe 1: 빠른 시작 -->
+        <article class="card">
+          <h3 class="card-title">빠른 시작 &mdash; 기본값으로 바로 실행</h3>
+          <p class="card-desc"><strong>상황</strong>: 처음 slm-factory를 사용하며 기본 설정으로 빠르게 테스트하고 싶을 때.</p>
+          <p><code>project.yaml</code>을 수정할 필요가 없습니다. <code>slm-factory init my-project</code>로 생성된 기본 템플릿을 그대로 사용하면 됩니다.</p>
+          <p>사전 준비:</p>
+          <pre data-lang="bash"><code>ollama serve
+ollama pull qwen3:8b
+# documents/ 디렉토리에 PDF 또는 TXT 파일 추가
+slm-factory tool wizard --config my-project/project.yaml</code></pre>
+          <p>기본 설정은 영어 문서, Ollama 백엔드, Gemma 3 1B 모델을 사용합니다.</p>
+        </article>
+
+        <!-- Recipe 2: 소량 문서 -->
+        <article class="card">
+          <h3 class="card-title">소량 문서 (5개 이하) &mdash; 과적합 방지를 위한 증강</h3>
+          <p class="card-desc"><strong>상황</strong>: 문서가 5개 이하로 적어서 데이터가 부족하고 과적합이 우려될 때.</p>
+          <pre data-lang="yaml"><code># 데이터 증강으로 데이터셋 확장 (원본의 4배)
+augment:
+  enabled: true
+  num_variants: 3
+  max_concurrency: 4
+
+# 저품질 QA 쌍 필터링
+scoring:
+  enabled: true
+  threshold: 3.5
+  max_concurrency: 4
+
+# 과적합 방지를 위한 학습 설정
+training:
+  num_epochs: 10
+  lora:
+    dropout: 0.1
+  early_stopping:
+    enabled: true
+    patience: 3</code></pre>
+          <p>데이터 증강은 Teacher LLM 호출 비용을 증가시키므로 로컬 Ollama를 사용하는 것이 좋습니다. 소량 데이터에서는 품질 점수 평가도 함께 활성화하는 것을 권장합니다.</p>
+        </article>
+
+        <!-- Recipe 3: VRAM 제한 -->
+        <article class="card">
+          <h3 class="card-title">VRAM 제한 (8GB GPU) &mdash; 메모리 최적화</h3>
+          <p class="card-desc"><strong>상황</strong>: RTX 3060, RTX 4060 등 8GB VRAM GPU에서 학습할 때.</p>
+          <pre data-lang="yaml"><code># 경량 Student 모델
+student:
+  model: "google/gemma-3-1b-it"
+  max_seq_length: 2048
+
+# 메모리 최적화 학습 설정
+training:
+  batch_size: 2
+  gradient_accumulation_steps: 8  # 실제 배치 크기는 2x8=16으로 유지
+  quantization:
+    enabled: true
+    bits: 4
+  bf16: true</code></pre>
+          <p>양자화를 사용하면 VRAM 사용량이 약 50% 감소하지만 품질 저하는 거의 없습니다. <code>max_seq_length</code>를 2048로 줄이면 긴 문서는 잘리지만 대부분의 QA 쌍은 이 길이 내에 들어갑니다.</p>
+        </article>
+
+        <!-- Recipe 4: vLLM/OpenAI -->
+        <article class="card">
+          <h3 class="card-title">vLLM/OpenAI 백엔드 &mdash; 외부 API 연동</h3>
+          <p class="card-desc"><strong>상황</strong>: Ollama 대신 vLLM 서버 또는 OpenAI API를 Teacher 모델로 사용할 때.</p>
+          <p>vLLM 서버:</p>
+          <pre data-lang="yaml"><code>teacher:
+  backend: "openai"
+  model: "meta-llama/Llama-3.1-8B-Instruct"
+  api_base: "http://localhost:8000/v1"
+  api_key: "dummy"  # vLLM은 키가 필요 없지만 필드는 채워야 합니다
+  temperature: 0.3
+  max_concurrency: 16  # vLLM은 높은 동시성을 지원합니다</code></pre>
+          <p>OpenAI API:</p>
+          <pre data-lang="yaml"><code>teacher:
+  backend: "openai"
+  model: "gpt-4o-mini"
+  api_base: "https://api.openai.com"
+  api_key: "sk-proj-..."
+  temperature: 0.3
+  max_concurrency: 8  # OpenAI는 rate limit을 고려하여 조절합니다</code></pre>
+          <p><code>api_key</code>는 환경 변수 <code>OPENAI_API_KEY</code>로 설정하는 것이 안전합니다.</p>
+        </article>
+      </section>
+
+      <hr>
+
+      <!-- ============================================================
+           Section 23: 전체 설정 예시
+           ============================================================ -->
+      <section id="full-example">
+        <h2>23. 전체 설정 예시 (한국어 정책 문서 프로젝트)</h2>
+
+        <p>한국어 회사 정책 문서를 처리하는 완전한 <code>project.yaml</code> 예시입니다.</p>
+
+        <pre data-lang="yaml"><code># 한국어 회사 정책 문서 처리 프로젝트
+project:
+  name: "company-policy-assistant"
+  version: "1.0.0"
+  language: "ko"
+
+paths:
+  documents: "./documents"
+  output: "./output"
+
+# PDF와 HWPX 문서 모두 파싱
+parsing:
+  formats: ["pdf", "hwpx"]
+  pdf:
+    extract_tables: true
+  hwpx:
+    apply_spacing: true  # 한국어 띄어쓰기 교정 (pip install slm-factory[korean] 필요)
+
+# 로컬 Ollama 서버 사용
+teacher:
+  backend: "ollama"
+  model: "qwen3:8b"  # 한국어 지원 우수
+  api_base: "http://localhost:11434"
+  temperature: 0.3
+  timeout: 180
+  max_context_chars: 12000
+  max_concurrency: 4
+
+# 한국어 질문 카테고리
+questions:
+  categories:
+    개요:
+      - "이 문서의 주요 목적은 무엇입니까?"
+      - "이 정책이 해결하려는 문제는 무엇입니까?"
+      - "대상 사용자는 누구입니까?"
+      - "주요 변경 사항은 무엇입니까?"
+      - "적용 범위와 제한 사항은 무엇입니까?"
+    기술:
+      - "주요 기술 사양은 무엇입니까?"
+      - "사용된 기술이나 도구는 무엇입니까?"
+      - "시스템 요구 사항은 무엇입니까?"
+      - "기존 방식과 어떻게 다릅니까?"
+      - "성능 지표는 무엇입니까?"
+    구현:
+      - "구현 일정은 어떻게 됩니까?"
+      - "필요한 자원은 무엇입니까?"
+      - "구현 절차는 무엇입니까?"
+      - "예상되는 위험은 무엇입니까?"
+      - "기대 효과는 무엇입니까?"
+  system_prompt: &gt;
+    당신은 제공된 문서를 기반으로 질문에 답변하는 도움이 되는 어시스턴트입니다.
+    문서 내용에만 근거하여 답변하십시오. 추측하거나 정보를 만들어내지 마십시오.
+    간결하고 사실적으로 답변하십시오. 가능한 경우 구체적인 숫자, 날짜, 이름을 포함하십시오.
+    문서에 관련 정보가 없으면 "문서에 해당 정보가 포함되어 있지 않습니다"라고 답변하십시오.
+  output_format: "alpaca"
+
+# 한국어 거부 패턴 추가
+validation:
+  enabled: true
+  min_answer_length: 20
+  max_answer_length: 2000
+  remove_empty: true
+  deduplicate: true
+  reject_patterns:
+    # 영어 패턴
+    - "(?i)i don't know"
+    - "(?i)not (available|provided|mentioned|found)"
+    - "(?i)the document does not contain"
+    # 한국어 패턴
+    - "(?i)알 수 없"
+    - "(?i)정보가 없"
+    - "(?i)언급되지 않"
+    - "(?i)포함되어 있지 않"
+    - "(?i)제공되지 않"
+  groundedness:
+    enabled: true
+    model: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+    threshold: 0.35
+
+# 품질 점수 평가 (필요 시 활성화)
+scoring:
+  enabled: false
+  threshold: 3.0
+  max_concurrency: 4
+
+# 데이터 증강 (필요 시 활성화)
+augment:
+  enabled: false
+  num_variants: 2
+  max_concurrency: 4
+
+# 데이터 분석
+analyzer:
+  enabled: true
+  output_file: "data_analysis.json"
+
+# 한국어 지원 우수한 Student 모델
+student:
+  model: "Qwen/Qwen3-1.7B"
+  max_seq_length: 4096
+
+# 12GB VRAM 기준 설정
+training:
+  lora:
+    r: 16
+    alpha: 32
+    dropout: 0.05
+    target_modules: "auto"
+    use_rslora: false
+  batch_size: 4
+  gradient_accumulation_steps: 4
+  learning_rate: 2.0e-5
+  lr_scheduler: "cosine"
+  warmup_ratio: 0.1
+  num_epochs: 20
+  early_stopping:
+    enabled: true
+    patience: 3
+    threshold: 0.01
+  optimizer: "adamw_torch_fused"
+  bf16: true
+  train_split: 0.9
+  save_strategy: "epoch"
+  quantization:
+    enabled: false  # 12GB VRAM이면 양자화 불필요
+
+# Ollama로 내보내기
+export:
+  merge_lora: true
+  output_format: "safetensors"
+  ollama:
+    enabled: true
+    model_name: "company-policy-assistant"
+    system_prompt: "당신은 회사 정책에 대해 답변하는 전문 어시스턴트입니다. 정확하고 간결하게 답변하십시오."
+    parameters:
+      temperature: 0.5  # 정책 문서는 일관성 있는 답변이 중요
+      top_p: 0.9
+      num_ctx: 4096
+
+# 나머지 기능은 기본값 (비활성화) 사용
+eval:
+  enabled: false
+
+compare:
+  enabled: false
+
+gguf_export:
+  enabled: false
+
+incremental:
+  enabled: false
+
+dialogue:
+  enabled: false
+
+review:
+  enabled: false
+
+dashboard:
+  enabled: false</code></pre>
+
+        <p>주요 설정 포인트:</p>
+        <ol>
+          <li><code>parsing.formats: ["pdf", "hwpx"]</code> &mdash; PDF와 HWPX 모두 파싱합니다</li>
+          <li><code>hwpx.apply_spacing: true</code> &mdash; 한국어 띄어쓰기를 자동 교정합니다</li>
+          <li><code>teacher.model: "qwen3:8b"</code> &mdash; 한국어 지원이 우수한 모델을 선택했습니다</li>
+          <li>질문과 시스템 프롬프트를 모두 한국어로 작성하여 한국어 답변을 유도합니다</li>
+          <li>한국어 거부 패턴 5개를 추가했습니다</li>
+          <li><code>groundedness.model</code>을 다국어 지원 모델로 변경했습니다</li>
+          <li><code>student.model: "Qwen/Qwen3-1.7B"</code> &mdash; 한국어 지원이 양호한 모델입니다</li>
+          <li><code>export.ollama.parameters.temperature: 0.5</code> &mdash; 정책 문서는 일관성이 중요하므로 낮췄습니다</li>
+        </ol>
+      </section>
+
+      <hr>
+
+      <!-- ============================================================
+           Section 24: 설정 검증
+           ============================================================ -->
+      <section id="check">
+        <h2>24. 설정 검증 (slm-factory check)</h2>
+
+        <p>설정 파일이 올바른지 확인하려면 <code>check</code> 명령을 사용합니다:</p>
+        <pre data-lang="bash"><code>slm-factory check --config project.yaml</code></pre>
+        <p><code>--config</code>를 생략하면 현재 디렉토리와 상위 디렉토리(2단계)에서 <code>project.yaml</code>을 자동으로 검색합니다.</p>
+
+        <h3 id="check-items">검증 항목</h3>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>항목</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>설정 파일</td><td>YAML 로드 및 Pydantic 검증</td></tr>
+              <tr><td>문서 디렉토리</td><td>존재 여부 및 파일 유무</td></tr>
+              <tr><td>출력 디렉토리</td><td>쓰기 가능 여부</td></tr>
+              <tr><td>Ollama 연결</td><td>서버 연결 상태 및 모델 존재 여부 (<code>backend: "ollama"</code>일 때만)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 id="check-output">예시 출력</h3>
+        <pre data-lang="bash"><code>$ slm-factory check --config project.yaml
+&#10003; Config file: Valid
+&#10003; Documents directory: Found (5 files)
+&#10003; Output directory: Writable
+&#10003; Ollama connection: Connected (model: qwen3:8b)
+
+모든 점검 통과!</code></pre>
+
+        <p>모든 항목이 통과하면 종료 코드 0, 실패하면 1을 반환합니다. 설정 파일에 오류가 있으면 (YAML 구문 오류, 잘못된 타입, 알 수 없는 필드 등) Pydantic 검증 단계에서 상세한 에러 메시지를 출력합니다.</p>
+        <p>설정 문제를 진단할 때는 <code>slm-factory -v check</code> 명령으로 상세 로그를 확인할 수 있습니다.</p>
+      </section>
+
+      <hr>
+
+      <!-- ============================================================
+           관련 문서
+           ============================================================ -->
+      <section id="related">
+        <h2>관련 문서</h2>
+        <ul>
+          <li><a href="guide.html">사용 가이드</a> &mdash; 각 설정을 언제, 어떻게 사용할지에 대한 실전 안내</li>
+          <li><a href="cli-reference.html">CLI 레퍼런스</a> &mdash; 모든 CLI 명령어와 옵션</li>
+          <li><a href="architecture.html">아키텍처 가이드</a> &mdash; 설정 로딩 프로세스, 내부 구조, 설계 패턴</li>
+          <li><a href="quick-reference.html">빠른 참조</a> &mdash; 자주 쓰는 설정 한눈에 보기</li>
+        </ul>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ============ Footer ============ -->
+  <footer class="page-footer">
+    <p>slm-factory Documentation &mdash; Teacher-Student 지식 증류 프레임워크</p>
+  </footer>
+
+</div>
+</body>
+</html>

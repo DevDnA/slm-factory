@@ -1,0 +1,1929 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="slm-factory CLI 명령어 레퍼런스 - 모든 명령어와 옵션을 정리한 공식 문서">
+  <title>CLI 명령어 레퍼런스 - slm-factory</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
+  <link rel="stylesheet" href="./assets/style.css">
+</head>
+<body>
+  <div class="page-wrapper">
+
+    <!-- ===== Sidebar ===== -->
+    <nav class="sidebar" aria-label="문서 네비게이션">
+      <div class="sidebar-header">
+        <a href="index.html" class="sidebar-logo">
+          <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect width="28" height="28" rx="6" fill="#3182CE"/>
+            <path d="M7 14h4l3-6 4 12 3-6h4" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          slm-factory
+        </a>
+        <span class="sidebar-version">Documentation</span>
+      </div>
+      <ul class="sidebar-nav">
+        <li class="nav-section">시작하기</li>
+        <li><a href="index.html">개요</a></li>
+        <li><a href="guide.html">사용 가이드</a></li>
+        <li class="nav-section">레퍼런스</li>
+        <li><a href="configuration.html">설정 레퍼런스</a></li>
+        <li><a href="cli-reference.html" class="active">CLI 레퍼런스</a></li>
+        <li><a href="quick-reference.html">빠른 참조</a></li>
+        <li class="nav-section">심화</li>
+        <li><a href="architecture.html">아키텍처</a></li>
+        <li><a href="development.html">개발자 가이드</a></li>
+        <li><a href="autorag-integration.html">AutoRAG 연동</a></li>
+      </ul>
+    </nav>
+
+    <!-- ===== Main ===== -->
+    <main class="main-content">
+
+      <!-- Page Header (Hero) -->
+      <header class="page-header">
+        <div class="content-container">
+          <span class="badge">Reference</span>
+          <h1>CLI 명령어 레퍼런스</h1>
+          <p class="subtitle">slm-factory의 모든 명령어와 옵션을 정리한 공식 레퍼런스입니다. 빠른 조회는 <a href="quick-reference.html" style="color:rgba(255,255,255,0.9);text-decoration:underline">빠른 참조</a>를, 단계별 사용법은 <a href="guide.html" style="color:rgba(255,255,255,0.9);text-decoration:underline">사용 가이드</a>를 참조하십시오.</p>
+        </div>
+      </header>
+
+      <div class="content-container">
+
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb" aria-label="경로">
+          <a href="index.html">문서</a>
+          <span class="separator" aria-hidden="true">/</span>
+          <span>CLI 레퍼런스</span>
+        </nav>
+
+        <!-- Table of Contents -->
+        <nav class="toc" aria-label="목차">
+          <div class="toc-title">목차</div>
+          <ol class="toc-list">
+            <li><a href="#global-options">전역 옵션</a></li>
+            <li><a href="#command-list">명령어 목록</a></li>
+            <li>
+              <a href="#getting-started">시작하기</a>
+              <ol class="toc-list">
+                <li class="toc-h3"><a href="#init"><code>init</code></a></li>
+                <li class="toc-h3"><a href="#check"><code>check</code></a></li>
+              </ol>
+            </li>
+            <li>
+              <a href="#pipeline">파이프라인</a>
+              <ol class="toc-list">
+                <li class="toc-h3"><a href="#run"><code>run</code></a></li>
+                <li class="toc-h3"><a href="#train"><code>train</code></a></li>
+                <li class="toc-h3"><a href="#export"><code>export</code></a></li>
+              </ol>
+            </li>
+            <li>
+              <a href="#evaluation">평가</a>
+              <ol class="toc-list">
+                <li class="toc-h3"><a href="#eval-run"><code>eval run</code></a></li>
+                <li class="toc-h3"><a href="#eval-compare"><code>eval compare</code></a></li>
+              </ol>
+            </li>
+            <li>
+              <a href="#tools">도구</a>
+              <ol class="toc-list">
+                <li class="toc-h3"><a href="#tool-wizard"><code>tool wizard</code></a></li>
+                <li class="toc-h3"><a href="#tool-review"><code>tool review</code></a></li>
+                <li class="toc-h3"><a href="#tool-dashboard"><code>tool dashboard</code></a></li>
+                <li class="toc-h3"><a href="#tool-convert"><code>tool convert</code></a></li>
+                <li class="toc-h3"><a href="#tool-dialogue"><code>tool dialogue</code></a></li>
+                <li class="toc-h3"><a href="#tool-gguf"><code>tool gguf</code></a></li>
+                <li class="toc-h3"><a href="#tool-evolve"><code>tool evolve</code></a></li>
+                <li class="toc-h3"><a href="#tool-update"><code>tool update</code></a></li>
+              </ol>
+            </li>
+            <li>
+              <a href="#info">정보</a>
+              <ol class="toc-list">
+                <li class="toc-h3"><a href="#status"><code>status</code></a></li>
+                <li class="toc-h3"><a href="#clean"><code>clean</code></a></li>
+                <li class="toc-h3"><a href="#version"><code>version</code></a></li>
+              </ol>
+            </li>
+            <li><a href="#output-structure">출력 파일 구조</a></li>
+          </ol>
+        </nav>
+
+        <!-- ============================================================ -->
+        <!-- 전역 옵션                                                      -->
+        <!-- ============================================================ -->
+        <section id="global-options">
+          <h2>전역 옵션</h2>
+          <p>모든 명령어 앞에 사용할 수 있는 옵션입니다.</p>
+          <pre data-lang="bash"><code>slm-factory [전역 옵션] &lt;명령어&gt; [옵션]</code></pre>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>플래그</th>
+                  <th>단축키</th>
+                  <th>설명</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>--verbose</code></td>
+                  <td><code>-v</code></td>
+                  <td>DEBUG 레벨 로그를 출력합니다. 문제 진단 시 사용합니다.</td>
+                </tr>
+                <tr>
+                  <td><code>--quiet</code></td>
+                  <td><code>-q</code></td>
+                  <td>WARNING 이상의 로그만 출력합니다. 스크립트 자동화에 적합합니다.</td>
+                </tr>
+                <tr>
+                  <td><code>--help</code></td>
+                  <td></td>
+                  <td>도움말을 출력합니다.</td>
+                </tr>
+                <tr>
+                  <td><code>--install-completion</code></td>
+                  <td></td>
+                  <td>현재 셸에 자동완성을 설치합니다.</td>
+                </tr>
+                <tr>
+                  <td><code>--show-completion</code></td>
+                  <td></td>
+                  <td>자동완성 스크립트를 출력합니다.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="callout callout-info">
+            <div class="callout-content">
+              <p><code>--verbose</code>와 <code>--quiet</code>를 동시에 지정하면 <code>--verbose</code>가 우선 적용됩니다.</p>
+            </div>
+          </div>
+        </section>
+
+        <hr>
+
+        <!-- ============================================================ -->
+        <!-- 명령어 목록                                                    -->
+        <!-- ============================================================ -->
+        <section id="command-list">
+          <h2>명령어 목록</h2>
+
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>명령어</th>
+                  <th>그룹</th>
+                  <th>설명</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>init</code></td>
+                  <td><span class="tag tag-required">시작하기</span></td>
+                  <td>새 프로젝트 디렉토리와 설정 파일을 생성합니다</td>
+                </tr>
+                <tr>
+                  <td><code>check</code></td>
+                  <td><span class="tag tag-required">시작하기</span></td>
+                  <td>설정 파일, 문서 디렉토리, Ollama 연결을 사전 점검합니다</td>
+                </tr>
+                <tr>
+                  <td><code>run</code></td>
+                  <td><span class="tag tag-required">파이프라인</span></td>
+                  <td>전체 파이프라인 또는 지정 단계까지 실행합니다</td>
+                </tr>
+                <tr>
+                  <td><code>train</code></td>
+                  <td><span class="tag tag-required">파이프라인</span></td>
+                  <td>LoRA 파인튜닝을 실행합니다</td>
+                </tr>
+                <tr>
+                  <td><code>export</code></td>
+                  <td><span class="tag tag-required">파이프라인</span></td>
+                  <td>훈련된 어댑터를 병합하고 Ollama Modelfile을 생성합니다</td>
+                </tr>
+                <tr>
+                  <td><code>eval run</code></td>
+                  <td><span class="tag tag-optional">평가</span></td>
+                  <td>학습된 모델을 BLEU/ROUGE 메트릭으로 평가합니다</td>
+                </tr>
+                <tr>
+                  <td><code>eval compare</code></td>
+                  <td><span class="tag tag-optional">평가</span></td>
+                  <td>Base 모델과 Fine-tuned 모델의 답변을 나란히 비교합니다</td>
+                </tr>
+                <tr>
+                  <td><code>tool wizard</code></td>
+                  <td><span class="tag tag-new">도구</span></td>
+                  <td>대화형 파이프라인을 단계별로 안내합니다 (권장)</td>
+                </tr>
+                <tr>
+                  <td><code>tool review</code></td>
+                  <td><span class="tag tag-new">도구</span></td>
+                  <td>QA 쌍을 TUI에서 수동으로 승인/거부/편집합니다</td>
+                </tr>
+                <tr>
+                  <td><code>tool dashboard</code></td>
+                  <td><span class="tag tag-new">도구</span></td>
+                  <td>파이프라인 진행 상태를 실시간 TUI로 모니터링합니다</td>
+                </tr>
+                <tr>
+                  <td><code>tool convert</code></td>
+                  <td><span class="tag tag-new">도구</span></td>
+                  <td>QA 데이터를 훈련용 JSONL 형식으로 변환합니다</td>
+                </tr>
+                <tr>
+                  <td><code>tool dialogue</code></td>
+                  <td><span class="tag tag-new">도구</span></td>
+                  <td>QA 쌍을 멀티턴 대화 데이터로 확장합니다</td>
+                </tr>
+                <tr>
+                  <td><code>tool gguf</code></td>
+                  <td><span class="tag tag-new">도구</span></td>
+                  <td>병합된 모델을 GGUF 양자화 형식으로 변환합니다</td>
+                </tr>
+                <tr>
+                  <td><code>tool update</code></td>
+                  <td><span class="tag tag-new">도구</span></td>
+                  <td>변경된 문서만 감지하여 증분 처리합니다</td>
+                </tr>
+                <tr>
+                  <td><code>tool evolve</code></td>
+                  <td><span class="tag tag-new">도구</span></td>
+                  <td>자동 진화 (증분&rarr;학습&rarr;품질게이트&rarr;배포)</td>
+                </tr>
+                <tr>
+                  <td><code>status</code></td>
+                  <td><span class="tag tag-optional">정보</span></td>
+                  <td>각 파이프라인 단계의 진행 상태를 표시합니다</td>
+                </tr>
+                <tr>
+                  <td><code>clean</code></td>
+                  <td><span class="tag tag-optional">정보</span></td>
+                  <td>중간 생성 파일을 정리합니다</td>
+                </tr>
+                <tr>
+                  <td><code>version</code></td>
+                  <td><span class="tag tag-optional">정보</span></td>
+                  <td>slm-factory 버전을 출력합니다</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <hr>
+
+        <!-- ============================================================ -->
+        <!-- 시작하기                                                       -->
+        <!-- ============================================================ -->
+        <section id="getting-started">
+          <h2>시작하기</h2>
+
+          <!-- init -->
+          <article id="init">
+            <h3><code>init</code></h3>
+            <p>새로운 slm-factory 프로젝트를 초기화합니다. 프로젝트 디렉토리, <code>documents/</code>, <code>output/</code> 하위 디렉토리, 기본 <code>project.yaml</code> 설정 파일을 생성합니다.</p>
+
+            <h4>사용법</h4>
+            <pre data-lang="bash"><code>slm-factory init &lt;name&gt; [OPTIONS]</code></pre>
+
+            <h4>인수</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>인수</th>
+                    <th>필수 여부</th>
+                    <th>설명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>name</code></td>
+                    <td><span class="tag tag-required">필수</span></td>
+                    <td>생성할 프로젝트 이름. 디렉토리명과 설정 파일의 <code>project.name</code>에 사용됩니다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4>옵션</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>플래그</th>
+                    <th>단축키</th>
+                    <th>타입</th>
+                    <th>기본값</th>
+                    <th>설명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>--path</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>.</code></td>
+                    <td>프로젝트를 생성할 상위 디렉토리입니다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4>예시</h4>
+            <pre data-lang="bash"><code># 현재 디렉토리에 my-project 생성
+slm-factory init my-project
+
+# 특정 경로에 생성
+slm-factory init policy-assistant --path /workspace/projects</code></pre>
+
+            <h4>출력</h4>
+            <pre><code>&check; 프로젝트 'my-project'가 생성되었습니다: ./my-project
+
+프로젝트 구조:
+  ./my-project/
+  ./my-project/documents/
+  ./my-project/output/
+  ./my-project/project.yaml
+
+사전 준비:
+  1. ./my-project/documents 디렉토리에 학습할 문서(PDF, TXT 등)를 추가하세요
+  2. 별도 터미널에서 Ollama를 실행하세요: ollama serve
+  3. Teacher 모델을 다운로드하세요: ollama pull qwen3:8b
+
+실행:
+  4. 환경 점검: slm-factory check --config ./my-project/project.yaml
+  5. wizard 실행: slm-factory tool wizard --config ./my-project/project.yaml</code></pre>
+
+            <h4>참고</h4>
+            <div class="callout callout-info">
+              <div class="callout-content">
+                <ul>
+                  <li>지정 경로에 <code>project.yaml</code>이 이미 존재하면 덮어쓰기 여부를 확인하는 프롬프트가 표시됩니다.</li>
+                  <li>생성된 <code>project.yaml</code>의 <code>project.name</code>과 <code>export.ollama.model_name</code>에 <code>name</code> 인수가 자동으로 반영됩니다.</li>
+                  <li>설정 파일의 모든 옵션은 <a href="configuration.html">설정 레퍼런스</a>를 참조하십시오.</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <hr>
+
+          <!-- check -->
+          <article id="check">
+            <h3><code>check</code></h3>
+            <p>프로젝트 설정과 실행 환경을 사전 점검합니다. 파이프라인 실행 전에 실행하여 문제를 미리 확인하십시오.</p>
+
+            <h4>사용법</h4>
+            <pre data-lang="bash"><code>slm-factory check [OPTIONS]</code></pre>
+
+            <h4>옵션</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>플래그</th>
+                    <th>단축키</th>
+                    <th>타입</th>
+                    <th>기본값</th>
+                    <th>설명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>--config</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>project.yaml</code></td>
+                    <td>프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4>점검 항목</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>항목</th>
+                    <th>설명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>설정 파일</td>
+                    <td><code>project.yaml</code> 로드 및 Pydantic 스키마 검증</td>
+                  </tr>
+                  <tr>
+                    <td>문서 디렉토리</td>
+                    <td><code>paths.documents</code> 디렉토리 존재 여부 및 파일 유무 확인</td>
+                  </tr>
+                  <tr>
+                    <td>출력 디렉토리</td>
+                    <td><code>paths.output</code> 디렉토리 쓰기 권한 확인</td>
+                  </tr>
+                  <tr>
+                    <td>Ollama 연결</td>
+                    <td><code>teacher.backend == "ollama"</code>일 때 서버 연결 상태 확인</td>
+                  </tr>
+                  <tr>
+                    <td>모델 사용 가능</td>
+                    <td><code>teacher.model</code>이 Ollama에 다운로드되어 있는지 확인</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4>종료 코드</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>코드</th>
+                    <th>의미</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>0</code></td>
+                    <td>모든 항목 통과</td>
+                  </tr>
+                  <tr>
+                    <td><code>1</code></td>
+                    <td>하나 이상의 항목 실패 또는 경고</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4>예시</h4>
+            <pre data-lang="bash"><code>slm-factory check --config my-project/project.yaml</code></pre>
+
+            <h4>출력 예시 (전체 통과)</h4>
+            <pre><code>                slm-factory 환경 점검
+&#x250C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x252C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x252C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2510;
+&#x2502; 항목         &#x2502; 상태   &#x2502; 상세                         &#x2502;
+&#x251C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x253C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x253C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2524;
+&#x2502; 설정 파일    &#x2502; OK     &#x2502; ./my-project/project.yaml    &#x2502;
+&#x2502; 문서 디렉토리&#x2502; OK     &#x2502; 3개 파일 (./documents)       &#x2502;
+&#x2502; 출력 디렉토리&#x2502; OK     &#x2502; 쓰기 가능 (./output)         &#x2502;
+&#x2502; Ollama 연결  &#x2502; OK     &#x2502; v0.3.12 (http://localhost:11434) &#x2502;
+&#x2502; 모델 사용 가능&#x2502; OK    &#x2502; qwen3:8b                     &#x2502;
+&#x2514;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2534;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2534;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2518;
+
+모든 점검 통과!
+  wizard 실행: slm-factory tool wizard --config ./my-project/project.yaml</code></pre>
+          </article>
+        </section>
+
+        <hr>
+
+        <!-- ============================================================ -->
+        <!-- 파이프라인                                                     -->
+        <!-- ============================================================ -->
+        <section id="pipeline">
+          <h2>파이프라인</h2>
+
+          <!-- run -->
+          <article id="run">
+            <h3><code>run</code></h3>
+            <p>문서 파싱부터 모델 배포까지 전체 파이프라인을 실행합니다. <code>--until</code> 옵션으로 특정 단계까지만 실행하고 중단할 수 있습니다.</p>
+
+            <h4>사용법</h4>
+            <pre data-lang="bash"><code>slm-factory run [OPTIONS]</code></pre>
+
+            <h4>옵션</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>플래그</th>
+                    <th>단축키</th>
+                    <th>타입</th>
+                    <th>기본값</th>
+                    <th>설명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>--config</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>project.yaml</code></td>
+                    <td>프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다.</td>
+                  </tr>
+                  <tr>
+                    <td><code>--resume</code></td>
+                    <td><code>-r</code></td>
+                    <td><code>FLAG</code></td>
+                    <td><code>False</code></td>
+                    <td>중간 저장 파일에서 재개합니다.</td>
+                  </tr>
+                  <tr>
+                    <td><code>--until</code></td>
+                    <td></td>
+                    <td><code>ENUM</code></td>
+                    <td><code>None</code></td>
+                    <td>지정된 단계까지만 실행합니다. 생략하면 전체 파이프라인을 실행합니다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4><code>--until</code> 단계 값</h4>
+            <p><code>PipelineStep</code> 열거형 값을 사용합니다. 각 단계는 이전 단계의 출력을 입력으로 받습니다.</p>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>값</th>
+                    <th>필수/선택</th>
+                    <th>설명</th>
+                    <th>생성 파일</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>parse</code></td>
+                    <td><span class="tag tag-required">필수</span></td>
+                    <td>문서를 파싱하여 텍스트와 표를 추출합니다</td>
+                    <td><code>output/parsed_documents.json</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>generate</code></td>
+                    <td><span class="tag tag-required">필수</span></td>
+                    <td>Teacher LLM으로 QA 쌍을 생성합니다</td>
+                    <td><code>output/qa_alpaca.json</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>validate</code></td>
+                    <td><span class="tag tag-required">필수</span></td>
+                    <td>규칙 기반 및 임베딩 기반으로 QA 쌍을 검증합니다</td>
+                    <td><code>output/qa_alpaca.json</code> (갱신)</td>
+                  </tr>
+                  <tr>
+                    <td><code>score</code></td>
+                    <td><span class="tag tag-optional">선택</span></td>
+                    <td>Teacher LLM이 QA 쌍을 1~5점으로 평가하고 저품질을 제거합니다</td>
+                    <td><code>output/qa_scored.json</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>augment</code></td>
+                    <td><span class="tag tag-optional">선택</span></td>
+                    <td>질문을 다양한 표현으로 변형하여 데이터를 증강합니다</td>
+                    <td><code>output/qa_augmented.json</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>analyze</code></td>
+                    <td><span class="tag tag-optional">선택</span></td>
+                    <td>카테고리 분포, 길이 통계 등 데이터 분석 보고서를 생성합니다</td>
+                    <td><code>output/data_analysis.json</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p><code>--until</code>을 생략하면 위 6단계에 이어 <code>convert</code>, <code>train</code>, <code>export</code>까지 전체 파이프라인을 실행합니다.</p>
+
+            <h4><code>--resume</code> 동작 방식</h4>
+            <p>출력 디렉토리에서 가장 최근 중간 저장 파일을 탐색하여 해당 단계부터 재개합니다.</p>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>발견된 파일</th>
+                    <th>재개 단계</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>qa_augmented.json</code></td>
+                    <td><code>analyze</code>부터</td>
+                  </tr>
+                  <tr>
+                    <td><code>qa_scored.json</code></td>
+                    <td><code>augment</code>부터</td>
+                  </tr>
+                  <tr>
+                    <td><code>qa_alpaca.json</code></td>
+                    <td><code>validate</code>부터</td>
+                  </tr>
+                  <tr>
+                    <td><code>parsed_documents.json</code></td>
+                    <td><code>generate</code>부터</td>
+                  </tr>
+                  <tr>
+                    <td>없음</td>
+                    <td>처음부터</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4>예시</h4>
+            <pre data-lang="bash"><code># 전체 파이프라인 실행
+slm-factory run --config my-project/project.yaml
+
+# 문서 파싱만 실행
+slm-factory run --until parse --config my-project/project.yaml
+
+# QA 생성까지 실행
+slm-factory run --until generate --config my-project/project.yaml
+
+# 검증까지 실행
+slm-factory run --until validate --config my-project/project.yaml
+
+# 품질 평가까지 실행
+slm-factory run --until score --config my-project/project.yaml
+
+# 중단된 지점에서 재개
+slm-factory run --resume --config my-project/project.yaml
+
+# 특정 단계까지 재개하며 실행
+slm-factory run --until augment --resume --config my-project/project.yaml</code></pre>
+
+            <h4>출력 예시 (전체 파이프라인)</h4>
+            <pre><code>slm-factory &mdash; 전체 파이프라인 시작 중...
+
+  &check; 5개 문서 파싱 완료
+  &check; 150개 QA 쌍 생성 완료
+  &check; 검증 완료: 132개 수락, 18개 거부
+  &check; 점수 평가: 120개 통과, 12개 제거
+  &check; 데이터 증강: 120개 &rarr; 360개
+  &check; 360개 QA 쌍 분석 완료
+
+파이프라인 완료! 모델 저장 위치: ./my-project/output/merged_model</code></pre>
+          </article>
+
+          <hr>
+
+          <!-- train -->
+          <article id="train">
+            <h3><code>train</code></h3>
+            <p>LoRA 파인튜닝을 실행합니다. <code>--data</code>로 기존 학습 데이터를 직접 지정하거나, 생략하면 파싱부터 변환까지 전체 전처리를 자동으로 실행합니다.</p>
+
+            <h4>사용법</h4>
+            <pre data-lang="bash"><code>slm-factory train [OPTIONS]</code></pre>
+
+            <h4>옵션</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>플래그</th>
+                    <th>단축키</th>
+                    <th>타입</th>
+                    <th>기본값</th>
+                    <th>설명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>--config</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>project.yaml</code></td>
+                    <td>프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다.</td>
+                  </tr>
+                  <tr>
+                    <td><code>--data</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>None</code></td>
+                    <td>사전 생성된 <code>training_data.jsonl</code> 파일 경로입니다. 지정하면 전처리 단계를 건너뜁니다.</td>
+                  </tr>
+                  <tr>
+                    <td><code>--resume</code></td>
+                    <td><code>-r</code></td>
+                    <td><code>FLAG</code></td>
+                    <td><code>False</code></td>
+                    <td>중간 저장 파일에서 재개합니다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4>동작 방식</h4>
+            <ul>
+              <li><strong><code>--data</code> 지정:</strong> 해당 JSONL 파일로 바로 학습을 시작합니다.</li>
+              <li><strong><code>--resume</code> 지정 (data 없음):</strong> 중간 저장 파일을 탐색하여 해당 단계부터 전처리를 재개한 뒤 학습합니다.</li>
+              <li><strong>옵션 없음:</strong> 파싱부터 변환까지 전체 전처리를 실행한 뒤 학습합니다.</li>
+            </ul>
+
+            <h4>예시</h4>
+            <pre data-lang="bash"><code># 전체 전처리 후 학습
+slm-factory train --config my-project/project.yaml
+
+# 기존 학습 데이터로 학습만 실행
+slm-factory train --config my-project/project.yaml --data ./my-project/output/training_data.jsonl
+
+# 외부에서 준비한 데이터로 학습
+slm-factory train --config my-project/project.yaml --data ./custom_data.jsonl
+
+# 중단된 전처리부터 재개하여 학습
+slm-factory train --resume --config my-project/project.yaml</code></pre>
+
+            <h4>출력</h4>
+            <pre><code>훈련 완료! 어댑터 저장 위치: ./my-project/output/checkpoints/adapter</code></pre>
+
+            <h4>참고</h4>
+            <div class="callout callout-info">
+              <div class="callout-content">
+                <ul>
+                  <li>학습 하이퍼파라미터(<code>num_epochs</code>, <code>batch_size</code>, <code>learning_rate</code> 등)는 <code>project.yaml</code>의 <code>training</code> 섹션에서 설정합니다. <a href="configuration.html">설정 레퍼런스</a>를 참조하십시오.</li>
+                  <li>GPU 메모리 부족 시 해결 방법은 <a href="guide.html">사용 가이드</a>를 참조하십시오.</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <hr>
+
+          <!-- export -->
+          <article id="export">
+            <h3><code>export</code></h3>
+            <p>훈련된 LoRA 어댑터를 기본 모델에 병합하고 Ollama Modelfile을 생성합니다. 파이프라인 전체를 재실행하지 않고 내보내기만 단독으로 수행합니다.</p>
+
+            <h4>사용법</h4>
+            <pre data-lang="bash"><code>slm-factory export [OPTIONS]</code></pre>
+
+            <h4>옵션</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>플래그</th>
+                    <th>단축키</th>
+                    <th>타입</th>
+                    <th>기본값</th>
+                    <th>설명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>--config</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>project.yaml</code></td>
+                    <td>프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다.</td>
+                  </tr>
+                  <tr>
+                    <td><code>--adapter</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>None</code></td>
+                    <td>어댑터 디렉토리 경로입니다. 미지정 시 <code>output/checkpoints/adapter/</code>를 사용합니다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4>예시</h4>
+            <pre data-lang="bash"><code># 기본 어댑터 경로로 내보내기
+slm-factory export --config my-project/project.yaml
+
+# 특정 어댑터 경로 지정
+slm-factory export --config my-project/project.yaml --adapter ./my-project/output/checkpoints/adapter</code></pre>
+
+            <h4>출력</h4>
+            <pre><code>내보내기 완료! 모델 저장 위치: ./my-project/output/merged_model</code></pre>
+
+            <p>생성 파일:</p>
+            <ul>
+              <li><code>output/merged_model/</code> &mdash; HuggingFace 형식의 병합된 모델</li>
+              <li><code>output/merged_model/Modelfile</code> &mdash; Ollama 배포용 Modelfile</li>
+            </ul>
+
+            <h4>참고</h4>
+            <div class="callout callout-info">
+              <div class="callout-content">
+                <p>Ollama 배포 설정(<code>model_name</code>, <code>system_prompt</code> 등)은 <code>project.yaml</code>의 <code>export.ollama</code> 섹션에서 설정합니다. <a href="configuration.html">설정 레퍼런스</a>를 참조하십시오.</p>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <hr>
+
+        <!-- ============================================================ -->
+        <!-- 평가                                                          -->
+        <!-- ============================================================ -->
+        <section id="evaluation">
+          <h2>평가</h2>
+
+          <!-- eval run -->
+          <article id="eval-run">
+            <h3><code>eval run</code></h3>
+            <p>학습된 모델을 QA 데이터로 평가합니다. BLEU와 ROUGE 메트릭을 계산하여 결과를 저장합니다.</p>
+
+            <h4>사용법</h4>
+            <pre data-lang="bash"><code>slm-factory eval run [OPTIONS]</code></pre>
+
+            <h4>옵션</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>플래그</th>
+                    <th>단축키</th>
+                    <th>타입</th>
+                    <th>기본값</th>
+                    <th>설명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>--model</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><span class="tag tag-required">필수</span></td>
+                    <td>평가할 Ollama 모델 이름입니다.</td>
+                  </tr>
+                  <tr>
+                    <td><code>--config</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>project.yaml</code></td>
+                    <td>프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다.</td>
+                  </tr>
+                  <tr>
+                    <td><code>--data</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>None</code></td>
+                    <td>QA 데이터 파일 경로입니다. 미지정 시 출력 디렉토리에서 자동 감지합니다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p><code>--data</code> 미지정 시 자동 감지 우선순위: <code>qa_augmented.json</code> &rarr; <code>qa_scored.json</code> &rarr; <code>qa_alpaca.json</code></p>
+
+            <h4>예시</h4>
+            <pre data-lang="bash"><code># 기본 설정으로 평가
+slm-factory eval run --model my-project-model --config my-project/project.yaml
+
+# 특정 QA 데이터로 평가
+slm-factory eval run --model my-project-model --config my-project/project.yaml --data ./my-project/output/qa_alpaca.json</code></pre>
+
+            <h4>출력</h4>
+            <p>터미널에 BLEU/ROUGE 점수 요약을 출력하고, <code>output/eval_results.json</code>에 상세 결과를 저장합니다.</p>
+            <pre><code>평가 완료! 결과: ./my-project/output/eval_results.json (50건)</code></pre>
+
+            <h4>참고</h4>
+            <div class="callout callout-info">
+              <div class="callout-content">
+                <ul>
+                  <li>평가 대상 모델은 Ollama에 등록된 모델이어야 합니다. <code>ollama list</code>로 확인하십시오.</li>
+                  <li>평가 설정(<code>output_file</code> 등)은 <code>project.yaml</code>의 <code>eval</code> 섹션에서 설정합니다. <a href="configuration.html">설정 레퍼런스</a>를 참조하십시오.</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <hr>
+
+          <!-- eval compare -->
+          <article id="eval-compare">
+            <h3><code>eval compare</code></h3>
+            <p>Base 모델과 Fine-tuned 모델의 답변을 동일한 질문으로 비교합니다. 파인튜닝 전후의 성능 차이를 확인할 때 사용합니다.</p>
+
+            <h4>사용법</h4>
+            <pre data-lang="bash"><code>slm-factory eval compare [OPTIONS]</code></pre>
+
+            <h4>옵션</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>플래그</th>
+                    <th>단축키</th>
+                    <th>타입</th>
+                    <th>기본값</th>
+                    <th>설명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>--base-model</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><span class="tag tag-required">필수</span></td>
+                    <td>비교 기준 모델 이름 (Ollama)입니다.</td>
+                  </tr>
+                  <tr>
+                    <td><code>--ft</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><span class="tag tag-required">필수</span></td>
+                    <td>파인튜닝된 모델 이름 (Ollama)입니다.</td>
+                  </tr>
+                  <tr>
+                    <td><code>--config</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>project.yaml</code></td>
+                    <td>프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다.</td>
+                  </tr>
+                  <tr>
+                    <td><code>--data</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>None</code></td>
+                    <td>QA 데이터 파일 경로입니다. 미지정 시 출력 디렉토리에서 자동 감지합니다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p><code>--data</code> 미지정 시 자동 감지 우선순위: <code>qa_augmented.json</code> &rarr; <code>qa_scored.json</code> &rarr; <code>qa_alpaca.json</code></p>
+
+            <h4>예시</h4>
+            <pre data-lang="bash"><code># Base 모델과 파인튜닝 모델 비교
+slm-factory eval compare \
+  --base-model gemma:2b \
+  --ft my-project-model \
+  --config my-project/project.yaml
+
+# 특정 QA 데이터로 비교
+slm-factory eval compare \
+  --base-model gemma:2b \
+  --ft my-project-model \
+  --config my-project/project.yaml \
+  --data ./my-project/output/qa_alpaca.json</code></pre>
+
+            <h4>출력</h4>
+            <p>터미널에 비교 요약을 출력하고, <code>output/compare_results.json</code>에 각 질문별 두 모델의 답변을 저장합니다.</p>
+            <pre><code>비교 완료! 결과: ./my-project/output/compare_results.json (50건)</code></pre>
+          </article>
+        </section>
+
+        <hr>
+
+        <!-- ============================================================ -->
+        <!-- 도구                                                          -->
+        <!-- ============================================================ -->
+        <section id="tools">
+          <h2>도구</h2>
+
+          <!-- tool wizard -->
+          <article id="tool-wizard">
+            <h3><code>tool wizard</code></h3>
+            <p>전체 파이프라인을 단계별로 안내하는 대화형 인터페이스입니다. 각 단계에서 진행 여부를 확인하며, 선택 단계는 건너뛸 수 있습니다. 처음 사용자에게 권장합니다.</p>
+
+            <h4>사용법</h4>
+            <pre data-lang="bash"><code>slm-factory tool wizard [OPTIONS]</code></pre>
+
+            <h4>옵션</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>플래그</th>
+                    <th>단축키</th>
+                    <th>타입</th>
+                    <th>기본값</th>
+                    <th>설명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>--config</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>project.yaml</code></td>
+                    <td>프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다.</td>
+                  </tr>
+                  <tr>
+                    <td><code>--resume</code></td>
+                    <td><code>-r</code></td>
+                    <td><code>FLAG</code></td>
+                    <td><code>False</code></td>
+                    <td>이전 실행의 중간 결과에서 재개합니다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4>12단계 진행 순서</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>단계</th>
+                    <th>필수/선택</th>
+                    <th>설명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>설정 파일 로드</td>
+                    <td><span class="tag tag-required">필수</span></td>
+                    <td><code>project.yaml</code>을 자동 탐색하거나 경로를 직접 입력합니다</td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td>문서 선택</td>
+                    <td><span class="tag tag-required">필수</span></td>
+                    <td><code>documents/</code> 디렉토리의 파일 목록을 표시하고 전체 또는 개별 선택합니다</td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td>문서 파싱</td>
+                    <td><span class="tag tag-required">필수</span></td>
+                    <td>선택한 문서를 자동으로 파싱합니다</td>
+                  </tr>
+                  <tr>
+                    <td>4</td>
+                    <td>QA 쌍 생성</td>
+                    <td><span class="tag tag-required">필수</span></td>
+                    <td>Teacher LLM으로 질문-답변 쌍을 생성합니다. 확인 후 진행합니다.</td>
+                  </tr>
+                  <tr>
+                    <td>5</td>
+                    <td>QA 검증</td>
+                    <td><span class="tag tag-required">필수</span></td>
+                    <td>규칙 기반 및 임베딩 기반 검증을 자동으로 실행합니다</td>
+                  </tr>
+                  <tr>
+                    <td>6</td>
+                    <td>품질 점수 평가</td>
+                    <td><span class="tag tag-optional">선택</span></td>
+                    <td>Teacher LLM이 QA 쌍을 1~5점으로 평가합니다. 건너뛸 수 있습니다.</td>
+                  </tr>
+                  <tr>
+                    <td>7</td>
+                    <td>데이터 증강</td>
+                    <td><span class="tag tag-optional">선택</span></td>
+                    <td>질문을 다양한 표현으로 변형하여 데이터를 늘립니다. 건너뛸 수 있습니다.</td>
+                  </tr>
+                  <tr>
+                    <td>&mdash;</td>
+                    <td>데이터 분석</td>
+                    <td><span class="tag tag-optional">자동</span></td>
+                    <td>증강 완료 후 QA 쌍 통계 분석을 자동 실행합니다</td>
+                  </tr>
+                  <tr>
+                    <td>8</td>
+                    <td>모델 학습</td>
+                    <td><span class="tag tag-required">필수</span></td>
+                    <td>Student 모델에 LoRA 어댑터를 적용하여 파인튜닝합니다. 확인 후 진행합니다.</td>
+                  </tr>
+                  <tr>
+                    <td>9</td>
+                    <td>모델 내보내기</td>
+                    <td><span class="tag tag-required">필수</span></td>
+                    <td>LoRA 어댑터를 병합하고 Ollama Modelfile을 생성합니다. 확인 후 진행합니다.</td>
+                  </tr>
+                  <tr>
+                    <td>10</td>
+                    <td>멀티턴 대화 생성</td>
+                    <td><span class="tag tag-optional">선택</span></td>
+                    <td>QA 쌍을 멀티턴 대화 형식으로 확장합니다. 건너뛸 수 있습니다.</td>
+                  </tr>
+                  <tr>
+                    <td>11</td>
+                    <td>GGUF 변환</td>
+                    <td><span class="tag tag-optional">선택</span></td>
+                    <td>모델을 llama.cpp 호환 GGUF 형식으로 변환합니다. 건너뛸 수 있습니다.</td>
+                  </tr>
+                  <tr>
+                    <td>12</td>
+                    <td>모델 평가</td>
+                    <td><span class="tag tag-optional">선택</span></td>
+                    <td>BLEU/ROUGE 메트릭으로 학습된 모델을 평가합니다. 건너뛸 수 있습니다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p>선택 단계를 건너뛰면 해당 단계를 나중에 실행할 수 있는 CLI 명령어를 안내합니다.</p>
+
+            <h4>예시</h4>
+            <pre data-lang="bash"><code># 처음 실행
+slm-factory tool wizard --config my-project/project.yaml
+
+# 이전 실행에서 재개
+slm-factory tool wizard --resume --config my-project/project.yaml</code></pre>
+
+            <h4>참고</h4>
+            <div class="callout callout-info">
+              <div class="callout-content">
+                <ul>
+                  <li>wizard 실행 전 Ollama 서버와 Teacher 모델이 필요합니다. 자세한 사전 준비는 <a href="guide.html">사용 가이드</a>를 참조하십시오.</li>
+                  <li><code>--resume</code> 사용 시 출력 디렉토리의 중간 파일을 자동으로 감지하여 해당 단계부터 재개합니다.</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <hr>
+
+          <!-- tool review -->
+          <article id="tool-review">
+            <h3><code>tool review</code></h3>
+            <p>생성된 QA 쌍을 TUI(텍스트 기반 UI)에서 하나씩 확인하며 승인, 거부, 편집합니다. 데이터 품질을 수동으로 관리할 때 사용합니다.</p>
+
+            <h4>사용법</h4>
+            <pre data-lang="bash"><code>slm-factory tool review [OPTIONS]</code></pre>
+
+            <h4>옵션</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>플래그</th>
+                    <th>단축키</th>
+                    <th>타입</th>
+                    <th>기본값</th>
+                    <th>설명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>--config</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>project.yaml</code></td>
+                    <td>프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다.</td>
+                  </tr>
+                  <tr>
+                    <td><code>--data</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>None</code></td>
+                    <td>QA 데이터 파일 경로입니다. 미지정 시 출력 디렉토리에서 자동 감지합니다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p><code>--data</code> 미지정 시 자동 감지 우선순위: <code>qa_reviewed.json</code> &rarr; <code>qa_augmented.json</code> &rarr; <code>qa_scored.json</code> &rarr; <code>qa_alpaca.json</code></p>
+
+            <h4>예시</h4>
+            <pre data-lang="bash"><code># 자동 감지된 QA 데이터로 리뷰 시작
+slm-factory tool review --config my-project/project.yaml
+
+# 특정 파일로 리뷰 시작
+slm-factory tool review --config my-project/project.yaml --data ./my-project/output/qa_alpaca.json</code></pre>
+
+            <h4>출력</h4>
+            <p>TUI 종료 후 리뷰 결과를 출력합니다.</p>
+            <pre><code>리뷰 완료! 승인: 98, 거부: 12, 대기: 5</code></pre>
+
+            <p>생성 파일: <code>output/qa_reviewed.json</code> (승인된 QA 쌍만 포함)</p>
+          </article>
+
+          <hr>
+
+          <!-- tool dashboard -->
+          <article id="tool-dashboard">
+            <h3><code>tool dashboard</code></h3>
+            <p>파이프라인 각 단계의 진행 상태를 실시간으로 모니터링하는 TUI 대시보드를 실행합니다.</p>
+
+            <h4>사용법</h4>
+            <pre data-lang="bash"><code>slm-factory tool dashboard [OPTIONS]</code></pre>
+
+            <h4>옵션</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>플래그</th>
+                    <th>단축키</th>
+                    <th>타입</th>
+                    <th>기본값</th>
+                    <th>설명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>--config</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>project.yaml</code></td>
+                    <td>프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4>예시</h4>
+            <pre data-lang="bash"><code>slm-factory tool dashboard --config my-project/project.yaml</code></pre>
+
+            <p>대시보드는 각 단계의 출력 파일 존재 여부, 항목 수, 최근 수정 시각을 표시하며 설정된 주기(<code>dashboard.refresh_interval</code>)로 자동 갱신합니다.</p>
+          </article>
+
+          <hr>
+
+          <!-- tool convert -->
+          <article id="tool-convert">
+            <h3><code>tool convert</code></h3>
+            <p>QA 데이터를 Student 모델의 채팅 템플릿이 적용된 훈련용 JSONL 형식으로 변환합니다. 파이프라인 전체를 재실행하지 않고 변환만 단독으로 수행합니다.</p>
+
+            <h4>사용법</h4>
+            <pre data-lang="bash"><code>slm-factory tool convert [OPTIONS]</code></pre>
+
+            <h4>옵션</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>플래그</th>
+                    <th>단축키</th>
+                    <th>타입</th>
+                    <th>기본값</th>
+                    <th>설명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>--config</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>project.yaml</code></td>
+                    <td>프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다.</td>
+                  </tr>
+                  <tr>
+                    <td><code>--data</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>None</code></td>
+                    <td>QA 데이터 파일 경로 (<code>qa_alpaca.json</code> 또는 <code>qa_augmented.json</code>). 미지정 시 자동 감지합니다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4><code>--data</code> 미지정 시 자동 감지 우선순위</h4>
+            <p>출력 디렉토리에서 다음 순서로 파일을 탐색합니다.</p>
+            <ol>
+              <li><code>qa_augmented.json</code></li>
+              <li><code>qa_scored.json</code></li>
+              <li><code>qa_alpaca.json</code></li>
+            </ol>
+
+            <h4>예시</h4>
+            <pre data-lang="bash"><code># 자동 감지된 QA 데이터로 변환
+slm-factory tool convert --config my-project/project.yaml
+
+# 특정 파일로 변환
+slm-factory tool convert --config my-project/project.yaml --data ./my-project/output/qa_augmented.json</code></pre>
+
+            <h4>출력</h4>
+            <pre><code>변환 완료! 훈련 데이터: ./my-project/output/training_data.jsonl (360개 쌍)</code></pre>
+
+            <p>생성 파일: <code>output/training_data.jsonl</code></p>
+          </article>
+
+          <hr>
+
+          <!-- tool dialogue -->
+          <article id="tool-dialogue">
+            <h3><code>tool dialogue</code></h3>
+            <p>QA 쌍을 멀티턴 대화 형식으로 확장합니다. Teacher LLM이 단일 질문-답변을 자연스러운 다중 턴 대화로 변환합니다.</p>
+
+            <h4>사용법</h4>
+            <pre data-lang="bash"><code>slm-factory tool dialogue [OPTIONS]</code></pre>
+
+            <h4>옵션</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>플래그</th>
+                    <th>단축키</th>
+                    <th>타입</th>
+                    <th>기본값</th>
+                    <th>설명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>--config</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>project.yaml</code></td>
+                    <td>프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다.</td>
+                  </tr>
+                  <tr>
+                    <td><code>--data</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>None</code></td>
+                    <td>QA 데이터 파일 경로 (<code>qa_alpaca.json</code> 또는 <code>qa_augmented.json</code>). 미지정 시 자동 감지합니다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p><code>--data</code> 미지정 시 자동 감지 우선순위: <code>qa_augmented.json</code> &rarr; <code>qa_scored.json</code> &rarr; <code>qa_alpaca.json</code></p>
+
+            <h4>예시</h4>
+            <pre data-lang="bash"><code># 자동 감지된 QA 데이터로 대화 생성
+slm-factory tool dialogue --config my-project/project.yaml
+
+# 특정 파일로 대화 생성
+slm-factory tool dialogue --config my-project/project.yaml --data ./my-project/output/qa_alpaca.json</code></pre>
+
+            <h4>출력</h4>
+            <pre><code>대화 생성 완료! 120개 대화 생성됨 &rarr; ./my-project/output/dialogues.json</code></pre>
+
+            <p>생성 파일: <code>output/dialogues.json</code></p>
+
+            <h4>참고</h4>
+            <div class="callout callout-info">
+              <div class="callout-content">
+                <ul>
+                  <li>대화 생성에는 Ollama 서버와 Teacher 모델이 필요합니다.</li>
+                  <li>대화 설정(<code>turns</code>, <code>style</code> 등)은 <code>project.yaml</code>의 <code>dialogue</code> 섹션에서 설정합니다. <a href="configuration.html">설정 레퍼런스</a>를 참조하십시오.</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <hr>
+
+          <!-- tool gguf -->
+          <article id="tool-gguf">
+            <h3><code>tool gguf</code></h3>
+            <p>병합된 모델을 llama.cpp 호환 GGUF 양자화 형식으로 변환합니다. llama.cpp의 변환 스크립트를 내부적으로 사용합니다.</p>
+
+            <h4>사용법</h4>
+            <pre data-lang="bash"><code>slm-factory tool gguf [OPTIONS]</code></pre>
+
+            <h4>옵션</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>플래그</th>
+                    <th>단축키</th>
+                    <th>타입</th>
+                    <th>기본값</th>
+                    <th>설명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>--config</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>project.yaml</code></td>
+                    <td>프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다.</td>
+                  </tr>
+                  <tr>
+                    <td><code>--model-dir</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>None</code></td>
+                    <td>병합된 모델 디렉토리 경로입니다. 미지정 시 <code>output/merged_model</code>을 사용합니다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4>예시</h4>
+            <pre data-lang="bash"><code># 기본 경로의 모델을 GGUF로 변환
+slm-factory tool gguf --config my-project/project.yaml
+
+# 특정 모델 디렉토리 지정
+slm-factory tool gguf --config my-project/project.yaml --model-dir ./my-project/output/merged_model</code></pre>
+
+            <h4>출력</h4>
+            <pre><code>GGUF 변환 완료! 파일: ./my-project/output/merged_model.gguf</code></pre>
+
+            <h4>참고</h4>
+            <div class="callout callout-info">
+              <div class="callout-content">
+                <ul>
+                  <li>GGUF 변환 전에 <code>export</code> 명령으로 모델을 먼저 병합해야 합니다.</li>
+                  <li>양자화 타입은 <code>project.yaml</code>의 <code>gguf_export.quantization_type</code>에서 설정합니다. <a href="configuration.html">설정 레퍼런스</a>를 참조하십시오.</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <hr>
+
+          <!-- tool evolve -->
+          <article id="tool-evolve">
+            <h3><code>tool evolve</code></h3>
+            <p>문서 변경을 감지하고 증분 처리한 뒤, 자동으로 재학습 및 배포하는 통합 명령어입니다. 품질 게이트를 통과한 경우에만 새 모델을 배포하며, 진화 히스토리를 기록합니다.</p>
+
+            <h4>사용법</h4>
+            <pre data-lang="bash"><code>slm-factory tool evolve [OPTIONS]</code></pre>
+
+            <h4>옵션</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>플래그</th>
+                    <th>단축키</th>
+                    <th>타입</th>
+                    <th>기본값</th>
+                    <th>설명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>--config</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>project.yaml</code></td>
+                    <td>프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다.</td>
+                  </tr>
+                  <tr>
+                    <td><code>--force-update</code></td>
+                    <td></td>
+                    <td><code>FLAG</code></td>
+                    <td><code>False</code></td>
+                    <td>변경 감지를 건너뛰고 모든 문서를 처리합니다.</td>
+                  </tr>
+                  <tr>
+                    <td><code>--skip-gate</code></td>
+                    <td></td>
+                    <td><code>FLAG</code></td>
+                    <td><code>False</code></td>
+                    <td>품질 게이트를 건너뛰고 무조건 배포합니다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4>5단계 진화 흐름</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>단계</th>
+                    <th>설명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td>증분 업데이트</td>
+                    <td>문서 변경을 감지하고 새 QA를 생성하여 기존 QA와 병합합니다</td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td>검증/점수/증강</td>
+                    <td>병합된 QA를 검증하고, 선택적으로 점수 평가 및 데이터 증강을 실행합니다</td>
+                  </tr>
+                  <tr>
+                    <td>3</td>
+                    <td>학습/내보내기</td>
+                    <td>전처리된 데이터로 LoRA 파인튜닝을 실행하고 모델을 병합합니다</td>
+                  </tr>
+                  <tr>
+                    <td>4</td>
+                    <td>품질 게이트</td>
+                    <td>새 모델을 이전 모델과 비교하여 개선 여부를 판단합니다 (설정 가능)</td>
+                  </tr>
+                  <tr>
+                    <td>5</td>
+                    <td>정리/완료</td>
+                    <td>배포 성공 시 히스토리를 기록하고 이전 버전을 관리합니다</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4>예시</h4>
+            <pre data-lang="bash"><code># 기본 진화 (변경 감지 + 품질 게이트 적용)
+slm-factory tool evolve --config my-project/project.yaml
+
+# 모든 문서 재처리 (변경 감지 건너뜀)
+slm-factory tool evolve --config my-project/project.yaml --force-update
+
+# 품질 게이트 건너뜀 (무조건 배포)
+slm-factory tool evolve --config my-project/project.yaml --skip-gate
+
+# 모든 옵션 적용
+slm-factory tool evolve --config my-project/project.yaml --force-update --skip-gate</code></pre>
+
+            <h4>출력 예시 (성공)</h4>
+            <pre><code>진화 시작: my-project
+
+[1/5] 증분 업데이트
+  변경 문서: 2개 감지
+  새 QA: 40개 생성
+  전체 QA: 190개 (전략: append)
+
+[2/5] 검증/점수/증강
+  검증: 190개 &rarr; 185개 (5개 거부)
+  점수 평가: 185개 &rarr; 175개 (10개 제거)
+  데이터 증강: 175개 &rarr; 525개
+
+[3/5] 학습/내보내기
+  학습 완료: 20 에포크 (early stopping)
+  모델 병합 완료
+
+[4/5] 품질 게이트
+  이전 모델: rougeL=0.45
+  새 모델: rougeL=0.48
+  개선율: +6.7% &check; 통과
+
+[5/5] 정리/완료
+  배포 완료: v20250220
+  이전 버전 보관: v20250219, v20250218, v20250217
+  히스토리 저장: evolve_history.json
+
+진화 완료! 새 모델: my-project-model (v20250220)</code></pre>
+
+            <h4>출력 예시 (품질 게이트 실패)</h4>
+            <pre><code>[4/5] 품질 게이트
+  이전 모델: rougeL=0.45
+  새 모델: rougeL=0.44
+  개선율: -2.2% &cross; 실패
+
+배포 취소됨. 이전 모델 유지: my-project-model (v20250219)</code></pre>
+
+            <h4>참고</h4>
+            <div class="callout callout-info">
+              <div class="callout-content">
+                <ul>
+                  <li>진화 명령은 <code>tool update</code> + <code>run --until analyze</code> + <code>train</code> + <code>export</code> + <code>eval compare</code> + 버전 관리를 자동으로 수행합니다.</li>
+                  <li>품질 게이트 설정(<code>quality_gate</code>, <code>gate_metric</code>, <code>gate_min_improvement</code>)은 <code>project.yaml</code>의 <code>evolve</code> 섹션에서 설정합니다. <a href="configuration.html">설정 레퍼런스</a>를 참조하십시오.</li>
+                  <li>진화 히스토리는 <code>evolve_history.json</code>에 기록되며, 각 진화 단계의 메트릭과 타임스탬프를 포함합니다.</li>
+                  <li><code>--force-update</code> 사용 시 모든 문서를 재처리하므로 처리 시간이 증가합니다.</li>
+                  <li><code>--skip-gate</code> 사용 시 품질 검증 없이 배포되므로 신중하게 사용하십시오.</li>
+                  <li>품질 게이트 실패 시 새로 생성된 Ollama 모델은 자동으로 삭제(<code>ollama rm</code>)되며 이전 모델이 유지됩니다.</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+
+          <hr>
+
+          <!-- tool update -->
+          <article id="tool-update">
+            <h3><code>tool update</code></h3>
+            <p>문서 디렉토리를 스캔하여 변경된 파일만 감지하고, 새 QA를 생성하여 기존 QA와 병합합니다. 문서를 추가하거나 수정했을 때 전체 파이프라인을 재실행하지 않고 증분 처리할 수 있습니다.</p>
+
+            <h4>사용법</h4>
+            <pre data-lang="bash"><code>slm-factory tool update [OPTIONS]</code></pre>
+
+            <h4>옵션</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>플래그</th>
+                    <th>단축키</th>
+                    <th>타입</th>
+                    <th>기본값</th>
+                    <th>설명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>--config</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>project.yaml</code></td>
+                    <td>프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4>동작 방식</h4>
+            <ol>
+              <li><code>IncrementalTracker</code>가 각 문서 파일의 해시값을 계산합니다.</li>
+              <li>이전 실행 시 저장된 해시값과 비교하여 변경된 파일을 감지합니다.</li>
+              <li>변경된 파일만 파싱하고 QA를 생성합니다.</li>
+              <li><code>project.yaml</code>의 <code>incremental.merge_strategy</code> 설정에 따라 기존 <code>qa_alpaca.json</code>과 병합합니다.</li>
+            </ol>
+
+            <h4>예시</h4>
+            <pre data-lang="bash"><code># 변경된 문서만 증분 처리
+slm-factory tool update --config my-project/project.yaml</code></pre>
+
+            <h4>출력</h4>
+            <pre><code>증분 업데이트: 2개 변경 문서 감지
+
+증분 업데이트 완료! 변경 문서: 2개, 새 QA: 40개, 전체 QA: 190개 (전략: append)</code></pre>
+
+            <p>변경된 문서가 없으면 "변경된 문서가 없습니다" 메시지를 출력하고 종료합니다.</p>
+
+            <h4>참고</h4>
+            <div class="callout callout-info">
+              <div class="callout-content">
+                <p>병합 전략(<code>merge_strategy</code>)은 <code>project.yaml</code>의 <code>incremental</code> 섹션에서 설정합니다. <a href="configuration.html">설정 레퍼런스</a>를 참조하십시오.</p>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <hr>
+
+        <!-- ============================================================ -->
+        <!-- 정보                                                          -->
+        <!-- ============================================================ -->
+        <section id="info">
+          <h2>정보</h2>
+
+          <!-- status -->
+          <article id="status">
+            <h3><code>status</code></h3>
+            <p>파이프라인 각 단계의 진행 상태를 확인합니다. 출력 디렉토리의 파일 존재 여부와 항목 수를 테이블로 표시합니다.</p>
+
+            <h4>사용법</h4>
+            <pre data-lang="bash"><code>slm-factory status [OPTIONS]</code></pre>
+
+            <h4>옵션</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>플래그</th>
+                    <th>단축키</th>
+                    <th>타입</th>
+                    <th>기본값</th>
+                    <th>설명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>--config</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>project.yaml</code></td>
+                    <td>프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4>예시</h4>
+            <pre data-lang="bash"><code>slm-factory status --config my-project/project.yaml</code></pre>
+
+            <h4>출력 예시</h4>
+            <pre><code>              파이프라인 진행 상태
+&#x250C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x252C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x252C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x252C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2510;
+&#x2502; 단계     &#x2502; 파일                     &#x2502; 상태   &#x2502; 건수         &#x2502;
+&#x251C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x253C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x253C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x253C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2524;
+&#x2502; parse    &#x2502; parsed_documents.json    &#x2502; 존재   &#x2502; 5개 문서     &#x2502;
+&#x2502; generate &#x2502; qa_alpaca.json           &#x2502; 존재   &#x2502; 150개 쌍     &#x2502;
+&#x2502; score    &#x2502; qa_scored.json           &#x2502; 없음   &#x2502; -            &#x2502;
+&#x2502; augment  &#x2502; qa_augmented.json        &#x2502; 없음   &#x2502; -            &#x2502;
+&#x2502; analyze  &#x2502; data_analysis.json       &#x2502; 없음   &#x2502; -            &#x2502;
+&#x2502; convert  &#x2502; training_data.jsonl      &#x2502; 없음   &#x2502; -            &#x2502;
+&#x2502; train    &#x2502; checkpoints/adapter/     &#x2502; 없음   &#x2502; -            &#x2502;
+&#x2502; export   &#x2502; merged_model/            &#x2502; 없음   &#x2502; -            &#x2502;
+&#x2514;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2534;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2534;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2534;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2518;
+
+다음 --resume 실행 시 validate부터 재개됩니다</code></pre>
+
+            <p>모든 단계가 완료된 경우 "모든 단계가 완료되었습니다" 메시지를 출력합니다.</p>
+          </article>
+
+          <hr>
+
+          <!-- clean -->
+          <article id="clean">
+            <h3><code>clean</code></h3>
+            <p>출력 디렉토리의 중간 생성 파일을 정리합니다. 삭제 전 확인 프롬프트가 표시됩니다.</p>
+
+            <h4>사용법</h4>
+            <pre data-lang="bash"><code>slm-factory clean [OPTIONS]</code></pre>
+
+            <h4>옵션</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>플래그</th>
+                    <th>단축키</th>
+                    <th>타입</th>
+                    <th>기본값</th>
+                    <th>설명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>--config</code></td>
+                    <td></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>project.yaml</code></td>
+                    <td>프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다.</td>
+                  </tr>
+                  <tr>
+                    <td><code>--all</code></td>
+                    <td></td>
+                    <td><code>FLAG</code></td>
+                    <td><code>False</code></td>
+                    <td>출력 디렉토리의 모든 파일을 삭제합니다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4>기본 동작 vs <code>--all</code> 동작</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>동작</th>
+                    <th>삭제 대상</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>기본 (<code>--all</code> 없음)</td>
+                    <td><code>qa_scored.json</code>, <code>qa_augmented.json</code>, <code>data_analysis.json</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>--all</code></td>
+                    <td>출력 디렉토리(<code>output/</code>)의 모든 파일과 디렉토리</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4>예시</h4>
+            <pre data-lang="bash"><code># 중간 파일만 정리
+slm-factory clean --config my-project/project.yaml
+
+# 모든 출력 파일 정리 (학습 결과 포함)
+slm-factory clean --all --config my-project/project.yaml</code></pre>
+
+            <h4>출력</h4>
+            <pre><code>삭제 대상:
+  ./my-project/output/qa_scored.json
+  ./my-project/output/qa_augmented.json
+  ./my-project/output/data_analysis.json
+
+삭제하시겠습니까? [y/N]:
+
+          삭제 결과
+&#x250C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x252C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2510;
+&#x2502; 파일                             &#x2502; 상태   &#x2502;
+&#x251C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x253C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2524;
+&#x2502; ./my-project/output/qa_scored... &#x2502; 삭제됨 &#x2502;
+&#x2502; ...                              &#x2502; 삭제됨 &#x2502;
+&#x2514;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2534;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2518;
+
+3개 항목 삭제 완료</code></pre>
+          </article>
+
+          <hr>
+
+          <!-- version -->
+          <article id="version">
+            <h3><code>version</code></h3>
+            <p>slm-factory의 현재 버전을 출력합니다.</p>
+
+            <h4>사용법</h4>
+            <pre data-lang="bash"><code>slm-factory version</code></pre>
+
+            <h4>출력</h4>
+            <pre><code>slm-factory 0.1.0</code></pre>
+          </article>
+        </section>
+
+        <hr>
+
+        <!-- ============================================================ -->
+        <!-- 출력 파일 구조                                                  -->
+        <!-- ============================================================ -->
+        <section id="output-structure">
+          <h2>출력 파일 구조</h2>
+          <p>파이프라인 실행 후 <code>output/</code> 디렉토리에 생성되는 파일 목록입니다.</p>
+
+          <pre><code>output/
+&#x251C;&#x2500;&#x2500; parsed_documents.json       # parse 단계 출력
+&#x251C;&#x2500;&#x2500; qa_alpaca.json              # generate + validate 단계 출력
+&#x251C;&#x2500;&#x2500; qa_scored.json              # score 단계 출력 (선택)
+&#x251C;&#x2500;&#x2500; qa_augmented.json           # augment 단계 출력 (선택)
+&#x251C;&#x2500;&#x2500; qa_reviewed.json            # tool review 출력 (선택)
+&#x251C;&#x2500;&#x2500; data_analysis.json          # analyze 단계 출력 (선택)
+&#x251C;&#x2500;&#x2500; dialogues.json              # tool dialogue 출력 (선택)
+&#x251C;&#x2500;&#x2500; eval_results.json           # eval run 출력 (선택)
+&#x251C;&#x2500;&#x2500; compare_results.json        # eval compare 출력 (선택)
+&#x251C;&#x2500;&#x2500; training_data.jsonl         # convert 단계 출력
+&#x251C;&#x2500;&#x2500; checkpoints/
+&#x2502;   &#x2514;&#x2500;&#x2500; adapter/                # train 단계 출력
+&#x2502;       &#x251C;&#x2500;&#x2500; adapter_config.json
+&#x2502;       &#x251C;&#x2500;&#x2500; adapter_model.safetensors
+&#x2502;       &#x2514;&#x2500;&#x2500; ...
+&#x251C;&#x2500;&#x2500; *.gguf                      # tool gguf 출력 (선택)
+&#x2514;&#x2500;&#x2500; merged_model/               # export 단계 출력
+    &#x251C;&#x2500;&#x2500; config.json
+    &#x251C;&#x2500;&#x2500; model.safetensors
+    &#x251C;&#x2500;&#x2500; tokenizer.json
+    &#x251C;&#x2500;&#x2500; tokenizer_config.json
+    &#x2514;&#x2500;&#x2500; Modelfile</code></pre>
+
+          <h4>파일별 설명</h4>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>파일</th>
+                  <th>생성 명령</th>
+                  <th>설명</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>parsed_documents.json</code></td>
+                  <td><code>run --until parse</code></td>
+                  <td>원본 문서에서 추출한 텍스트, 표, 메타데이터입니다. <code>--resume</code> 시 파싱 단계를 건너뜁니다.</td>
+                </tr>
+                <tr>
+                  <td><code>qa_alpaca.json</code></td>
+                  <td><code>run --until generate</code></td>
+                  <td>Teacher LLM이 생성한 QA 쌍입니다. Alpaca 형식(<code>instruction</code>, <code>input</code>, <code>output</code>)으로 저장됩니다.</td>
+                </tr>
+                <tr>
+                  <td><code>qa_scored.json</code></td>
+                  <td><code>run --until score</code></td>
+                  <td>품질 점수 평가를 통과한 QA 쌍입니다. <code>--resume</code> 시 <code>augment</code>부터 재개합니다.</td>
+                </tr>
+                <tr>
+                  <td><code>qa_augmented.json</code></td>
+                  <td><code>run --until augment</code></td>
+                  <td>데이터 증강이 완료된 QA 쌍입니다. <code>--resume</code> 시 <code>analyze</code>부터 재개합니다.</td>
+                </tr>
+                <tr>
+                  <td><code>qa_reviewed.json</code></td>
+                  <td><code>tool review</code></td>
+                  <td>TUI에서 수동 리뷰를 거친 QA 쌍입니다. 승인된 항목만 포함됩니다.</td>
+                </tr>
+                <tr>
+                  <td><code>data_analysis.json</code></td>
+                  <td><code>run --until analyze</code></td>
+                  <td>카테고리 분포, 길이 통계, 데이터 품질 경고를 포함한 분석 보고서입니다.</td>
+                </tr>
+                <tr>
+                  <td><code>dialogues.json</code></td>
+                  <td><code>tool dialogue</code></td>
+                  <td>QA 쌍을 멀티턴 대화 형식으로 확장한 데이터입니다.</td>
+                </tr>
+                <tr>
+                  <td><code>eval_results.json</code></td>
+                  <td><code>eval run</code></td>
+                  <td>BLEU/ROUGE 메트릭별 점수와 평균 점수를 포함한 평가 결과입니다.</td>
+                </tr>
+                <tr>
+                  <td><code>compare_results.json</code></td>
+                  <td><code>eval compare</code></td>
+                  <td>각 질문에 대한 Base 모델과 Fine-tuned 모델의 답변을 나란히 기록한 비교 결과입니다.</td>
+                </tr>
+                <tr>
+                  <td><code>training_data.jsonl</code></td>
+                  <td><code>tool convert</code></td>
+                  <td>Student 모델의 채팅 템플릿이 적용된 학습 데이터입니다. 각 줄은 <code>{"text": "..."}</code> 형식입니다.</td>
+                </tr>
+                <tr>
+                  <td><code>checkpoints/adapter/</code></td>
+                  <td><code>train</code></td>
+                  <td>PEFT 형식의 LoRA 어댑터 가중치입니다. <code>export</code> 명령으로 기본 모델과 병합합니다.</td>
+                </tr>
+                <tr>
+                  <td><code>*.gguf</code></td>
+                  <td><code>tool gguf</code></td>
+                  <td>GGUF 양자화 형식으로 변환된 모델 파일입니다. llama.cpp 호환 형식입니다.</td>
+                </tr>
+                <tr>
+                  <td><code>merged_model/</code></td>
+                  <td><code>export</code></td>
+                  <td>LoRA 어댑터가 병합된 최종 모델입니다. <code>Modelfile</code>로 Ollama에 즉시 배포할 수 있습니다.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <hr>
+
+        <!-- Related docs -->
+        <p class="text-muted text-sm">관련 문서: <a href="configuration.html">설정 레퍼런스</a> &middot; <a href="guide.html">사용 가이드</a> &middot; <a href="architecture.html">아키텍처</a></p>
+
+      </div><!-- .content-container -->
+    </main>
+  </div><!-- .page-wrapper -->
+
+  <!-- Footer -->
+  <footer class="page-footer">
+    slm-factory Documentation &middot; <a href="index.html">홈으로 돌아가기</a>
+  </footer>
+</body>
+</html>
