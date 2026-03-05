@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>slm-factory + AutoRAG 소개</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy: #1B3A5C; --accent: #3182CE; --accent-light: #EBF8FF;
+  --green: #2F855A; --green-bg: #F0FFF4;
+  --orange: #C05621; --orange-bg: #FFFAF0;
+  --text: #1A202C; --text-sec: #4A5568; --text-muted: #718096;
+  --bg: #F7F8FA; --white: #FFFFFF; --border: #E2E8F0;
+}
+body {
+  font-family: "Pretendard Variable", Pretendard, -apple-system, system-ui, sans-serif;
+  color: var(--text); background: var(--bg);
+  line-height: 1.8; word-break: keep-all;
+  max-width: 780px; margin: 0 auto; padding: 2rem 1.5rem 3rem;
+}
+
+/* Header */
+.post-header {
+  background: linear-gradient(135deg, var(--navy) 0%, #2C5282 60%, var(--accent) 100%);
+  color: var(--white); padding: 2.5rem 2rem; border-radius: 12px;
+  margin-bottom: 2rem; text-align: center;
+}
+.post-header h1 { font-size: 1.7rem; font-weight: 800; line-height: 1.35; margin-bottom: 0.5rem; }
+.post-header p { font-size: 0.95rem; color: rgba(255,255,255,0.8); }
+
+/* Sections */
+.section { margin-bottom: 2rem; }
+.section-title {
+  font-size: 1.15rem; font-weight: 700; color: var(--navy);
+  margin-bottom: 0.6rem; padding-bottom: 0.4rem;
+  border-bottom: 2px solid var(--accent);
+  display: inline-block;
+}
+.section p { font-size: 0.95rem; color: var(--text-sec); margin-bottom: 0.5rem; }
+
+/* Problem cards */
+.problem-list {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem;
+  list-style: none; margin-top: 0.8rem;
+}
+.problem-list li {
+  background: var(--white); border: 1px solid var(--border); border-radius: 8px;
+  padding: 0.8rem 1rem; font-size: 0.85rem; text-align: center;
+  border-top: 3px solid var(--orange);
+}
+.problem-list li strong { display: block; font-size: 0.9rem; color: var(--orange); margin-bottom: 0.2rem; }
+
+/* Feature list */
+.feature-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem 1.2rem;
+  list-style: none; margin-top: 0.8rem;
+}
+.feature-grid li {
+  font-size: 0.88rem; padding: 0.4rem 0;
+  padding-left: 1.3rem; position: relative;
+}
+.feature-grid li::before {
+  content: ""; position: absolute; left: 0; top: 0.65rem;
+  width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+}
+
+/* Diagram */
+.diagram-wrap {
+  background: var(--white); border: 1px solid var(--border); border-radius: 10px;
+  padding: 1.5rem 1rem; margin: 1rem 0; text-align: center;
+}
+.diagram-wrap svg { max-width: 100%; height: auto; }
+.diagram-caption {
+  font-size: 0.78rem; color: var(--text-muted); margin-top: 0.6rem;
+}
+
+/* Comparison table */
+.compare-table {
+  width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 0.8rem;
+}
+.compare-table th {
+  background: var(--navy); color: var(--white); padding: 0.6rem 0.8rem;
+  font-weight: 600; text-align: center;
+}
+.compare-table th:first-child { border-radius: 6px 0 0 0; text-align: left; }
+.compare-table th:last-child { border-radius: 0 6px 0 0; }
+.compare-table td {
+  padding: 0.5rem 0.8rem; border-bottom: 1px solid var(--border);
+  text-align: center; background: var(--white);
+}
+.compare-table td:first-child { text-align: left; font-weight: 600; }
+.good { color: var(--green); font-weight: 700; }
+.mid { color: var(--orange); font-weight: 600; }
+.bad { color: #E53E3E; font-weight: 600; }
+
+/* Links */
+.links {
+  display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;
+}
+.links a {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  background: var(--white); border: 1px solid var(--border); border-radius: 8px;
+  padding: 0.6rem 1.2rem; font-size: 0.88rem; font-weight: 600;
+  color: var(--navy); text-decoration: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.links a:hover {
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(49,130,206,0.15);
+}
+.links a svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+/* Footer note */
+.post-footer {
+  margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border);
+  font-size: 0.82rem; color: var(--text-muted); text-align: center;
+}
+</style>
+</head>
+<body>
+
+  <div class="post-header">
+    <h1>slm-factory + AutoRAG</h1>
+    <p>도메인 문서로 특화 SLM을 자동 생성하고, RAG와 결합하여 할루시네이션 없는 답변을 제공합니다</p>
+  </div>
+
+  <!-- 문제 인식 -->
+  <div class="section">
+    <h2 class="section-title">범용 LLM, 왜 그대로 쓰면 안 되는가</h2>
+    <p>ChatGPT, Gemini 등 범용 모델을 업무에 바로 적용하면 다음과 같은 문제가 발생합니다.</p>
+    <ul class="problem-list">
+      <li><strong>할루시네이션</strong>그럴듯하지만 틀린 답변을 자신있게 생성</li>
+      <li><strong>도메인 지식 부족</strong>사내 규정, 전문 용어를 알지 못함</li>
+      <li><strong>보안 우려</strong>외부 API로 내부 데이터가 유출될 위험</li>
+    </ul>
+  </div>
+
+  <!-- 해결 방안 -->
+  <div class="section">
+    <h2 class="section-title">해결: slm-factory + AutoRAG</h2>
+    <p><strong>slm-factory</strong>는 도메인 문서(PDF, HWPX, HTML 등)를 입력하면 Teacher-Student 지식 증류 방식으로 도메인 특화 소형 언어모델(SLM)을 자동 생성합니다. 여기에 <strong>AutoRAG</strong>를 결합하면, SLM이 알고 있는 도메인 지식 위에 실시간 문서 검색까지 더해져 출처가 명확한 정확한 답변이 가능합니다.</p>
+
+    <div class="diagram-wrap">
+      <svg viewBox="0 0 700 170" role="img" aria-labelledby="flow-title flow-desc" xmlns="http://www.w3.org/2000/svg">
+        <title id="flow-title">SLM + RAG 결합 흐름</title>
+        <desc id="flow-desc">도메인 문서가 slm-factory를 거쳐 SLM이 되고, Ollama를 통해 AutoRAG와 결합하여 사용자에게 답변하는 흐름</desc>
+        <defs>
+          <marker id="arrow" viewBox="0 0 5 4" refX="5" refY="2" markerWidth="5" markerHeight="4" orient="auto-start-reverse">
+            <polyline points="0 0, 5 2, 0 4" fill="none" stroke="#2C5282" stroke-width="1"/>
+          </marker>
+        </defs>
+        <!-- 도메인 문서 -->
+        <rect x="10" y="55" width="100" height="50" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+        <text x="60" y="76" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#1B3A5C">도메인 문서</text>
+        <text x="60" y="92" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="9" fill="#4A5568">PDF, HWPX, HTML</text>
+        <!-- Arrow -->
+        <line x1="115" y1="80" x2="148" y2="80" stroke="#2C5282" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <!-- slm-factory -->
+        <rect x="153" y="50" width="110" height="60" rx="8" fill="#1B3A5C" stroke="#2C5282" stroke-width="1.5"/>
+        <text x="208" y="76" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#FFFFFF">slm-factory</text>
+        <text x="208" y="92" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="8.5" fill="rgba(255,255,255,0.7)">QA 생성 + 파인튜닝</text>
+        <!-- Arrow -->
+        <line x1="268" y1="80" x2="301" y2="80" stroke="#2C5282" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <!-- SLM -->
+        <rect x="306" y="55" width="80" height="50" rx="8" fill="#F0FFF4" stroke="#2F855A" stroke-width="1.5"/>
+        <text x="346" y="76" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#2F855A">특화 SLM</text>
+        <text x="346" y="91" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="9" fill="#4A5568">LoRA</text>
+        <!-- Arrow down to Ollama -->
+        <line x1="346" y1="108" x2="346" y2="130" stroke="#2C5282" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <!-- Ollama (center bridge) -->
+        <rect x="306" y="133" width="80" height="30" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1.5"/>
+        <text x="346" y="152" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="10" font-weight="700" fill="#C05621">Ollama</text>
+        <!-- Arrow from AutoRAG to Ollama -->
+        <line x1="464" y1="148" x2="390" y2="148" stroke="#2C5282" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <!-- AutoRAG -->
+        <rect x="468" y="50" width="110" height="60" rx="8" fill="#1B3A5C" stroke="#2C5282" stroke-width="1.5"/>
+        <text x="523" y="76" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#FFFFFF">AutoRAG</text>
+        <text x="523" y="92" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="8.5" fill="rgba(255,255,255,0.7)">RAG 파이프라인 최적화</text>
+        <!-- Arrow down from AutoRAG to Ollama connection -->
+        <line x1="523" y1="113" x2="523" y2="140" stroke="#2C5282" stroke-width="1" stroke-dasharray="4,3"/>
+        <line x1="523" y1="140" x2="468" y2="148" stroke="#2C5282" stroke-width="1" stroke-dasharray="4,3"/>
+        <!-- Arrow to 사용자 -->
+        <line x1="582" y1="80" x2="618" y2="80" stroke="#2C5282" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <!-- 사용자 -->
+        <rect x="622" y="55" width="70" height="50" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+        <text x="657" y="76" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#1B3A5C">사용자</text>
+        <text x="657" y="91" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="9" fill="#4A5568">정확한 답변</text>
+        <!-- Labels -->
+        <text x="60" y="28" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="9" fill="#718096">INPUT</text>
+        <text x="346" y="28" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="9" fill="#718096">MODEL</text>
+        <text x="523" y="28" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="9" fill="#718096">RETRIEVAL</text>
+        <text x="657" y="28" text-anchor="middle" font-family="Pretendard, sans-serif" font-size="9" fill="#718096">OUTPUT</text>
+      </svg>
+      <p class="diagram-caption">slm-factory로 생성한 SLM을 Ollama에 배포하고, AutoRAG가 이를 호출하여 검색 증강 답변을 생성합니다</p>
+    </div>
+  </div>
+
+  <!-- 비교 -->
+  <div class="section">
+    <h2 class="section-title">SLM 단독 vs RAG 단독 vs SLM + RAG</h2>
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>평가 항목</th>
+          <th>SLM 단독</th>
+          <th>RAG 단독</th>
+          <th>SLM + RAG</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>도메인 이해</td><td class="good">높음</td><td class="mid">보통</td><td class="good">매우 높음</td></tr>
+        <tr><td>최신 정보 반영</td><td class="bad">불가</td><td class="good">가능</td><td class="good">가능</td></tr>
+        <tr><td>출처 제시</td><td class="bad">불가</td><td class="good">가능</td><td class="good">가능</td></tr>
+        <tr><td>응답 속도</td><td class="good">빠름</td><td class="mid">보통</td><td class="mid">보통</td></tr>
+        <tr><td>할루시네이션</td><td class="mid">낮음</td><td class="mid">보통</td><td class="good">매우 낮음</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 주요 기능 -->
+  <div class="section">
+    <h2 class="section-title">slm-factory 주요 기능</h2>
+    <ul class="feature-grid">
+      <li>다중 형식 파싱 (PDF, HWPX, HTML, DOCX)</li>
+      <li>Teacher-Student 지식 증류로 QA 자동 생성</li>
+      <li>LLM 기반 품질 평가 + 검증</li>
+      <li>LoRA 파인튜닝 (GPU/MPS/CPU)</li>
+      <li>원클릭 Ollama 배포</li>
+      <li>자동 진화 (증분 학습 + 품질 게이트)</li>
+    </ul>
+  </div>
+
+  <!-- 링크 -->
+  <div class="section">
+    <h2 class="section-title">더 알아보기</h2>
+    <div class="links">
+      <a href="https://github.com/DevDnA/slm-factory" target="_blank" rel="noopener">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        GitHub 저장소
+      </a>
+      <a href="https://devdna.github.io/slm-factory/" target="_blank" rel="noopener">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="2"/><path d="M2 5.5h12M5.5 5.5V14"/></svg>
+        문서 홈페이지
+      </a>
+      <a href="https://devdna.github.io/slm-factory/autorag-integration.html" target="_blank" rel="noopener">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg>
+        AutoRAG 연동 가이드
+      </a>
+    </div>
+  </div>
+
+  <div class="post-footer">
+    질문이나 피드백은 언제든 편하게 남겨주세요.
+  </div>
+
+</body>
+</html>
