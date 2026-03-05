@@ -230,8 +230,8 @@ source ~/.zshrc     # zsh</code></pre>
               <title id="diagram-project-title">프로젝트 디렉토리 구조</title>
               <desc id="diagram-project-desc">slm-factory init 명령으로 생성되는 my-first-project 디렉토리의 구조. documents, output 하위 디렉토리와 project.yaml 설정 파일로 구성됩니다.</desc>
               <defs>
-                <marker id="ps-arrowhead" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
-                  <polyline points="0 0, 7 2.5, 0 5" fill="none" stroke="#2C5282" stroke-width="1.5" stroke-linejoin="round"/>
+                <marker id="ps-arrowhead" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto">
+                  <polyline points="0 0, 5 2, 0 4" fill="none" stroke="#2C5282" stroke-width="1" stroke-linejoin="round"/>
                 </marker>
               </defs>
 
@@ -243,13 +243,13 @@ source ~/.zshrc     # zsh</code></pre>
               <text x="54" y="55" font-family="Pretendard, sans-serif" font-size="14" font-weight="700" fill="#FFFFFF">my-first-project/</text>
 
               <!-- Tree lines -->
-              <line x1="60" y1="70" x2="60" y2="180" stroke="#A0AEC0" stroke-width="1.5"/>
-              <line x1="60" y1="95" x2="85" y2="95" stroke="#A0AEC0" stroke-width="1.5"/>
-              <line x1="60" y1="135" x2="85" y2="135" stroke="#A0AEC0" stroke-width="1.5"/>
-              <line x1="60" y1="180" x2="85" y2="180" stroke="#A0AEC0" stroke-width="1.5"/>
+              <line x1="60" y1="70" x2="60" y2="180" stroke="#A0AEC0" stroke-width="1"/>
+              <line x1="60" y1="95" x2="85" y2="95" stroke="#A0AEC0" stroke-width="1"/>
+              <line x1="60" y1="135" x2="85" y2="135" stroke="#A0AEC0" stroke-width="1"/>
+              <line x1="60" y1="180" x2="85" y2="180" stroke="#A0AEC0" stroke-width="1"/>
 
               <!-- documents/ folder -->
-              <rect x="85" y="78" width="280" height="34" rx="6" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+              <rect x="85" y="78" width="280" height="34" rx="6" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
               <!-- Folder icon -->
               <rect x="95" y="87" width="16" height="13" rx="2" fill="#3182CE"/>
               <rect x="95" y="85" width="10" height="5" rx="1.5" fill="#3182CE"/>
@@ -257,16 +257,16 @@ source ~/.zshrc     # zsh</code></pre>
               <text x="210" y="100" font-family="Pretendard, sans-serif" font-size="11" fill="#4A5568">학습할 문서를 여기에 넣습니다</text>
 
               <!-- output/ folder -->
-              <rect x="85" y="118" width="280" height="34" rx="6" fill="#F0FFF4" stroke="#2F855A" stroke-width="1.5"/>
+              <rect x="85" y="118" width="280" height="34" rx="6" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
               <rect x="95" y="127" width="16" height="13" rx="2" fill="#2F855A"/>
               <rect x="95" y="125" width="10" height="5" rx="1.5" fill="#2F855A"/>
               <text x="118" y="140" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#1A202C">output/</text>
               <text x="195" y="140" font-family="Pretendard, sans-serif" font-size="11" fill="#4A5568">파이프라인 결과물이 저장됩니다</text>
 
               <!-- project.yaml file -->
-              <rect x="85" y="163" width="280" height="34" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1.5"/>
+              <rect x="85" y="163" width="280" height="34" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1"/>
               <!-- File icon -->
-              <rect x="96" y="171" width="14" height="16" rx="1" fill="none" stroke="#C05621" stroke-width="1.5"/>
+              <rect x="96" y="171" width="14" height="16" rx="1" fill="none" stroke="#C05621" stroke-width="1"/>
               <polyline points="104,171 104,176 110,176" fill="none" stroke="#C05621" stroke-width="1"/>
               <text x="118" y="185" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#1A202C">project.yaml</text>
               <text x="220" y="185" font-family="Pretendard, sans-serif" font-size="11" fill="#4A5568">프로젝트 설정 파일</text>
@@ -408,14 +408,14 @@ cp /path/to/docs/*.pdf /path/to/docs/*.txt my-first-project/documents/</code></p
               <title id="diagram-pipeline-title">slm-factory 파이프라인 개요</title>
               <desc id="diagram-pipeline-desc">slm-factory의 전체 파이프라인 흐름도. 문서 입력에서 시작하여 Parse, Generate, Validate 필수 단계를 거친 후, Score, Augment, Analyze 선택 단계를 선택적으로 수행하고, Convert, Train, Export 필수 단계를 거쳐 도메인 특화 SLM이 완성됩니다.</desc>
               <defs>
-                <marker id="pl-arrowhead" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
-                  <polyline points="0 0, 7 2.5, 0 5" fill="none" stroke="#2C5282" stroke-width="1.5" stroke-linejoin="round"/>
+                <marker id="pl-arrowhead" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto">
+                  <polyline points="0 0, 5 2, 0 4" fill="none" stroke="#2C5282" stroke-width="1" stroke-linejoin="round"/>
                 </marker>
-                <marker id="pl-arrowhead-gray" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
-                  <polyline points="0 0, 7 2.5, 0 5" fill="none" stroke="#A0AEC0" stroke-width="1.5" stroke-linejoin="round"/>
+                <marker id="pl-arrowhead-gray" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto">
+                  <polyline points="0 0, 5 2, 0 4" fill="none" stroke="#A0AEC0" stroke-width="1" stroke-linejoin="round"/>
                 </marker>
-                <marker id="pl-arrowhead-orange" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
-                  <polyline points="0 0, 7 2.5, 0 5" fill="none" stroke="#ED8936" stroke-width="1.5" stroke-linejoin="round"/>
+                <marker id="pl-arrowhead-orange" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto">
+                  <polyline points="0 0, 5 2, 0 4" fill="none" stroke="#ED8936" stroke-width="1" stroke-linejoin="round"/>
                 </marker>
               </defs>
 
@@ -455,45 +455,45 @@ cp /path/to/docs/*.pdf /path/to/docs/*.txt my-first-project/documents/</code></p
               <text x="630" y="70" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">QA 검증</text>
 
               <!-- Arrow: Validate → down to optional row -->
-              <line x1="630" y1="79" x2="630" y2="120" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3"/>
-              <line x1="630" y1="120" x2="460" y2="120" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3"/>
+              <line x1="630" y1="79" x2="630" y2="120" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3"/>
+              <line x1="630" y1="120" x2="460" y2="120" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3"/>
 
               <!-- ── Row 2: Optional stages ── -->
               <!-- Vertical connector down -->
-              <line x1="460" y1="120" x2="460" y2="155" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3"/>
+              <line x1="460" y1="120" x2="460" y2="155" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3"/>
 
               <!-- Arrow split to 3 -->
-              <line x1="460" y1="155" x2="180" y2="155" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3"/>
-              <line x1="460" y1="155" x2="740" y2="155" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3"/>
+              <line x1="460" y1="155" x2="180" y2="155" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3"/>
+              <line x1="460" y1="155" x2="740" y2="155" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3"/>
 
               <!-- down to Score -->
-              <line x1="180" y1="155" x2="180" y2="195" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#pl-arrowhead-gray)"/>
+              <line x1="180" y1="155" x2="180" y2="195" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pl-arrowhead-gray)"/>
               <!-- down to Augment -->
-              <line x1="460" y1="155" x2="460" y2="195" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#pl-arrowhead-gray)"/>
+              <line x1="460" y1="155" x2="460" y2="195" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pl-arrowhead-gray)"/>
               <!-- down to Analyze -->
-              <line x1="740" y1="155" x2="740" y2="195" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#pl-arrowhead-gray)"/>
+              <line x1="740" y1="155" x2="740" y2="195" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pl-arrowhead-gray)"/>
 
               <!-- Score -->
-              <rect x="110" y="200" width="140" height="50" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1.5" stroke-dasharray="6,3"/>
+              <rect x="110" y="200" width="140" height="50" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
               <text x="180" y="222" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">Score</text>
               <text x="180" y="238" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">품질 평가</text>
 
               <!-- Augment -->
-              <rect x="390" y="200" width="140" height="50" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1.5" stroke-dasharray="6,3"/>
+              <rect x="390" y="200" width="140" height="50" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
               <text x="460" y="222" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">Augment</text>
               <text x="460" y="238" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">데이터 증강</text>
 
               <!-- Analyze -->
-              <rect x="670" y="200" width="140" height="50" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1.5" stroke-dasharray="6,3"/>
+              <rect x="670" y="200" width="140" height="50" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
               <text x="740" y="222" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">Analyze</text>
               <text x="740" y="238" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">통계 분석</text>
 
               <!-- Arrows from optional → converge to row 3 -->
-              <line x1="180" y1="250" x2="180" y2="280" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3"/>
-              <line x1="460" y1="250" x2="460" y2="280" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3"/>
+              <line x1="180" y1="250" x2="180" y2="280" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3"/>
+              <line x1="460" y1="250" x2="460" y2="280" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3"/>
 
               <!-- Converge lines -->
-              <line x1="180" y1="280" x2="460" y2="280" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3"/>
+              <line x1="180" y1="280" x2="460" y2="280" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3"/>
               <line x1="460" y1="280" x2="460" y2="310" stroke="#2C5282" stroke-width="2"/>
 
               <!-- Down arrow to Convert -->

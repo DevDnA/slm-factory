@@ -406,11 +406,11 @@ slm-factory tool wizard --config my-project/project.yaml</code></pre>
               <title id="diagram-pipeline-flow-title">파이프라인 단계 흐름도</title>
               <desc id="diagram-pipeline-flow-desc">slm-factory의 9단계 파이프라인 흐름. parse, generate, validate 필수 단계 후 score, augment, analyze 선택 단계를 거쳐 convert, train, export 필수 단계로 완료됩니다. 각 단계의 출력 파일이 오른쪽에 표시됩니다.</desc>
               <defs>
-                <marker id="pf-arrow" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
-                  <polyline points="0 0, 7 2.5, 0 5" fill="none" stroke="#2C5282" stroke-width="1.5" stroke-linejoin="round"/>
+                <marker id="pf-arrow" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto">
+                  <polyline points="0 0, 5 2, 0 4" fill="none" stroke="#2C5282" stroke-width="1" stroke-linejoin="round"/>
                 </marker>
-                <marker id="pf-arrow-gray" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
-                  <polyline points="0 0, 7 2.5, 0 5" fill="none" stroke="#A0AEC0" stroke-width="1.5" stroke-linejoin="round"/>
+                <marker id="pf-arrow-gray" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto">
+                  <polyline points="0 0, 5 2, 0 4" fill="none" stroke="#A0AEC0" stroke-width="1" stroke-linejoin="round"/>
                 </marker>
               </defs>
 
@@ -459,35 +459,35 @@ slm-factory tool wizard --config my-project/project.yaml</code></pre>
               <rect x="325" y="124" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
               <text x="335" y="139" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">qa_alpaca.json (갱신)</text>
               <!-- Dashed arrow to optional group -->
-              <line x1="190" y1="154" x2="190" y2="180" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
+              <line x1="190" y1="154" x2="190" y2="180" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
 
               <!-- ── Stage 4: score (선택) ── -->
-              <rect x="100" y="180" width="180" height="38" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1.5" stroke-dasharray="6,3"/>
+              <rect x="100" y="180" width="180" height="38" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
               <text x="190" y="195" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">score</text>
               <text x="190" y="209" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">품질 평가</text>
               <line x1="280" y1="199" x2="320" y2="199" stroke="#CBD5E0" stroke-width="1"/>
               <rect x="325" y="188" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
               <text x="335" y="203" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">qa_scored.json</text>
-              <line x1="190" y1="218" x2="190" y2="228" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
+              <line x1="190" y1="218" x2="190" y2="228" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
 
               <!-- ── Stage 5: augment (선택) ── -->
-              <rect x="100" y="228" width="180" height="38" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1.5" stroke-dasharray="6,3"/>
+              <rect x="100" y="228" width="180" height="38" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
               <text x="190" y="243" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">augment</text>
               <text x="190" y="257" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">데이터 증강</text>
               <line x1="280" y1="247" x2="320" y2="247" stroke="#CBD5E0" stroke-width="1"/>
               <rect x="325" y="236" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
               <text x="335" y="251" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">qa_augmented.json</text>
-              <line x1="190" y1="266" x2="190" y2="276" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
+              <line x1="190" y1="266" x2="190" y2="276" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
 
               <!-- ── Stage 6: analyze (선택) ── -->
-              <rect x="100" y="276" width="180" height="38" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1.5" stroke-dasharray="6,3"/>
+              <rect x="100" y="276" width="180" height="38" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
               <text x="190" y="291" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">analyze</text>
               <text x="190" y="305" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">통계 분석</text>
               <line x1="280" y1="295" x2="320" y2="295" stroke="#CBD5E0" stroke-width="1"/>
               <rect x="325" y="284" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
               <text x="335" y="299" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">data_analysis.json</text>
               <!-- Dashed arrow to required group -->
-              <line x1="190" y1="314" x2="190" y2="340" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
+              <line x1="190" y1="314" x2="190" y2="340" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
 
               <!-- ── Stage 7: convert (필수) ── -->
               <rect x="100" y="340" width="180" height="38" rx="6" fill="#1B3A5C"/>

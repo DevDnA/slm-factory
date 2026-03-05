@@ -80,65 +80,65 @@
               <title id="pipeline-title">slm-factory 파이프라인 개요</title>
               <desc id="pipeline-desc">문서 입력부터 SLM 배포까지 9단계 파이프라인 흐름도</desc>
               <defs>
-                <marker id="arrow-idx" viewBox="0 0 7 5" refX="7" refY="2.5" markerWidth="7" markerHeight="5" orient="auto-start-reverse">
-                  <polyline points="0 0, 7 2.5, 0 5" fill="none" stroke="#2C5282" stroke-width="1.5" stroke-linejoin="round"/>
+                <marker id="arrow-idx" viewBox="0 0 5 4" refX="5" refY="2" markerWidth="5" markerHeight="4" orient="auto-start-reverse">
+                  <polyline points="0 0, 5 2, 0 4" fill="none" stroke="#2C5282" stroke-width="1" stroke-linejoin="round"/>
                 </marker>
               </defs>
 
               <!-- Required steps -->
-              <rect x="10" y="30" width="88" height="50" rx="6" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+              <rect x="10" y="30" width="88" height="50" rx="6" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
               <text x="54" y="52" text-anchor="middle" font-size="11" font-weight="700" fill="#1B3A5C">Parse</text>
               <text x="54" y="68" text-anchor="middle" font-size="9" fill="#4A5568">문서 파싱</text>
 
-              <line x1="100" y1="55" x2="118" y2="55" stroke="#2C5282" stroke-width="1.5" marker-end="url(#arrow-idx)"/>
+              <line x1="100" y1="55" x2="118" y2="55" stroke="#2C5282" stroke-width="1" marker-end="url(#arrow-idx)"/>
 
-              <rect x="120" y="30" width="88" height="50" rx="6" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+              <rect x="120" y="30" width="88" height="50" rx="6" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
               <text x="164" y="52" text-anchor="middle" font-size="11" font-weight="700" fill="#1B3A5C">Generate</text>
               <text x="164" y="68" text-anchor="middle" font-size="9" fill="#4A5568">QA 생성</text>
 
-              <line x1="210" y1="55" x2="228" y2="55" stroke="#2C5282" stroke-width="1.5" marker-end="url(#arrow-idx)"/>
+              <line x1="210" y1="55" x2="228" y2="55" stroke="#2C5282" stroke-width="1" marker-end="url(#arrow-idx)"/>
 
-              <rect x="230" y="30" width="88" height="50" rx="6" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+              <rect x="230" y="30" width="88" height="50" rx="6" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
               <text x="274" y="52" text-anchor="middle" font-size="11" font-weight="700" fill="#1B3A5C">Validate</text>
               <text x="274" y="68" text-anchor="middle" font-size="9" fill="#4A5568">QA 검증</text>
 
               <!-- Optional steps -->
-              <line x1="320" y1="55" x2="338" y2="55" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow-idx)"/>
+              <line x1="320" y1="55" x2="338" y2="55" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrow-idx)"/>
 
-              <rect x="340" y="30" width="88" height="50" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1.5" stroke-dasharray="5 3"/>
+              <rect x="340" y="30" width="88" height="50" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="5 3"/>
               <text x="384" y="52" text-anchor="middle" font-size="11" font-weight="600" fill="#C05621">Score</text>
               <text x="384" y="68" text-anchor="middle" font-size="9" fill="#4A5568">품질 평가</text>
 
-              <rect x="340" y="100" width="88" height="50" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1.5" stroke-dasharray="5 3"/>
+              <rect x="340" y="100" width="88" height="50" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="5 3"/>
               <text x="384" y="122" text-anchor="middle" font-size="11" font-weight="600" fill="#C05621">Augment</text>
               <text x="384" y="138" text-anchor="middle" font-size="9" fill="#4A5568">데이터 증강</text>
 
-              <rect x="340" y="170" width="88" height="50" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1.5" stroke-dasharray="5 3"/>
+              <rect x="340" y="170" width="88" height="50" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="5 3"/>
               <text x="384" y="192" text-anchor="middle" font-size="11" font-weight="600" fill="#C05621">Analyze</text>
               <text x="384" y="208" text-anchor="middle" font-size="9" fill="#4A5568">통계 분석</text>
 
               <!-- Continue to required -->
-              <line x1="430" y1="125" x2="458" y2="125" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow-idx)"/>
+              <line x1="430" y1="125" x2="458" y2="125" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrow-idx)"/>
 
-              <rect x="460" y="100" width="88" height="50" rx="6" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+              <rect x="460" y="100" width="88" height="50" rx="6" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
               <text x="504" y="122" text-anchor="middle" font-size="11" font-weight="700" fill="#1B3A5C">Convert</text>
               <text x="504" y="138" text-anchor="middle" font-size="9" fill="#4A5568">데이터 변환</text>
 
-              <line x1="550" y1="125" x2="568" y2="125" stroke="#2C5282" stroke-width="1.5" marker-end="url(#arrow-idx)"/>
+              <line x1="550" y1="125" x2="568" y2="125" stroke="#2C5282" stroke-width="1" marker-end="url(#arrow-idx)"/>
 
-              <rect x="570" y="100" width="88" height="50" rx="6" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+              <rect x="570" y="100" width="88" height="50" rx="6" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
               <text x="614" y="122" text-anchor="middle" font-size="11" font-weight="700" fill="#1B3A5C">Train</text>
               <text x="614" y="138" text-anchor="middle" font-size="9" fill="#4A5568">LoRA 학습</text>
 
-              <line x1="660" y1="125" x2="678" y2="125" stroke="#2C5282" stroke-width="1.5" marker-end="url(#arrow-idx)"/>
+              <line x1="660" y1="125" x2="678" y2="125" stroke="#2C5282" stroke-width="1" marker-end="url(#arrow-idx)"/>
 
-              <rect x="680" y="100" width="88" height="50" rx="6" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+              <rect x="680" y="100" width="88" height="50" rx="6" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
               <text x="724" y="122" text-anchor="middle" font-size="11" font-weight="700" fill="#1B3A5C">Export</text>
               <text x="724" y="138" text-anchor="middle" font-size="9" fill="#4A5568">모델 배포</text>
 
-              <line x1="770" y1="125" x2="788" y2="125" stroke="#2C5282" stroke-width="1.5" marker-end="url(#arrow-idx)"/>
+              <line x1="770" y1="125" x2="788" y2="125" stroke="#2C5282" stroke-width="1" marker-end="url(#arrow-idx)"/>
 
-              <rect x="790" y="100" width="84" height="50" rx="6" fill="#F0FFF4" stroke="#2F855A" stroke-width="1.5"/>
+              <rect x="790" y="100" width="84" height="50" rx="6" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
               <text x="832" y="122" text-anchor="middle" font-size="11" font-weight="700" fill="#2F855A">SLM</text>
               <text x="832" y="138" text-anchor="middle" font-size="9" fill="#4A5568">완성</text>
 

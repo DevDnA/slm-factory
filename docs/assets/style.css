@@ -577,9 +577,6 @@ blockquote p:last-child {
   max-width: 100%;
   height: auto;
   min-height: 280px;
-  transform: scale(1.15);
-  transform-origin: center top;
-  margin-bottom: var(--space-lg);
 }
 
 .diagram-caption {

@@ -111,8 +111,8 @@
             <title id="svg1-title">컴포넌트 구조 다이어그램</title>
             <desc id="svg1-desc">CLI에서 Pipeline으로, Pipeline에서 9개 처리 모듈(Parse, Generate, Validate, Score, Augment, Analyze, Convert, Train, Export)로 이어지는 구조와 각 모듈의 출력 파일, 그리고 모든 컴포넌트에 주입되는 Config를 보여주는 다이어그램</desc>
             <defs>
-              <marker id="s1-arrow" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polyline points="0 0, 7 2.5, 0 5" fill="none" stroke="#2C5282" stroke-width="1.5" stroke-linejoin="round"/></marker>
-              <marker id="s1-arrow-gray" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polyline points="0 0, 7 2.5, 0 5" fill="none" stroke="#A0AEC0" stroke-width="1.5" stroke-linejoin="round"/></marker>
+              <marker id="s1-arrow" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto"><polyline points="0 0, 5 2, 0 4" fill="none" stroke="#2C5282" stroke-width="1" stroke-linejoin="round"/></marker>
+              <marker id="s1-arrow-gray" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto"><polyline points="0 0, 5 2, 0 4" fill="none" stroke="#A0AEC0" stroke-width="1" stroke-linejoin="round"/></marker>
             </defs>
             <style>
               .s1-title { font: 700 14px Pretendard, sans-serif; fill: #FFFFFF; }
@@ -157,13 +157,13 @@
             <text x="655" y="218" text-anchor="middle" class="s1-mod">validator/</text>
 
             <!-- Row 1 output labels -->
-            <rect x="35" y="241" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1.5"/>
+            <rect x="35" y="241" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
             <text x="145" y="257" text-anchor="middle" class="s1-file">parsed_documents.json</text>
 
-            <rect x="290" y="241" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1.5"/>
+            <rect x="290" y="241" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
             <text x="400" y="257" text-anchor="middle" class="s1-file">qa_alpaca.json</text>
 
-            <rect x="545" y="241" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1.5"/>
+            <rect x="545" y="241" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
             <text x="655" y="257" text-anchor="middle" class="s1-file">(filtered pairs)</text>
 
             <!-- Arrows Row 1 → Row 2 -->
@@ -185,13 +185,13 @@
             <text x="655" y="338" text-anchor="middle" class="s1-mod">analyzer.py</text>
 
             <!-- Row 2 output labels -->
-            <rect x="35" y="361" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1.5"/>
+            <rect x="35" y="361" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
             <text x="145" y="377" text-anchor="middle" class="s1-file">qa_scored.json</text>
 
-            <rect x="290" y="361" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1.5"/>
+            <rect x="290" y="361" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
             <text x="400" y="377" text-anchor="middle" class="s1-file">qa_augmented.json</text>
 
-            <rect x="545" y="361" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1.5"/>
+            <rect x="545" y="361" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
             <text x="655" y="377" text-anchor="middle" class="s1-file">data_analysis.json</text>
 
             <!-- Arrows Row 2 → Row 3 -->
@@ -213,17 +213,17 @@
             <text x="655" y="458" text-anchor="middle" class="s1-mod">exporter/</text>
 
             <!-- Row 3 output labels -->
-            <rect x="35" y="481" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1.5"/>
+            <rect x="35" y="481" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
             <text x="145" y="497" text-anchor="middle" class="s1-file">training_data.jsonl</text>
 
-            <rect x="290" y="481" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1.5"/>
+            <rect x="290" y="481" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
             <text x="400" y="497" text-anchor="middle" class="s1-file">adapter/</text>
 
-            <rect x="545" y="481" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1.5"/>
+            <rect x="545" y="481" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
             <text x="655" y="497" text-anchor="middle" class="s1-file">merged_model/ Modelfile</text>
 
             <!-- Config box -->
-            <line x1="400" y1="520" x2="400" y2="555" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="6,3"/>
+            <line x1="400" y1="520" x2="400" y2="555" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3"/>
             <rect x="230" y="560" width="340" height="48" rx="8" fill="#F7F8FA" stroke="#CBD5E0" stroke-width="1"/>
             <text x="400" y="581" text-anchor="middle" class="s1-label">Config (config.py)</text>
             <text x="400" y="598" text-anchor="middle" class="s1-cfg">Injected into all components</text>
@@ -239,7 +239,7 @@
             <title id="svg2-title">모듈 의존성 다이어그램</title>
             <desc id="svg2-desc">cli.py에서 pipeline.py로, pipeline.py에서 parsers, teacher, validator, scorer, augmenter, analyzer, converter, trainer, exporter, evaluator, comparator, incremental, tui 모듈로 이어지는 의존성 트리와 모든 모듈이 공유하는 config.py, models.py, utils.py를 보여주는 다이어그램</desc>
             <defs>
-              <marker id="s2-arrow" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polyline points="0 0, 7 2.5, 0 5" fill="none" stroke="#2C5282" stroke-width="1.5" stroke-linejoin="round"/></marker>
+              <marker id="s2-arrow" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto"><polyline points="0 0, 5 2, 0 4" fill="none" stroke="#2C5282" stroke-width="1" stroke-linejoin="round"/></marker>
             </defs>
             <style>
               .s2-pkg { font: 700 13px Pretendard, sans-serif; fill: #FFFFFF; }
@@ -259,7 +259,7 @@
             <text x="100" y="89" text-anchor="middle" class="s2-pkg">pipeline.py</text>
 
             <!-- Vertical trunk line from pipeline.py -->
-            <line x1="100" y1="100" x2="100" y2="630" stroke="#A0AEC0" stroke-width="1.5"/>
+            <line x1="100" y1="100" x2="100" y2="630" stroke="#A0AEC0" stroke-width="1"/>
 
             <!-- Branch: parsers/ -->
             <line x1="100" y1="130" x2="170" y2="130" stroke="#2C5282" stroke-width="2" marker-end="url(#s2-arrow)"/>
@@ -426,8 +426,8 @@ results = await asyncio.gather(*tasks, return_exceptions=True)</code></pre>
             <title id="svg3-title">중간 파일 체인 다이어그램</title>
             <desc id="svg3-desc">documents 디렉토리에서 시작하여 parsed_documents.json, qa_alpaca.json, 메모리 단계를 거쳐 score/augment/analyze로 분기한 뒤 training_data.jsonl, adapter, merged_model로 이어지는 중간 파일 체인을 보여주는 다이어그램</desc>
             <defs>
-              <marker id="s3-arrow" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polyline points="0 0, 7 2.5, 0 5" fill="none" stroke="#2C5282" stroke-width="1.5" stroke-linejoin="round"/></marker>
-              <marker id="s3-arrow-green" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polyline points="0 0, 7 2.5, 0 5" fill="none" stroke="#2F855A" stroke-width="1.5" stroke-linejoin="round"/></marker>
+              <marker id="s3-arrow" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto"><polyline points="0 0, 5 2, 0 4" fill="none" stroke="#2C5282" stroke-width="1" stroke-linejoin="round"/></marker>
+              <marker id="s3-arrow-green" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto"><polyline points="0 0, 5 2, 0 4" fill="none" stroke="#2F855A" stroke-width="1" stroke-linejoin="round"/></marker>
             </defs>
             <style>
               .s3-step { font: 600 11px "JetBrains Mono", monospace; fill: #3182CE; }
@@ -447,42 +447,42 @@ results = await asyncio.gather(*tasks, return_exceptions=True)</code></pre>
             <text x="200" y="82" class="s3-step">step_parse()</text>
 
             <!-- parsed_documents.json -->
-            <rect x="60" y="100" width="250" height="32" rx="6" fill="#F0FFF4" stroke="#2F855A" stroke-width="1.5"/>
+            <rect x="60" y="100" width="250" height="32" rx="6" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
             <text x="185" y="121" text-anchor="middle" class="s3-file">parsed_documents.json</text>
 
             <line x1="185" y1="132" x2="185" y2="162" stroke="#2C5282" stroke-width="2" marker-end="url(#s3-arrow)"/>
             <text x="200" y="151" class="s3-step">step_generate()</text>
 
             <!-- qa_alpaca.json -->
-            <rect x="60" y="169" width="250" height="32" rx="6" fill="#F0FFF4" stroke="#2F855A" stroke-width="1.5"/>
+            <rect x="60" y="169" width="250" height="32" rx="6" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
             <text x="185" y="190" text-anchor="middle" class="s3-file">qa_alpaca.json</text>
 
             <line x1="185" y1="201" x2="185" y2="231" stroke="#2C5282" stroke-width="2" marker-end="url(#s3-arrow)"/>
             <text x="200" y="220" class="s3-step">step_validate()</text>
 
             <!-- [메모리] -->
-            <rect x="60" y="238" width="250" height="32" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1.5" stroke-dasharray="6,3"/>
+            <rect x="60" y="238" width="250" height="32" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1" stroke-dasharray="6,3"/>
             <text x="185" y="259" text-anchor="middle" class="s3-file">[메모리]</text>
 
             <!-- Vertical trunk from 메모리 down -->
-            <line x1="185" y1="270" x2="185" y2="430" stroke="#A0AEC0" stroke-width="1.5"/>
+            <line x1="185" y1="270" x2="185" y2="430" stroke="#A0AEC0" stroke-width="1"/>
 
             <!-- Branch: step_score() -->
-            <line x1="185" y1="300" x2="330" y2="300" stroke="#2F855A" stroke-width="1.5" marker-end="url(#s3-arrow-green)"/>
+            <line x1="185" y1="300" x2="330" y2="300" stroke="#2F855A" stroke-width="1" marker-end="url(#s3-arrow-green)"/>
             <text x="240" y="293" class="s3-step">step_score()</text>
-            <rect x="340" y="287" width="230" height="26" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1.5"/>
+            <rect x="340" y="287" width="230" height="26" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
             <text x="455" y="305" text-anchor="middle" class="s3-sub">qa_scored.json</text>
 
             <!-- Branch: step_augment() -->
-            <line x1="185" y1="345" x2="330" y2="345" stroke="#2F855A" stroke-width="1.5" marker-end="url(#s3-arrow-green)"/>
+            <line x1="185" y1="345" x2="330" y2="345" stroke="#2F855A" stroke-width="1" marker-end="url(#s3-arrow-green)"/>
             <text x="230" y="338" class="s3-step">step_augment()</text>
-            <rect x="340" y="332" width="230" height="26" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1.5"/>
+            <rect x="340" y="332" width="230" height="26" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
             <text x="455" y="350" text-anchor="middle" class="s3-sub">qa_augmented.json</text>
 
             <!-- Branch: step_analyze() -->
-            <line x1="185" y1="390" x2="330" y2="390" stroke="#2F855A" stroke-width="1.5" marker-end="url(#s3-arrow-green)"/>
+            <line x1="185" y1="390" x2="330" y2="390" stroke="#2F855A" stroke-width="1" marker-end="url(#s3-arrow-green)"/>
             <text x="230" y="383" class="s3-step">step_analyze()</text>
-            <rect x="340" y="377" width="230" height="26" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1.5"/>
+            <rect x="340" y="377" width="230" height="26" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
             <text x="455" y="395" text-anchor="middle" class="s3-sub">data_analysis.json</text>
 
             <!-- Continue down -->
@@ -490,7 +490,7 @@ results = await asyncio.gather(*tasks, return_exceptions=True)</code></pre>
             <text x="200" y="449" class="s3-step">step_convert()</text>
 
             <!-- training_data.jsonl -->
-            <rect x="60" y="467" width="250" height="32" rx="6" fill="#F0FFF4" stroke="#2F855A" stroke-width="1.5"/>
+            <rect x="60" y="467" width="250" height="32" rx="6" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
             <text x="185" y="488" text-anchor="middle" class="s3-file">training_data.jsonl</text>
 
             <line x1="185" y1="499" x2="185" y2="529" stroke="#2C5282" stroke-width="2" marker-end="url(#s3-arrow)"/>
@@ -547,7 +547,7 @@ parsed_documents.json   →  generate 단계부터 재개
             <title id="svg4-title">설정 모델 계층 구조 다이어그램</title>
             <desc id="svg4-desc">SLMConfig 루트 모델에서 20개 하위 설정 모델(ProjectConfig, PathsConfig, ParsingConfig 등)로 이어지는 계층 구조를 Core, Pipeline, Advanced 세 그룹으로 나누어 보여주는 다이어그램</desc>
             <defs>
-              <marker id="s4-arrow" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polyline points="0 0, 7 2.5, 0 5" fill="none" stroke="#2C5282" stroke-width="1.5" stroke-linejoin="round"/></marker>
+              <marker id="s4-arrow" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto"><polyline points="0 0, 5 2, 0 4" fill="none" stroke="#2C5282" stroke-width="1" stroke-linejoin="round"/></marker>
             </defs>
             <style>
               .s4-root { font: 700 15px Pretendard, sans-serif; fill: #FFFFFF; }
@@ -569,36 +569,36 @@ parsed_documents.json   →  generate 단계부터 재개
 
             <!-- Column 1: Core -->
             <text x="130" y="96" text-anchor="middle" class="s4-group">Core</text>
-            <rect x="30" y="108" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <rect x="30" y="108" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="40" y="126" class="s4-item">project: ProjectConfig</text>
-            <rect x="30" y="140" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <rect x="30" y="140" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="40" y="158" class="s4-item">paths: PathsConfig</text>
-            <rect x="30" y="172" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <rect x="30" y="172" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="40" y="190" class="s4-item">parsing: ParsingConfig</text>
             <rect x="50" y="202" width="180" height="22" rx="3" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
             <text x="60" y="217" class="s4-nested">pdf: PdfOptions</text>
             <rect x="50" y="226" width="180" height="22" rx="3" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
             <text x="60" y="241" class="s4-nested">hwpx: HwpxOptions</text>
-            <rect x="30" y="256" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <rect x="30" y="256" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="40" y="274" class="s4-item">teacher: TeacherConfig</text>
-            <rect x="30" y="288" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <rect x="30" y="288" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="40" y="306" class="s4-item">questions: QuestionsConfig</text>
 
             <!-- Column 2: Pipeline -->
             <text x="390" y="96" text-anchor="middle" class="s4-group">Pipeline</text>
-            <rect x="290" y="108" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <rect x="290" y="108" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="300" y="126" class="s4-item">validation: ValidationConfig</text>
             <rect x="310" y="138" width="180" height="22" rx="3" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
             <text x="320" y="153" class="s4-nested">groundedness: GroundednessConfig</text>
-            <rect x="290" y="166" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <rect x="290" y="166" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="300" y="184" class="s4-item">scoring: ScoringConfig</text>
-            <rect x="290" y="198" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <rect x="290" y="198" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="300" y="216" class="s4-item">augment: AugmentConfig</text>
-            <rect x="290" y="230" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <rect x="290" y="230" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="300" y="248" class="s4-item">analyzer: AnalyzerConfig</text>
-            <rect x="290" y="262" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <rect x="290" y="262" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="300" y="280" class="s4-item">student: StudentConfig</text>
-            <rect x="290" y="294" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <rect x="290" y="294" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="300" y="312" class="s4-item">training: TrainingConfig</text>
             <rect x="310" y="324" width="180" height="22" rx="3" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
             <text x="320" y="339" class="s4-nested">lora: LoraConfig</text>
@@ -606,28 +606,28 @@ parsed_documents.json   →  generate 단계부터 재개
             <text x="320" y="363" class="s4-nested">early_stopping: EarlyStoppingConfig</text>
             <rect x="310" y="372" width="180" height="22" rx="3" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
             <text x="320" y="387" class="s4-nested">quantization: QuantizationConfig</text>
-            <rect x="290" y="400" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <rect x="290" y="400" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="300" y="418" class="s4-item">export: ExportConfig</text>
             <rect x="310" y="430" width="180" height="22" rx="3" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
             <text x="320" y="445" class="s4-nested">ollama: OllamaExportConfig</text>
 
             <!-- Column 3: Advanced -->
             <text x="650" y="96" text-anchor="middle" class="s4-group">Advanced</text>
-            <rect x="550" y="108" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <rect x="550" y="108" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="560" y="126" class="s4-item">eval: EvalConfig</text>
-            <rect x="550" y="140" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <rect x="550" y="140" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="560" y="158" class="s4-item">gguf_export: GGUFExportConfig</text>
-            <rect x="550" y="172" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <rect x="550" y="172" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="560" y="190" class="s4-item">incremental: IncrementalConfig</text>
-            <rect x="550" y="204" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <rect x="550" y="204" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="560" y="222" class="s4-item">dialogue: DialogueConfig</text>
-            <rect x="550" y="236" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <rect x="550" y="236" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="560" y="254" class="s4-item">review: ReviewConfig</text>
-            <rect x="550" y="268" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <rect x="550" y="268" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="560" y="286" class="s4-item">compare: CompareConfig</text>
-            <rect x="550" y="300" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <rect x="550" y="300" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="560" y="318" class="s4-item">evolve: EvolveConfig</text>
-            <rect x="550" y="332" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+            <rect x="550" y="332" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="560" y="350" class="s4-item">dashboard: DashboardConfig</text>
           </svg>
           <p class="diagram-caption">그림 5-1. SLMConfig 설정 모델 계층 구조 (20개 하위 모델)</p>
@@ -795,7 +795,7 @@ parsed_documents.json   →  generate 단계부터 재개
             <title id="svg5-title">설정 로드 프로세스 다이어그램</title>
             <desc id="svg5-desc">CLI에서 --config 옵션으로 시작하여 _find_config 자동 탐색, load_config 함수의 4단계 처리(절대 경로 변환, YAML 파싱, Pydantic 검증, 경로 변환)를 거쳐 SLMConfig 객체를 반환하는 흐름을 보여주는 다이어그램</desc>
             <defs>
-              <marker id="s5-arrow" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polyline points="0 0, 7 2.5, 0 5" fill="none" stroke="#2C5282" stroke-width="1.5" stroke-linejoin="round"/></marker>
+              <marker id="s5-arrow" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto"><polyline points="0 0, 5 2, 0 4" fill="none" stroke="#2C5282" stroke-width="1" stroke-linejoin="round"/></marker>
             </defs>
             <style>
               .s5-title { font: 700 13px Pretendard, sans-serif; fill: #FFFFFF; }
@@ -845,7 +845,7 @@ parsed_documents.json   →  generate 단계부터 재개
             <line x1="360" y1="318" x2="360" y2="345" stroke="#2C5282" stroke-width="2" marker-end="url(#s5-arrow)"/>
 
             <!-- SLMConfig output -->
-            <rect x="220" y="350" width="280" height="36" rx="6" fill="#F0FFF4" stroke="#2F855A" stroke-width="1.5"/>
+            <rect x="220" y="350" width="280" height="36" rx="6" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
             <text x="360" y="373" text-anchor="middle" class="s5-out">SLMConfig 객체 반환</text>
           </svg>
           <p class="diagram-caption">그림 5-2. 설정 로드 프로세스</p>
@@ -997,8 +997,8 @@ def _strip_none_sections(cls, values: dict) -&gt; dict:
             <title id="svg6-title">Wizard 실행 흐름 다이어그램</title>
             <desc id="svg6-desc">Wizard 모드의 12단계 실행 흐름을 보여주는 다이어그램. 필수 단계(자동/확인)는 네이비 색상, 선택적 단계는 주황색 점선 테두리로 구분됩니다.</desc>
             <defs>
-              <marker id="s6-arrow" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polyline points="0 0, 7 2.5, 0 5" fill="none" stroke="#2C5282" stroke-width="1.5" stroke-linejoin="round"/></marker>
-              <marker id="s6-arrow-orange" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polyline points="0 0, 7 2.5, 0 5" fill="none" stroke="#ED8936" stroke-width="1.5" stroke-linejoin="round"/></marker>
+              <marker id="s6-arrow" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto"><polyline points="0 0, 5 2, 0 4" fill="none" stroke="#2C5282" stroke-width="1" stroke-linejoin="round"/></marker>
+              <marker id="s6-arrow-orange" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto"><polyline points="0 0, 5 2, 0 4" fill="none" stroke="#ED8936" stroke-width="1" stroke-linejoin="round"/></marker>
             </defs>
             <style>
               .s6-req { font: 700 12px Pretendard, sans-serif; fill: #FFFFFF; }
@@ -1013,7 +1013,7 @@ def _strip_none_sections(cls, values: dict) -&gt; dict:
             <!-- Legend -->
             <rect x="20" y="10" width="16" height="16" rx="3" fill="#1B3A5C"/>
             <text x="42" y="23" style="font: 600 11px Pretendard, sans-serif; fill: #1A202C;">필수 단계</text>
-            <rect x="130" y="10" width="16" height="16" rx="3" fill="#FFFAF0" stroke="#C05621" stroke-width="1.5" stroke-dasharray="4,2"/>
+            <rect x="130" y="10" width="16" height="16" rx="3" fill="#FFFAF0" stroke="#C05621" stroke-width="1" stroke-dasharray="4,2"/>
             <text x="152" y="23" style="font: 600 11px Pretendard, sans-serif; fill: #1A202C;">선택적 단계</text>
 
             <!-- Step 1: 설정 파일 (required auto) -->
@@ -1064,20 +1064,20 @@ def _strip_none_sections(cls, values: dict) -&gt; dict:
             <text x="460" y="343" text-anchor="middle" class="s6-tag" fill="#fff">자동</text>
             <text x="490" y="343" class="s6-impl">자동 진행 (확인 없음)</text>
 
-            <line x1="230" y1="370" x2="230" y2="386" stroke="#ED8936" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#s6-arrow-orange)"/>
+            <line x1="230" y1="370" x2="230" y2="386" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#s6-arrow-orange)"/>
 
             <!-- Step 6: 품질 평가 (optional) -->
-            <rect x="30" y="392" width="400" height="48" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1.5" stroke-dasharray="6,3"/>
+            <rect x="30" y="392" width="400" height="48" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1" stroke-dasharray="6,3"/>
             <text x="50" y="413" class="s6-opt">Step 6. 품질 평가 (선택적)</text>
             <text x="50" y="430" class="s6-impl">Confirm(default=scoring.enabled) → step_score()</text>
             <rect x="440" y="400" width="40" height="18" rx="9" fill="#FFFAF0" stroke="#C05621" stroke-width="1"/>
             <text x="460" y="413" text-anchor="middle" class="s6-tag" fill="#C05621">선택</text>
             <text x="490" y="413" class="s6-impl">config.scoring.enabled 기본값 반영</text>
 
-            <line x1="230" y1="440" x2="230" y2="456" stroke="#ED8936" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#s6-arrow-orange)"/>
+            <line x1="230" y1="440" x2="230" y2="456" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#s6-arrow-orange)"/>
 
             <!-- Step 7: 데이터 증강 (optional) -->
-            <rect x="30" y="462" width="400" height="48" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1.5" stroke-dasharray="6,3"/>
+            <rect x="30" y="462" width="400" height="48" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1" stroke-dasharray="6,3"/>
             <text x="50" y="483" class="s6-opt">Step 7. 데이터 증강 (선택적)</text>
             <text x="50" y="500" class="s6-impl">Confirm(default=augment.enabled) → step_augment()</text>
             <rect x="440" y="470" width="40" height="18" rx="9" fill="#FFFAF0" stroke="#C05621" stroke-width="1"/>
@@ -1114,28 +1114,28 @@ def _strip_none_sections(cls, values: dict) -&gt; dict:
             <text x="460" y="693" text-anchor="middle" class="s6-tag" fill="#fff">확인</text>
             <text x="490" y="693" class="s6-impl">거부 시 어댑터 경로 안내 후 종료</text>
 
-            <line x1="230" y1="720" x2="230" y2="736" stroke="#ED8936" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#s6-arrow-orange)"/>
+            <line x1="230" y1="720" x2="230" y2="736" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#s6-arrow-orange)"/>
 
             <!-- Step 10: 멀티턴 대화 (optional) -->
-            <rect x="30" y="742" width="400" height="48" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1.5" stroke-dasharray="6,3"/>
+            <rect x="30" y="742" width="400" height="48" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1" stroke-dasharray="6,3"/>
             <text x="50" y="763" class="s6-opt">Step 10. 멀티턴 대화 (선택적)</text>
             <text x="50" y="780" class="s6-impl">Confirm(default=dialogue.enabled) → step_dialogue()</text>
             <rect x="440" y="750" width="40" height="18" rx="9" fill="#FFFAF0" stroke="#C05621" stroke-width="1"/>
             <text x="460" y="763" text-anchor="middle" class="s6-tag" fill="#C05621">선택</text>
 
-            <line x1="230" y1="790" x2="230" y2="806" stroke="#ED8936" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#s6-arrow-orange)"/>
+            <line x1="230" y1="790" x2="230" y2="806" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#s6-arrow-orange)"/>
 
             <!-- Step 11: GGUF 변환 (optional) -->
-            <rect x="30" y="812" width="400" height="48" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1.5" stroke-dasharray="6,3"/>
+            <rect x="30" y="812" width="400" height="48" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1" stroke-dasharray="6,3"/>
             <text x="50" y="833" class="s6-opt">Step 11. GGUF 변환 (선택적)</text>
             <text x="50" y="850" class="s6-impl">Confirm(default=gguf_export.enabled) → step_gguf_export()</text>
             <rect x="440" y="820" width="40" height="18" rx="9" fill="#FFFAF0" stroke="#C05621" stroke-width="1"/>
             <text x="460" y="833" text-anchor="middle" class="s6-tag" fill="#C05621">선택</text>
 
-            <line x1="230" y1="860" x2="230" y2="876" stroke="#ED8936" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#s6-arrow-orange)"/>
+            <line x1="230" y1="860" x2="230" y2="876" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#s6-arrow-orange)"/>
 
             <!-- Step 12: 모델 평가 (optional) -->
-            <rect x="30" y="882" width="400" height="48" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1.5" stroke-dasharray="6,3"/>
+            <rect x="30" y="882" width="400" height="48" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1" stroke-dasharray="6,3"/>
             <text x="50" y="903" class="s6-opt">Step 12. 모델 평가 (선택적)</text>
             <text x="50" y="920" class="s6-impl">Confirm(default=eval.enabled) → step_eval()</text>
             <rect x="440" y="890" width="40" height="18" rx="9" fill="#FFFAF0" stroke="#C05621" stroke-width="1"/>
