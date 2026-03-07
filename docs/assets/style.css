@@ -107,6 +107,7 @@ body {
 /* --- Page Layout --- */
 .page-wrapper {
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
 }
 
@@ -208,7 +209,6 @@ body {
   background: linear-gradient(135deg, var(--color-navy) 0%, var(--color-navy-light) 100%);
   color: var(--color-white);
   padding: var(--space-3xl) var(--space-xl);
-  margin-left: var(--sidebar-width);
   position: relative;
   overflow: hidden;
 }
@@ -752,13 +752,8 @@ hr {
   }
 
   .main-content,
-  .page-header,
   .page-footer {
     margin-left: 0;
-  }
-
-  .page-wrapper {
-    flex-direction: column;
   }
 
   .content-container {
@@ -808,7 +803,6 @@ hr {
   }
 
   .main-content,
-  .page-header,
   .page-footer {
     margin-left: 0;
   }
