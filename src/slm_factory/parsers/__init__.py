@@ -12,12 +12,19 @@ try:
 except ImportError:
     DOCXParser = None  # type: ignore
 
+# HWP 바이너리 파서는 선택적 종속성입니다 (olefile 필요)
+try:
+    from .hwp import HWPParser  # noqa: F401
+except ImportError:
+    HWPParser = None  # type: ignore
+
 __all__ = [
     "BaseParser",
     "ParsedDocument",
     "ParserRegistry",
     "PDFParser",
     "HWPXParser",
+    "HWPParser",
     "HTMLParser",
     "TextParser",
     "DOCXParser",
@@ -31,3 +38,6 @@ registry.register(TextParser)
 
 if DOCXParser is not None:
     registry.register(DOCXParser)
+
+if HWPParser is not None:
+    registry.register(HWPParser)
