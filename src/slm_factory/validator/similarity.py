@@ -57,7 +57,7 @@ class GroundednessChecker:
             텍스트 청크 리스트.
         """
         if not text:
-            return [text]
+            return []
         # overlap이 chunk_size 이상이면 무한루프 방지
         if overlap >= chunk_size:
             overlap = chunk_size // 4

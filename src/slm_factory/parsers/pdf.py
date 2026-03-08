@@ -33,6 +33,7 @@ def _table_to_markdown(table: fitz.table.Table) -> str:  # type: ignore[name-def
     try:
         raw_rows = table.extract()
     except Exception:
+        logger.debug("Table extraction failed", exc_info=True)
         return ""
 
     if not raw_rows:

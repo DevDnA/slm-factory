@@ -19,7 +19,7 @@ _PENDING_BADGE = "[bold yellow]? 대기[/bold yellow]"
 class QACard(Static):
     """단일 QA 쌍을 Rich 마크업으로 표시하는 위젯입니다."""
 
-    DEFAULT_CSS = """
+    CSS = """
     QACard {
         border: solid $accent;
         padding: 1 2;
@@ -47,7 +47,7 @@ class QACard(Static):
 class StatusBar(Static):
     """현재 위치와 승인/거부/대기 건수를 표시하는 상태 바 위젯입니다."""
 
-    DEFAULT_CSS = """
+    CSS = """
     StatusBar {
         dock: bottom;
         height: 1;

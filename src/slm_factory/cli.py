@@ -11,6 +11,9 @@ import typer
 from rich.console import Console
 
 from . import __version__
+from .utils import get_logger
+
+logger = get_logger("cli")
 
 if TYPE_CHECKING:
     from .models import QAPair
@@ -829,6 +832,7 @@ def status(
                     f"{count}개 {unit}",
                 )
             except Exception:
+                logger.debug("Failed to parse %s", filepath, exc_info=True)
                 table.add_row(stage_name, filename, "[green]존재[/green]", "?")
         else:
             table.add_row(stage_name, filename, "[red]없음[/red]", "-")

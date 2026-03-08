@@ -105,6 +105,7 @@ def scan_pipeline(output_dir: Path) -> PipelineSnapshot:
                 data = json.loads(filepath.read_text(encoding="utf-8"))
                 info.count = len(data) if isinstance(data, list) else 1
             except Exception:
+                logger.debug("Failed to parse %s", filepath, exc_info=True)
                 info.count = 0
         stages.append(info)
 
@@ -137,6 +138,7 @@ def _extract_eval_summary(path: Path) -> dict[str, object]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except Exception:
+        logger.debug("Failed to parse eval results: %s", path, exc_info=True)
         return {}
 
     if not isinstance(data, list) or not data:
@@ -177,6 +179,7 @@ def _extract_compare_summary(path: Path) -> dict[str, object]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except Exception:
+        logger.debug("Failed to parse compare results: %s", path, exc_info=True)
         return {}
 
     if isinstance(data, dict):

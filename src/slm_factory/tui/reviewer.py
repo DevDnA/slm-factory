@@ -31,7 +31,7 @@ class EditScreen(Screen[str | None]):
         Binding("escape", "cancel", "취소"),
     ]
 
-    DEFAULT_CSS = """
+    CSS = """
     EditScreen {
         align: center middle;
     }
