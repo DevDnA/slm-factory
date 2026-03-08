@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from ..models import ParsedDocument
     from ..teacher.base import BaseTeacher
 
+from ..teacher.qa_generator import chunk_document
 from ..utils import get_logger, run_bounded
 from .models import Entity, KnowledgeGraph, Relation
 
@@ -246,25 +247,53 @@ class OntologyExtractor:
     # 비동기 단건/일괄 처리
     # ------------------------------------------------------------------
 
-    async def extract_one(
-        self, doc: ParsedDocument,
+    async def _extract_chunk(
+        self, doc_title: str, content: str,
     ) -> tuple[list[Entity], list[Relation]]:
-        """단일 문서에서 엔티티와 관계를 추출합니다."""
-        prompt = self._build_extraction_prompt(doc.title, doc.content)
+        """단일 청크에서 엔티티와 관계를 추출합니다."""
+        prompt = self._build_extraction_prompt(doc_title, content)
 
         kwargs: dict[str, Any] = {}
         if self.teacher_config.backend == "ollama":
             kwargs["format"] = "json"
 
         response = await self.teacher.agenerate(prompt, **kwargs)
-        entities, relations = self._parse_extraction(response, doc.title)
-        entities, relations = self._validate_extraction(entities, relations)
+        entities, relations = self._parse_extraction(response, doc_title)
+        return self._validate_extraction(entities, relations)
+
+    async def extract_one(
+        self, doc: ParsedDocument,
+    ) -> tuple[list[Entity], list[Relation]]:
+        """단일 문서에서 엔티티와 관계를 추출합니다.
+
+        문서가 max_context_chars보다 길면 청크로 분할하여 각 청크에서
+        추출한 뒤 결과를 병합합니다. 이를 통해 전체 문서의 지식을 포착합니다.
+        """
+        chunks = chunk_document(
+            doc.content, self.max_context, self.max_context // 4,
+        )
+
+        all_entities: list[Entity] = []
+        all_relations: list[Relation] = []
+
+        for i, chunk in enumerate(chunks):
+            try:
+                entities, relations = await self._extract_chunk(doc.title, chunk)
+                all_entities.extend(entities)
+                all_relations.extend(relations)
+            except Exception as e:
+                logger.warning(
+                    "문서 '%s' 청크 %d/%d 추출 실패: %s",
+                    doc.title, i + 1, len(chunks), e,
+                )
+
+        all_entities = self._normalize_entities(all_entities)
 
         logger.debug(
-            "문서 '%s': %d 엔티티, %d 관계 추출",
-            doc.title, len(entities), len(relations),
+            "문서 '%s': %d 청크 → %d 엔티티, %d 관계 추출",
+            doc.title, len(chunks), len(all_entities), len(all_relations),
         )
-        return entities, relations
+        return all_entities, all_relations
 
     async def extract_all(
         self, docs: list[ParsedDocument],
