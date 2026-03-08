@@ -15,6 +15,8 @@ if TYPE_CHECKING:
     from .config import SLMConfig
     from .models import CompareResult, EvalResult, MultiTurnDialogue, ParsedDocument, QAPair
     from .ontology.models import KnowledgeGraph
+    from .scorer import QualityScorer
+    from .teacher.base import BaseTeacher
 
 from .utils import get_logger, run_async
 
@@ -299,13 +301,25 @@ class Pipeline:
     # 단계 3a: 품질 점수 평가
     # ------------------------------------------------------------------
 
-    def step_score(self, pairs: list[QAPair]) -> list[QAPair]:
+    def step_score(
+        self,
+        pairs: list[QAPair],
+        docs: list[ParsedDocument] | None = None,
+        ontology: KnowledgeGraph | None = None,
+    ) -> list[QAPair]:
         """교사 LLM을 사용하여 QA 쌍의 품질을 점수 평가하고 필터링합니다.
+
+        ``scoring.regenerate``가 활성화되면 낮은 점수의 QA 쌍을
+        개선된 프롬프트로 재생성합니다.
 
         매개변수
         ----------
         pairs:
             점수 평가할 QA 쌍입니다.
+        docs:
+            재생성 시 원본 문서 참조용입니다.
+        ontology:
+            재생성 시 온톨로지 컨텍스트 주입용입니다.
 
         반환값
         -------
@@ -325,12 +339,117 @@ class Pipeline:
         scorer = QualityScorer(teacher, self.config.scoring, self.config.teacher)
         accepted, filtered = run_async(scorer.score_all(pairs))
 
+        if (
+            self.config.scoring.regenerate
+            and filtered
+            and docs
+        ):
+            accepted = self._regenerate_low_quality(
+                accepted, filtered, docs, ontology, teacher, scorer,
+            )
+
         scored_path = self.output_dir / "qa_scored.json"
         self._save_pairs(accepted, scored_path)
         logger.info(
             "Scoring complete: %d accepted, %d filtered — saved to %s",
             len(accepted), len(filtered), scored_path,
         )
+        return accepted
+
+    def _regenerate_low_quality(
+        self,
+        accepted: list[QAPair],
+        filtered: list[tuple[QAPair, int, str]],
+        docs: list[ParsedDocument],
+        ontology: KnowledgeGraph | None,
+        teacher: BaseTeacher,
+        scorer: QualityScorer,
+    ) -> list[QAPair]:
+        """낮은 점수의 QA 쌍을 재생성하여 품질을 높입니다."""
+        from .models import QAPair
+        from .teacher.qa_generator import QAGenerator
+
+        generator = QAGenerator(self.config)
+        doc_map = {doc.doc_id: doc for doc in docs}
+
+        ontology_context: dict[str, str] | None = None
+        if (
+            ontology is not None
+            and self.config.ontology.enrich_qa
+            and (ontology.entities or ontology.relations)
+        ):
+            ontology_context = {
+                doc.title: ontology.to_context_string(source_doc=doc.title)
+                for doc in docs
+            }
+            ontology_context = {k: v for k, v in ontology_context.items() if v}
+
+        max_rounds = self.config.scoring.max_regenerate_rounds
+        remaining = filtered
+
+        for round_num in range(1, max_rounds + 1):
+            if not remaining:
+                break
+
+            logger.info(
+                "Regeneration round %d/%d: %d pairs to improve",
+                round_num, max_rounds, len(remaining),
+            )
+
+            regen_pairs: list[QAPair] = []
+            for pair, score, reason in remaining:
+                doc = doc_map.get(pair.source_doc)
+                if doc is None:
+                    continue
+
+                onto_ctx = (
+                    ontology_context.get(doc.title)
+                    if ontology_context
+                    else None
+                )
+
+                enhanced_system = (
+                    f"{self.config.questions.system_prompt}\n\n"
+                    f"IMPORTANT: A previous answer scored {score}/5 "
+                    f"(reason: {reason}). "
+                    "Provide a more accurate, complete, and well-structured answer."
+                )
+
+                prompt = generator.build_prompt(
+                    doc_title=doc.title,
+                    content=doc.content,
+                    question=pair.question,
+                    tables=doc.tables if doc.tables else None,
+                    system_prompt=enhanced_system,
+                    ontology_context=onto_ctx,
+                )
+
+                try:
+                    response = generator.teacher.generate(prompt)
+                    parsed = generator.parse_response(response)
+                    if parsed:
+                        regen_pairs.append(QAPair(
+                            question=pair.question,
+                            answer=parsed["output"],
+                            instruction=parsed["instruction"],
+                            source_doc=pair.source_doc,
+                            category=pair.category,
+                        ))
+                except Exception as e:
+                    logger.error("Regeneration failed for '%s': %s", pair.question[:40], e)
+
+            if not regen_pairs:
+                break
+
+            new_accepted, new_filtered = run_async(scorer.score_all(regen_pairs))
+            accepted.extend(new_accepted)
+            remaining = new_filtered
+
+            logger.info(
+                "Regeneration round %d: %d recovered, %d still below threshold",
+                round_num, len(new_accepted), len(new_filtered),
+            )
+
         return accepted
 
     # ------------------------------------------------------------------
@@ -676,7 +795,7 @@ class Pipeline:
             # 단계 3: 검증 + 점수 + 증강 + 분석
             logger.info("━━━ [3/6] 검증 및 품질 관리 ━━━")
             pairs = self.step_validate(pairs, docs=docs)
-            pairs = self.step_score(pairs)
+            pairs = self.step_score(pairs, docs=docs, ontology=kg)
             pairs = self.step_augment(pairs)
             self.step_analyze(pairs)
 

@@ -666,3 +666,84 @@ class TestStepCompare:
 
         expected_path = pipeline.output_dir / config.compare.output_file
         mock_comparator.save_results.assert_called_once_with(mock_results, expected_path)
+
+
+# ---------------------------------------------------------------------------
+# step_score 재생성
+# ---------------------------------------------------------------------------
+
+
+class TestStepScoreRegeneration:
+    """Pipeline.step_score 재생성 기능의 테스트입니다."""
+
+    def test_재생성_비활성화시_기존_동작(self, make_config, make_qa_pair, tmp_path, mocker):
+        """scoring.regenerate=False이면 재생성 없이 기존 동작을 하는지 확인합니다."""
+        config = make_config(
+            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            scoring={"enabled": True, "threshold": 3.0, "regenerate": False},
+        )
+        (tmp_path / "output").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
+        pipeline = Pipeline(config)
+
+        pairs = [make_qa_pair()]
+
+        mocker.patch("slm_factory.teacher.create_teacher", return_value=MagicMock())
+        mock_scorer_cls = mocker.patch("slm_factory.scorer.QualityScorer")
+        mock_scorer = mock_scorer_cls.return_value
+        mocker.patch("slm_factory.pipeline.run_async", return_value=(pairs, []))
+
+        result = pipeline.step_score(pairs)
+
+        assert len(result) == len(pairs)
+
+    def test_step_score에_docs_전달_가능(self, make_config, make_qa_pair, make_parsed_doc, tmp_path, mocker):
+        """step_score가 docs 파라미터를 받을 수 있는지 확인합니다."""
+        config = make_config(
+            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            scoring={"enabled": True, "threshold": 3.0, "regenerate": False},
+        )
+        (tmp_path / "output").mkdir(parents=True, exist_ok=True)
+        (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
+        pipeline = Pipeline(config)
+
+        pairs = [make_qa_pair()]
+        docs = [make_parsed_doc()]
+
+        mocker.patch("slm_factory.teacher.create_teacher", return_value=MagicMock())
+        mock_scorer_cls = mocker.patch("slm_factory.scorer.QualityScorer")
+        mock_scorer_cls.return_value
+        mocker.patch("slm_factory.pipeline.run_async", return_value=(pairs, []))
+
+        result = pipeline.step_score(pairs, docs=docs)
+
+        assert len(result) == len(pairs)
+
+    def test_파이프라인_run에서_step_score에_docs_전달(self, make_config, tmp_path, mocker):
+        """Pipeline.run()에서 step_score가 docs와 ontology를 받는지 확인합니다."""
+        pipeline = _make_pipeline(make_config, tmp_path)
+
+        mock_docs = [MagicMock()]
+        mock_pairs = [MagicMock()]
+        mock_validated = [MagicMock()]
+        mock_training_path = tmp_path / "training_data.jsonl"
+        mock_adapter_path = tmp_path / "adapter"
+        mock_export_path = tmp_path / "export"
+        mock_kg = KnowledgeGraph()
+
+        mocker.patch.object(pipeline, "step_parse", return_value=mock_docs)
+        mocker.patch.object(pipeline, "step_extract_ontology", return_value=mock_kg)
+        mocker.patch.object(pipeline, "step_generate", return_value=mock_pairs)
+        mocker.patch.object(pipeline, "step_validate", return_value=mock_validated)
+        mocker.patch.object(pipeline, "step_score", return_value=mock_validated)
+        mocker.patch.object(pipeline, "step_augment", return_value=mock_validated)
+        mocker.patch.object(pipeline, "step_analyze")
+        mocker.patch.object(pipeline, "step_convert", return_value=mock_training_path)
+        mocker.patch.object(pipeline, "step_train", return_value=mock_adapter_path)
+        mocker.patch.object(pipeline, "step_export", return_value=mock_export_path)
+
+        pipeline.run()
+
+        pipeline.step_score.assert_called_once_with(
+            mock_validated, docs=mock_docs, ontology=mock_kg,
+        )
