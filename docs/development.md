@@ -44,6 +44,11 @@ src/slm_factory/
 │   ├── __init__.py
 │   ├── rules.py             # RuleValidator (규칙 기반 필터링)
 │   └── similarity.py        # GroundednessChecker (임베딩 유사도 검증)
+├── ontology/
+│   ├── __init__.py          # 공개 API (Entity, Relation, KnowledgeGraph, OntologyExtractor, GraphStore)
+│   ├── models.py            # 데이터 모델 (Entity, Relation, KnowledgeGraph)
+│   ├── extractor.py         # OntologyExtractor (Teacher LLM 기반 엔티티·관계 추출)
+│   └── graph_store.py       # GraphStore (JSON 직렬화, 병합)
 ├── trainer/
 │   ├── __init__.py
 │   └── lora_trainer.py      # LoRATrainer, DataLoader
@@ -65,6 +70,7 @@ src/slm_factory/
 |------|--------------|
 | `pipeline.py` | 모든 하위 모듈 (오케스트레이터) |
 | `scorer.py`, `augmenter.py` | `teacher/`, `models.py`, `utils.py` |
+| `ontology/extractor.py`, `ontology/graph_store.py` | `teacher/`, `ontology/models.py`, `utils.py` |
 | `analyzer.py`, `evaluator.py`, `incremental.py` | `models.py`, `utils.py` |
 | `comparator.py` | `evaluator.py`, `models.py`, `utils.py` |
 | `converter.py`, `validator/*.py` | `models.py`, `config.py` |
@@ -134,6 +140,7 @@ class SLMConfig(BaseModel):
     dialogue: DialogueConfig;    review: ReviewConfig
     compare: CompareConfig;      evolve: EvolveConfig
     dashboard: DashboardConfig
+    ontology: OntologyConfig
 ```
 
 각 서브 모델의 필드 상세는 [configuration.md](configuration.md)를 참조하십시오.
@@ -166,10 +173,16 @@ class Pipeline:
     ) -> list[ParsedDocument]:
         """문서 디렉토리를 스캔하고 파싱합니다."""
 
+    def step_extract_ontology(
+        self, docs: list[ParsedDocument],
+    ) -> KnowledgeGraph:
+        """문서에서 온톨로지(지식 그래프)를 추출합니다."""
+
     def step_generate(
-        self, docs: list[ParsedDocument]
+        self, docs: list[ParsedDocument],
+        ontology: KnowledgeGraph | None = None,
     ) -> list[QAPair]:
-        """Teacher LLM으로 QA 쌍을 생성합니다 (비동기 실행)."""
+        """Teacher LLM으로 QA 쌍을 생성합니다 (비동기 실행). ontology가 주어지고 enrich_qa가 활성화되면 컨텍스트로 활용합니다."""
 
     def step_validate(
         self,
@@ -229,6 +242,60 @@ async def ollama_generate(client, api_base, model_name, question, timeout, *, ma
     # Ollama /api/generate 엔드포인트로 답변을 생성합니다.
     # 일시적 오류(HTTP 5xx, 타임아웃, 연결 오류)에 대해 지수 백오프로 재시도합니다.
 ```
+
+### ontology/ — 온톨로지(지식 그래프) 추출 모듈
+
+문서에서 엔티티와 관계를 자동 추출하여 지식 그래프를 구성합니다.
+
+```python
+@dataclass
+class Entity:
+    name: str; entity_type: str; source_doc: str = ""
+    confidence: float = 1.0; properties: dict[str, Any] = field(default_factory=dict)
+
+@dataclass
+class Relation:
+    subject: str; predicate: str; object: str
+    source_doc: str = ""; confidence: float = 1.0
+
+@dataclass
+class KnowledgeGraph:
+    entities: list[Entity]; relations: list[Relation]
+
+    def to_context_string(self, source_doc: str | None = None, max_items: int = 20) -> str:
+        """QA 프롬프트 주입용 컨텍스트 문자열을 생성합니다."""
+
+    def export_triples(self) -> list[tuple[str, str, str]]:
+        """SPO 트리플 리스트를 반환합니다."""
+```
+
+```python
+class OntologyExtractor:
+    def __init__(self, teacher: BaseTeacher, config: OntologyConfig, teacher_config: TeacherConfig) -> None: ...
+
+    async def extract_one(self, doc: ParsedDocument) -> tuple[list[Entity], list[Relation]]:
+        """단일 문서에서 엔티티와 관계를 추출합니다."""
+
+    async def extract_all(self, docs: list[ParsedDocument]) -> KnowledgeGraph:
+        """전체 문서에서 온톨로지를 추출합니다 (동시성 제한 적용)."""
+```
+
+```python
+class GraphStore:
+    @staticmethod
+    def save(kg: KnowledgeGraph, path: Path) -> None:
+        """지식 그래프를 JSON으로 저장합니다."""
+
+    @staticmethod
+    def load(path: Path) -> KnowledgeGraph:
+        """JSON에서 지식 그래프를 로드합니다. 파일 없으면 빈 그래프 반환."""
+
+    @staticmethod
+    def merge(existing: KnowledgeGraph, new: KnowledgeGraph, changed_docs: set[str], deleted_docs: set[str]) -> KnowledgeGraph:
+        """기존 그래프와 새 그래프를 병합합니다 (증분 업데이트)."""
+```
+
+QualityScorer 패턴을 따릅니다: 생성자 → 프롬프트 빌드 → JSON 파싱 → 비동기 단건/일괄 처리.
 
 ---
 

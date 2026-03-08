@@ -22,7 +22,7 @@ slm-factory tool wizard --config my-project/project.yaml
 
 ```
 문서 (PDF/HWPX/HTML/TXT/DOCX)
-  → Parse → Generate → Validate → [Score / Augment / Analyze] → Convert → Train → Export
+  → Parse → [Ontology] → Generate → Validate → [Score / Augment / Analyze] → Convert → Train → Export
   → 도메인 특화 SLM 완성 (Ollama 즉시 서빙)
 ```
 
@@ -32,6 +32,7 @@ slm-factory tool wizard --config my-project/project.yaml
 - **유연한 Teacher LLM** — Ollama(로컬) 또는 OpenAI 호환 API
 - **QA 검증 + 품질 평가** — 규칙/임베딩 필터링, LLM 1~5점 평가
 - **데이터 증강** — 질문 패러프레이즈로 학습 데이터 확장
+- **온톨로지 추출** — 문서에서 엔티티·관계를 자동 추출하여 QA 생성 품질 향상
 - **LoRA 파인튜닝** — 효율적 학습 + 조기 종료
 - **원클릭 Ollama 배포** — Modelfile 자동 생성
 - **자동 진화** — `tool evolve` 한 번으로 증분→학습→품질게이트→배포

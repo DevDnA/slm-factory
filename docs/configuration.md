@@ -989,6 +989,47 @@ $ slm-factory check --config project.yaml
 
 ---
 
+## 25. ontology — 온톨로지(지식 그래프) 추출 설정
+
+> 문서에서 엔티티(개체)와 관계를 자동 추출하여 지식 그래프를 구성합니다. QA 생성 시 추출된 지식을 컨텍스트로 활용할 수 있습니다.
+
+| 필드 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `enabled` | `bool` | `false` | 온톨로지 추출 기능 활성화 여부 |
+| `entity_types` | `list[str]` | `["Person", "Organization", "Concept", "Technology", "Document", "Date", "Location"]` | 추출할 엔티티 유형 목록. 도메인에 맞게 커스터마이징할 수 있습니다 |
+| `max_concurrency` | `int` | `4` | 비동기 추출 시 최대 동시 요청 수 |
+| `min_confidence` | `float` | `0.5` | 최소 확신도. 이 값 미만의 엔티티와 관계는 제거됩니다 (0.0~1.0) |
+| `enrich_qa` | `bool` | `false` | QA 생성 시 온톨로지 컨텍스트 주입 여부. `true`이면 각 문서의 엔티티·관계 정보를 QA 프롬프트에 추가합니다 |
+| `output_file` | `str` | `"ontology.json"` | 지식 그래프 저장 파일명. `paths.output` 디렉토리에 저장됩니다 |
+
+```yaml
+ontology:
+  enabled: true
+  entity_types:
+    - Person
+    - Organization
+    - Concept
+    - Technology
+    - Document
+    - Date
+    - Location
+  max_concurrency: 4
+  min_confidence: 0.5
+  enrich_qa: true
+  output_file: "ontology.json"
+```
+
+기존 Teacher LLM(Ollama)을 사용하므로 추가 외부 서비스가 필요하지 않습니다. `enrich_qa`를 활성화하면 각 문서에서 추출된 엔티티와 관계 정보가 QA 생성 프롬프트에 컨텍스트로 주입되어 더 정확하고 구조화된 QA가 생성됩니다.
+
+독립 실행(`tool ontology`)으로 먼저 추출 결과를 확인한 후 `enrich_qa`를 활성화하는 것을 권장합니다.
+
+**제약조건**:
+- `entity_types`의 각 항목은 비어있지 않은 문자열이어야 합니다.
+- `min_confidence`는 0.0~1.0 범위입니다.
+- `enrich_qa`를 사용하려면 `enabled`도 `true`여야 합니다.
+
+---
+
 ## 관련 문서
 
 - [사용 가이드](guide.md) — 각 설정을 언제, 어떻게 사용할지에 대한 실전 안내

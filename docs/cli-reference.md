@@ -44,6 +44,7 @@ slm-factory [전역 옵션] <명령어> [옵션]
 | `tool gguf` | 🔧 도구 | 병합된 모델을 GGUF 양자화 형식으로 변환합니다 |
 | `tool update` | 🔧 도구 | 변경된 문서만 감지하여 증분 처리합니다 |
 | `tool evolve` | 🔧 도구 | 자동 진화 (증분→학습→품질게이트→배포) |
+| `tool ontology` | 🔧 도구 | 온톨로지(지식 그래프) 추출 |
 | `status` | ℹ️ 정보 | 각 파이프라인 단계의 진행 상태를 표시합니다 |
 | `clean` | ℹ️ 정보 | 중간 생성 파일을 정리합니다 |
 | `version` | ℹ️ 정보 | slm-factory 버전을 출력합니다 |
@@ -206,6 +207,8 @@ slm-factory run [OPTIONS]
 | `analyze` | 선택 | 카테고리 분포, 길이 통계 등 데이터 분석 보고서를 생성합니다 | `output/data_analysis.json` |
 
 `--until`을 생략하면 위 6단계에 이어 `convert`, `train`, `export`까지 전체 파이프라인을 실행합니다.
+
+> **참고**: 온톨로지 추출(`ontology`)은 `--until`로 지정할 수 없는 독립 단계입니다. `slm-factory tool ontology` 명령으로 별도 실행하거나, `tool wizard`에서 Step 3a로 실행할 수 있습니다.
 
 **`--resume` 동작 방식**
 
@@ -701,6 +704,53 @@ GGUF 변환 완료! 파일: ./my-project/output/merged_model.gguf
 
 - GGUF 변환 전에 `export` 명령으로 모델을 먼저 병합해야 합니다.
 - 양자화 타입은 `project.yaml`의 `gguf_export.quantization_type`에서 설정합니다. [설정 레퍼런스](configuration.md)를 참조하십시오.
+
+---
+
+### `tool ontology`
+
+문서에서 엔티티(개체)와 관계를 자동 추출하여 지식 그래프를 구성합니다. 기존 Teacher LLM(Ollama)을 사용하며, 추가 외부 서비스가 필요하지 않습니다.
+
+**사용법**
+
+```
+slm-factory tool ontology [OPTIONS]
+```
+
+**옵션**
+
+| 플래그 | 단축키 | 타입 | 기본값 | 설명 |
+|--------|--------|------|--------|------|
+| `--config` | | `TEXT` | `project.yaml` | 프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다. |
+
+**2단계 처리 흐름**
+
+| # | 단계 | 설명 |
+|---|------|------|
+| 1 | 문서 파싱 | 설정된 문서 디렉토리의 파일을 파싱합니다 |
+| 2 | 온톨로지 추출 | Teacher LLM이 각 문서에서 엔티티와 관계를 추출합니다 |
+
+**예시**
+
+```bash
+# 기본 온톨로지 추출
+slm-factory tool ontology --config my-project/project.yaml
+```
+
+**출력 예시 (성공)**
+
+```
+온톨로지 추출 완료! 42개 엔티티, 28개 관계
+  저장 위치: ./my-project/output/ontology.json
+```
+
+**참고**
+
+- 온톨로지 추출은 `project.yaml`의 `ontology` 설정에 관계없이 `tool ontology` 명령 실행 시 항상 활성화됩니다.
+- 추출된 지식 그래프는 `output/ontology.json`에 JSON 형식으로 저장됩니다.
+- 기존 `ontology.json`이 있으면 자동으로 병합(증분 업데이트)됩니다.
+- `ontology.enrich_qa: true`로 설정하면 `run` 명령이나 `wizard`에서 QA 생성 시 추출된 지식이 컨텍스트로 활용됩니다.
+- 엔티티 유형, 최소 확신도, 동시 요청 수 등은 `project.yaml`의 `ontology` 섹션에서 설정합니다. [설정 레퍼런스](configuration.md)를 참조하십시오.
 
 ---
 

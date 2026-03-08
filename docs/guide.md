@@ -589,6 +589,39 @@ slm-factory train --config my-project/project.yaml
 
 ## 5. 데이터 품질 관리
 
+### 온톨로지 추출 (ontology)
+
+문서에서 사람, 조직, 기술, 개념 등의 핵심 개체(엔티티)와 그들 사이의 관계를 자동으로 추출합니다. 추출된 지식 그래프는 QA 생성 시 컨텍스트로 활용되어 더 정확하고 구조화된 질문-답변을 생성하는 데 도움을 줍니다.
+
+**쉽게 말하면**: "이 문서에 등장하는 중요한 것들(사람, 기관, 기술)과 그 관계를 자동으로 정리해서, QA를 더 잘 만들 수 있게 해주는 기능"입니다.
+
+**설정**:
+
+```yaml
+ontology:
+  enabled: true
+  enrich_qa: true         # QA 생성 시 추출된 지식 활용
+  min_confidence: 0.5     # 확신도 0.5 이상만 포함
+```
+
+**동작**: Teacher LLM이 각 문서를 분석하여 엔티티(예: "삼성전자"=조직, "이재용"=인물)와 관계(예: "이재용 → 소속 → 삼성전자")를 JSON으로 추출합니다. 추출 결과는 `output/ontology.json`에 저장됩니다.
+
+**독립 실행**: 파이프라인과 별도로 온톨로지만 추출하여 결과를 확인할 수 있습니다.
+
+```bash
+slm-factory tool ontology --config project.yaml
+```
+
+**추천 사용 순서**:
+
+1. `tool ontology`로 먼저 추출 결과를 확인합니다
+2. 결과가 만족스러우면 `ontology.enrich_qa: true`를 설정합니다
+3. `run` 또는 `tool wizard`로 QA 생성 시 자동으로 지식이 활용됩니다
+
+추가 외부 서비스(Neo4j 등)가 필요하지 않습니다. 기존 Teacher LLM(Ollama)만으로 동작합니다.
+
+---
+
 ### 품질 점수 평가 (scoring)
 
 Teacher LLM이 생성된 각 QA 쌍을 1~5점으로 평가하여 저품질 데이터를 자동으로 필터링합니다. 점수가 `threshold` 미만인 QA는 학습 데이터에서 제외됩니다.

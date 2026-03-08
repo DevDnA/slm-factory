@@ -79,6 +79,7 @@ slm-factory tool wizard --config my-project/project.yaml
 | `slm-factory tool review` | QA 수동 리뷰 TUI | `--config`, `--data` |
 | `slm-factory tool dashboard` | 파이프라인 대시보드 TUI | `--config` |
 | `slm-factory tool evolve` | 자동 진화 (증분→학습→품질게이트→배포) | `--config`, `--force-update`, `--skip-gate` |
+| `slm-factory tool ontology` | 온톨로지(지식 그래프) 추출 | `--config` |
 | `slm-factory tool convert` | QA → JSONL 변환 | `--config`, `--data` |
 | `slm-factory tool dialogue` | 멀티턴 대화 생성 | `--config`, `--data` |
 | `slm-factory tool gguf` | GGUF 양자화 변환 | `--config`, `--model-dir` |
@@ -101,6 +102,7 @@ slm-factory tool wizard --config my-project/project.yaml
 `slm-factory run` 실행 시 아래 순서로 진행됩니다.
 
 1. **parse** (필수) — PDF/HWPX/HTML/TXT/DOCX 파싱 → `output/parsed_documents.json`
+1a. **ontology** (선택, `ontology.enabled: true`) — 문서에서 엔티티·관계 추출 → `output/ontology.json`
 2. **generate** (필수) — Teacher LLM으로 QA 쌍 생성 → `output/qa_alpaca.json`
 3. **validate** (필수) — 규칙 + 임베딩 기반 QA 검증 및 필터링 → `qa_alpaca.json` 갱신
 4. **score** (선택, `scoring.enabled: true`) — Teacher LLM 1~5점 품질 평가 → `output/qa_scored.json`
@@ -184,6 +186,7 @@ slm-factory eval compare \
 ```
 output/
 ├── parsed_documents.json       # 파싱된 문서 텍스트 및 메타데이터
+├── ontology.json                  # 온톨로지 지식 그래프 (엔티티, 관계)
 ├── qa_alpaca.json              # Teacher LLM이 생성한 QA 쌍 (Alpaca 형식)
 ├── qa_scored.json              # 품질 점수 평가를 통과한 QA 쌍
 ├── qa_augmented.json           # 데이터 증강이 완료된 QA 쌍
@@ -233,6 +236,11 @@ export:
   ollama:
     model_name: "my-project-model"
     system_prompt: "당신은 도메인 전문 도우미입니다."
+
+# 온톨로지 (선택)
+# ontology:
+#   enabled: true                       # 문서에서 지식 그래프 추출
+#   enrich_qa: true                     # QA 생성 시 온톨로지 컨텍스트 활용
 ```
 
 > 전체 설정 옵션(scoring, augment, validation, training, LoRA 등)은 [설정 레퍼런스](configuration.md)를 참조하십시오.
