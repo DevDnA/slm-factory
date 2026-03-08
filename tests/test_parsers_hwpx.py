@@ -56,6 +56,23 @@ def _create_hwpx(path: Path, body_xml: str) -> Path:
     return path
 
 
+def _create_multi_section_hwpx(path: Path, sections: list[str]) -> Path:
+    """여러 섹션 XML을 가진 멀티섹션 HWPX(ZIP) 파일을 생성합니다.
+
+    매개변수
+    ----------
+    path:
+        생성할 HWPX 파일 경로.
+    sections:
+        각 섹션의 body XML 리스트.
+    """
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as zf:
+        for idx, body_xml in enumerate(sections):
+            full_xml = _SECTION_XML_TEMPLATE.format(body=body_xml)
+            zf.writestr(f"Contents/section{idx}.xml", full_xml)
+    return path
+
+
 # ---------------------------------------------------------------------------
 # pytest fixture
 # ---------------------------------------------------------------------------
@@ -347,13 +364,13 @@ class TestHWPXParserErrors:
             parser.parse(tmp_path / "nonexistent.hwpx")
 
     def test_missing_section_xml(self, tmp_path: Path):
-        """Contents/section0.xml이 없는 ZIP에 대해 RuntimeError를 발생시킵니다."""
+        """Contents/section*.xml이 없는 ZIP에 대해 RuntimeError를 발생시킵니다."""
         bad_hwpx = tmp_path / "no_section.hwpx"
         with zipfile.ZipFile(bad_hwpx, "w") as zf:
             zf.writestr("dummy.txt", "not a valid hwpx")
 
         parser = HWPXParser()
-        with pytest.raises(RuntimeError, match="HWPX 파일을 읽을 수 없습니다"):
+        with pytest.raises(RuntimeError, match="올바르지 않습니다"):
             parser.parse(bad_hwpx)
 
     def test_invalid_zip(self, tmp_path: Path):
@@ -389,3 +406,67 @@ class TestHWPXParserRegistration:
         pdf.write_bytes(b"fake")
         parser = HWPXParser()
         assert parser.can_parse(pdf) is False
+
+
+# ---------------------------------------------------------------------------
+# 멀티섹션 HWPX 테스트
+# ---------------------------------------------------------------------------
+
+
+class TestMultiSectionHWPX:
+    """멀티섹션 HWPX 파일의 파싱을 검증합니다."""
+
+    def test_두_섹션_텍스트_병합(self, tmp_path: Path):
+        """section0.xml과 section1.xml의 텍스트가 순서대로 병합됩니다."""
+        hwpx = _create_multi_section_hwpx(
+            tmp_path / "multi.hwpx",
+            [
+                _make_paragraph("섹션0의 내용입니다."),
+                _make_paragraph("섹션1의 내용입니다."),
+            ],
+        )
+        parser = HWPXParser()
+        result = parser.parse(hwpx)
+
+        assert "섹션0의 내용입니다" in result.content
+        assert "섹션1의 내용입니다" in result.content
+        idx0 = result.content.index("섹션0")
+        idx1 = result.content.index("섹션1")
+        assert idx0 < idx1
+
+    def test_세_섹션_표_병합(self, tmp_path: Path):
+        """여러 섹션에 걸친 표가 모두 추출됩니다."""
+        table1 = _make_table([["A", "B"], ["1", "2"]])
+        table2 = _make_table([["C", "D"], ["3", "4"]])
+        hwpx = _create_multi_section_hwpx(
+            tmp_path / "tables.hwpx",
+            [
+                _make_paragraph("첫 섹션") + "\n" + table1,
+                _make_paragraph("둘째 섹션") + "\n" + table2,
+            ],
+        )
+        parser = HWPXParser()
+        result = parser.parse(hwpx)
+
+        assert len(result.tables) == 2
+
+    def test_단일_섹션_하위호환(self, tmp_path: Path):
+        """section0.xml만 있는 기존 HWPX 파일이 정상 파싱됩니다."""
+        hwpx = _create_hwpx(
+            tmp_path / "single.hwpx",
+            _make_paragraph("단일 섹션 문서입니다."),
+        )
+        parser = HWPXParser()
+        result = parser.parse(hwpx)
+
+        assert "단일 섹션 문서입니다" in result.content
+
+    def test_섹션_없는_HWPX_에러(self, tmp_path: Path):
+        """Contents/section*.xml이 없는 HWPX는 RuntimeError를 발생시킵니다."""
+        broken = tmp_path / "broken.hwpx"
+        with zipfile.ZipFile(broken, "w") as zf:
+            zf.writestr("Contents/other.xml", "<doc/>")
+
+        parser = HWPXParser()
+        with pytest.raises(RuntimeError, match="올바르지 않습니다"):
+            parser.parse(broken)

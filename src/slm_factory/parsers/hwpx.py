@@ -1,7 +1,8 @@
 """HWPX 파서 — 한국 .hwpx 문서에서 텍스트와 표를 추출합니다.
 
-HWPX 파일은 XML을 포함하는 ZIP 아카이브입니다 (section0.xml). 단락은
-<hp:p><hp:t> 태그에, 표는 <hp:tbl><hp:tr><hp:tc> 태그에 있습니다.
+HWPX 파일은 XML을 포함하는 ZIP 아카이브입니다 (section0.xml, section1.xml, ...).
+단락은 <hp:p><hp:t> 태그에, 표는 <hp:tbl><hp:tr><hp:tc> 태그에 있습니다.
+멀티섹션 문서의 경우 모든 ``Contents/section*.xml`` 파일을 순서대로 병합합니다.
 
 선택사항: 한국어 단어 간격 수정을 위한 pykospacing (pip install slm-factory[korean]).
 """
@@ -83,15 +84,28 @@ class HWPXParser(BaseParser):
             raise FileNotFoundError(f"HWPX not found: {path}")
 
         # ------------------------------------------------------------------
-        # ZIP 아카이브에서 XML 추출
+        # ZIP 아카이브에서 XML 추출 (멀티섹션 지원)
         # ------------------------------------------------------------------
         try:
             with zipfile.ZipFile(path, "r") as zf:
-                xml_content = zf.read("Contents/section0.xml").decode("utf-8")
+                section_files = sorted(
+                    name for name in zf.namelist()
+                    if re.match(r"Contents/section\d+\.xml$", name)
+                )
+                if not section_files:
+                    raise FileNotFoundError("No section XML files found")
+                xml_parts = [
+                    zf.read(name).decode("utf-8") for name in section_files
+                ]
+                if len(section_files) > 1:
+                    logger.info(
+                        "HWPX 멀티섹션 감지: %d개 섹션 (%s)",
+                        len(section_files), path.name,
+                    )
         except FileNotFoundError as exc:
             raise RuntimeError(
                 f"HWPX 파일 구조가 올바르지 않습니다: {path}\n"
-                f"원인: Contents/section0.xml을 찾을 수 없습니다. 파일이 손상되었을 수 있습니다.\n"
+                f"원인: Contents/section*.xml을 찾을 수 없습니다. 파일이 손상되었을 수 있습니다.\n"
                 f"해결: 한글에서 다시 저장하거나 PDF로 변환하여 사용하세요."
             ) from exc
         except Exception as exc:
@@ -102,56 +116,58 @@ class HWPXParser(BaseParser):
             ) from exc
 
         # ------------------------------------------------------------------
-        # BeautifulSoup으로 XML 파싱
-        # ------------------------------------------------------------------
-        try:
-            soup = BeautifulSoup(xml_content, "xml")
-        except Exception as exc:
-            raise RuntimeError(
-                f"HWPX 내부 XML 파싱에 실패했습니다: {path}\n"
-                f"원인: XML 구조가 올바르지 않습니다.\n"
-                f"해결: 한글에서 다시 저장하거나 PDF로 변환하여 사용하세요."
-            ) from exc
-
-        # ------------------------------------------------------------------
-        # 단락 추출 (중첩된 것 건너뜀)
+        # BeautifulSoup으로 각 섹션 XML 파싱 및 병합
         # ------------------------------------------------------------------
         paragraphs: list[str] = []
-        for p_tag in soup.find_all("hp:p"):
-            # 중첩된 단락 건너뜀
-            if p_tag.find_parent("hp:p") is not None:
-                continue
+        tables_md: list[str] = []
 
-            # hp:t 자식 태그에서 텍스트 추출
-            text_parts = []
-            for t_tag in p_tag.find_all("hp:t"):
-                text = t_tag.get_text(strip=True)
-                if text:
-                    text_parts.append(text)
+        for xml_content in xml_parts:
+            try:
+                soup = BeautifulSoup(xml_content, "xml")
+            except Exception as exc:
+                raise RuntimeError(
+                    f"HWPX 내부 XML 파싱에 실패했습니다: {path}\n"
+                    f"원인: XML 구조가 올바르지 않습니다.\n"
+                    f"해결: 한글에서 다시 저장하거나 PDF로 변환하여 사용하세요."
+                ) from exc
 
-            if text_parts:
-                para_text = "".join(text_parts)
-                # 선택적 한국어 간격 수정 적용
-                if HAS_PYKOSPACING:
-                    try:
-                        para_text = spacing(para_text)
-                    except Exception:
-                        logger.debug("pykospacing failed for paragraph, using original text")
-                paragraphs.append(para_text)
+            # ------------------------------------------------------------------
+            # 단락 추출 (중첩된 것 건너뜀)
+            # ------------------------------------------------------------------
+            for p_tag in soup.find_all("hp:p"):
+                # 중첩된 단락 건너뜀
+                if p_tag.find_parent("hp:p") is not None:
+                    continue
+
+                # hp:t 자식 태그에서 텍스트 추출
+                text_parts = []
+                for t_tag in p_tag.find_all("hp:t"):
+                    text = t_tag.get_text(strip=True)
+                    if text:
+                        text_parts.append(text)
+
+                if text_parts:
+                    para_text = "".join(text_parts)
+                    # 선택적 한국어 간격 수정 적용
+                    if HAS_PYKOSPACING:
+                        try:
+                            para_text = spacing(para_text)
+                        except Exception:
+                            logger.debug("pykospacing failed for paragraph, using original text")
+                    paragraphs.append(para_text)
+
+            # ------------------------------------------------------------------
+            # 표 추출
+            # ------------------------------------------------------------------
+            for table in soup.find_all("hp:tbl"):
+                md = _table_to_markdown(table)
+                if md:
+                    tables_md.append(md)
 
         content = "\n\n".join(paragraphs).strip()
 
         # 과도한 빈 줄 정규화
         content = re.sub(r"\n{3,}", "\n\n", content)
-
-        # ------------------------------------------------------------------
-        # 표 추출
-        # ------------------------------------------------------------------
-        tables_md: list[str] = []
-        for table in soup.find_all("hp:tbl"):
-            md = _table_to_markdown(table)
-            if md:
-                tables_md.append(md)
 
         # ------------------------------------------------------------------
         # 메타데이터
