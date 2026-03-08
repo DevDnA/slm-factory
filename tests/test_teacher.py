@@ -251,9 +251,133 @@ class TestCreateTeacher:
 
     def test_알_수_없는_백엔드_ValueError(self):
         """알 수 없는 backend 값을 지정하면 ValueError를 발생시키는지 확인합니다."""
-        # TeacherConfig의 Literal["ollama", "openai"] 제약을 우회하기 위해
-        # 직접 객체의 backend를 변경합니다.
         config = _make_teacher_config(backend="ollama")
         config.backend = "unknown"
         with pytest.raises(ValueError, match="Unknown teacher backend"):
             create_teacher(config)
+
+
+# ---------------------------------------------------------------------------
+# Ollama 스트리밍
+# ---------------------------------------------------------------------------
+
+
+class TestOllamaTeacherStreamGenerate:
+    """OllamaTeacher.generate(stream=True)의 동기 스트리밍 테스트입니다."""
+
+    def test_스트리밍_정상_응답(self, mocker):
+        """NDJSON 스트리밍 응답에서 토큰을 정상적으로 누적합니다."""
+        lines = [
+            '{"response": "안녕", "done": false}',
+            '{"response": "하세요", "done": false}',
+            '{"response": "", "done": true}',
+        ]
+
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status = MagicMock()
+        mock_resp.iter_lines.return_value = iter(lines)
+        mock_resp.__enter__ = MagicMock(return_value=mock_resp)
+        mock_resp.__exit__ = MagicMock(return_value=False)
+
+        mocker.patch("httpx.stream", return_value=mock_resp)
+
+        teacher = OllamaTeacher(_make_teacher_config())
+        result = teacher.generate("질문입니다", stream=True)
+
+        assert result == "안녕하세요"
+
+    def test_스트리밍_빈_응답(self, mocker):
+        """스트리밍에서 빈 응답을 처리합니다."""
+        lines = ['{"response": "", "done": true}']
+
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status = MagicMock()
+        mock_resp.iter_lines.return_value = iter(lines)
+        mock_resp.__enter__ = MagicMock(return_value=mock_resp)
+        mock_resp.__exit__ = MagicMock(return_value=False)
+
+        mocker.patch("httpx.stream", return_value=mock_resp)
+
+        teacher = OllamaTeacher(_make_teacher_config())
+        result = teacher.generate("질문입니다", stream=True)
+
+        assert result == ""
+
+    def test_스트리밍_타임아웃_RuntimeError(self, mocker):
+        """스트리밍 중 타임아웃 시 RuntimeError를 발생시킵니다."""
+        mocker.patch("httpx.stream", side_effect=httpx.TimeoutException("timeout"))
+        mocker.patch("slm_factory.teacher.ollama.time.sleep")
+
+        teacher = OllamaTeacher(_make_teacher_config())
+        with pytest.raises(RuntimeError, match="타임아웃"):
+            teacher.generate("질문입니다", stream=True)
+
+    def test_스트리밍_잘못된_JSON_건너뜀(self, mocker):
+        """유효하지 않은 JSON 라인을 건너뛰고 정상 토큰만 수집합니다."""
+        lines = [
+            '{"response": "정상", "done": false}',
+            "invalid json line",
+            '{"response": "토큰", "done": false}',
+            '{"response": "", "done": true}',
+        ]
+
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status = MagicMock()
+        mock_resp.iter_lines.return_value = iter(lines)
+        mock_resp.__enter__ = MagicMock(return_value=mock_resp)
+        mock_resp.__exit__ = MagicMock(return_value=False)
+
+        mocker.patch("httpx.stream", return_value=mock_resp)
+
+        teacher = OllamaTeacher(_make_teacher_config())
+        result = teacher.generate("질문입니다", stream=True)
+
+        assert result == "정상토큰"
+
+    def test_stream_False_기존_동작_유지(self, mocker):
+        """stream=False(기본값)일 때 기존 httpx.post 경로를 사용합니다."""
+        mock_resp = MagicMock()
+        mock_resp.json.return_value = {"response": "기존 응답"}
+        mock_resp.raise_for_status = MagicMock()
+        mocker.patch("httpx.post", return_value=mock_resp)
+
+        teacher = OllamaTeacher(_make_teacher_config())
+        result = teacher.generate("질문입니다")
+
+        assert result == "기존 응답"
+        httpx.post.assert_called_once()
+
+
+class TestOllamaTeacherStreamAgenerate:
+    """OllamaTeacher.agenerate(stream=True)의 비동기 스트리밍 테스트입니다."""
+
+    @pytest.mark.asyncio
+    async def test_비동기_스트리밍_정상_응답(self, mocker):
+        """비동기 NDJSON 스트리밍에서 토큰을 정상적으로 누적합니다."""
+        lines = [
+            '{"response": "비동기", "done": false}',
+            '{"response": " 스트리밍", "done": false}',
+            '{"response": "", "done": true}',
+        ]
+
+        async def mock_aiter_lines():
+            for line in lines:
+                yield line
+
+        mock_stream_resp = MagicMock()
+        mock_stream_resp.raise_for_status = MagicMock()
+        mock_stream_resp.aiter_lines = mock_aiter_lines
+        mock_stream_resp.__aenter__ = AsyncMock(return_value=mock_stream_resp)
+        mock_stream_resp.__aexit__ = AsyncMock(return_value=False)
+
+        mock_client = MagicMock()
+        mock_client.stream.return_value = mock_stream_resp
+        mock_client.__aenter__ = AsyncMock(return_value=mock_client)
+        mock_client.__aexit__ = AsyncMock(return_value=False)
+
+        mocker.patch("httpx.AsyncClient", return_value=mock_client)
+
+        teacher = OllamaTeacher(_make_teacher_config())
+        result = await teacher.agenerate("질문입니다", stream=True)
+
+        assert result == "비동기 스트리밍"

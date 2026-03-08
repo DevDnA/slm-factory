@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import time
 from typing import Any
 
@@ -58,17 +59,22 @@ class OllamaTeacher(BaseTeacher):
 
         키워드 인자는 ``model``, ``temperature``를 오버라이드하고
         ``format``을 추가할 수 있습니다(예: ``"json"``).
+
+        ``stream=True``를 전달하면 NDJSON 스트리밍 모드를 사용하여
+        토큰이 생성될 때마다 점진적으로 수신합니다. 긴 응답에서
+        타임아웃을 방지하는 데 유용합니다.
         """
         url = f"{self.api_base}/api/generate"
 
         model: str = kwargs.pop("model", self.model)
         temperature: float = kwargs.pop("temperature", self.temperature)
         fmt: str | None = kwargs.pop("format", None)
+        stream: bool = kwargs.pop("stream", False)
 
         payload: dict[str, Any] = {
             "model": model,
             "prompt": prompt,
-            "stream": False,
+            "stream": stream,
             "options": {
                 "temperature": temperature,
                 "stop": _STOP_TOKENS,
@@ -77,7 +83,13 @@ class OllamaTeacher(BaseTeacher):
         if fmt is not None:
             payload["format"] = fmt
 
-        logger.debug("POST %s  model=%s  temp=%.2f", url, model, temperature)
+        logger.debug(
+            "POST %s  model=%s  temp=%.2f  stream=%s",
+            url, model, temperature, stream,
+        )
+
+        if stream:
+            return self._generate_stream(url, payload, model)
 
         resp: httpx.Response | None = None
         for attempt in range(_MAX_RETRIES):
@@ -140,6 +152,93 @@ class OllamaTeacher(BaseTeacher):
 
         return text
 
+    def _generate_stream(
+        self,
+        url: str,
+        payload: dict[str, Any],
+        model: str,
+    ) -> str:
+        """NDJSON 스트리밍으로 응답을 수신합니다.
+
+        Ollama ``stream: true``는 한 줄당 하나의 JSON 객체를 반환합니다:
+        ``{"response": "token", "done": false}``.
+        마지막 줄은 ``{"done": true, ...stats}``입니다.
+        """
+        chunks: list[str] = []
+
+        for attempt in range(_MAX_RETRIES):
+            try:
+                with httpx.stream(
+                    "POST", url, json=payload, timeout=self.timeout,
+                ) as resp:
+                    resp.raise_for_status()
+                    for line in resp.iter_lines():
+                        if not line:
+                            continue
+                        try:
+                            obj = json.loads(line)
+                        except json.JSONDecodeError:
+                            logger.debug("스트리밍 라인 JSON 파싱 실패: %s", line[:100])
+                            continue
+                        token = obj.get("response", "")
+                        if token:
+                            chunks.append(token)
+                        if obj.get("done", False):
+                            break
+                break
+            except httpx.TimeoutException as e:
+                if attempt < _MAX_RETRIES - 1:
+                    delay = _RETRY_BASE_DELAY * (2 ** attempt)
+                    logger.warning(
+                        "Ollama 스트리밍 타임아웃 (시도 %d/%d), %.0f초 후 재시도...",
+                        attempt + 1, _MAX_RETRIES, delay,
+                    )
+                    chunks.clear()
+                    time.sleep(delay)
+                    continue
+                raise RuntimeError(
+                    f"Ollama 스트리밍이 {_MAX_RETRIES}회 시도 후에도 타임아웃되었습니다 "
+                    f"(model={model}, url={url}, timeout={self.timeout}s). "
+                    f"서버 상태를 확인하거나 teacher.timeout 값을 늘려보세요."
+                ) from e
+            except httpx.ConnectError as e:
+                if attempt < _MAX_RETRIES - 1:
+                    delay = _RETRY_BASE_DELAY * (2 ** attempt)
+                    logger.warning(
+                        "Ollama 연결 실패 (시도 %d/%d), %.0f초 후 재시도...",
+                        attempt + 1, _MAX_RETRIES, delay,
+                    )
+                    chunks.clear()
+                    time.sleep(delay)
+                    continue
+                raise RuntimeError(
+                    f"Ollama({url})에 {_MAX_RETRIES}회 시도 후에도 연결할 수 없습니다. "
+                    "서버가 실행 중인지 확인하세요: ollama serve"
+                ) from e
+            except httpx.HTTPStatusError as exc:
+                raise RuntimeError(
+                    f"Ollama HTTP {exc.response.status_code}: "
+                    f"{exc.response.text[:200]}"
+                ) from exc
+            except httpx.HTTPError as e:
+                if attempt < _MAX_RETRIES - 1:
+                    delay = _RETRY_BASE_DELAY * (2 ** attempt)
+                    logger.warning(
+                        "Ollama 스트리밍 실패 (시도 %d/%d, %s), %.0f초 후 재시도...",
+                        attempt + 1, _MAX_RETRIES, type(e).__name__, delay,
+                    )
+                    chunks.clear()
+                    time.sleep(delay)
+                    continue
+                raise RuntimeError(
+                    f"Ollama 스트리밍이 {_MAX_RETRIES}회 시도 후에도 실패했습니다: {e}"
+                ) from e
+
+        text = "".join(chunks).strip()
+        if not text:
+            logger.warning("Ollama returned an empty streaming response for model=%s", model)
+        return text
+
     async def agenerate(self, prompt: str, **kwargs: Any) -> str:
         """비동기 변형 — 동시 요청을 위해 ``httpx.AsyncClient``를 사용합니다."""
         url = f"{self.api_base}/api/generate"
@@ -147,11 +246,12 @@ class OllamaTeacher(BaseTeacher):
         model: str = kwargs.pop("model", self.model)
         temperature: float = kwargs.pop("temperature", self.temperature)
         fmt: str | None = kwargs.pop("format", None)
+        stream: bool = kwargs.pop("stream", False)
 
         payload: dict[str, Any] = {
             "model": model,
             "prompt": prompt,
-            "stream": False,
+            "stream": stream,
             "options": {
                 "temperature": temperature,
                 "stop": _STOP_TOKENS,
@@ -159,6 +259,9 @@ class OllamaTeacher(BaseTeacher):
         }
         if fmt is not None:
             payload["format"] = fmt
+
+        if stream:
+            return await self._agenerate_stream(url, payload, model)
 
         resp: httpx.Response | None = None
         async with httpx.AsyncClient() as client:
@@ -220,6 +323,89 @@ class OllamaTeacher(BaseTeacher):
         if not text:
             logger.warning("Ollama returned an empty response for model=%s", model)
 
+        return text
+
+    async def _agenerate_stream(
+        self,
+        url: str,
+        payload: dict[str, Any],
+        model: str,
+    ) -> str:
+        """비동기 NDJSON 스트리밍으로 응답을 수신합니다."""
+        chunks: list[str] = []
+
+        async with httpx.AsyncClient() as client:
+            for attempt in range(_MAX_RETRIES):
+                try:
+                    async with client.stream(
+                        "POST", url, json=payload, timeout=self.timeout,
+                    ) as resp:
+                        resp.raise_for_status()
+                        async for line in resp.aiter_lines():
+                            if not line:
+                                continue
+                            try:
+                                obj = json.loads(line)
+                            except json.JSONDecodeError:
+                                logger.debug("스트리밍 라인 JSON 파싱 실패: %s", line[:100])
+                                continue
+                            token = obj.get("response", "")
+                            if token:
+                                chunks.append(token)
+                            if obj.get("done", False):
+                                break
+                    break
+                except httpx.TimeoutException as e:
+                    if attempt < _MAX_RETRIES - 1:
+                        delay = _RETRY_BASE_DELAY * (2 ** attempt)
+                        logger.warning(
+                            "Ollama 스트리밍 타임아웃 (시도 %d/%d), %.0f초 후 재시도...",
+                            attempt + 1, _MAX_RETRIES, delay,
+                        )
+                        chunks.clear()
+                        await asyncio.sleep(delay)
+                        continue
+                    raise RuntimeError(
+                        f"Ollama 스트리밍이 {_MAX_RETRIES}회 시도 후에도 타임아웃되었습니다 "
+                        f"(model={model}, url={url}, timeout={self.timeout}s). "
+                        f"서버 상태를 확인하거나 teacher.timeout 값을 늘려보세요."
+                    ) from e
+                except httpx.ConnectError as e:
+                    if attempt < _MAX_RETRIES - 1:
+                        delay = _RETRY_BASE_DELAY * (2 ** attempt)
+                        logger.warning(
+                            "Ollama 연결 실패 (시도 %d/%d), %.0f초 후 재시도...",
+                            attempt + 1, _MAX_RETRIES, delay,
+                        )
+                        chunks.clear()
+                        await asyncio.sleep(delay)
+                        continue
+                    raise RuntimeError(
+                        f"Ollama({url})에 {_MAX_RETRIES}회 시도 후에도 연결할 수 없습니다. "
+                        "서버가 실행 중인지 확인하세요: ollama serve"
+                    ) from e
+                except httpx.HTTPStatusError as exc:
+                    raise RuntimeError(
+                        f"Ollama HTTP {exc.response.status_code}: "
+                        f"{exc.response.text[:200]}"
+                    ) from exc
+                except httpx.HTTPError as e:
+                    if attempt < _MAX_RETRIES - 1:
+                        delay = _RETRY_BASE_DELAY * (2 ** attempt)
+                        logger.warning(
+                            "Ollama 스트리밍 실패 (시도 %d/%d, %s), %.0f초 후 재시도...",
+                            attempt + 1, _MAX_RETRIES, type(e).__name__, delay,
+                        )
+                        chunks.clear()
+                        await asyncio.sleep(delay)
+                        continue
+                    raise RuntimeError(
+                        f"Ollama 스트리밍이 {_MAX_RETRIES}회 시도 후에도 실패했습니다: {e}"
+                    ) from e
+
+        text = "".join(chunks).strip()
+        if not text:
+            logger.warning("Ollama returned an empty streaming response for model=%s", model)
         return text
 
     def health_check(self) -> bool:
