@@ -767,3 +767,109 @@ class TestReviewCommand:
             "tool", "review", "--config", "/nonexistent/path.yaml",
         ])
         assert result.exit_code == 1
+
+
+# ---------------------------------------------------------------------------
+# compare-data
+# ---------------------------------------------------------------------------
+
+
+class TestCompareDataCommand:
+    """tool compare-data 명령어의 테스트입니다."""
+
+    def _make_qa_file(self, path: Path, pairs: list[dict]) -> Path:
+        import json as _json
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(_json.dumps(pairs, ensure_ascii=False, indent=2), encoding="utf-8")
+        return path
+
+    def test_두_파일_비교_정상_실행(self, tmp_path):
+        """두 QA 파일을 비교하여 정상 실행되는지 확인합니다."""
+        baseline_pairs = [
+            {"question": "Q1?", "answer": "A" * 50, "instruction": "Q1?", "source_doc": "a.pdf", "category": "test"},
+            {"question": "Q2?", "answer": "B" * 30, "instruction": "Q2?", "source_doc": "a.pdf", "category": "test"},
+        ]
+        target_pairs = [
+            {"question": "Q1?", "answer": "A" * 80, "instruction": "Q1?", "source_doc": "a.pdf", "category": "test"},
+            {"question": "Q2?", "answer": "B" * 60, "instruction": "Q2?", "source_doc": "a.pdf", "category": "test"},
+            {"question": "Q3?", "answer": "C" * 40, "instruction": "Q3?", "source_doc": "b.pdf", "category": "test"},
+        ]
+
+        baseline = self._make_qa_file(tmp_path / "baseline.json", baseline_pairs)
+        target = self._make_qa_file(tmp_path / "target.json", target_pairs)
+
+        result = runner.invoke(app, [
+            "tool", "compare-data",
+            "--baseline", str(baseline),
+            "--target", str(target),
+        ])
+
+        assert result.exit_code == 0
+        assert "기본 통계 비교" in result.output
+        assert "baseline.json" in result.output
+        assert "target.json" in result.output
+
+    def test_기준_파일_미존재시_exit_code_1(self, tmp_path):
+        """기준 파일이 존재하지 않으면 exit code 1로 종료하는지 확인합니다."""
+        target = self._make_qa_file(tmp_path / "target.json", [])
+
+        result = runner.invoke(app, [
+            "tool", "compare-data",
+            "--baseline", "/nonexistent/file.json",
+            "--target", str(target),
+        ])
+
+        assert result.exit_code == 1
+
+    def test_대상_파일_미존재시_exit_code_1(self, tmp_path):
+        """대상 파일이 존재하지 않으면 exit code 1로 종료하는지 확인합니다."""
+        baseline = self._make_qa_file(tmp_path / "baseline.json", [])
+
+        result = runner.invoke(app, [
+            "tool", "compare-data",
+            "--baseline", str(baseline),
+            "--target", "/nonexistent/file.json",
+        ])
+
+        assert result.exit_code == 1
+
+    def test_빈_파일_비교(self, tmp_path):
+        """빈 QA 데이터 비교 시에도 정상 실행되는지 확인합니다."""
+        baseline = self._make_qa_file(tmp_path / "baseline.json", [])
+        target = self._make_qa_file(tmp_path / "target.json", [])
+
+        result = runner.invoke(app, [
+            "tool", "compare-data",
+            "--baseline", str(baseline),
+            "--target", str(target),
+        ])
+
+        assert result.exit_code == 0
+
+    def test_카테고리_분포_비교_출력(self, tmp_path):
+        """서로 다른 카테고리 분포가 비교 테이블에 표시되는지 확인합니다."""
+        baseline_pairs = [
+            {"question": "Q?", "answer": "A" * 50, "instruction": "Q?", "source_doc": "a.pdf", "category": "overview"},
+        ]
+        target_pairs = [
+            {"question": "Q?", "answer": "A" * 50, "instruction": "Q?", "source_doc": "a.pdf", "category": "overview"},
+            {"question": "Q2?", "answer": "B" * 50, "instruction": "Q2?", "source_doc": "a.pdf", "category": "technical"},
+        ]
+
+        baseline = self._make_qa_file(tmp_path / "baseline.json", baseline_pairs)
+        target = self._make_qa_file(tmp_path / "target.json", target_pairs)
+
+        result = runner.invoke(app, [
+            "tool", "compare-data",
+            "--baseline", str(baseline),
+            "--target", str(target),
+        ])
+
+        assert result.exit_code == 0
+        assert "카테고리 분포 비교" in result.output
+
+    def test_help_출력(self):
+        """compare-data --help가 정상 출력되는지 확인합니다."""
+        result = runner.invoke(app, ["tool", "compare-data", "--help"])
+        assert result.exit_code == 0
+        assert "비교" in result.output

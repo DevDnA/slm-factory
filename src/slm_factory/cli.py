@@ -955,6 +955,139 @@ def extract_ontology(
         raise typer.Exit(code=1)
 
 
+@tool_app.command(name="compare-data")
+def compare_data(
+    baseline: str = typer.Option(..., "--baseline", "-b", help="기준 QA 데이터 파일 경로"),
+    target: str = typer.Option(..., "--target", "-t", help="비교 대상 QA 데이터 파일 경로"),
+) -> None:
+    """두 QA 데이터 세트의 품질을 비교합니다."""
+    from rich.panel import Panel
+    from rich.table import Table
+
+    from .analyzer import DataAnalyzer
+    from .models import QAPair
+
+    baseline_path = Path(baseline)
+    target_path = Path(target)
+
+    if not baseline_path.is_file():
+        _print_error("파일 없음", f"기준 파일을 찾을 수 없습니다: {baseline_path}")
+        raise typer.Exit(code=1)
+    if not target_path.is_file():
+        _print_error("파일 없음", f"비교 대상 파일을 찾을 수 없습니다: {target_path}")
+        raise typer.Exit(code=1)
+
+    try:
+        import json as _json
+
+        baseline_data = _json.loads(baseline_path.read_text(encoding="utf-8"))
+        baseline_pairs = [QAPair(**item) for item in baseline_data]
+
+        target_data = _json.loads(target_path.read_text(encoding="utf-8"))
+        target_pairs = [QAPair(**item) for item in target_data]
+    except Exception as e:
+        _print_error("파일 로드 실패", e)
+        raise typer.Exit(code=1)
+
+    analyzer = DataAnalyzer()
+    baseline_report = analyzer.analyze(baseline_pairs)
+    target_report = analyzer.analyze(target_pairs)
+
+    console.print()
+    console.print(Panel("[bold cyan]QA 데이터 품질 비교[/bold cyan]", expand=False))
+
+    overview = Table(title="기본 통계 비교")
+    overview.add_column("항목", style="bold")
+    overview.add_column("기준 (Baseline)", justify="right")
+    overview.add_column("대상 (Target)", justify="right")
+    overview.add_column("변화", justify="right", style="bold")
+
+    def _delta_str(base_val: float, target_val: float) -> str:
+        diff = target_val - base_val
+        if diff == 0:
+            return "[dim]0[/dim]"
+        sign = "+" if diff > 0 else ""
+        color = "green" if diff > 0 else "red"
+        return f"[{color}]{sign}{diff:.1f}[/{color}]"
+
+    overview.add_row(
+        "전체 QA 쌍",
+        str(baseline_report.total_pairs),
+        str(target_report.total_pairs),
+        _delta_str(baseline_report.total_pairs, target_report.total_pairs),
+    )
+    overview.add_row(
+        "원본 QA 쌍",
+        str(baseline_report.original_pairs),
+        str(target_report.original_pairs),
+        _delta_str(baseline_report.original_pairs, target_report.original_pairs),
+    )
+    overview.add_row(
+        "증강 QA 쌍",
+        str(baseline_report.augmented_pairs),
+        str(target_report.augmented_pairs),
+        _delta_str(baseline_report.augmented_pairs, target_report.augmented_pairs),
+    )
+    overview.add_row(
+        "문서 소스 수",
+        str(len(baseline_report.source_doc_distribution)),
+        str(len(target_report.source_doc_distribution)),
+        _delta_str(
+            len(baseline_report.source_doc_distribution),
+            len(target_report.source_doc_distribution),
+        ),
+    )
+    console.print(overview)
+
+    length_table = Table(title="길이 통계 비교 (문자 수)")
+    length_table.add_column("항목", style="bold")
+    length_table.add_column("기준 평균", justify="right")
+    length_table.add_column("대상 평균", justify="right")
+    length_table.add_column("변화", justify="right", style="bold")
+
+    for label, b_stats, t_stats in [
+        ("답변 길이", baseline_report.answer_length_stats, target_report.answer_length_stats),
+        ("질문 길이", baseline_report.question_length_stats, target_report.question_length_stats),
+    ]:
+        b_mean = b_stats.get("mean", 0.0)
+        t_mean = t_stats.get("mean", 0.0)
+        length_table.add_row(label, f"{b_mean:.1f}", f"{t_mean:.1f}", _delta_str(b_mean, t_mean))
+
+    console.print(length_table)
+
+    all_categories = sorted(
+        set(baseline_report.category_distribution) | set(target_report.category_distribution)
+    )
+    if all_categories:
+        cat_table = Table(title="카테고리 분포 비교")
+        cat_table.add_column("카테고리", style="bold")
+        cat_table.add_column("기준", justify="right")
+        cat_table.add_column("대상", justify="right")
+        cat_table.add_column("변화", justify="right", style="bold")
+        for cat in all_categories:
+            b_count = baseline_report.category_distribution.get(cat, 0)
+            t_count = target_report.category_distribution.get(cat, 0)
+            cat_table.add_row(cat, str(b_count), str(t_count), _delta_str(b_count, t_count))
+        console.print(cat_table)
+
+    all_warnings = []
+    for w in target_report.warnings:
+        if w not in baseline_report.warnings:
+            all_warnings.append(f"[yellow]⚠ (대상) {w}[/yellow]")
+    for w in baseline_report.warnings:
+        if w not in target_report.warnings:
+            all_warnings.append(f"[green]✓ (해결됨) {w}[/green]")
+    if all_warnings:
+        console.print()
+        for w in all_warnings:
+            console.print(f"  {w}")
+
+    console.print(
+        f"\n  기준: [cyan]{baseline_path.name}[/cyan] ({baseline_report.total_pairs}개)"
+        f"\n  대상: [cyan]{target_path.name}[/cyan] ({target_report.total_pairs}개)\n"
+    )
+
+
 @tool_app.command(name="convert")
 def convert(
     config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
@@ -1175,6 +1308,30 @@ def wizard(
             _print_error("파싱 실패", e, hints=_get_error_hints(e), resume_cmd=_resume_cmd)
             raise typer.Exit(code=1)
 
+    # ── Step 3b: 청킹 설정 (선택) ────────────────────────────────────
+    if skip_to_step <= 3:
+        chunk_default = pipeline.config.chunking.enabled
+        console.print("\n[bold]━━━ [3b/12] 문서 청킹 (선택) ━━━[/bold]")
+        console.print(
+            "  [dim]긴 문서를 청크로 분할하여 각 청크마다 QA를 생성합니다.\n"
+            "  활성화하면 문서의 전체 내용에서 QA가 생성되어 품질이 향상됩니다.[/dim]"
+        )
+        console.print(
+            f"  [dim]설정: chunking.enabled = {str(chunk_default).lower()}, "
+            f"chunk_size = {pipeline.config.chunking.chunk_size}, "
+            f"overlap = {pipeline.config.chunking.overlap_chars}[/dim]"
+        )
+        if Confirm.ask("  문서 청킹을 활성화하시겠습니까?", default=chunk_default):
+            pipeline.config.chunking.enabled = True
+            console.print(
+                f"  [green]✓[/green] 청킹 활성화 "
+                f"(chunk_size={pipeline.config.chunking.chunk_size}, "
+                f"overlap={pipeline.config.chunking.overlap_chars})"
+            )
+        else:
+            pipeline.config.chunking.enabled = False
+            console.print("  [yellow]⏭ 건너뜀[/yellow]")
+
     # ── Step 3a: 온톨로지 추출 (선택) ────────────────────────────────
     kg = None
     if skip_to_step <= 3:
@@ -1277,9 +1434,15 @@ def wizard(
         )
         if Confirm.ask("  품질 점수 평가를 하시겠습니까?", default=score_default):
             pipeline.config.scoring.enabled = True
+            regen_default = pipeline.config.scoring.regenerate
+            console.print(
+                "  [dim]저품질 QA를 자동 재생성하면 폐기 대신 개선된 답변으로 복구합니다.[/dim]"
+            )
+            if Confirm.ask("  저품질 QA 재생성을 활성화하시겠습니까?", default=regen_default):
+                pipeline.config.scoring.regenerate = True
             try:
                 before = len(pairs)
-                pairs = pipeline.step_score(pairs)
+                pairs = pipeline.step_score(pairs, docs=docs, ontology=kg)
                 console.print(
                     f"  [green]✓[/green] {len(pairs)}개 통과, "
                     f"{before - len(pairs)}개 제거"
