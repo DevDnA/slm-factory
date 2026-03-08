@@ -125,7 +125,7 @@ class LoRATrainer:
                 model_name,
                 quantization_config=quantization_config,
                 device_map=device.device_map,
-                torch_dtype=device.torch_dtype,
+                dtype=device.torch_dtype,
                 trust_remote_code=True,
             )
         except OSError as e:

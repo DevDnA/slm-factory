@@ -19,14 +19,16 @@ logger = get_logger("teacher.ollama")
 _MAX_RETRIES = 3
 _RETRY_BASE_DELAY = 1.0  # 초
 
-# 사고 과정 추론을 유출하는 토큰 — 제거하거나 억제합니다.
-_STOP_TOKENS: list[str] = [
-    "</think>",
-    "<think>",
-    "Reasoning:",
-    "Let me think",
-    "Step by step:",
-]
+import re
+
+# 사고 과정 추론 태그 — 응답 후처리에서 제거합니다.
+# Ollama API의 stop 파라미터로 전달하면 Qwen3 등 thinking 모델이
+# <think> 태그를 생성하자마자 출력이 중단되는 문제가 발생합니다.
+_THINK_TAG_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
+
+
+def _clean_thinking_tags(text: str) -> str:
+    return _THINK_TAG_RE.sub("", text).strip()
 
 
 class OllamaTeacher(BaseTeacher):
@@ -77,7 +79,6 @@ class OllamaTeacher(BaseTeacher):
             "stream": stream,
             "options": {
                 "temperature": temperature,
-                "stop": _STOP_TOKENS,
             },
         }
         if fmt is not None:
@@ -145,7 +146,7 @@ class OllamaTeacher(BaseTeacher):
         if resp is None:
             raise RuntimeError("Ollama 요청에 대한 응답을 받지 못했습니다")
         data: dict[str, Any] = resp.json()
-        text: str = data.get("response", "").strip()
+        text: str = _clean_thinking_tags(data.get("response", ""))
 
         if not text:
             logger.warning("Ollama returned an empty response for model=%s", model)
@@ -234,7 +235,7 @@ class OllamaTeacher(BaseTeacher):
                     f"Ollama 스트리밍이 {_MAX_RETRIES}회 시도 후에도 실패했습니다: {e}"
                 ) from e
 
-        text = "".join(chunks).strip()
+        text = _clean_thinking_tags("".join(chunks))
         if not text:
             logger.warning("Ollama returned an empty streaming response for model=%s", model)
         return text
@@ -254,7 +255,6 @@ class OllamaTeacher(BaseTeacher):
             "stream": stream,
             "options": {
                 "temperature": temperature,
-                "stop": _STOP_TOKENS,
             },
         }
         if fmt is not None:
@@ -318,7 +318,7 @@ class OllamaTeacher(BaseTeacher):
         if resp is None:
             raise RuntimeError("Ollama 요청에 대한 응답을 받지 못했습니다")
         data: dict[str, Any] = resp.json()
-        text: str = data.get("response", "").strip()
+        text: str = _clean_thinking_tags(data.get("response", ""))
 
         if not text:
             logger.warning("Ollama returned an empty response for model=%s", model)
@@ -403,7 +403,7 @@ class OllamaTeacher(BaseTeacher):
                         f"Ollama 스트리밍이 {_MAX_RETRIES}회 시도 후에도 실패했습니다: {e}"
                     ) from e
 
-        text = "".join(chunks).strip()
+        text = _clean_thinking_tags("".join(chunks))
         if not text:
             logger.warning("Ollama returned an empty streaming response for model=%s", model)
         return text

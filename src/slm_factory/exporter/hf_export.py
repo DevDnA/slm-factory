@@ -70,7 +70,7 @@ class HFExporter:
                 base_model = AutoModelForCausalLM.from_pretrained(
                     self.student_model,
                     device_map=device.device_map,
-                    torch_dtype=device.torch_dtype,
+                    dtype=device.torch_dtype,
                 )
         except OSError as e:
             raise RuntimeError(
@@ -109,7 +109,9 @@ class HFExporter:
                 f"모델을 저장할 수 없습니다 ({output_dir}). "
                 f"디스크 공간이 충분한지 확인하세요: {e}"
             ) from e
-        
+
+        self._sanitize_config_json(output_dir)
+
         # 토크나이저 저장
         try:
             with console.status("[bold blue]토크나이저 저장 중...[/bold blue]"):
@@ -124,6 +126,41 @@ class HFExporter:
         
         return output_dir
     
+    @staticmethod
+    def _sanitize_config_json(output_dir: Path) -> None:
+        """Ollama/llama.cpp 호환을 위해 config.json에서 비표준 필드를 제거합니다.
+
+        transformers 5.3+에서 ``save_pretrained``가 ``layer_types``,
+        ``rope_parameters`` 등의 필드를 생성하는데, 이는 Ollama의
+        safetensors→GGUF 변환기에서 인식하지 못해 런타임 크래시를 유발합니다.
+        """
+        import json
+
+        config_path = output_dir / "config.json"
+        if not config_path.exists():
+            return
+
+        with open(config_path) as f:
+            config = json.load(f)
+
+        removable = ("layer_types", "rope_parameters", "transformers_version")
+        removed = [k for k in removable if k in config]
+        if not removed:
+            return
+
+        rope_params = config.pop("rope_parameters", None)
+        if rope_params and "rope_theta" not in config:
+            config["rope_theta"] = rope_params.get("rope_theta", 10000.0)
+        for key in removable:
+            config.pop(key, None)
+
+        with open(config_path, "w") as f:
+            json.dump(config, f, indent=2)
+
+        logger.debug(
+            "config.json에서 Ollama 비호환 필드 제거: %s", ", ".join(removed)
+        )
+
     def save_adapter_only(
         self,
         adapter_path: str | Path,
