@@ -13,6 +13,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from slm_factory.config import SLMConfig
+from slm_factory.ontology.models import KnowledgeGraph
 from slm_factory.pipeline import Pipeline
 
 
@@ -358,7 +359,10 @@ class TestPipelineRun:
         mock_adapter_path = tmp_path / "adapter"
         mock_export_path = tmp_path / "export"
 
+        mock_kg = KnowledgeGraph()
+
         mocker.patch.object(pipeline, "step_parse", return_value=mock_docs)
+        mocker.patch.object(pipeline, "step_extract_ontology", return_value=mock_kg)
         mocker.patch.object(pipeline, "step_generate", return_value=mock_pairs)
         mocker.patch.object(pipeline, "step_validate", return_value=mock_validated)
         mocker.patch.object(pipeline, "step_score", return_value=mock_validated)
@@ -371,7 +375,8 @@ class TestPipelineRun:
         result = pipeline.run()
 
         pipeline.step_parse.assert_called_once()
-        pipeline.step_generate.assert_called_once_with(mock_docs)
+        pipeline.step_extract_ontology.assert_called_once_with(mock_docs)
+        pipeline.step_generate.assert_called_once_with(mock_docs, ontology=mock_kg)
         pipeline.step_validate.assert_called_once()
         pipeline.step_convert.assert_called_once_with(mock_validated)
         pipeline.step_train.assert_called_once_with(mock_training_path)

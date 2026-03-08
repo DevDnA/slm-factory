@@ -57,14 +57,13 @@ class TestChunkText:
             assert len(chunk) <= 120  # overlap 여유 포함
 
     def test_빈_텍스트_폴백(self):
-        """빈 텍스트를 입력하면 해당 텍스트가 담긴 리스트를 반환하는지 확인합니다."""
+        """빈 텍스트를 입력하면 빈 리스트를 반환하는지 확인합니다."""
         checker = _make_checker()
         text = ""
 
         chunks = checker._chunk_text(text, chunk_size=512, overlap=64)
 
-        assert len(chunks) == 1
-        assert chunks[0] == text
+        assert len(chunks) == 0
 
 
 # ---------------------------------------------------------------------------
