@@ -42,6 +42,12 @@ class ChatFormatter:
         """토크나이저를 지연 로딩합니다 (필요하지 않으면 import 비용 회피)."""
         if self._tokenizer is None:
             from transformers import AutoTokenizer
+            logger.warning(
+                "trust_remote_code=True로 토크나이저를 로드합니다 (model=%s). "
+                "이 옵션은 모델 저장소의 코드를 로컬에서 실행하므로, "
+                "신뢰할 수 있는 출처의 모델만 사용하세요.",
+                self.model_name,
+            )
             self._tokenizer = AutoTokenizer.from_pretrained(
                 self.model_name,
                 trust_remote_code=True,

@@ -79,6 +79,12 @@ class LoRATrainer:
 
         model_name = self.student_config.model
 
+        logger.warning(
+            "trust_remote_code=True로 토크나이저를 로드합니다 (model=%s). "
+            "이 옵션은 모델 저장소의 코드를 로컬에서 실행하므로, "
+            "신뢰할 수 있는 출처의 모델만 사용하세요.",
+            model_name,
+        )
         tokenizer = AutoTokenizer.from_pretrained(
             model_name, trust_remote_code=True
         )
@@ -109,6 +115,12 @@ class LoRATrainer:
                 )
 
         try:
+            logger.warning(
+                "trust_remote_code=True로 모델을 로드합니다 (model=%s). "
+                "이 옵션은 모델 저장소의 코드를 로컬에서 실행하므로, "
+                "신뢰할 수 있는 출처의 모델만 사용하세요.",
+                model_name,
+            )
             model = AutoModelForCausalLM.from_pretrained(
                 model_name,
                 quantization_config=quantization_config,
