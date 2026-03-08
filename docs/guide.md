@@ -202,9 +202,10 @@ wizard는 다음 12단계를 순서대로 안내합니다 (Step 3a는 선택적 
 | 2 | 문서 선택 | **필수** | 전체 또는 개별 문서를 선택합니다 |
 | 3 | 문서 파싱 | **필수** | 선택한 문서에서 텍스트와 표를 자동 추출합니다 |
 | 3a | 온톨로지 추출 | 선택 | 문서에서 엔티티·관계를 추출하여 지식 그래프를 구성합니다 (`ontology.enabled` 설정 반영) |
+| 3b | 문서 청킹 | 선택 | 긴 문서를 청크로 분할하여 전체 내용에서 QA를 생성합니다 (`chunking.enabled` 설정 반영) |
 | 4 | QA 쌍 생성 | **필수** | Teacher LLM이 문서 기반 질문-답변 쌍을 생성합니다 |
 | 5 | QA 검증 | **필수** | 규칙 기반 및 임베딩 기반으로 저품질 QA를 필터링합니다 |
-| 6 | 품질 점수 평가 | 선택 | Teacher LLM이 각 QA를 1~5점으로 평가하여 추가 필터링합니다 |
+| 6 | 품질 점수 평가 | 선택 | Teacher LLM이 각 QA를 1~5점으로 평가하여 추가 필터링합니다. 저품질 QA 재생성 옵션 포함 |
 | 7 | 데이터 증강 | 선택 | 질문을 다양한 표현으로 변형하여 학습 데이터를 늘립니다 |
 | 8 | LoRA 학습 | **필수** | Student 모델에 LoRA 어댑터를 적용하여 파인튜닝합니다 |
 | 9 | 모델 내보내기 | **필수** | LoRA 어댑터를 기본 모델에 병합하고 Ollama Modelfile을 생성합니다 |
@@ -589,6 +590,55 @@ slm-factory train --config my-project/project.yaml
 ---
 
 ## 5. 데이터 품질 관리
+
+### 문서 청킹 (chunking)
+
+긴 문서를 청크(조각)로 분할하여 각 청크마다 QA를 생성합니다. `teacher.max_context_chars`(기본 12,000자)보다 긴 문서는 앞부분만 잘려서 QA가 생성되는데, 청킹을 활성화하면 문서 전체에서 QA가 생성되어 뒷부분 내용의 누락을 방지합니다.
+
+**설정**:
+
+```yaml
+chunking:
+  enabled: true
+  chunk_size: 10000       # 각 청크의 최대 문자 수
+  overlap_chars: 500      # 연속된 청크 간 중첩 문자 수
+```
+
+**동작**: 문단 경계(빈 줄)를 기준으로 청크를 분할하여 문장이 중간에 잘리지 않습니다. 각 청크에 대해 질문별로 QA를 생성하므로 문서가 길수록 더 많은 QA 쌍이 생성됩니다.
+
+**설정 변경 전후 비교**: `tool compare-data` 명령으로 청킹 적용 전후의 QA 품질을 수치로 비교할 수 있습니다.
+
+```bash
+# 청킹 전 QA 생성
+slm-factory run --until generate --config project.yaml
+cp output/qa_alpaca.json output/qa_before_chunking.json
+
+# chunking.enabled: true 변경 후 재생성
+slm-factory run --until generate --config project.yaml
+
+# 비교
+slm-factory tool compare-data -b output/qa_before_chunking.json -t output/qa_alpaca.json
+```
+
+---
+
+### 저품질 QA 재생성 (scoring.regenerate)
+
+품질 점수 평가에서 `threshold` 미만으로 평가된 QA 쌍을 바로 폐기하지 않고, 이전 점수와 실패 이유를 프롬프트에 주입하여 개선된 답변을 비동기 배치로 재생성합니다.
+
+**설정**:
+
+```yaml
+scoring:
+  enabled: true
+  threshold: 3.5
+  regenerate: true            # 저품질 QA 재생성 활성화
+  max_regenerate_rounds: 2    # 최대 재생성 반복 횟수
+```
+
+**동작**: 각 라운드에서 `threshold` 미만인 QA를 모아 Teacher LLM에 "이전 점수: X, 이유: Y" 피드백과 함께 재생성을 요청합니다. 재생성된 QA는 다시 점수 평가를 받으며, 최대 `max_regenerate_rounds`만큼 반복됩니다.
+
+---
 
 ### 온톨로지 추출 (ontology)
 

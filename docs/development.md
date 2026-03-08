@@ -141,6 +141,7 @@ class SLMConfig(BaseModel):
     compare: CompareConfig;      evolve: EvolveConfig
     dashboard: DashboardConfig
     ontology: OntologyConfig
+    chunking: ChunkingConfig
 ```
 
 각 서브 모델의 필드 상세는 [configuration.md](configuration.md)를 참조하십시오.
@@ -881,6 +882,7 @@ tests/
 ├── test_{scorer,augmenter,analyzer,converter}.py
 ├── test_exporter{,_gguf}.py     # HFExporter, OllamaExporter, GGUFExporter
 ├── test_{evaluator,comparator,incremental}.py
+├── test_integration.py          # 통합 테스트 (청킹, 온톨로지, 재생성, 관계 정규화)
 ├── test_{reviewer,dashboard}.py # TUI
 ├── test_cli.py                  # CLI 명령어
 └── test_utils.py                # 유틸리티 함수

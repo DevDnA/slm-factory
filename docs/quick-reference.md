@@ -84,6 +84,7 @@ slm-factory tool wizard --config my-project/project.yaml
 | `slm-factory tool dialogue` | 멀티턴 대화 생성 | `--config`, `--data` |
 | `slm-factory tool gguf` | GGUF 양자화 변환 | `--config`, `--model-dir` |
 | `slm-factory tool update` | 증분 업데이트 (변경 문서만) | `--config` |
+| `slm-factory tool compare-data` | 두 QA 데이터셋 품질 비교 | `--baseline` / `-b`, `--target` / `-t` |
 
 ### ℹ️ 정보
 
@@ -103,6 +104,7 @@ slm-factory tool wizard --config my-project/project.yaml
 
 1. **parse** (필수) — PDF/HWPX/HTML/TXT/DOCX 파싱 → `output/parsed_documents.json`
 1a. **ontology** (선택, `ontology.enabled: true`) — 문서에서 엔티티·관계 추출 → `output/ontology.json`
+1b. **chunking** (선택, `chunking.enabled: true`) — 긴 문서를 청크로 분할하여 QA 생성 범위 확장
 2. **generate** (필수) — Teacher LLM으로 QA 쌍 생성 → `output/qa_alpaca.json`
 3. **validate** (필수) — 규칙 + 임베딩 기반 QA 검증 및 필터링 → `qa_alpaca.json` 갱신
 4. **score** (선택, `scoring.enabled: true`) — Teacher LLM 1~5점 품질 평가 → `output/qa_scored.json`
@@ -236,6 +238,12 @@ export:
   ollama:
     model_name: "my-project-model"
     system_prompt: "당신은 도메인 전문 도우미입니다."
+
+# 문서 청킹 (선택, 긴 문서 처리 시 권장)
+# chunking:
+#   enabled: true                       # 긴 문서를 청크로 분할
+#   chunk_size: 10000                   # 청크 최대 문자 수
+#   overlap_chars: 500                  # 청크 간 중첩 문자 수
 
 # 온톨로지 (선택)
 # ontology:

@@ -121,7 +121,30 @@ parsing:
 
 ---
 
-## 5. teacher — Teacher LLM 설정
+## 5. chunking — 문서 청킹 설정
+
+> 긴 문서를 청크(조각)로 분할하여 각 청크마다 QA를 생성합니다. 문서 전체를 빠짐없이 커버하여 QA 품질을 향상시킵니다.
+
+| 필드 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `enabled` | `bool` | `false` | 문서 청킹 기능 활성화 여부 |
+| `chunk_size` | `int` | `10000` | 각 청크의 최대 문자 수 |
+| `overlap_chars` | `int` | `500` | 연속된 청크 간 중첩 문자 수. 문맥 유지를 위해 이전 청크의 끝부분을 다음 청크에 포함합니다 |
+
+```yaml
+chunking:
+  enabled: true
+  chunk_size: 10000
+  overlap_chars: 500
+```
+
+`teacher.max_context_chars`보다 짧은 문서는 청킹 없이 그대로 처리됩니다. 긴 문서(예: 50페이지 이상 PDF)에서 문서 뒷부분의 내용이 QA에 누락되는 문제를 해결합니다.
+
+청크는 문단 경계(빈 줄)를 기준으로 분할되어 문장이 중간에 잘리지 않습니다. 온톨로지 추출(`tool ontology`)에서도 동일한 청킹 로직이 적용되어 긴 문서의 엔티티·관계를 빠짐없이 추출합니다.
+
+---
+
+## 6. teacher — Teacher LLM 설정
 
 > QA 쌍을 생성하는 Teacher 모델의 설정입니다. Ollama 또는 OpenAI 호환 API를 사용할 수 있습니다.
 
@@ -162,7 +185,7 @@ teacher:
 
 ---
 
-## 6. questions — 질문 설정
+## 7. questions — 질문 설정
 
 > Teacher 모델이 문서에 대해 생성할 질문을 정의합니다. 카테고리별 질문 목록 또는 외부 파일로 지정할 수 있습니다.
 
@@ -219,7 +242,7 @@ questions:
 
 ---
 
-## 7. validation — QA 검증 설정
+## 8. validation — QA 검증 설정
 
 > 생성된 QA 쌍의 품질을 검증하고 필터링하는 규칙을 정의합니다.
 
@@ -273,7 +296,7 @@ validation:
 
 ---
 
-## 8. scoring — 품질 점수 평가 설정
+## 9. scoring — 품질 점수 평가 설정
 
 > 생성된 QA 쌍의 품질을 Teacher LLM으로 평가하고 낮은 점수의 QA 쌍을 필터링합니다.
 
@@ -282,19 +305,23 @@ validation:
 | `enabled` | `bool` | `false` | 품질 점수 평가 기능 활성화 여부 |
 | `threshold` | `float` | `3.0` | QA 쌍 최소 합격 점수 (1.0~5.0). 이 점수 미만의 QA 쌍은 데이터셋에서 제거됩니다 |
 | `max_concurrency` | `int` | `4` | 비동기 점수 평가 시 최대 동시 요청 수 |
+| `regenerate` | `bool` | `false` | 저품질 QA 쌍을 피드백 기반으로 재생성하여 복구 |
+| `max_regenerate_rounds` | `int` | `2` | 재생성 최대 반복 횟수 (1 이상) |
 
 ```yaml
 scoring:
   enabled: true
   threshold: 3.5
   max_concurrency: 4
+  regenerate: true
+  max_regenerate_rounds: 2
 ```
 
-Teacher LLM이 질문의 명확성, 답변의 정확성, 문서와의 관련성을 종합하여 1~5점으로 평가합니다. `threshold` 미만의 QA 쌍은 데이터셋에서 제거됩니다. 품질은 높아지지만 데이터셋 크기는 줄어들 수 있습니다.
+Teacher LLM이 질문의 명확성, 답변의 정확성, 문서와의 관련성을 종합하여 1~5점으로 평가합니다. `threshold` 미만의 QA 쌍은 데이터셋에서 제거됩니다. `regenerate: true`로 설정하면 제거 대신 이전 점수와 실패 이유를 프롬프트에 주입하여 개선된 답변을 비동기 배치로 재생성합니다.
 
 ---
 
-## 9. augment — 데이터 증강 설정
+## 10. augment — 데이터 증강 설정
 
 > 기존 QA 쌍의 질문을 패러프레이즈하여 데이터셋을 확장합니다.
 
@@ -315,7 +342,7 @@ augment:
 
 ---
 
-## 10. analyzer — 데이터 분석 설정
+## 11. analyzer — 데이터 분석 설정
 
 > 생성된 QA 데이터셋의 통계 정보를 분석하고 보고서를 생성합니다.
 
@@ -334,7 +361,7 @@ analyzer:
 
 ---
 
-## 11. student — Student 모델 설정
+## 12. student — Student 모델 설정
 
 > 파인튜닝할 Student 모델을 지정합니다. HuggingFace Hub의 모든 causal language model을 사용할 수 있습니다.
 
@@ -364,7 +391,7 @@ student:
 
 ---
 
-## 12. training — 학습 설정
+## 13. training — 학습 설정
 
 > LoRA 파인튜닝의 하이퍼파라미터와 학습 전략을 정의합니다.
 
@@ -440,7 +467,7 @@ training:
 
 ---
 
-## 13. export — 모델 내보내기 설정
+## 14. export — 모델 내보내기 설정
 
 > 학습된 모델을 내보내는 방식을 정의합니다.
 
@@ -477,7 +504,7 @@ export:
 
 ---
 
-## 14. eval — 모델 평가 설정
+## 15. eval — 모델 평가 설정
 
 > 학습된 모델을 BLEU/ROUGE 메트릭으로 자동 평가합니다.
 
@@ -504,7 +531,7 @@ eval:
 
 ---
 
-## 15. compare — 모델 비교 설정
+## 16. compare — 모델 비교 설정
 
 > Base 모델과 Fine-tuned 모델의 답변을 나란히 비교합니다.
 
@@ -535,7 +562,7 @@ compare:
 
 ---
 
-## 16. evolve — 자동 진화 설정
+## 17. evolve — 자동 진화 설정
 
 > 증분 업데이트 → 전체 재학습 → 품질 게이트 → 조건부 배포를 단일 명령으로 실행합니다.
 
@@ -563,7 +590,7 @@ evolve:
 ```
 ---
 
-## 17. gguf_export — GGUF 변환 설정
+## 18. gguf_export — GGUF 변환 설정
 
 > 병합된 모델을 llama.cpp 호환 GGUF 양자화 형식으로 변환합니다.
 
@@ -582,7 +609,7 @@ gguf_export:
 
 ---
 
-## 18. incremental — 증분 학습 설정
+## 19. incremental — 증분 학습 설정
 
 > 문서 추가 시 기존 QA를 유지하면서 새 문서만 처리합니다. 해시 기반으로 변경을 감지합니다.
 
@@ -603,7 +630,7 @@ incremental:
 
 ---
 
-## 19. dialogue — 멀티턴 대화 설정
+## 20. dialogue — 멀티턴 대화 설정
 
 > QA 쌍을 멀티턴 대화 형식으로 확장합니다.
 
@@ -626,7 +653,7 @@ dialogue:
 
 ---
 
-## 20. review — QA 리뷰 설정
+## 21. review — QA 리뷰 설정
 
 > TUI에서 QA 쌍을 수동으로 검토하고 승인/거부/편집합니다.
 
@@ -645,7 +672,7 @@ review:
 
 ---
 
-## 21. dashboard — 대시보드 설정
+## 22. dashboard — 대시보드 설정
 
 > 파이프라인 진행 상태를 실시간 TUI로 모니터링합니다.
 
@@ -664,7 +691,7 @@ dashboard:
 
 ---
 
-## 22. 설정 레시피
+## 23. 설정 레시피
 
 자주 사용되는 설정 패턴을 레시피 형태로 제공합니다. 각 레시피는 특정 상황에 맞게 최소한의 필드만 변경합니다.
 
@@ -776,7 +803,7 @@ teacher:
 
 ---
 
-## 23. 전체 설정 예시 (한국어 정책 문서 프로젝트)
+## 24. 전체 설정 예시 (한국어 정책 문서 프로젝트)
 
 한국어 회사 정책 문서를 처리하는 완전한 `project.yaml` 예시입니다.
 
@@ -956,7 +983,7 @@ dashboard:
 
 ---
 
-## 24. 설정 검증 (slm-factory check)
+## 25. 설정 검증 (slm-factory check)
 
 설정 파일이 올바른지 확인하려면 `check` 명령을 사용합니다:
 
@@ -993,7 +1020,7 @@ $ slm-factory check --config project.yaml
 
 ---
 
-## 25. ontology — 온톨로지(지식 그래프) 추출 설정
+## 26. ontology — 온톨로지(지식 그래프) 추출 설정
 
 > 문서에서 엔티티(개체)와 관계를 자동 추출하여 지식 그래프를 구성합니다. QA 생성 시 추출된 지식을 컨텍스트로 활용할 수 있습니다.
 
