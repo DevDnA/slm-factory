@@ -45,8 +45,7 @@ slm-factory tool wizard --config my-project/project.yaml
 | 문서 | 내용 |
 |------|------|
 | [사용 가이드](https://devdna.github.io/slm-factory/guide.html) | 설치, 튜토리얼, 트러블슈팅 |
-| [AutoRAG 연동](https://devdna.github.io/slm-factory/autorag-integration.html) | SLM + RAG 통합 아키텍처 |
-| [온톨로지 가이드](https://devdna.github.io/slm-factory/ontology-guide.html) | 온톨로지 소개, 기술 조합 분석, 장단점 |
+| [기술 확장 가이드](https://devdna.github.io/slm-factory/integration-guide.html) | RAG·온톨로지 기술 조합 전략, 연동 방법, 장단점 |
 | [빠른 참조](https://devdna.github.io/slm-factory/quick-reference.html) | 명령어 치트시트 |
 | [CLI 레퍼런스](https://devdna.github.io/slm-factory/cli-reference.html) | 전체 명령어 옵션 |
 | [설정 레퍼런스](https://devdna.github.io/slm-factory/configuration.html) | project.yaml 전체 설정 |
