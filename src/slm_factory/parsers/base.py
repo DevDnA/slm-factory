@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import ClassVar
 
+from charset_normalizer import from_bytes
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, MofNCompleteColumn
 
 from ..models import ParsedDocument
@@ -16,6 +17,38 @@ logger = get_logger("parsers.base")
 
 # 파일명에서 자주 발견되는 YYMMDD 날짜 패턴 (예: "report_240115_v2.pdf")
 _DATE_PATTERN = re.compile(r"(\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])")
+
+
+def detect_encoding(content: bytes) -> str:
+    """바이트 콘텐츠의 인코딩을 감지합니다.
+
+    ``charset-normalizer``를 사용하여 EUC-KR, CP949 등 한국어 인코딩을
+    포함한 다양한 인코딩을 정확하게 감지합니다. 감지에 실패하면
+    ``utf-8``로 폴백합니다.
+
+    매개변수
+    ----------
+    content:
+        인코딩을 감지할 바이트 데이터.
+
+    반환값
+    -------
+    str
+        감지된 인코딩 이름 (예: ``"utf-8"``, ``"euc-kr"``).
+    """
+    if not content:
+        return "utf-8"
+
+    result = from_bytes(content).best()
+    if result is not None:
+        encoding = result.encoding
+        # charset-normalizer가 "cp949"를 반환할 수 있음 — 표준화
+        if encoding.lower() in ("cp949", "euc-kr", "euckr"):
+            return "euc-kr"
+        # charset-normalizer가 언더스코어 형식("utf_8")을 반환할 수 있음 — 하이픈으로 정규화
+        return encoding.replace("_", "-")
+
+    return "utf-8"
 
 
 def extract_date_from_filename(filename: str) -> str | None:

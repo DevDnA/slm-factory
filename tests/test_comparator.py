@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-from slm_factory.config import CompareConfig, EvalConfig, SLMConfig, TeacherConfig
+from slm_factory.config import CompareConfig, EvalConfig, ProjectConfig, SLMConfig, TeacherConfig
 from slm_factory.comparator import ModelComparator
 from slm_factory.models import CompareResult, QAPair
 
@@ -323,3 +323,56 @@ class TestPrintSummary:
         comparator.print_summary(results)
         out = capsys.readouterr().out
         assert "N/A" in out
+
+
+class TestKoreanTokenizer:
+    """한국어 형태소 분석 토크나이저 비교 테스트입니다."""
+
+    def test_한국어_프로젝트_토크나이저_사용(self, mock_bleu, mock_rouge):
+        """language='ko'일 때 한국어 토크나이저가 적용되는지 확인합니다."""
+        config = SLMConfig(
+            project=ProjectConfig(language="ko"),
+            teacher=TeacherConfig(api_base="http://localhost:11434", timeout=30, max_concurrency=2),
+            eval=EvalConfig(enabled=True, metrics=["bleu", "rouge"], max_samples=10),
+            compare=CompareConfig(
+                enabled=True,
+                base_model="base-model",
+                finetuned_model="finetuned-model",
+                max_samples=10,
+            ),
+        )
+        comp = ModelComparator(config)
+
+        mock_tokenizer = MagicMock(side_effect=lambda text: text.split())
+        with (
+            patch("slm_factory.comparator._load_bleu", return_value=mock_bleu),
+            patch("slm_factory.comparator._load_rouge", return_value=mock_rouge),
+            patch("slm_factory.comparator._load_korean_tokenizer", return_value=mock_tokenizer),
+        ):
+            comp._compute_scores("서울", "서울", "서울입니다")
+
+        assert mock_tokenizer.call_count >= 3
+
+    def test_영어_프로젝트_토크나이저_미사용(self, mock_bleu, mock_rouge):
+        """language='en'일 때 한국어 토크나이저가 사용되지 않는지 확인합니다."""
+        config = SLMConfig(
+            project=ProjectConfig(language="en"),
+            teacher=TeacherConfig(api_base="http://localhost:11434", timeout=30, max_concurrency=2),
+            eval=EvalConfig(enabled=True, metrics=["bleu", "rouge"], max_samples=10),
+            compare=CompareConfig(
+                enabled=True,
+                base_model="base-model",
+                finetuned_model="finetuned-model",
+                max_samples=10,
+            ),
+        )
+        comp = ModelComparator(config)
+
+        with (
+            patch("slm_factory.comparator._load_bleu", return_value=mock_bleu),
+            patch("slm_factory.comparator._load_rouge", return_value=mock_rouge),
+            patch("slm_factory.comparator._load_korean_tokenizer") as mock_load,
+        ):
+            comp._compute_scores("hello", "hello", "hello world")
+
+        mock_load.assert_not_called()

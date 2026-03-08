@@ -128,3 +128,90 @@ class TestHTMLParser:
         doc = parser.parse(html_file)
 
         assert doc.title == "H1 제목"
+
+
+# ---------------------------------------------------------------------------
+# EUC-KR 인코딩 테스트
+# ---------------------------------------------------------------------------
+
+
+class TestEucKrEncoding:
+    """EUC-KR 인코딩 HTML 파일의 파싱 테스트입니다."""
+
+    def test_euc_kr_인코딩_파싱(self, tmp_path):
+        """EUC-KR 인코딩된 HTML 파일을 정상적으로 파싱하는지 확인합니다."""
+        html_content = "<html><head><title>테스트</title></head><body><p>한국어 본문입니다.</p></body></html>"
+        html_file = tmp_path / "euckr.html"
+        html_file.write_bytes(html_content.encode("euc-kr"))
+
+        parser = HTMLParser()
+        doc = parser.parse(html_file)
+
+        assert "한국어 본문" in doc.content
+        assert doc.title == "테스트"
+
+    def test_cp949_인코딩_파싱(self, tmp_path):
+        """CP949 인코딩된 HTML 파일을 정상적으로 파싱하는지 확인합니다."""
+        html_content = "<html><body><p>CP949로 인코딩된 텍스트입니다.</p></body></html>"
+        html_file = tmp_path / "cp949.html"
+        html_file.write_bytes(html_content.encode("cp949"))
+
+        parser = HTMLParser()
+        doc = parser.parse(html_file)
+
+        assert "CP949로 인코딩된" in doc.content
+
+
+# ---------------------------------------------------------------------------
+# Heading 마크다운 변환 테스트
+# ---------------------------------------------------------------------------
+
+
+class TestHeadingPreservation:
+    """HTML heading 태그의 마크다운 변환 테스트입니다."""
+
+    def test_h1_마크다운_변환(self, tmp_path):
+        """h1 태그가 마크다운 # 형식으로 변환되는지 확인합니다."""
+        html_file = tmp_path / "heading.html"
+        html_file.write_text(
+            "<html><body><h1>제목</h1><p>본문</p></body></html>",
+            encoding="utf-8",
+        )
+
+        parser = HTMLParser()
+        doc = parser.parse(html_file)
+
+        assert "# 제목" in doc.content
+
+    def test_다단계_heading_변환(self, tmp_path):
+        """h1~h3 태그가 각각 올바른 마크다운 레벨로 변환되는지 확인합니다."""
+        html_file = tmp_path / "multi_heading.html"
+        html_file.write_text(
+            "<html><body>"
+            "<h1>대제목</h1>"
+            "<h2>중제목</h2>"
+            "<h3>소제목</h3>"
+            "<p>본문 내용</p>"
+            "</body></html>",
+            encoding="utf-8",
+        )
+
+        parser = HTMLParser()
+        doc = parser.parse(html_file)
+
+        assert "# 대제목" in doc.content
+        assert "## 중제목" in doc.content
+        assert "### 소제목" in doc.content
+
+    def test_heading_없는_HTML(self, tmp_path):
+        """heading 태그가 없는 HTML에서도 정상 파싱되는지 확인합니다."""
+        html_file = tmp_path / "no_heading.html"
+        html_file.write_text(
+            "<html><body><p>본문만 있는 문서입니다.</p></body></html>",
+            encoding="utf-8",
+        )
+
+        parser = HTMLParser()
+        doc = parser.parse(html_file)
+
+        assert "본문만 있는 문서" in doc.content

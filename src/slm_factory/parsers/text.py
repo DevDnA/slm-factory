@@ -6,22 +6,9 @@ from pathlib import Path
 from typing import ClassVar
 
 from ..utils import get_logger
-from .base import BaseParser, ParsedDocument, extract_date_from_filename
+from .base import BaseParser, ParsedDocument, detect_encoding, extract_date_from_filename
 
 logger = get_logger("parsers.text")
-
-
-def _detect_encoding(content: bytes) -> str:
-    """콘텐츠에서 인코딩을 감지하고, 폴백은 latin-1입니다."""
-    # 먼저 UTF-8 시도
-    try:
-        content.decode("utf-8")
-        return "utf-8"
-    except UnicodeDecodeError:
-        pass
-
-    # 폴백
-    return "latin-1"
 
 
 class TextParser(BaseParser):
@@ -58,7 +45,7 @@ class TextParser(BaseParser):
         # ------------------------------------------------------------------
         try:
             raw_content = path.read_bytes()
-            encoding = _detect_encoding(raw_content)
+            encoding = detect_encoding(raw_content)
             content = raw_content.decode(encoding)
         except Exception as exc:
             raise RuntimeError(

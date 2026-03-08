@@ -11,6 +11,7 @@ dependencies = [
     "pyyaml>=6.0",
     "rich>=13.0",
     "httpx>=0.25.0",
+    "charset-normalizer>=3.0",
     # Parsing
     "pymupdf>=1.24.0",
     "beautifulsoup4>=4.12",
@@ -20,7 +21,7 @@ dependencies = [
     "transformers>=4.40.0",
     "datasets>=2.18.0",
     "peft>=0.10.0",
-    "trl>=0.8.0",
+    "trl>=0.12.0",
     "accelerate>=0.28.0",
 ]
 
@@ -29,13 +30,11 @@ cuda = [
     "bitsandbytes>=0.43.0",
 ]
 korean = [
+    "kiwipiepy>=0.18.0",
     "pykospacing @ git+https://github.com/haven-jeon/PyKoSpacing.git",
 ]
 validation = [
     "sentence-transformers>=2.6.0",
-]
-pdfplumber = [
-    "pdfplumber>=0.11.0",
 ]
 docx = [
     "python-docx>=1.0.0",
@@ -55,9 +54,9 @@ dev = [
 ]
 all = [
     "bitsandbytes>=0.43.0; sys_platform != 'darwin'",
+    "kiwipiepy>=0.18.0",
     "pykospacing @ git+https://github.com/haven-jeon/PyKoSpacing.git",
     "sentence-transformers>=2.6.0",
-    "pdfplumber>=0.11.0",
     "python-docx>=1.0.0",
     "evaluate>=0.4.0",
     "rouge-score>=0.1.2",

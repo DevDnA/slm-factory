@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from slm_factory.config import EvalConfig, SLMConfig, TeacherConfig
-from slm_factory.evaluator import ModelEvaluator
+from slm_factory.config import EvalConfig, ProjectConfig, SLMConfig, TeacherConfig
+from slm_factory.evaluator import ModelEvaluator, _preprocess_for_metrics
 from slm_factory.models import EvalResult, QAPair
 
 
@@ -199,3 +199,66 @@ class TestPrintSummary:
         assert "bleu" in out
         assert "rouge1" in out
         assert "2건 평가 완료" in out
+
+
+class TestKoreanTokenizer:
+    """한국어 형태소 분석 토크나이저 관련 테스트입니다."""
+
+    def test_전처리_토크나이저_없음(self):
+        """토크나이저가 None이면 원본 텍스트를 반환하는지 확인합니다."""
+        text = "한국어 텍스트입니다."
+        result = _preprocess_for_metrics(text, korean_tokenizer=None)
+        assert result == text
+
+    def test_전처리_토크나이저_적용(self):
+        """토크나이저가 제공되면 형태소 분리된 텍스트를 반환하는지 확인합니다."""
+        def mock_tokenizer(text):
+            return ["한국어", "텍스트", "입니다", "."]
+
+        result = _preprocess_for_metrics("한국어 텍스트입니다.", korean_tokenizer=mock_tokenizer)
+        assert result == "한국어 텍스트 입니다 ."
+
+    def test_한국어_프로젝트_토크나이저_사용(self, mock_bleu, mock_rouge):
+        """language='ko'일 때 한국어 토크나이저가 적용되는지 확인합니다."""
+        config = SLMConfig(
+            project=ProjectConfig(language="ko"),
+            teacher=TeacherConfig(api_base="http://localhost:11434", timeout=30, max_concurrency=2),
+            eval=EvalConfig(enabled=True, metrics=["bleu", "rouge"], max_samples=10),
+        )
+        ev = ModelEvaluator(config)
+
+        mock_tokenizer = MagicMock(side_effect=lambda text: text.split())
+        with (
+            patch("slm_factory.evaluator._load_bleu", return_value=mock_bleu),
+            patch("slm_factory.evaluator._load_rouge", return_value=mock_rouge),
+            patch("slm_factory.evaluator._load_korean_tokenizer", return_value=mock_tokenizer),
+        ):
+            ev._compute_scores("서울입니다", "서울입니다")
+
+        assert mock_tokenizer.call_count >= 2
+
+    def test_영어_프로젝트_토크나이저_미사용(self, mock_bleu, mock_rouge):
+        """language='en'일 때 한국어 토크나이저가 사용되지 않는지 확인합니다."""
+        config = SLMConfig(
+            project=ProjectConfig(language="en"),
+            teacher=TeacherConfig(api_base="http://localhost:11434", timeout=30, max_concurrency=2),
+            eval=EvalConfig(enabled=True, metrics=["bleu", "rouge"], max_samples=10),
+        )
+        ev = ModelEvaluator(config)
+
+        with (
+            patch("slm_factory.evaluator._load_bleu", return_value=mock_bleu),
+            patch("slm_factory.evaluator._load_rouge", return_value=mock_rouge),
+            patch("slm_factory.evaluator._load_korean_tokenizer") as mock_load,
+        ):
+            ev._compute_scores("hello", "hello")
+
+        mock_load.assert_not_called()
+
+    def test_빈_텍스트_전처리(self):
+        """빈 텍스트에 대해 전처리가 정상 동작하는지 확인합니다."""
+        def mock_tokenizer(text):
+            return []
+
+        result = _preprocess_for_metrics("", korean_tokenizer=mock_tokenizer)
+        assert result == ""

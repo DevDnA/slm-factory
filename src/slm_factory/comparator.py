@@ -15,7 +15,7 @@ from rich.table import Table
 if TYPE_CHECKING:
     from .config import CompareConfig, SLMConfig
 
-from .evaluator import _load_bleu, _load_rouge
+from .evaluator import _load_bleu, _load_korean_tokenizer, _load_rouge, _preprocess_for_metrics
 from .models import CompareResult, QAPair
 from .utils import get_logger, ollama_generate, run_async, run_bounded
 
@@ -36,17 +36,30 @@ class ModelComparator:
         return await ollama_generate(client, self.api_base, model_name, question, self.timeout)
 
     def _compute_scores(self, reference: str, base_answer: str, finetuned_answer: str) -> dict[str, float]:
-        """Base 모델과 Fine-tuned 모델 답변의 점수를 계산합니다."""
+        """Base 모델과 Fine-tuned 모델 답변의 점수를 계산합니다.
+
+        한국어 프로젝트에서는 형태소 분석 토크나이저로 텍스트를
+        전처리한 뒤 점수를 계산합니다.
+        """
         scores: dict[str, float] = {}
         metrics = self.compare_config.metrics
+
+        # 한국어 프로젝트일 때 형태소 분석 토크나이저 사용
+        tokenizer = None
+        if self.config.project.language == "ko":
+            tokenizer = _load_korean_tokenizer()
+
+        ref = _preprocess_for_metrics(reference, tokenizer)
+        base = _preprocess_for_metrics(base_answer, tokenizer)
+        ft = _preprocess_for_metrics(finetuned_answer, tokenizer)
 
         if "bleu" in metrics:
             bleu = _load_bleu()
             base_result = bleu.compute(
-                predictions=[base_answer], references=[[reference]],
+                predictions=[base], references=[[ref]],
             )
             finetuned_result = bleu.compute(
-                predictions=[finetuned_answer], references=[[reference]],
+                predictions=[ft], references=[[ref]],
             )
             scores["base_bleu"] = round(base_result["bleu"], 4)
             scores["finetuned_bleu"] = round(finetuned_result["bleu"], 4)
@@ -54,10 +67,10 @@ class ModelComparator:
         if "rouge" in metrics:
             rouge = _load_rouge()
             base_result = rouge.compute(
-                predictions=[base_answer], references=[reference],
+                predictions=[base], references=[ref],
             )
             finetuned_result = rouge.compute(
-                predictions=[finetuned_answer], references=[reference],
+                predictions=[ft], references=[ref],
             )
             scores["base_rouge1"] = round(base_result["rouge1"], 4)
             scores["base_rouge2"] = round(base_result["rouge2"], 4)

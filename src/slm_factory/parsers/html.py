@@ -1,4 +1,4 @@
-"""HTML 파서 — BeautifulSoup을 사용하여 .html/.htm 파일에서 텍스트를 추출합니다."""
+"""HTML 파서 — BeautifulSoup + lxml을 사용하여 .html/.htm 파일에서 텍스트를 추출합니다."""
 
 from __future__ import annotations
 
@@ -9,31 +9,9 @@ from typing import ClassVar
 from bs4 import BeautifulSoup
 
 from ..utils import get_logger
-from .base import BaseParser, ParsedDocument, extract_date_from_filename, rows_to_markdown
+from .base import BaseParser, ParsedDocument, detect_encoding, extract_date_from_filename, rows_to_markdown
 
 logger = get_logger("parsers.html")
-
-
-def _detect_encoding(content: bytes) -> str:
-    """콘텐츠에서 인코딩을 감지하고, 폴백은 latin-1입니다."""
-    # 먼저 UTF-8 시도
-    try:
-        content.decode("utf-8")
-        return "utf-8"
-    except UnicodeDecodeError:
-        pass
-
-    # 메타 태그에서 charset 찾기 시도
-    try:
-        soup = BeautifulSoup(content, "html.parser")
-        meta_charset = soup.find("meta", charset=True)
-        if meta_charset:
-            return meta_charset.get("charset", "latin-1")
-    except Exception as e:
-        logger.debug("HTML 메타 태그에서 charset 추출 실패: %s", e)
-
-    # 폴백
-    return "latin-1"
 
 
 def _table_to_markdown(table_element) -> str:
@@ -93,7 +71,7 @@ class HTMLParser(BaseParser):
         # ------------------------------------------------------------------
         try:
             raw_content = path.read_bytes()
-            encoding = _detect_encoding(raw_content)
+            encoding = detect_encoding(raw_content)
             html_content = raw_content.decode(encoding)
         except Exception as exc:
             raise RuntimeError(
@@ -106,7 +84,7 @@ class HTMLParser(BaseParser):
         # HTML 파싱
         # ------------------------------------------------------------------
         try:
-            soup = BeautifulSoup(html_content, "html.parser")
+            soup = BeautifulSoup(html_content, "lxml")
         except Exception as exc:
             raise RuntimeError(
                 f"HTML 파싱에 실패했습니다: {path}\n"
@@ -135,6 +113,15 @@ class HTMLParser(BaseParser):
 
         if not title:
             title = path.stem
+
+        # ------------------------------------------------------------------
+        # heading 태그를 마크다운 형식으로 변환
+        # ------------------------------------------------------------------
+        for level in range(1, 7):
+            for heading in soup.find_all(f"h{level}"):
+                heading_text = heading.get_text(strip=True)
+                if heading_text:
+                    heading.replace_with(f"\n{'#' * level} {heading_text}\n")
 
         # ------------------------------------------------------------------
         # 주요 텍스트 추출

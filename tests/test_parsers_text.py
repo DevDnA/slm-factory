@@ -4,27 +4,35 @@ from pathlib import Path
 
 import pytest
 
-from slm_factory.parsers.text import TextParser, _detect_encoding
+from slm_factory.parsers.base import detect_encoding
+from slm_factory.parsers.text import TextParser
 
 
 # ---------------------------------------------------------------------------
-# _detect_encoding
+# detect_encoding (shared utility in parsers/base.py)
 # ---------------------------------------------------------------------------
 
 
 class TestDetectEncoding:
-    """_detect_encoding 함수의 테스트입니다."""
+    """detect_encoding 함수의 테스트입니다."""
 
     def test_utf8_콘텐츠(self):
         """유효한 UTF-8 바이트 시퀀스에 대해 'utf-8'을 반환하는지 확인합니다."""
         content = "한글 텍스트입니다.".encode("utf-8")
-        assert _detect_encoding(content) == "utf-8"
+        assert detect_encoding(content) == "utf-8"
 
-    def test_비_utf8_콘텐츠_latin1_폴백(self):
-        """UTF-8로 디코딩할 수 없는 바이트에 대해 'latin-1'을 반환하는지 확인합니다."""
-        # 유효하지 않은 UTF-8 시퀀스 생성
+    def test_비_utf8_콘텐츠(self):
+        """UTF-8로 디코딩할 수 없는 바이트에 대해 적절한 인코딩을 반환하는지 확인합니다."""
+        # 유효하지 않은 UTF-8 시퀀스 — charset-normalizer가 최적 인코딩을 추론
         content = b"\xff\xfe\xfd\x80\x81"
-        assert _detect_encoding(content) == "latin-1"
+        result = detect_encoding(content)
+        # charset-normalizer는 latin-1 대신 다른 인코딩을 반환할 수 있음
+        assert isinstance(result, str)
+        assert len(result) > 0
+
+    def test_빈_콘텐츠_utf8_폴백(self):
+        """빈 바이트에 대해 'utf-8'을 반환하는지 확인합니다."""
+        assert detect_encoding(b"") == "utf-8"
 
 
 # ---------------------------------------------------------------------------

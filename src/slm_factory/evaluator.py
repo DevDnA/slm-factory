@@ -23,6 +23,8 @@ logger = get_logger("evaluator")
 
 _bleu_metric = None
 _rouge_metric = None
+_korean_tokenizer = None
+_korean_tokenizer_checked = False
 
 
 def _load_bleu():
@@ -41,6 +43,61 @@ def _load_rouge():
     return _rouge_metric
 
 
+def _load_korean_tokenizer():
+    """한국어 형태소 분석 토크나이저를 로드합니다 (kiwipiepy 필요).
+
+    ``kiwipiepy``가 설치되어 있으면 형태소 분석 함수를 반환하고,
+    설치되지 않았으면 ``None``을 반환합니다.
+
+    반환값
+    -------
+    callable | None
+        텍스트를 받아 형태소 리스트를 반환하는 함수, 또는 ``None``.
+    """
+    global _korean_tokenizer, _korean_tokenizer_checked
+    if _korean_tokenizer_checked:
+        return _korean_tokenizer
+    _korean_tokenizer_checked = True
+    try:
+        from kiwipiepy import Kiwi
+
+        kiwi = Kiwi()
+
+        def tokenize(text: str) -> list[str]:
+            return [token.form for token in kiwi.tokenize(text)]
+
+        _korean_tokenizer = tokenize
+        logger.info("한국어 형태소 분석 토크나이저 로드됨 (kiwipiepy)")
+    except ImportError:
+        logger.debug("kiwipiepy 미설치 — 기본 공백 토크나이저 사용")
+        _korean_tokenizer = None
+    return _korean_tokenizer
+
+
+def _preprocess_for_metrics(text: str, korean_tokenizer=None) -> str:
+    """메트릭 계산을 위해 텍스트를 전처리합니다.
+
+    한국어 토크나이저가 제공되면 형태소 단위로 분리하여
+    공백으로 연결합니다. 이를 통해 BLEU/ROUGE가 형태소 단위로
+    계산되어 한국어 평가의 정확도가 향상됩니다.
+
+    매개변수
+    ----------
+    text:
+        전처리할 텍스트.
+    korean_tokenizer:
+        형태소 분석 함수. ``None``이면 원본 텍스트를 반환합니다.
+
+    반환값
+    -------
+    str
+        전처리된 텍스트.
+    """
+    if korean_tokenizer is not None:
+        return " ".join(korean_tokenizer(text))
+    return text
+
+
 class ModelEvaluator:
     """Ollama 모델을 QA 쌍으로 평가합니다."""
 
@@ -55,21 +112,34 @@ class ModelEvaluator:
         return await ollama_generate(client, self.api_base, model_name, question, self.timeout)
 
     def _compute_scores(self, reference: str, generated: str) -> dict[str, float]:
-        """설정된 메트릭으로 점수를 계산합니다."""
+        """설정된 메트릭으로 점수를 계산합니다.
+
+        한국어 프로젝트(``project.language == "ko"``)에서는 형태소 분석
+        토크나이저로 텍스트를 전처리한 뒤 BLEU/ROUGE를 계산합니다.
+        이를 통해 한국어의 교착어 특성이 반영된 정확한 점수를 얻습니다.
+        """
         scores: dict[str, float] = {}
         metrics = self.eval_config.metrics
+
+        # 한국어 프로젝트일 때 형태소 분석 토크나이저 사용
+        tokenizer = None
+        if self.config.project.language == "ko":
+            tokenizer = _load_korean_tokenizer()
+
+        ref = _preprocess_for_metrics(reference, tokenizer)
+        gen = _preprocess_for_metrics(generated, tokenizer)
 
         if "bleu" in metrics:
             bleu = _load_bleu()
             result = bleu.compute(
-                predictions=[generated], references=[[reference]],
+                predictions=[gen], references=[[ref]],
             )
             scores["bleu"] = round(result["bleu"], 4)
 
         if "rouge" in metrics:
             rouge = _load_rouge()
             result = rouge.compute(
-                predictions=[generated], references=[reference],
+                predictions=[gen], references=[ref],
             )
             scores["rouge1"] = round(result["rouge1"], 4)
             scores["rouge2"] = round(result["rouge2"], 4)
