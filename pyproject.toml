@@ -31,7 +31,7 @@ cuda = [
 ]
 korean = [
     "kiwipiepy>=0.22.0",
-    "pykospacing @ git+https://github.com/haven-jeon/PyKoSpacing.git",
+    "pykospacing @ git+https://github.com/haven-jeon/PyKoSpacing.git@b32a889cbd10b006d2f4aba118f0cd5b677e2979",
 ]
 validation = [
     "sentence-transformers>=5.2.0",
@@ -55,7 +55,7 @@ dev = [
 all = [
     "bitsandbytes>=0.49.0; sys_platform != 'darwin'",
     "kiwipiepy>=0.22.0",
-    "pykospacing @ git+https://github.com/haven-jeon/PyKoSpacing.git",
+    "pykospacing @ git+https://github.com/haven-jeon/PyKoSpacing.git@b32a889cbd10b006d2f4aba118f0cd5b677e2979",
     "sentence-transformers>=5.2.0",
     "python-docx>=1.2.0",
     "evaluate>=0.4.6",
