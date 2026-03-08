@@ -194,13 +194,14 @@ slm-factory check --config my-first-project/project.yaml
 slm-factory tool wizard --config my-first-project/project.yaml
 ```
 
-wizard는 다음 12단계를 순서대로 안내합니다.
+wizard는 다음 12단계를 순서대로 안내합니다 (Step 3a는 선택적 하위 단계).
 
 | # | 단계 | 필수/선택 | 설명 |
 |---|------|:---------:|------|
 | 1 | 설정 파일 로드 | **필수** | `project.yaml`을 로드하고 Teacher/Student 모델을 확인합니다 |
 | 2 | 문서 선택 | **필수** | 전체 또는 개별 문서를 선택합니다 |
 | 3 | 문서 파싱 | **필수** | 선택한 문서에서 텍스트와 표를 자동 추출합니다 |
+| 3a | 온톨로지 추출 | 선택 | 문서에서 엔티티·관계를 추출하여 지식 그래프를 구성합니다 (`ontology.enabled` 설정 반영) |
 | 4 | QA 쌍 생성 | **필수** | Teacher LLM이 문서 기반 질문-답변 쌍을 생성합니다 |
 | 5 | QA 검증 | **필수** | 규칙 기반 및 임베딩 기반으로 저품질 QA를 필터링합니다 |
 | 6 | 품질 점수 평가 | 선택 | Teacher LLM이 각 QA를 1~5점으로 평가하여 추가 필터링합니다 |
