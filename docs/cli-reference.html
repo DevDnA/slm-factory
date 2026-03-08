@@ -474,19 +474,23 @@ slm-factory init policy-assistant --path /workspace/projects</code></pre>
             <pre data-lang="bash"><code>slm-factory check --config my-project/project.yaml</code></pre>
 
             <h4>출력 예시 (전체 통과)</h4>
-            <pre><code>                slm-factory 환경 점검
-&#x250C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x252C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x252C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2510;
-&#x2502; 항목         &#x2502; 상태   &#x2502; 상세                         &#x2502;
-&#x251C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x253C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x253C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2524;
-&#x2502; 설정 파일    &#x2502; OK     &#x2502; ./my-project/project.yaml    &#x2502;
-&#x2502; 문서 디렉토리&#x2502; OK     &#x2502; 3개 파일 (./documents)       &#x2502;
-&#x2502; 출력 디렉토리&#x2502; OK     &#x2502; 쓰기 가능 (./output)         &#x2502;
-&#x2502; Ollama 연결  &#x2502; OK     &#x2502; v0.3.12 (http://localhost:11434) &#x2502;
-&#x2502; 모델 사용 가능&#x2502; OK    &#x2502; qwen3:8b                     &#x2502;
-&#x2514;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2534;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2534;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2518;
-
-모든 점검 통과!
-  wizard 실행: slm-factory tool wizard --config ./my-project/project.yaml</code></pre>
+            <div class="terminal-output">
+              <p class="terminal-title">slm-factory 환경 점검</p>
+              <table>
+                <thead>
+                  <tr><th>항목</th><th>상태</th><th>상세</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>설정 파일</td><td>OK</td><td>./my-project/project.yaml</td></tr>
+                  <tr><td>문서 디렉토리</td><td>OK</td><td>3개 파일 (./documents)</td></tr>
+                  <tr><td>출력 디렉토리</td><td>OK</td><td>쓰기 가능 (./output)</td></tr>
+                  <tr><td>Ollama 연결</td><td>OK</td><td>v0.3.12 (http://localhost:11434)</td></tr>
+                  <tr><td>모델 사용 가능</td><td>OK</td><td>qwen3:8b</td></tr>
+                </tbody>
+              </table>
+              <p class="terminal-footer">모든 점검 통과!
+  wizard 실행: slm-factory tool wizard --config ./my-project/project.yaml</p>
+            </div>
           </article>
         </section>
 

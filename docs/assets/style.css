@@ -892,3 +892,51 @@ hr {
   white-space: nowrap;
   border-width: 0;
 }
+
+/* --- Terminal Output (box-drawing table replacement) --- */
+.terminal-output {
+  background: var(--color-navy-dark);
+  color: #E2E8F0;
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  margin: 0 0 var(--space-xl);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  box-shadow: var(--shadow-md);
+}
+
+.terminal-output .terminal-title {
+  text-align: center;
+  margin-bottom: var(--space-sm);
+  font-weight: 400;
+}
+
+.terminal-output table {
+  width: auto;
+  border-collapse: collapse;
+  margin: 0 0 var(--space-sm);
+  background: none;
+  box-shadow: none;
+}
+
+.terminal-output th,
+.terminal-output td {
+  border: 1px solid #4A5568;
+  padding: 0.2rem 0.75rem;
+  text-align: left;
+  color: #E2E8F0;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.terminal-output th {
+  background: rgba(255, 255, 255, 0.05);
+  font-weight: 600;
+}
+
+.terminal-output .terminal-footer {
+  margin-top: var(--space-sm);
+  white-space: pre;
+}
