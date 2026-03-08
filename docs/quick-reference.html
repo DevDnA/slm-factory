@@ -247,11 +247,16 @@ slm-factory tool wizard --config my-project/project.yaml</code></pre>
                   <td>파이프라인 대시보드 TUI</td>
                   <td><code>--config</code></td>
                 </tr>
-                <tr>
-                  <td><code>slm-factory tool evolve</code></td>
-                  <td>자동 진화 (증분 &rarr; 학습 &rarr; 품질게이트 &rarr; 배포)</td>
-                  <td><code>--config</code>, <code>--force-update</code>, <code>--skip-gate</code></td>
-                </tr>
+                 <tr>
+                   <td><code>slm-factory tool evolve</code></td>
+                   <td>자동 진화 (증분 &rarr; 학습 &rarr; 품질게이트 &rarr; 배포)</td>
+                   <td><code>--config</code>, <code>--force-update</code>, <code>--skip-gate</code></td>
+                 </tr>
+                 <tr>
+                   <td><code>slm-factory tool ontology</code></td>
+                   <td>온톨로지(지식 그래프) 추출</td>
+                   <td><code>--config</code></td>
+                 </tr>
                 <tr>
                   <td><code>slm-factory tool convert</code></td>
                   <td>QA &rarr; JSONL 변환</td>
@@ -333,16 +338,23 @@ slm-factory tool wizard --config my-project/project.yaml</code></pre>
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td>1</td>
-                  <td><strong>parse</strong></td>
-                  <td><span class="tag tag-required">필수</span></td>
-                  <td>PDF/HWPX/HTML/TXT/DOCX 파싱</td>
-                  <td><code>output/parsed_documents.json</code></td>
-                </tr>
-                <tr>
-                  <td>2</td>
-                  <td><strong>generate</strong></td>
+                 <tr>
+                   <td>1</td>
+                   <td><strong>parse</strong></td>
+                   <td><span class="tag tag-required">필수</span></td>
+                   <td>PDF/HWPX/HTML/TXT/DOCX 파싱</td>
+                   <td><code>output/parsed_documents.json</code></td>
+                 </tr>
+                 <tr>
+                   <td>1a</td>
+                   <td><strong>ontology</strong></td>
+                   <td><span class="tag tag-optional">선택</span></td>
+                   <td>문서에서 엔티티·관계 추출 (<code>ontology.enabled: true</code>)</td>
+                   <td><code>output/ontology.json</code></td>
+                 </tr>
+                 <tr>
+                   <td>2</td>
+                   <td><strong>generate</strong></td>
                   <td><span class="tag tag-required">필수</span></td>
                   <td>Teacher LLM으로 QA 쌍 생성</td>
                   <td><code>output/qa_alpaca.json</code></td>
@@ -607,6 +619,7 @@ slm-factory eval compare \
 
           <pre><code>output/
 ├── parsed_documents.json       # 파싱된 문서 텍스트 및 메타데이터
+├── ontology.json                  # 온톨로지 지식 그래프 (엔티티, 관계)
 ├── qa_alpaca.json              # Teacher LLM이 생성한 QA 쌍 (Alpaca 형식)
 ├── qa_scored.json              # 품질 점수 평가를 통과한 QA 쌍
 ├── qa_augmented.json           # 데이터 증강이 완료된 QA 쌍
@@ -657,7 +670,12 @@ student:
 export:
   ollama:
     model_name: "my-project-model"
-    system_prompt: "당신은 도메인 전문 도우미입니다."</code></pre>
+    system_prompt: "당신은 도메인 전문 도우미입니다."
+
+# 온톨로지 (선택)
+# ontology:
+#   enabled: true                       # 문서에서 지식 그래프 추출
+#   enrich_qa: true                     # QA 생성 시 온톨로지 컨텍스트 활용</code></pre>
 
           <blockquote>
             <p>전체 설정 옵션(scoring, augment, validation, training, LoRA 등)은 <a href="configuration.html">설정 레퍼런스</a>를 참조하십시오.</p>

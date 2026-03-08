@@ -83,7 +83,7 @@
         <p>모든 파이프라인 동작은 <code>project.yaml</code> 파일 하나로 제어됩니다. 코드 수정 없이 문서 파싱 옵션, Teacher 모델, 질문 카테고리, 검증 규칙, Student 모델, 학습 하이퍼파라미터, 내보내기 형식을 변경할 수 있습니다.</p>
 
         <h3 id="step-independence">1.2 단계별 독립 실행</h3>
-        <p>Pipeline 클래스는 총 13개의 <code>step_*</code> 메서드를 제공합니다. 이 중 핵심 파이프라인은 9개 단계(parse, generate, validate, score, augment, analyze, convert, train, export)로 구성되며, 추가로 4개의 도구/평가 단계(eval, gguf_export, dialogue, compare)가 있습니다. 각 단계는 CLI 명령어로 개별 실행 가능하며, 이전 단계의 출력 파일을 입력으로 사용합니다. 특정 단계만 재실행하거나 중간 결과를 검토할 수 있습니다.</p>
+        <p>Pipeline 클래스는 총 14개의 <code>step_*</code> 메서드를 제공합니다. 이 중 핵심 파이프라인은 10개의 독립적인 단계(parse, ontology, generate, validate, score, augment, analyze, convert, train, export)로 구성되며, 추가로 4개의 도구/평가 단계(eval, gguf_export, dialogue, compare)가 있습니다. 각 단계는 CLI 명령어로 개별 실행 가능하며, 이전 단계의 출력 파일을 입력으로 사용합니다. 특정 단계만 재실행하거나 중간 결과를 검토할 수 있습니다.</p>
 
         <h3 id="lazy-import">1.3 지연 임포트 (Lazy Import)</h3>
         <p><code>torch</code>, <code>transformers</code>, <code>peft</code>, <code>sentence-transformers</code> 등 무거운 라이브러리는 실제 사용 시점에만 로드됩니다. CLI 초기 응답 속도를 빠르게 유지하고, 특정 단계만 실행할 때 불필요한 의존성을 로드하지 않습니다. <code>parse</code> 명령어는 딥러닝 라이브러리를 전혀 로드하지 않습니다.</p>
@@ -134,7 +134,7 @@
             <!-- Pipeline -->
             <rect x="255" y="88" width="290" height="48" rx="6" fill="#1B3A5C"/>
             <text x="400" y="109" text-anchor="middle" class="s1-title">Pipeline (pipeline.py)</text>
-            <text x="400" y="125" text-anchor="middle" class="s1-sub">Orchestrator (13 steps)</text>
+            <text x="400" y="125" text-anchor="middle" class="s1-sub">Orchestrator (14 steps)</text>
 
             <!-- Fan-out from Pipeline -->
             <line x1="400" y1="136" x2="400" y2="152" stroke="#2C5282" stroke-width="2"/>
@@ -171,33 +171,41 @@
             <line x1="400" y1="265" x2="400" y2="290" stroke="#2C5282" stroke-width="2" marker-end="url(#s1-arrow)"/>
             <line x1="655" y1="265" x2="655" y2="290" stroke="#2C5282" stroke-width="2" marker-end="url(#s1-arrow)"/>
 
-            <!-- Row 2: Score, Augment, Analyze -->
-            <rect x="35" y="298" width="220" height="55" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
-            <text x="145" y="320" text-anchor="middle" class="s1-label">3a. Score</text>
-            <text x="145" y="338" text-anchor="middle" class="s1-mod">scorer.py</text>
+            <!-- Row 2: Ontology, Score, Augment, Analyze -->
+            <rect x="35" y="298" width="160" height="55" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
+            <text x="115" y="320" text-anchor="middle" class="s1-label">1a. Ontology (선택)</text>
+            <text x="115" y="338" text-anchor="middle" class="s1-mod">ontology/</text>
 
-            <rect x="290" y="298" width="220" height="55" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
-            <text x="400" y="320" text-anchor="middle" class="s1-label">3b. Augment</text>
-            <text x="400" y="338" text-anchor="middle" class="s1-mod">augmenter.py</text>
+            <rect x="210" y="298" width="160" height="55" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
+            <text x="290" y="320" text-anchor="middle" class="s1-label">3a. Score</text>
+            <text x="290" y="338" text-anchor="middle" class="s1-mod">scorer.py</text>
 
-            <rect x="545" y="298" width="220" height="55" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
-            <text x="655" y="320" text-anchor="middle" class="s1-label">3c. Analyze</text>
-            <text x="655" y="338" text-anchor="middle" class="s1-mod">analyzer.py</text>
+            <rect x="385" y="298" width="160" height="55" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
+            <text x="465" y="320" text-anchor="middle" class="s1-label">3b. Augment</text>
+            <text x="465" y="338" text-anchor="middle" class="s1-mod">augmenter.py</text>
+
+            <rect x="560" y="298" width="205" height="55" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
+            <text x="662" y="320" text-anchor="middle" class="s1-label">3c. Analyze</text>
+            <text x="662" y="338" text-anchor="middle" class="s1-mod">analyzer.py</text>
 
             <!-- Row 2 output labels -->
-            <rect x="35" y="361" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
-            <text x="145" y="377" text-anchor="middle" class="s1-file">qa_scored.json</text>
+            <rect x="35" y="361" width="160" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
+            <text x="115" y="377" text-anchor="middle" class="s1-file">ontology.json</text>
 
-            <rect x="290" y="361" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
-            <text x="400" y="377" text-anchor="middle" class="s1-file">qa_augmented.json</text>
+            <rect x="210" y="361" width="160" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
+            <text x="290" y="377" text-anchor="middle" class="s1-file">qa_scored.json</text>
 
-            <rect x="545" y="361" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
-            <text x="655" y="377" text-anchor="middle" class="s1-file">data_analysis.json</text>
+            <rect x="385" y="361" width="160" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
+            <text x="465" y="377" text-anchor="middle" class="s1-file">qa_augmented.json</text>
+
+            <rect x="560" y="361" width="205" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
+            <text x="662" y="377" text-anchor="middle" class="s1-file">data_analysis.json</text>
 
             <!-- Arrows Row 2 → Row 3 -->
-            <line x1="145" y1="385" x2="145" y2="410" stroke="#2C5282" stroke-width="2" marker-end="url(#s1-arrow)"/>
-            <line x1="400" y1="385" x2="400" y2="410" stroke="#2C5282" stroke-width="2" marker-end="url(#s1-arrow)"/>
-            <line x1="655" y1="385" x2="655" y2="410" stroke="#2C5282" stroke-width="2" marker-end="url(#s1-arrow)"/>
+            <line x1="115" y1="385" x2="115" y2="410" stroke="#2C5282" stroke-width="2" marker-end="url(#s1-arrow)"/>
+            <line x1="290" y1="385" x2="290" y2="410" stroke="#2C5282" stroke-width="2" marker-end="url(#s1-arrow)"/>
+            <line x1="465" y1="385" x2="465" y2="410" stroke="#2C5282" stroke-width="2" marker-end="url(#s1-arrow)"/>
+            <line x1="662" y1="385" x2="662" y2="410" stroke="#2C5282" stroke-width="2" marker-end="url(#s1-arrow)"/>
 
             <!-- Row 3: Convert, Train, Export -->
             <rect x="35" y="418" width="220" height="55" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
@@ -286,7 +294,8 @@
             <!-- Branch: standalone modules -->
             <line x1="100" y1="385" x2="170" y2="385" stroke="#2C5282" stroke-width="2" marker-end="url(#s2-arrow)"/>
             <rect x="180" y="370" width="550" height="40" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
-            <text x="195" y="395" class="s2-file">scorer.py <tspan class="s2-cls">(QualityScorer)</tspan>  augmenter.py <tspan class="s2-cls">(DataAugmenter)</tspan>  analyzer.py <tspan class="s2-cls">(DataAnalyzer)</tspan>  converter.py <tspan class="s2-cls">(ChatFormatter)</tspan></text>
+            <text x="195" y="390" class="s2-file">scorer.py <tspan class="s2-cls">(QualityScorer)</tspan>  augmenter.py <tspan class="s2-cls">(DataAugmenter)</tspan>  analyzer.py <tspan class="s2-cls">(DataAnalyzer)</tspan>  converter.py <tspan class="s2-cls">(ChatFormatter)</tspan></text>
+            <text x="195" y="405" class="s2-file">ontology/ <tspan class="s2-cls">models.py (Entity, Relation, KnowledgeGraph)  extractor.py (OntologyExtractor)  graph_store.py (GraphStore)</tspan></text>
 
             <!-- Branch: trainer/ -->
             <line x1="100" y1="440" x2="170" y2="440" stroke="#2C5282" stroke-width="2" marker-end="url(#s2-arrow)"/>
@@ -362,8 +371,8 @@ class CSVParser(BaseParser):
         <h3 id="adapter-pattern">3.4 Adapter 패턴 (converter.py)</h3>
         <p><code>ChatFormatter</code>는 HuggingFace <code>tokenizer.apply_chat_template()</code>을 래핑하여 통일된 <code>QAPair</code> 형식을 모델별 채팅 형식으로 변환합니다. Gemma처럼 시스템 역할을 지원하지 않는 모델은 시스템 메시지를 제거하고 자동으로 재시도합니다. <code>max_seq_length</code> 초과 항목은 자동으로 제외됩니다.</p>
 
-        <h3 id="async-pattern">3.5 비동기 동시성 패턴 (scorer, augmenter)</h3>
-        <p>Scorer와 Augmenter는 <code>asyncio.Semaphore</code>로 동시 요청 수를 제한하면서 병렬 처리합니다.</p>
+        <h3 id="async-pattern">3.5 비동기 동시성 패턴 (scorer, augmenter, ontology extractor)</h3>
+        <p>Scorer, Augmenter, OntologyExtractor는 <code>asyncio.Semaphore</code>로 동시 요청 수를 제한하면서 병렬 처리합니다.</p>
 
         <pre data-lang="python"><code>semaphore = asyncio.Semaphore(config.max_concurrency)
 
@@ -402,6 +411,12 @@ results = await asyncio.gather(*tasks, return_exceptions=True)</code></pre>
             </thead>
             <tbody>
               <tr><td>parse</td><td>파일 시스템 (PDF/HWPX/HTML/TXT/DOCX)</td><td><code>list[ParsedDocument]</code></td><td><code>parsed_documents.json</code></td></tr>
+              <tr>
+                  <td>ontology (선택)</td>
+                  <td><code>list[ParsedDocument]</code></td>
+                  <td><code>KnowledgeGraph</code></td>
+                  <td><code>ontology.json</code></td>
+                </tr>
               <tr><td>generate</td><td><code>list[ParsedDocument]</code></td><td><code>list[QAPair]</code></td><td><code>qa_alpaca.json</code></td></tr>
               <tr><td>validate</td><td><code>list[QAPair]</code></td><td><code>list[QAPair]</code> (필터링)</td><td>없음 (메모리 전달)</td></tr>
               <tr><td>score</td><td><code>list[QAPair]</code></td><td><code>list[QAPair]</code> (필터링)</td><td><code>qa_scored.json</code></td></tr>
@@ -449,6 +464,12 @@ results = await asyncio.gather(*tasks, return_exceptions=True)</code></pre>
             <!-- parsed_documents.json -->
             <rect x="60" y="100" width="250" height="32" rx="6" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
             <text x="185" y="121" text-anchor="middle" class="s3-file">parsed_documents.json</text>
+
+            <!-- Branch: step_extract_ontology() -->
+            <line x1="185" y1="116" x2="330" y2="116" stroke="#2F855A" stroke-width="1" marker-end="url(#s3-arrow-green)"/>
+            <text x="200" y="110" class="s3-step">step_extract_ontology()</text>
+            <rect x="340" y="103" width="230" height="26" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
+            <text x="455" y="121" text-anchor="middle" class="s3-sub">ontology.json</text>
 
             <line x1="185" y1="132" x2="185" y2="162" stroke="#2C5282" stroke-width="2" marker-end="url(#s3-arrow)"/>
             <text x="200" y="151" class="s3-step">step_generate()</text>
@@ -777,10 +798,18 @@ parsed_documents.json   →  generate 단계부터 재개
 │   ├── history_file: str = "evolve_history.json"
 │   └── keep_previous_versions: int = 3
 │
-└── dashboard: DashboardConfig
+├── dashboard: DashboardConfig
+│   ├── enabled: bool = False
+│   ├── refresh_interval: float = 2.0
+│   └── theme: str = "dark"
+│
+└── ontology: OntologyConfig
     ├── enabled: bool = False
-    ├── refresh_interval: float = 2.0
-    └── theme: str = "dark"</code></pre>
+    ├── entity_types: list[str] = ["Person", "Organization", ...]
+    ├── max_concurrency: int = 4
+    ├── min_confidence: float = 0.5
+    ├── enrich_qa: bool = False
+    └── output_file: str = "ontology.json"</code></pre>
 
         <p>각 필드의 상세 설명은 <a href="configuration.html">설정 레퍼런스</a> 참조</p>
 
@@ -993,7 +1022,7 @@ def _strip_none_sections(cls, values: dict) -&gt; dict:
 
         <!-- SVG 6: Wizard Flow Diagram -->
         <div class="diagram">
-          <svg role="img" aria-labelledby="svg6-title svg6-desc" viewBox="0 0 680 960" xmlns="http://www.w3.org/2000/svg">
+          <svg role="img" aria-labelledby="svg6-title svg6-desc" viewBox="0 0 680 1010" xmlns="http://www.w3.org/2000/svg">
             <title id="svg6-title">Wizard 실행 흐름 다이어그램</title>
             <desc id="svg6-desc">Wizard 모드의 12단계 실행 흐름을 보여주는 다이어그램. 필수 단계(자동/확인)는 네이비 색상, 선택적 단계는 주황색 점선 테두리로 구분됩니다.</desc>
             <defs>
@@ -1044,103 +1073,113 @@ def _strip_none_sections(cls, values: dict) -&gt; dict:
             <text x="460" y="203" text-anchor="middle" class="s6-tag" fill="#fff">자동</text>
             <text x="490" y="203" class="s6-impl">자동 진행 (확인 없음)</text>
 
-            <line x1="230" y1="230" x2="230" y2="246" stroke="#2C5282" stroke-width="2" marker-end="url(#s6-arrow)"/>
+            <line x1="230" y1="230" x2="230" y2="246" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#s6-arrow-orange)"/>
 
-            <!-- Step 4: QA 생성 (required confirm) -->
-            <rect x="30" y="252" width="400" height="48" rx="6" fill="#1B3A5C"/>
-            <text x="50" y="273" class="s6-req">Step 4. QA 생성</text>
-            <text x="50" y="290" class="s6-impl-w">Confirm → pipeline.step_generate(docs)</text>
-            <rect x="440" y="260" width="40" height="18" rx="9" fill="rgba(255,255,255,0.15)"/>
-            <text x="460" y="273" text-anchor="middle" class="s6-tag" fill="#fff">확인</text>
-            <text x="490" y="273" class="s6-impl">거부 시 파싱 결과 경로 안내 후 종료</text>
+            <!-- Step 3a: 온톨로지 (optional) -->
+            <rect x="30" y="252" width="400" height="48" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1" stroke-dasharray="6,3"/>
+            <text x="50" y="273" class="s6-opt">Step 3a. 온톨로지 (선택적)</text>
+            <text x="50" y="290" class="s6-impl">Confirm(default=ontology.enabled) → step_extract_ontology()</text>
+            <rect x="440" y="260" width="40" height="18" rx="9" fill="#FFFAF0" stroke="#C05621" stroke-width="1"/>
+            <text x="460" y="273" text-anchor="middle" class="s6-tag" fill="#C05621">선택</text>
+            <text x="490" y="273" class="s6-impl">config.ontology.enabled 기본값 반영</text>
 
             <line x1="230" y1="300" x2="230" y2="316" stroke="#2C5282" stroke-width="2" marker-end="url(#s6-arrow)"/>
 
-            <!-- Step 5: 검증 (required auto) -->
+            <!-- Step 4: QA 생성 (required confirm) -->
             <rect x="30" y="322" width="400" height="48" rx="6" fill="#1B3A5C"/>
-            <text x="50" y="343" class="s6-req">Step 5. 검증</text>
-            <text x="50" y="360" class="s6-impl-w">pipeline.step_validate(pairs, docs)</text>
+            <text x="50" y="343" class="s6-req">Step 4. QA 생성</text>
+            <text x="50" y="360" class="s6-impl-w">Confirm → pipeline.step_generate(docs)</text>
             <rect x="440" y="330" width="40" height="18" rx="9" fill="rgba(255,255,255,0.15)"/>
-            <text x="460" y="343" text-anchor="middle" class="s6-tag" fill="#fff">자동</text>
-            <text x="490" y="343" class="s6-impl">자동 진행 (확인 없음)</text>
+            <text x="460" y="343" text-anchor="middle" class="s6-tag" fill="#fff">확인</text>
+            <text x="490" y="343" class="s6-impl">거부 시 파싱 결과 경로 안내 후 종료</text>
 
-            <line x1="230" y1="370" x2="230" y2="386" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#s6-arrow-orange)"/>
+            <line x1="230" y1="370" x2="230" y2="386" stroke="#2C5282" stroke-width="2" marker-end="url(#s6-arrow)"/>
 
-            <!-- Step 6: 품질 평가 (optional) -->
-            <rect x="30" y="392" width="400" height="48" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1" stroke-dasharray="6,3"/>
-            <text x="50" y="413" class="s6-opt">Step 6. 품질 평가 (선택적)</text>
-            <text x="50" y="430" class="s6-impl">Confirm(default=scoring.enabled) → step_score()</text>
-            <rect x="440" y="400" width="40" height="18" rx="9" fill="#FFFAF0" stroke="#C05621" stroke-width="1"/>
-            <text x="460" y="413" text-anchor="middle" class="s6-tag" fill="#C05621">선택</text>
-            <text x="490" y="413" class="s6-impl">config.scoring.enabled 기본값 반영</text>
+            <!-- Step 5: 검증 (required auto) -->
+            <rect x="30" y="392" width="400" height="48" rx="6" fill="#1B3A5C"/>
+            <text x="50" y="413" class="s6-req">Step 5. 검증</text>
+            <text x="50" y="430" class="s6-impl-w">pipeline.step_validate(pairs, docs)</text>
+            <rect x="440" y="400" width="40" height="18" rx="9" fill="rgba(255,255,255,0.15)"/>
+            <text x="460" y="413" text-anchor="middle" class="s6-tag" fill="#fff">자동</text>
+            <text x="490" y="413" class="s6-impl">자동 진행 (확인 없음)</text>
 
             <line x1="230" y1="440" x2="230" y2="456" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#s6-arrow-orange)"/>
 
-            <!-- Step 7: 데이터 증강 (optional) -->
+            <!-- Step 6: 품질 평가 (optional) -->
             <rect x="30" y="462" width="400" height="48" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1" stroke-dasharray="6,3"/>
-            <text x="50" y="483" class="s6-opt">Step 7. 데이터 증강 (선택적)</text>
-            <text x="50" y="500" class="s6-impl">Confirm(default=augment.enabled) → step_augment()</text>
+            <text x="50" y="483" class="s6-opt">Step 6. 품질 평가 (선택적)</text>
+            <text x="50" y="500" class="s6-impl">Confirm(default=scoring.enabled) → step_score()</text>
             <rect x="440" y="470" width="40" height="18" rx="9" fill="#FFFAF0" stroke="#C05621" stroke-width="1"/>
             <text x="460" y="483" text-anchor="middle" class="s6-tag" fill="#C05621">선택</text>
-            <text x="490" y="483" class="s6-impl">config.augment.enabled 기본값 반영</text>
+            <text x="490" y="483" class="s6-impl">config.scoring.enabled 기본값 반영</text>
 
-            <line x1="230" y1="510" x2="230" y2="526" stroke="#2C5282" stroke-width="2" marker-end="url(#s6-arrow)"/>
+            <line x1="230" y1="510" x2="230" y2="526" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#s6-arrow-orange)"/>
 
-            <!-- 분석 (required auto, no step number) -->
-            <rect x="30" y="532" width="400" height="48" rx="6" fill="#1B3A5C"/>
-            <text x="50" y="553" class="s6-req">분석</text>
-            <text x="50" y="570" class="s6-impl-w">pipeline.step_analyze(pairs)</text>
-            <rect x="440" y="540" width="40" height="18" rx="9" fill="rgba(255,255,255,0.15)"/>
-            <text x="460" y="553" text-anchor="middle" class="s6-tag" fill="#fff">자동</text>
-            <text x="490" y="553" class="s6-impl">자동 진행 (확인 없음)</text>
+            <!-- Step 7: 데이터 증강 (optional) -->
+            <rect x="30" y="532" width="400" height="48" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1" stroke-dasharray="6,3"/>
+            <text x="50" y="553" class="s6-opt">Step 7. 데이터 증강 (선택적)</text>
+            <text x="50" y="570" class="s6-impl">Confirm(default=augment.enabled) → step_augment()</text>
+            <rect x="440" y="540" width="40" height="18" rx="9" fill="#FFFAF0" stroke="#C05621" stroke-width="1"/>
+            <text x="460" y="553" text-anchor="middle" class="s6-tag" fill="#C05621">선택</text>
+            <text x="490" y="553" class="s6-impl">config.augment.enabled 기본값 반영</text>
 
             <line x1="230" y1="580" x2="230" y2="596" stroke="#2C5282" stroke-width="2" marker-end="url(#s6-arrow)"/>
 
-            <!-- Step 8: 학습 (required confirm) -->
+            <!-- 분석 (required auto, no step number) -->
             <rect x="30" y="602" width="400" height="48" rx="6" fill="#1B3A5C"/>
-            <text x="50" y="623" class="s6-req">Step 8. 학습</text>
-            <text x="50" y="640" class="s6-impl-w">step_convert() → Confirm → step_train()</text>
+            <text x="50" y="623" class="s6-req">분석</text>
+            <text x="50" y="640" class="s6-impl-w">pipeline.step_analyze(pairs)</text>
             <rect x="440" y="610" width="40" height="18" rx="9" fill="rgba(255,255,255,0.15)"/>
-            <text x="460" y="623" text-anchor="middle" class="s6-tag" fill="#fff">확인</text>
-            <text x="490" y="623" class="s6-impl">거부 시 학습 데이터 경로 안내 후 종료</text>
+            <text x="460" y="623" text-anchor="middle" class="s6-tag" fill="#fff">자동</text>
+            <text x="490" y="623" class="s6-impl">자동 진행 (확인 없음)</text>
 
             <line x1="230" y1="650" x2="230" y2="666" stroke="#2C5282" stroke-width="2" marker-end="url(#s6-arrow)"/>
 
-            <!-- Step 9: 내보내기 (required confirm) -->
+            <!-- Step 8: 학습 (required confirm) -->
             <rect x="30" y="672" width="400" height="48" rx="6" fill="#1B3A5C"/>
-            <text x="50" y="693" class="s6-req">Step 9. 내보내기</text>
-            <text x="50" y="710" class="s6-impl-w">Confirm → step_export()</text>
+            <text x="50" y="693" class="s6-req">Step 8. 학습</text>
+            <text x="50" y="710" class="s6-impl-w">step_convert() → Confirm → step_train()</text>
             <rect x="440" y="680" width="40" height="18" rx="9" fill="rgba(255,255,255,0.15)"/>
             <text x="460" y="693" text-anchor="middle" class="s6-tag" fill="#fff">확인</text>
-            <text x="490" y="693" class="s6-impl">거부 시 어댑터 경로 안내 후 종료</text>
+            <text x="490" y="693" class="s6-impl">거부 시 학습 데이터 경로 안내 후 종료</text>
 
-            <line x1="230" y1="720" x2="230" y2="736" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#s6-arrow-orange)"/>
+            <line x1="230" y1="720" x2="230" y2="736" stroke="#2C5282" stroke-width="2" marker-end="url(#s6-arrow)"/>
 
-            <!-- Step 10: 멀티턴 대화 (optional) -->
-            <rect x="30" y="742" width="400" height="48" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1" stroke-dasharray="6,3"/>
-            <text x="50" y="763" class="s6-opt">Step 10. 멀티턴 대화 (선택적)</text>
-            <text x="50" y="780" class="s6-impl">Confirm(default=dialogue.enabled) → step_dialogue()</text>
-            <rect x="440" y="750" width="40" height="18" rx="9" fill="#FFFAF0" stroke="#C05621" stroke-width="1"/>
-            <text x="460" y="763" text-anchor="middle" class="s6-tag" fill="#C05621">선택</text>
+            <!-- Step 9: 내보내기 (required confirm) -->
+            <rect x="30" y="742" width="400" height="48" rx="6" fill="#1B3A5C"/>
+            <text x="50" y="763" class="s6-req">Step 9. 내보내기</text>
+            <text x="50" y="780" class="s6-impl-w">Confirm → step_export()</text>
+            <rect x="440" y="750" width="40" height="18" rx="9" fill="rgba(255,255,255,0.15)"/>
+            <text x="460" y="763" text-anchor="middle" class="s6-tag" fill="#fff">확인</text>
+            <text x="490" y="763" class="s6-impl">거부 시 어댑터 경로 안내 후 종료</text>
 
             <line x1="230" y1="790" x2="230" y2="806" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#s6-arrow-orange)"/>
 
-            <!-- Step 11: GGUF 변환 (optional) -->
+            <!-- Step 10: 멀티턴 대화 (optional) -->
             <rect x="30" y="812" width="400" height="48" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1" stroke-dasharray="6,3"/>
-            <text x="50" y="833" class="s6-opt">Step 11. GGUF 변환 (선택적)</text>
-            <text x="50" y="850" class="s6-impl">Confirm(default=gguf_export.enabled) → step_gguf_export()</text>
+            <text x="50" y="833" class="s6-opt">Step 10. 멀티턴 대화 (선택적)</text>
+            <text x="50" y="850" class="s6-impl">Confirm(default=dialogue.enabled) → step_dialogue()</text>
             <rect x="440" y="820" width="40" height="18" rx="9" fill="#FFFAF0" stroke="#C05621" stroke-width="1"/>
             <text x="460" y="833" text-anchor="middle" class="s6-tag" fill="#C05621">선택</text>
 
             <line x1="230" y1="860" x2="230" y2="876" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#s6-arrow-orange)"/>
 
-            <!-- Step 12: 모델 평가 (optional) -->
+            <!-- Step 11: GGUF 변환 (optional) -->
             <rect x="30" y="882" width="400" height="48" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1" stroke-dasharray="6,3"/>
-            <text x="50" y="903" class="s6-opt">Step 12. 모델 평가 (선택적)</text>
-            <text x="50" y="920" class="s6-impl">Confirm(default=eval.enabled) → step_eval()</text>
+            <text x="50" y="903" class="s6-opt">Step 11. GGUF 변환 (선택적)</text>
+            <text x="50" y="920" class="s6-impl">Confirm(default=gguf_export.enabled) → step_gguf_export()</text>
             <rect x="440" y="890" width="40" height="18" rx="9" fill="#FFFAF0" stroke="#C05621" stroke-width="1"/>
             <text x="460" y="903" text-anchor="middle" class="s6-tag" fill="#C05621">선택</text>
-            <text x="490" y="903" class="s6-impl">config.eval.enabled 기본값 반영</text>
+
+            <line x1="230" y1="930" x2="230" y2="946" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#s6-arrow-orange)"/>
+
+            <!-- Step 12: 모델 평가 (optional) -->
+            <rect x="30" y="952" width="400" height="48" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1" stroke-dasharray="6,3"/>
+            <text x="50" y="973" class="s6-opt">Step 12. 모델 평가 (선택적)</text>
+            <text x="50" y="990" class="s6-impl">Confirm(default=eval.enabled) → step_eval()</text>
+            <rect x="440" y="960" width="40" height="18" rx="9" fill="#FFFAF0" stroke="#C05621" stroke-width="1"/>
+            <text x="460" y="973" text-anchor="middle" class="s6-tag" fill="#C05621">선택</text>
+            <text x="490" y="973" class="s6-impl">config.eval.enabled 기본값 반영</text>
           </svg>
           <p class="diagram-caption">그림 7-1. Wizard 실행 흐름 (필수: 네이비, 선택: 주황 점선)</p>
         </div>
@@ -1166,8 +1205,8 @@ def _strip_none_sections(cls, values: dict) -&gt; dict:
                 <td>Y</td>
               </tr>
               <tr>
-                <td><span class="tag tag-optional">선택 (설정 의존)</span></td>
-                <td>품질 평가, 데이터 증강, 멀티턴 대화, GGUF 변환, 모델 평가</td>
+                 <td><span class="tag tag-optional">선택 (설정 의존)</span></td>
+                 <td>온톨로지 추출, 품질 평가, 데이터 증강, 멀티턴 대화, GGUF 변환, 모델 평가</td>
                 <td><code>Confirm.ask(default=config값)</code></td>
                 <td>config 의존</td>
               </tr>

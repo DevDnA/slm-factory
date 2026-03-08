@@ -96,12 +96,12 @@
 
           <!-- SVG Diagram: Directory Structure -->
           <div class="diagram">
-            <svg role="img" aria-labelledby="diagram-dir-title diagram-dir-desc" viewBox="0 0 850 480" xmlns="http://www.w3.org/2000/svg">
+            <svg role="img" aria-labelledby="diagram-dir-title diagram-dir-desc" viewBox="0 0 850 530" xmlns="http://www.w3.org/2000/svg">
               <title id="diagram-dir-title">src/slm_factory/ 디렉토리 구조</title>
               <desc id="diagram-dir-desc">slm-factory 프로젝트의 소스 코드 디렉토리 구조. src/slm_factory/ 루트 아래에 14개의 핵심 Python 모듈과 6개의 하위 패키지(parsers, teacher, validator, trainer, exporter, tui)로 구성됩니다.</desc>
 
               <!-- Background -->
-              <rect x="10" y="5" width="830" height="470" rx="12" fill="#F7F8FA" stroke="#CBD5E0" stroke-width="1"/>
+              <rect x="10" y="5" width="830" height="520" rx="12" fill="#F7F8FA" stroke="#CBD5E0" stroke-width="1"/>
 
               <!-- Root folder -->
               <rect x="25" y="12" width="800" height="36" rx="8" fill="#1B3A5C"/>
@@ -111,7 +111,7 @@
               <text x="60" y="36" font-family="Pretendard, sans-serif" font-size="14" font-weight="700" fill="#FFFFFF">src/slm_factory/</text>
 
               <!-- Vertical trunk line -->
-              <line x1="48" y1="48" x2="48" y2="418" stroke="#A0AEC0" stroke-width="1.5"/>
+              <line x1="48" y1="48" x2="48" y2="466" stroke="#A0AEC0" stroke-width="1.5"/>
 
               <!-- ── Core Modules Group ── -->
               <line x1="48" y1="75" x2="75" y2="75" stroke="#A0AEC0" stroke-width="1.5"/>
@@ -200,52 +200,66 @@
               <rect x="298" y="257" width="7" height="7" rx="1.5" fill="#3182CE"/>
               <text x="309" y="266" font-family="Pretendard, sans-serif" font-size="10.5" fill="#1A202C">similarity.py</text>
 
-              <!-- trainer/ -->
+              <!-- ontology/ -->
               <line x1="48" y1="310" x2="75" y2="310" stroke="#A0AEC0" stroke-width="1.5"/>
               <rect x="75" y="296" width="105" height="28" rx="5" fill="#1B3A5C"/>
               <rect x="84" y="304" width="12" height="9" rx="1.5" fill="#FFFFFF"/>
               <rect x="84" y="302" width="8" height="4" rx="1" fill="#FFFFFF"/>
-              <text x="100" y="314" font-family="Pretendard, sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">trainer/</text>
+              <text x="100" y="314" font-family="Pretendard, sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">ontology/</text>
               <rect x="185" y="296" width="635" height="28" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
               <rect x="198" y="305" width="7" height="7" rx="1.5" fill="#3182CE"/>
-              <text x="209" y="314" font-family="Pretendard, sans-serif" font-size="10.5" fill="#1A202C">lora_trainer.py</text>
+              <text x="209" y="314" font-family="Pretendard, sans-serif" font-size="10.5" fill="#1A202C">models.py</text>
+              <rect x="308" y="305" width="7" height="7" rx="1.5" fill="#3182CE"/>
+              <text x="319" y="314" font-family="Pretendard, sans-serif" font-size="10.5" fill="#1A202C">extractor.py</text>
+              <rect x="428" y="305" width="7" height="7" rx="1.5" fill="#3182CE"/>
+              <text x="439" y="314" font-family="Pretendard, sans-serif" font-size="10.5" fill="#1A202C">graph_store.py</text>
 
-              <!-- exporter/ -->
+              <!-- trainer/ -->
               <line x1="48" y1="358" x2="75" y2="358" stroke="#A0AEC0" stroke-width="1.5"/>
               <rect x="75" y="344" width="105" height="28" rx="5" fill="#1B3A5C"/>
               <rect x="84" y="352" width="12" height="9" rx="1.5" fill="#FFFFFF"/>
               <rect x="84" y="350" width="8" height="4" rx="1" fill="#FFFFFF"/>
-              <text x="100" y="362" font-family="Pretendard, sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">exporter/</text>
+              <text x="100" y="362" font-family="Pretendard, sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">trainer/</text>
               <rect x="185" y="344" width="635" height="28" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
               <rect x="198" y="353" width="7" height="7" rx="1.5" fill="#3182CE"/>
-              <text x="209" y="362" font-family="Pretendard, sans-serif" font-size="10.5" fill="#1A202C">hf_export.py</text>
-              <rect x="318" y="353" width="7" height="7" rx="1.5" fill="#3182CE"/>
-              <text x="329" y="362" font-family="Pretendard, sans-serif" font-size="10.5" fill="#1A202C">ollama_export.py</text>
-              <rect x="468" y="353" width="7" height="7" rx="1.5" fill="#3182CE"/>
-              <text x="479" y="362" font-family="Pretendard, sans-serif" font-size="10.5" fill="#1A202C">gguf_export.py</text>
+              <text x="209" y="362" font-family="Pretendard, sans-serif" font-size="10.5" fill="#1A202C">lora_trainer.py</text>
 
-              <!-- tui/ -->
+              <!-- exporter/ -->
               <line x1="48" y1="406" x2="75" y2="406" stroke="#A0AEC0" stroke-width="1.5"/>
               <rect x="75" y="392" width="105" height="28" rx="5" fill="#1B3A5C"/>
               <rect x="84" y="400" width="12" height="9" rx="1.5" fill="#FFFFFF"/>
               <rect x="84" y="398" width="8" height="4" rx="1" fill="#FFFFFF"/>
-              <text x="100" y="410" font-family="Pretendard, sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">tui/</text>
+              <text x="100" y="410" font-family="Pretendard, sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">exporter/</text>
               <rect x="185" y="392" width="635" height="28" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
               <rect x="198" y="401" width="7" height="7" rx="1.5" fill="#3182CE"/>
-              <text x="209" y="410" font-family="Pretendard, sans-serif" font-size="10.5" fill="#1A202C">widgets.py</text>
-              <rect x="308" y="401" width="7" height="7" rx="1.5" fill="#3182CE"/>
-              <text x="319" y="410" font-family="Pretendard, sans-serif" font-size="10.5" fill="#1A202C">reviewer.py</text>
-              <rect x="418" y="401" width="7" height="7" rx="1.5" fill="#3182CE"/>
-              <text x="429" y="410" font-family="Pretendard, sans-serif" font-size="10.5" fill="#1A202C">dashboard.py</text>
+              <text x="209" y="410" font-family="Pretendard, sans-serif" font-size="10.5" fill="#1A202C">hf_export.py</text>
+              <rect x="318" y="401" width="7" height="7" rx="1.5" fill="#3182CE"/>
+              <text x="329" y="410" font-family="Pretendard, sans-serif" font-size="10.5" fill="#1A202C">ollama_export.py</text>
+              <rect x="468" y="401" width="7" height="7" rx="1.5" fill="#3182CE"/>
+              <text x="479" y="410" font-family="Pretendard, sans-serif" font-size="10.5" fill="#1A202C">gguf_export.py</text>
+
+              <!-- tui/ -->
+              <line x1="48" y1="454" x2="75" y2="454" stroke="#A0AEC0" stroke-width="1.5"/>
+              <rect x="75" y="440" width="105" height="28" rx="5" fill="#1B3A5C"/>
+              <rect x="84" y="448" width="12" height="9" rx="1.5" fill="#FFFFFF"/>
+              <rect x="84" y="446" width="8" height="4" rx="1" fill="#FFFFFF"/>
+              <text x="100" y="458" font-family="Pretendard, sans-serif" font-size="11" font-weight="600" fill="#FFFFFF">tui/</text>
+              <rect x="185" y="440" width="635" height="28" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
+              <rect x="198" y="449" width="7" height="7" rx="1.5" fill="#3182CE"/>
+              <text x="209" y="458" font-family="Pretendard, sans-serif" font-size="10.5" fill="#1A202C">widgets.py</text>
+              <rect x="308" y="449" width="7" height="7" rx="1.5" fill="#3182CE"/>
+              <text x="319" y="458" font-family="Pretendard, sans-serif" font-size="10.5" fill="#1A202C">reviewer.py</text>
+              <rect x="418" y="449" width="7" height="7" rx="1.5" fill="#3182CE"/>
+              <text x="429" y="458" font-family="Pretendard, sans-serif" font-size="10.5" fill="#1A202C">dashboard.py</text>
 
               <!-- Legend -->
-              <rect x="90" y="443" width="8" height="8" rx="2" fill="#1B3A5C"/>
-              <text x="103" y="451" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568">Directory</text>
-              <rect x="180" y="443" width="8" height="8" rx="2" fill="#3182CE"/>
-              <text x="193" y="451" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568">Python Module</text>
-              <rect x="310" y="443" width="8" height="8" rx="2" fill="#3182CE"/>
-              <text x="323" y="451" font-family="Pretendard, sans-serif" font-size="10" font-weight="600" fill="#1A202C">Key Module</text>
-              <rect x="310" y="443" width="8" height="8" rx="2" fill="#3182CE"/>
+              <rect x="90" y="491" width="8" height="8" rx="2" fill="#1B3A5C"/>
+              <text x="103" y="499" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568">Directory</text>
+              <rect x="180" y="491" width="8" height="8" rx="2" fill="#3182CE"/>
+              <text x="193" y="499" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568">Python Module</text>
+              <rect x="310" y="491" width="8" height="8" rx="2" fill="#3182CE"/>
+              <text x="323" y="499" font-family="Pretendard, sans-serif" font-size="10" font-weight="600" fill="#1A202C">Key Module</text>
+              <rect x="310" y="491" width="8" height="8" rx="2" fill="#3182CE"/>
             </svg>
             <p class="diagram-caption">그림 1. src/slm_factory/ 디렉토리 구조 - 핵심 모듈(상단)과 하위 패키지(하단)</p>
           </div>
@@ -267,10 +281,14 @@
                   <td><code>pipeline.py</code></td>
                   <td>모든 하위 모듈 (오케스트레이터)</td>
                 </tr>
-                <tr>
-                  <td><code>scorer.py</code>, <code>augmenter.py</code></td>
-                  <td><code>teacher/</code>, <code>models.py</code>, <code>utils.py</code></td>
-                </tr>
+                 <tr>
+                   <td><code>scorer.py</code>, <code>augmenter.py</code></td>
+                   <td><code>teacher/</code>, <code>models.py</code>, <code>utils.py</code></td>
+                 </tr>
+                 <tr>
+                   <td><code>ontology/extractor.py</code>, <code>ontology/graph_store.py</code></td>
+                   <td><code>teacher/</code>, <code>ontology/models.py</code>, <code>utils.py</code></td>
+                 </tr>
                 <tr>
                   <td><code>analyzer.py</code>, <code>evaluator.py</code>, <code>incremental.py</code></td>
                   <td><code>models.py</code>, <code>utils.py</code></td>
@@ -363,7 +381,8 @@ class CompareResult:
     gguf_export: GGUFExportConfig; incremental: IncrementalConfig
     dialogue: DialogueConfig;    review: ReviewConfig
     compare: CompareConfig;      evolve: EvolveConfig
-    dashboard: DashboardConfig</code></pre>
+    dashboard: DashboardConfig
+    ontology: OntologyConfig</code></pre>
 
           <p>각 서브 모델의 필드 상세는 <a href="configuration.html">설정 레퍼런스</a>를 참조하십시오.</p>
 
@@ -393,8 +412,14 @@ def create_default_config() -&gt; str:
     ) -&gt; list[ParsedDocument]:
         """문서 디렉토리를 스캔하고 파싱합니다."""
 
+    def step_extract_ontology(
+        self, docs: list[ParsedDocument],
+    ) -&gt; KnowledgeGraph:
+        """문서에서 온톨로지(지식 그래프)를 추출합니다."""
+
     def step_generate(
-        self, docs: list[ParsedDocument]
+        self, docs: list[ParsedDocument],
+        ontology: KnowledgeGraph | None = None,
     ) -&gt; list[QAPair]:
         """Teacher LLM으로 QA 쌍을 생성합니다 (비동기 실행)."""
 
@@ -457,6 +482,55 @@ async def ollama_generate(client, api_base, model_name, question, timeout, *, ma
     # 일시적 오류(HTTP 5xx, 타임아웃, 연결 오류)에 대해 지수 백오프로 재시도합니다.</code></pre>
         </section>
 
+
+          <h3>ontology/ — 온톨로지(지식 그래프) 추출 모듈</h3>
+          <p>문서에서 엔티티와 관계를 자동 추출하여 지식 그래프를 구성합니다.</p>
+
+          <pre data-lang="python"><code>@dataclass
+class Entity:
+    name: str; entity_type: str; source_doc: str = ""
+    confidence: float = 1.0; properties: dict[str, Any] = field(default_factory=dict)
+
+@dataclass
+class Relation:
+    subject: str; predicate: str; object: str
+    source_doc: str = ""; confidence: float = 1.0
+
+@dataclass
+class KnowledgeGraph:
+    entities: list[Entity]; relations: list[Relation]
+
+    def to_context_string(self, source_doc: str | None = None, max_items: int = 20) -&gt; str:
+        """QA 프롬프트 주입용 컨텍스트 문자열을 생성합니다."""
+
+    def export_triples(self) -&gt; list[tuple[str, str, str]]:
+        """SPO 트리플 리스트를 반환합니다."""</code></pre>
+
+          <pre data-lang="python"><code>class OntologyExtractor:
+    def __init__(self, teacher: BaseTeacher, config: OntologyConfig, teacher_config: TeacherConfig) -&gt; None: ...
+
+    async def extract_one(self, doc: ParsedDocument) -&gt; tuple[list[Entity], list[Relation]]:
+        """단일 문서에서 엔티티와 관계를 추출합니다."""
+
+    async def extract_all(self, docs: list[ParsedDocument]) -&gt; KnowledgeGraph:
+        """전체 문서에서 온톨로지를 추출합니다 (동시성 제한 적용)."""</code></pre>
+
+          <pre data-lang="python"><code>class GraphStore:
+    @staticmethod
+    def save(kg: KnowledgeGraph, path: Path) -&gt; None:
+        """지식 그래프를 JSON으로 저장합니다."""
+
+    @staticmethod
+    def load(path: Path) -&gt; KnowledgeGraph:
+        """JSON에서 지식 그래프를 로드합니다. 파일 없으면 빈 그래프 반환."""
+
+    @staticmethod
+    def merge(existing: KnowledgeGraph, new: KnowledgeGraph, changed_docs: set[str], deleted_docs: set[str]) -&gt; KnowledgeGraph:
+        """기존 그래프와 새 그래프를 병합합니다 (증분 업데이트)."""</code></pre>
+
+          <p>QualityScorer 패턴을 따릅니다: 생성자 → 프롬프트 빌드 → JSON 파싱 → 비동기 단건/일괄 처리.</p>
+
+          <hr>
 
         <!-- ============================================================
              Section 3: 파서 모듈 (parsers/)
