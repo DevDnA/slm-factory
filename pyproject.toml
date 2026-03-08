@@ -36,6 +36,12 @@ korean = [
 validation = [
     "sentence-transformers>=5.2.0",
 ]
+hwp = [
+    "olefile>=0.47",
+]
+ocr = [
+    "pymupdf4llm>=0.0.17",
+]
 docx = [
     "python-docx>=1.2.0",
 ]
@@ -57,6 +63,8 @@ all = [
     "kiwipiepy>=0.22.0",
     "pykospacing @ git+https://github.com/haven-jeon/PyKoSpacing.git@b32a889cbd10b006d2f4aba118f0cd5b677e2979",
     "sentence-transformers>=5.2.0",
+    "olefile>=0.47",
+    "pymupdf4llm>=0.0.17",
     "python-docx>=1.2.0",
     "evaluate>=0.4.6",
     "rouge-score>=0.1.2",
