@@ -153,12 +153,18 @@ class ScoringConfig(BaseModel):
     enabled: bool = False
     threshold: float = 3.0
     max_concurrency: int = 4
+    regenerate: bool = False
+    max_regenerate_rounds: int = 2
 
     @model_validator(mode="after")
     def _check_scoring_threshold(self) -> "ScoringConfig":
         """점수 기준값의 유효성을 검증합니다."""
         if self.enabled and not (1.0 <= self.threshold <= 5.0):
             raise ValueError(f"threshold({self.threshold})는 1.0~5.0 범위여야 합니다")
+        if self.max_regenerate_rounds < 1:
+            raise ValueError(
+                f"max_regenerate_rounds({self.max_regenerate_rounds})는 1 이상이어야 합니다"
+            )
         return self
 
 
@@ -422,6 +428,39 @@ class DashboardConfig(BaseModel):
     theme: str = "dark"
 
 
+class ChunkingConfig(BaseModel):
+    """문서 청킹 설정입니다.
+
+    긴 문서를 중첩(overlap)이 있는 청크로 분할하여 QA 생성 품질을 향상합니다.
+    ``max_context_chars``보다 짧은 문서는 청킹하지 않습니다.
+    """
+
+    enabled: bool = False
+    chunk_size: int = 10000
+    """각 청크의 최대 문자 수입니다."""
+
+    overlap_chars: int = 500
+    """연속된 청크 간 중첩 문자 수입니다. 문맥 연속성을 유지합니다."""
+
+    @model_validator(mode="after")
+    def _check_chunking_params(self) -> "ChunkingConfig":
+        """청킹 파라미터의 유효성을 검증합니다."""
+        if self.chunk_size < 1000:
+            raise ValueError(
+                f"chunk_size({self.chunk_size})는 1000 이상이어야 합니다"
+            )
+        if self.overlap_chars < 0:
+            raise ValueError(
+                f"overlap_chars({self.overlap_chars})는 0 이상이어야 합니다"
+            )
+        if self.overlap_chars >= self.chunk_size:
+            raise ValueError(
+                f"overlap_chars({self.overlap_chars})는 "
+                f"chunk_size({self.chunk_size})보다 작아야 합니다"
+            )
+        return self
+
+
 class OntologyConfig(BaseModel):
     """온톨로지/지식 그래프 추출 설정입니다.
 
@@ -473,6 +512,7 @@ class SLMConfig(BaseModel):
     compare: CompareConfig = Field(default_factory=CompareConfig)
     evolve: EvolveConfig = Field(default_factory=EvolveConfig)
     dashboard: DashboardConfig = Field(default_factory=DashboardConfig)
+    chunking: ChunkingConfig = Field(default_factory=ChunkingConfig)
     ontology: OntologyConfig = Field(default_factory=OntologyConfig)
 
     @model_validator(mode="before")

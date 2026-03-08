@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from slm_factory.config import (
+    ChunkingConfig,
     EarlyStoppingConfig,
     ExportConfig,
     GroundednessConfig,
@@ -17,6 +18,7 @@ from slm_factory.config import (
     ProjectConfig,
     QuantizationConfig,
     QuestionsConfig,
+    ScoringConfig,
     SLMConfig,
     StudentConfig,
     TeacherConfig,
@@ -324,3 +326,91 @@ class TestCreateDefaultConfig:
         result = create_default_config()
         assert isinstance(result, str)
         assert len(result) > 0
+
+
+# ---------------------------------------------------------------------------
+# ChunkingConfig
+# ---------------------------------------------------------------------------
+
+
+class TestChunkingConfig:
+    """ChunkingConfig 청킹 설정의 테스트입니다."""
+
+    def test_기본값(self):
+        """청킹 설정의 기본값을 검증합니다."""
+        cfg = ChunkingConfig()
+        assert cfg.enabled is False
+        assert cfg.chunk_size == 10000
+        assert cfg.overlap_chars == 500
+
+    def test_chunk_size_최소값_검증(self):
+        """chunk_size가 1000 미만이면 ValueError를 발생시키는지 확인합니다."""
+        with pytest.raises(ValueError, match="chunk_size"):
+            ChunkingConfig(enabled=True, chunk_size=500)
+
+    def test_overlap_음수_검증(self):
+        """overlap_chars가 음수이면 ValueError를 발생시키는지 확인합니다."""
+        with pytest.raises(ValueError, match="overlap_chars"):
+            ChunkingConfig(enabled=True, overlap_chars=-1)
+
+    def test_overlap_chunk_size_이상_검증(self):
+        """overlap_chars가 chunk_size 이상이면 ValueError를 발생시키는지 확인합니다."""
+        with pytest.raises(ValueError, match="overlap_chars"):
+            ChunkingConfig(enabled=True, chunk_size=2000, overlap_chars=2000)
+
+    def test_정상값_통과(self):
+        """유효한 값이 정상적으로 생성되는지 확인합니다."""
+        cfg = ChunkingConfig(enabled=True, chunk_size=5000, overlap_chars=200)
+        assert cfg.enabled is True
+        assert cfg.chunk_size == 5000
+        assert cfg.overlap_chars == 200
+
+
+# ---------------------------------------------------------------------------
+# ScoringConfig 재생성 필드
+# ---------------------------------------------------------------------------
+
+
+class TestScoringConfigRegeneration:
+    """ScoringConfig 재생성 관련 필드의 테스트입니다."""
+
+    def test_regenerate_기본값_false(self):
+        """regenerate 기본값이 False인지 확인합니다."""
+        cfg = ScoringConfig()
+        assert cfg.regenerate is False
+
+    def test_max_regenerate_rounds_기본값(self):
+        """max_regenerate_rounds 기본값이 2인지 확인합니다."""
+        cfg = ScoringConfig()
+        assert cfg.max_regenerate_rounds == 2
+
+    def test_max_regenerate_rounds_최소값_검증(self):
+        """max_regenerate_rounds가 1 미만이면 ValueError를 발생시키는지 확인합니다."""
+        with pytest.raises(ValueError, match="max_regenerate_rounds"):
+            ScoringConfig(enabled=True, threshold=3.0, max_regenerate_rounds=0)
+
+    def test_regenerate_활성화_정상(self):
+        """regenerate=True와 유효한 max_regenerate_rounds가 정상 생성되는지 확인합니다."""
+        cfg = ScoringConfig(enabled=True, threshold=3.0, regenerate=True, max_regenerate_rounds=3)
+        assert cfg.regenerate is True
+        assert cfg.max_regenerate_rounds == 3
+
+
+# ---------------------------------------------------------------------------
+# SLMConfig에 chunking 필드 존재 확인
+# ---------------------------------------------------------------------------
+
+
+class TestSLMConfigChunking:
+    """SLMConfig에 chunking 필드가 포함되는지 확인합니다."""
+
+    def test_chunking_필드_존재(self, default_config):
+        """SLMConfig에 chunking 속성이 기본 ChunkingConfig로 존재하는지 확인합니다."""
+        assert isinstance(default_config.chunking, ChunkingConfig)
+        assert default_config.chunking.enabled is False
+
+    def test_chunking_오버라이드(self, make_config):
+        """make_config로 chunking 설정을 오버라이드할 수 있는지 확인합니다."""
+        cfg = make_config(chunking={"enabled": True, "chunk_size": 5000})
+        assert cfg.chunking.enabled is True
+        assert cfg.chunking.chunk_size == 5000

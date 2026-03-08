@@ -86,6 +86,8 @@ scoring:
                                         # 활성화 시 LLM 호출 추가 → 시간 2배 증가
   threshold: 3.0                        # 이 점수 미만의 QA 쌍을 제거합니다 (1.0~5.0)
   max_concurrency: 4                    # 동시 평가 요청 수
+  regenerate: false                     # 낮은 점수의 QA를 재생성하여 품질 향상 시도
+  max_regenerate_rounds: 2              # 최대 재생성 반복 횟수
 
 # -- 3b단계: 데이터 증강(Data Augmentation) ---------------------------------
 augment:
@@ -217,6 +219,16 @@ training:
 #   enabled: false                      # 터미널 대시보드로 파이프라인 모니터링
 #   refresh_interval: 2.0               # 화면 갱신 주기 (초)
 #   theme: "dark"                       # "dark" | "light"
+
+# -- 문서 청킹(Document Chunking) ------------------------------------------
+# 긴 문서를 청크로 분할하여 QA 품질을 향상합니다.
+# 비활성화 시 기존처럼 max_context_chars로 잘라서 단일 QA를 생성합니다.
+# 활성화 시 문서를 chunk_size 단위로 나누고 각 청크마다 QA를 생성합니다.
+#
+# chunking:
+#   enabled: false                      # 청킹 활성화 여부
+#   chunk_size: 10000                   # 각 청크의 최대 문자 수
+#   overlap_chars: 500                  # 청크 간 중첩 문자 수 (문맥 연속성 유지)
 
 # -- 온톨로지(Ontology) — 지식 그래프 추출 ---------------------------------
 # 문서에서 엔티티(개체)와 관계를 자동 추출하여 지식 그래프를 구성합니다.
