@@ -403,8 +403,10 @@ class QAGenerator:
     def build_prompt(
         self, doc_title: str, content: str, question: str,
         tables: list[str] | None = None, system_prompt: str | None = None,
+        ontology_context: str | None = None,
     ) -> str: ...
     # QA 생성을 위한 전체 프롬프트를 구성합니다.
+    # ontology_context가 주어지면 "## Related Knowledge" 섹션으로 프롬프트에 주입합니다.
 
     def parse_response(self, text: str) -> dict[str, str] | None: ...
     # LLM 응답을 {"instruction": ..., "output": ...}로 파싱합니다.
@@ -416,8 +418,10 @@ class QAGenerator:
 
     async def generate_all_async(
         self, docs: list[ParsedDocument], questions: list[str] | None = None,
+        ontology_context: dict[str, str] | None = None,
     ) -> list[QAPair]: ...
     # 세마포어 기반 동시성으로 전체 문서의 QA를 비동기 생성합니다.
+    # ontology_context: {doc_title: context_string} 딕셔너리. 각 문서별 온톨로지 컨텍스트를 QA 프롬프트에 주입합니다.
 
     def save_alpaca(self, pairs: list[QAPair], output_path: str | Path) -> Path: ...
     # QA 쌍을 Alpaca 형식 JSON으로 저장합니다.
