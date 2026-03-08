@@ -1771,21 +1771,25 @@ slm-factory tool update --config my-project/project.yaml</code></pre>
             <pre data-lang="bash"><code>slm-factory status --config my-project/project.yaml</code></pre>
 
             <h4>출력 예시</h4>
-            <pre><code>              파이프라인 진행 상태
-&#x250C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x252C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x252C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x252C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2510;
-&#x2502; 단계     &#x2502; 파일                     &#x2502; 상태   &#x2502; 건수         &#x2502;
-&#x251C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x253C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x253C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x253C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2524;
-&#x2502; parse    &#x2502; parsed_documents.json    &#x2502; 존재   &#x2502; 5개 문서     &#x2502;
-&#x2502; generate &#x2502; qa_alpaca.json           &#x2502; 존재   &#x2502; 150개 쌍     &#x2502;
-&#x2502; score    &#x2502; qa_scored.json           &#x2502; 없음   &#x2502; -            &#x2502;
-&#x2502; augment  &#x2502; qa_augmented.json        &#x2502; 없음   &#x2502; -            &#x2502;
-&#x2502; analyze  &#x2502; data_analysis.json       &#x2502; 없음   &#x2502; -            &#x2502;
-&#x2502; convert  &#x2502; training_data.jsonl      &#x2502; 없음   &#x2502; -            &#x2502;
-&#x2502; train    &#x2502; checkpoints/adapter/     &#x2502; 없음   &#x2502; -            &#x2502;
-&#x2502; export   &#x2502; merged_model/            &#x2502; 없음   &#x2502; -            &#x2502;
-&#x2514;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2534;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2534;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2534;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2518;
-
-다음 --resume 실행 시 validate부터 재개됩니다</code></pre>
+            <div class="terminal-output">
+              <p class="terminal-title">파이프라인 진행 상태</p>
+              <table>
+                <thead>
+                  <tr><th>단계</th><th>파일</th><th>상태</th><th>건수</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>parse</td><td>parsed_documents.json</td><td>존재</td><td>5개 문서</td></tr>
+                  <tr><td>generate</td><td>qa_alpaca.json</td><td>존재</td><td>150개 쌍</td></tr>
+                  <tr><td>score</td><td>qa_scored.json</td><td>없음</td><td>-</td></tr>
+                  <tr><td>augment</td><td>qa_augmented.json</td><td>없음</td><td>-</td></tr>
+                  <tr><td>analyze</td><td>data_analysis.json</td><td>없음</td><td>-</td></tr>
+                  <tr><td>convert</td><td>training_data.jsonl</td><td>없음</td><td>-</td></tr>
+                  <tr><td>train</td><td>checkpoints/adapter/</td><td>없음</td><td>-</td></tr>
+                  <tr><td>export</td><td>merged_model/</td><td>없음</td><td>-</td></tr>
+                </tbody>
+              </table>
+              <p class="terminal-footer">다음 --resume 실행 시 validate부터 재개됩니다</p>
+            </div>
 
             <p>모든 단계가 완료된 경우 "모든 단계가 완료되었습니다" 메시지를 출력합니다.</p>
           </article>
@@ -1866,17 +1870,22 @@ slm-factory clean --all --config my-project/project.yaml</code></pre>
   ./my-project/output/qa_augmented.json
   ./my-project/output/data_analysis.json
 
-삭제하시겠습니까? [y/N]:
+삭제하시겠습니까? [y/N]:</code></pre>
 
-          삭제 결과
-&#x250C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x252C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2510;
-&#x2502; 파일                             &#x2502; 상태   &#x2502;
-&#x251C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x253C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2524;
-&#x2502; ./my-project/output/qa_scored... &#x2502; 삭제됨 &#x2502;
-&#x2502; ...                              &#x2502; 삭제됨 &#x2502;
-&#x2514;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2534;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2518;
-
-3개 항목 삭제 완료</code></pre>
+            <div class="terminal-output">
+              <p class="terminal-title">삭제 결과</p>
+              <table>
+                <thead>
+                  <tr><th>파일</th><th>상태</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><code>./my-project/output/qa_scored.json</code></td><td>삭제됨</td></tr>
+                  <tr><td><code>./my-project/output/qa_augmented.json</code></td><td>삭제됨</td></tr>
+                  <tr><td><code>./my-project/output/data_analysis.json</code></td><td>삭제됨</td></tr>
+                </tbody>
+              </table>
+              <p class="terminal-footer">3개 항목 삭제 완료</p>
+            </div>
           </article>
 
           <hr>
