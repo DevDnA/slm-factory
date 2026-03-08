@@ -73,4 +73,5 @@ Modelfile
 # Misc
 .cache/
 *.tmp
+tmp/
 .ai*rules.md
