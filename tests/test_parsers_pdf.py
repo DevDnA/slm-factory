@@ -305,3 +305,98 @@ class TestPDFParserRegistration:
         txt.write_text("text")
         parser = PDFParser()
         assert parser.can_parse(txt) is False
+
+
+# ---------------------------------------------------------------------------
+# pymupdf4llm 경로 mock 테스트 (폰트 불필요)
+# ---------------------------------------------------------------------------
+
+
+class TestPDFParserPymupdf4llm:
+    """pymupdf4llm 설치 시 마크다운 추출 경로를 검증합니다."""
+
+    def test_pymupdf4llm_경로_사용(self, tmp_path: Path, mocker):
+        """HAS_PYMUPDF4LLM=True일 때 pymupdf4llm.to_markdown을 호출합니다."""
+        pdf_path = tmp_path / "test.pdf"
+        doc = fitz.open()
+        doc.new_page()
+        doc.set_metadata({"title": "마크다운 테스트"})
+        doc.save(str(pdf_path))
+        doc.close()
+
+        md_content = "# 제목\n\n본문 내용입니다.\n\n| 이름 | 값 |\n| --- | --- |\n| A | 1 |"
+        mocker.patch("slm_factory.parsers.pdf.HAS_PYMUPDF4LLM", True)
+        mocker.patch("slm_factory.parsers.pdf.pymupdf4llm")
+        from slm_factory.parsers import pdf as pdf_mod
+        pdf_mod.pymupdf4llm.to_markdown.return_value = md_content
+
+        parser = PDFParser()
+        result = parser.parse(pdf_path)
+
+        pdf_mod.pymupdf4llm.to_markdown.assert_called_once()
+        assert "본문 내용" in result.content
+        assert result.title == "마크다운 테스트"
+        assert len(result.tables) == 1
+
+    def test_pymupdf4llm_실패시_fitz_폴백(self, tmp_path: Path, mocker):
+        """pymupdf4llm.to_markdown 실패 시 fitz 폴백을 사용합니다."""
+        pdf_path = tmp_path / "fallback.pdf"
+        doc = fitz.open()
+        doc.new_page()
+        doc.save(str(pdf_path))
+        doc.close()
+
+        mocker.patch("slm_factory.parsers.pdf.HAS_PYMUPDF4LLM", True)
+        mocker.patch("slm_factory.parsers.pdf.pymupdf4llm")
+        from slm_factory.parsers import pdf as pdf_mod
+        pdf_mod.pymupdf4llm.to_markdown.side_effect = RuntimeError("OCR 실패")
+
+        parser = PDFParser()
+        result = parser.parse(pdf_path)
+
+        assert isinstance(result.content, str)
+        assert result.doc_id == "fallback.pdf"
+
+    def test_pymupdf4llm_미설치시_fitz_사용(self, tmp_path: Path, mocker):
+        """HAS_PYMUPDF4LLM=False일 때 fitz 기반 추출을 사용합니다."""
+        pdf_path = tmp_path / "nollm.pdf"
+        doc = fitz.open()
+        doc.new_page()
+        doc.save(str(pdf_path))
+        doc.close()
+
+        mocker.patch("slm_factory.parsers.pdf.HAS_PYMUPDF4LLM", False)
+
+        parser = PDFParser()
+        result = parser.parse(pdf_path)
+
+        assert isinstance(result.content, str)
+        assert result.doc_id == "nollm.pdf"
+
+
+class TestExtractTablesFromMarkdown:
+    """_extract_tables_from_markdown 함수를 검증합니다."""
+
+    def test_마크다운_표_추출(self):
+        """마크다운 텍스트에서 표 블록을 정확히 추출합니다."""
+        from slm_factory.parsers.pdf import _extract_tables_from_markdown
+
+        md = "텍스트\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n\n추가 텍스트"
+        tables = _extract_tables_from_markdown(md)
+        assert len(tables) == 1
+        assert "| A | B |" in tables[0]
+
+    def test_표_없는_텍스트(self):
+        """표가 없는 텍스트에서 빈 리스트를 반환합니다."""
+        from slm_factory.parsers.pdf import _extract_tables_from_markdown
+
+        tables = _extract_tables_from_markdown("그냥 텍스트입니다.")
+        assert tables == []
+
+    def test_여러_표_추출(self):
+        """여러 표가 포함된 텍스트에서 모두 추출합니다."""
+        from slm_factory.parsers.pdf import _extract_tables_from_markdown
+
+        md = "| A |\n| --- |\n| 1 |\n\n텍스트\n\n| B |\n| --- |\n| 2 |"
+        tables = _extract_tables_from_markdown(md)
+        assert len(tables) == 2
