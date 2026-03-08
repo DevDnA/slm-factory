@@ -162,6 +162,8 @@ training:
 #   enabled: false                      # 학습된 모델을 held-out QA로 자동 평가합니다
 #   test_split: 0.1                     # 전체 QA 중 평가용 비율 (0.0~1.0)
 #   metrics: ["bleu", "rouge"]          # 평가 메트릭: bleu, rouge, bertscore
+#                                       # 한국어(language: "ko") + kiwipiepy 설치 시 형태소 단위 평가 자동 적용
+#                                       # → pip install slm-factory[korean]
 #   max_samples: 50                     # 최대 평가 샘플 수
 #   output_file: "eval_results.json"    # 평가 결과 저장 파일
 

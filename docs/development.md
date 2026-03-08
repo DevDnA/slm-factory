@@ -344,11 +344,13 @@ from slm_factory.parsers import registry
 |------------|------|--------|----------------|
 | `PDFParser` | `pdf.py` | `.pdf` | PyMuPDF (fitz) |
 | `HWPXParser` | `hwpx.py` | `.hwpx` | lxml, pykospacing (선택적) |
-| `HTMLParser` | `html.py` | `.html`, `.htm` | BeautifulSoup4 |
-| `TextParser` | `text.py` | `.txt`, `.md` | 표준 라이브러리 |
+| `HTMLParser` | `html.py` | `.html`, `.htm` | BeautifulSoup4 (lxml 백엔드), charset-normalizer |
+| `TextParser` | `text.py` | `.txt`, `.md` | charset-normalizer |
 | `DOCXParser` | `docx.py` | `.docx` | python-docx (선택적) |
 
 `DOCXParser`는 `python-docx`가 설치되지 않은 경우 자동으로 비활성화됩니다. 레지스트리는 `parsers/__init__.py`에서 모든 파서를 자동 등록합니다.
+
+`parsers/base.py`의 `detect_encoding()` 함수는 HTML 파서와 텍스트 파서가 공유하는 유틸리티입니다. charset-normalizer를 사용하여 EUC-KR, CP949 등 한국어 인코딩을 정확하게 감지합니다.
 
 ---
 
@@ -716,7 +718,7 @@ class EPUBParser(BaseParser):
         from bs4 import BeautifulSoup
         book = epub.read_epub(str(path))
         parts = [
-            BeautifulSoup(item.get_content(), "html.parser").get_text(separator="\n")
+            BeautifulSoup(item.get_content(), "lxml").get_text(separator="\n")
             for item in book.get_items_of_type(ebooklib.ITEM_DOCUMENT)
         ]
         title_meta = book.get_metadata("DC", "title")
@@ -910,7 +912,7 @@ pytest -n auto
 
 **핵심 원칙:**
 
-- `conftest.py`는 `torch`, `transformers`, `peft`, `trl`, `datasets`, `sentence_transformers` 등 무거운 ML 라이브러리를 `MagicMock`으로 자동 대체합니다. 실제 GPU 없이도 모든 로직을 테스트할 수 있습니다.
+- `conftest.py`는 `torch`, `transformers`, `peft`, `trl`, `datasets`, `sentence_transformers`, `kiwipiepy` 등 무거운 ML 라이브러리를 `MagicMock`으로 자동 대체합니다. 실제 GPU 없이도 모든 로직을 테스트할 수 있습니다.
 - `make_config` fixture로 `SLMConfig`를 쉽게 생성합니다: `config = make_config(teacher={"model": "test-model"})`
 - 외부 API 호출은 `unittest.mock.patch`로 mock합니다.
 - 파일 I/O 테스트에는 `tmp_path` fixture를 사용합니다.

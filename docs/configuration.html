@@ -359,7 +359,7 @@
               <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>apply_spacing</code></td><td><code>bool</code></td><td><code>true</code></td><td>한국어 띄어쓰기 교정을 적용합니다. <code>pykospacing</code> 패키지가 필요합니다 (<code>pip install slm-factory[korean]</code>)</td></tr>
+              <tr><td><code>apply_spacing</code></td><td><code>bool</code></td><td><code>true</code></td><td>한국어 띄어쓰기 교정을 적용합니다. <code>pykospacing</code> 패키지가 필요합니다. <code>pip install slm-factory[korean]</code>으로 설치하면 띄어쓰기 교정(<code>pykospacing</code>)과 형태소 분석(<code>kiwipiepy</code>) 기능이 함께 설치됩니다</td></tr>
             </tbody>
           </table>
         </div>
@@ -891,6 +891,13 @@ If the document does not contain relevant information, say "The document does no
   metrics: ["bleu", "rouge"]
   max_samples: 50
   output_file: "eval_results.json"</code></pre>
+
+        <div class="callout callout-warning">
+          <div class="callout-content">
+            <div class="callout-title">한국어 형태소 분석</div>
+            <p><code>project.language</code>가 <code>"ko"</code>인 경우, kiwipiepy 형태소 분석기를 사용하여 형태소 단위로 BLEU/ROUGE를 계산합니다. <code>pip install slm-factory[korean]</code>으로 설치하면 자동으로 적용됩니다.</p>
+          </div>
+        </div>
       </section>
 
       <hr>
@@ -935,6 +942,13 @@ If the document does not contain relevant information, say "The document does no
   metrics: ["bleu", "rouge"]
   max_samples: 20
   output_file: "compare_results.json"</code></pre>
+
+        <div class="callout callout-warning">
+          <div class="callout-content">
+            <div class="callout-title">한국어 형태소 분석</div>
+            <p><code>project.language</code>가 <code>"ko"</code>인 경우, kiwipiepy 형태소 분석기를 사용하여 형태소 단위로 BLEU/ROUGE를 계산합니다. <code>pip install slm-factory[korean]</code>으로 설치하면 자동으로 적용됩니다.</p>
+          </div>
+        </div>
       </section>
 
       <hr>

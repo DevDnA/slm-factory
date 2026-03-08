@@ -10,7 +10,7 @@ parsers/
 ├── base.py        # BaseParser ABC + ParserRegistry + shared helpers
 ├── pdf.py         # PDFParser — PyMuPDF (fitz), table extraction
 ├── hwpx.py        # HWPXParser — Korean HWPX (ZIP/XML), optional PyKoSpacing
-├── html.py        # HTMLParser — BeautifulSoup4 + lxml
+├── html.py        # HTMLParser — BeautifulSoup4 + lxml, heading→markdown, charset-normalizer
 ├── text.py        # TextParser — plain text / markdown passthrough
 └── docx.py        # DOCXParser — python-docx (optional dependency)
 ```
@@ -31,6 +31,7 @@ parsers/
 | Change date extraction | `base.py:extract_date_from_filename()` | YYMMDD pattern from filenames |
 | Fix PDF table parsing | `pdf.py` | Uses `fitz.page.find_tables()` — `type: ignore` for untyped PyMuPDF |
 | Fix Korean spacing | `hwpx.py` | Optional `pykospacing` dep — graceful fallback |
+| Change encoding detection | `base.py:detect_encoding()` | Shared by HTML and Text parsers. Uses charset-normalizer for EUC-KR/CP949 |
 
 ## CONVENTIONS
 
@@ -39,6 +40,7 @@ parsers/
 - `metadata` dict holds parser-specific extras (page count, dates, authors).
 - Optional deps use `try/except ImportError` with `None` fallback (see DOCX in `__init__.py`).
 - `type: ignore` on PyMuPDF calls (`pdf.py:31,80`) — library has no type stubs.
+- `detect_encoding()` in `base.py` is the shared encoding detection utility — do NOT duplicate in individual parsers.
 
 ## ANTI-PATTERNS
 

@@ -343,6 +343,7 @@ class CSVParser(BaseParser):
         ...</code></pre>
 
         <p><code>parsers/__init__.py</code>에서 전역 <code>registry</code> 인스턴스를 생성하고 5개 파서(PDF, HWPX, HTML, Text, DOCX)를 자동 등록합니다. 새 파서를 <code>@registry.register</code>로 등록하면 즉시 파이프라인에서 처리됩니다.</p>
+        <p><code>parsers/base.py</code>의 <code>detect_encoding()</code> 함수는 HTML 파서와 텍스트 파서가 공유하는 인코딩 감지 유틸리티입니다. charset-normalizer를 사용하여 EUC-KR, CP949 등 한국어 인코딩을 정확하게 감지합니다. <code>HTMLParser</code>는 BeautifulSoup4의 lxml 백엔드를 사용하며, h1–h6 헤딩 태그를 마크다운 헤딩으로 변환하여 문서 구조를 보존합니다.</p>
         <p>커스텀 파서 구현 전체 예제는 <a href="development.html">개발자 가이드</a> 참조</p>
 
         <h3 id="factory-pattern">3.2 Factory 패턴 (teacher/)</h3>

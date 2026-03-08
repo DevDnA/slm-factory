@@ -601,17 +601,17 @@ from slm_factory.parsers import registry</code></pre>
                   <td>lxml, pykospacing (선택적)</td>
                 </tr>
                 <tr>
-                  <td><code>HTMLParser</code></td>
-                  <td><code>html.py</code></td>
-                  <td><code>.html</code>, <code>.htm</code></td>
-                  <td>BeautifulSoup4</td>
-                </tr>
-                <tr>
-                  <td><code>TextParser</code></td>
-                  <td><code>text.py</code></td>
-                  <td><code>.txt</code>, <code>.md</code></td>
-                  <td>표준 라이브러리</td>
-                </tr>
+                   <td><code>HTMLParser</code></td>
+                   <td><code>html.py</code></td>
+                   <td><code>.html</code>, <code>.htm</code></td>
+                   <td>BeautifulSoup4 (lxml 백엔드), charset-normalizer</td>
+                 </tr>
+                 <tr>
+                   <td><code>TextParser</code></td>
+                   <td><code>text.py</code></td>
+                   <td><code>.txt</code>, <code>.md</code></td>
+                   <td>charset-normalizer</td>
+                 </tr>
                 <tr>
                   <td><code>DOCXParser</code></td>
                   <td><code>docx.py</code></td>
@@ -623,6 +623,7 @@ from slm_factory.parsers import registry</code></pre>
           </div>
 
           <p><code>DOCXParser</code>는 <code>python-docx</code>가 설치되지 않은 경우 자동으로 비활성화됩니다. 레지스트리는 <code>parsers/__init__.py</code>에서 모든 파서를 자동 등록합니다.</p>
+          <p><code>parsers/base.py</code>의 <code>detect_encoding()</code> 함수는 HTML 파서와 텍스트 파서가 공유하는 유틸리티입니다. charset-normalizer를 사용하여 EUC-KR, CP949 등 한국어 인코딩을 정확하게 감지합니다.</p>
         </section>
 
 
@@ -1034,7 +1035,7 @@ class EPUBParser(BaseParser):
         from bs4 import BeautifulSoup
         book = epub.read_epub(str(path))
         parts = [
-            BeautifulSoup(item.get_content(), "html.parser").get_text(separator="\n")
+            BeautifulSoup(item.get_content(), "lxml").get_text(separator="\n")
             for item in book.get_items_of_type(ebooklib.ITEM_DOCUMENT)
         ]
         title_meta = book.get_metadata("DC", "title")
@@ -1236,7 +1237,7 @@ pytest -n auto</code></pre>
 
           <h4>핵심 원칙:</h4>
           <ul>
-            <li><code>conftest.py</code>는 <code>torch</code>, <code>transformers</code>, <code>peft</code>, <code>trl</code>, <code>datasets</code>, <code>sentence_transformers</code> 등 무거운 ML 라이브러리를 <code>MagicMock</code>으로 자동 대체합니다. 실제 GPU 없이도 모든 로직을 테스트할 수 있습니다.</li>
+            <li><code>conftest.py</code>는 <code>torch</code>, <code>transformers</code>, <code>peft</code>, <code>trl</code>, <code>datasets</code>, <code>sentence_transformers</code>, <code>kiwipiepy</code> 등 무거운 ML 라이브러리를 <code>MagicMock</code>으로 자동 대체합니다. 실제 GPU 없이도 모든 로직을 테스트할 수 있습니다.</li>
             <li><code>make_config</code> fixture로 <code>SLMConfig</code>를 쉽게 생성합니다: <code>config = make_config(teacher={"model": "test-model"})</code></li>
             <li>외부 API 호출은 <code>unittest.mock.patch</code>로 mock합니다.</li>
             <li>파일 I/O 테스트에는 <code>tmp_path</code> fixture를 사용합니다.</li>

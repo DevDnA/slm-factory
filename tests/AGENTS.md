@@ -39,7 +39,7 @@ Tests use underscore-flattened naming mirroring source modules:
 
 - `torch`, `torch.cuda`, `torch.backends`, `torch.nn`, etc.
 - `transformers`, `transformers.AutoModelForCausalLM`, `transformers.AutoTokenizer`, etc.
-- `peft`, `trl`, `datasets`, `accelerate`, `bitsandbytes`, `sentence_transformers`
+- `peft`, `trl`, `datasets`, `accelerate`, `bitsandbytes`, `sentence_transformers`, `kiwipiepy`
 
 This allows **all tests to run without GPU or ML dependencies installed**.
 

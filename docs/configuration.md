@@ -108,7 +108,7 @@ paths:
 
 | 필드 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
-| `apply_spacing` | `bool` | `true` | 한국어 띄어쓰기 교정을 적용합니다. `pykospacing` 패키지가 필요합니다 (`pip install slm-factory[korean]`) |
+| `apply_spacing` | `bool` | `true` | 한국어 띄어쓰기 교정을 적용합니다. `pykospacing` 패키지가 필요합니다. `pip install slm-factory[korean]`으로 설치하면 띄어쓰기 교정(`pykospacing`)과 형태소 분석(`kiwipiepy`) 기능이 함께 설치됩니다 |
 
 ```yaml
 parsing:
@@ -500,6 +500,8 @@ eval:
   output_file: "eval_results.json"
 ```
 
+> `project.language`가 `"ko"`인 경우, kiwipiepy 형태소 분석기를 사용하여 형태소 단위로 BLEU/ROUGE를 계산합니다. `pip install slm-factory[korean]`으로 설치하면 자동으로 적용됩니다.
+
 ---
 
 ## 15. compare — 모델 비교 설정
@@ -528,6 +530,8 @@ compare:
   max_samples: 20
   output_file: "compare_results.json"
 ```
+
+> `project.language`가 `"ko"`인 경우, kiwipiepy 형태소 분석기를 사용하여 형태소 단위로 BLEU/ROUGE를 계산합니다. `pip install slm-factory[korean]`으로 설치하면 자동으로 적용됩니다.
 
 ---
 

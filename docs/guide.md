@@ -104,7 +104,7 @@ slm-factory version
 
 > **주의**: 가상환경 활성화는 필수입니다. 시스템 Python에 직접 설치하면 `externally-managed-environment` 오류가 발생합니다 (PEP 668).
 
-`pip install -e ".[all]"` 명령은 PDF/HTML/TXT/HWPX/DOCX 파싱, 한국어 띄어쓰기 교정, 임베딩 기반 검증, 테스트 도구, Shell 자동완성을 포함한 모든 기능을 설치합니다. PyTorch, CUDA 런타임 등 대용량 패키지가 포함되어 있어 **초회 설치 시 10~20분 이상** 소요될 수 있습니다.
+`pip install -e ".[all]"` 명령은 PDF/HTML/TXT/HWPX/DOCX 파싱, 한국어 띄어쓰기 교정, 한국어 형태소 분석(kiwipiepy), 임베딩 기반 검증, 테스트 도구, Shell 자동완성을 포함한 모든 기능을 설치합니다. 한국어 기능만 별도로 설치하려면 `pip install slm-factory[korean]`을 사용하세요 (pykospacing, kiwipiepy 포함). PyTorch, CUDA 런타임 등 대용량 패키지가 포함되어 있어 **초회 설치 시 10~20분 이상** 소요될 수 있습니다.
 
 ---
 
@@ -708,6 +708,8 @@ TUI에서 각 QA 카드를 확인하며 다음 작업을 수행합니다.
 
 - **BLEU**: 생성된 답변과 참조 답변의 n-gram 일치율을 측정합니다. 0~1 범위이며 높을수록 좋습니다.
 - **ROUGE**: 재현율 기반 메트릭으로, 참조 답변의 내용이 생성된 답변에 얼마나 포함되는지 측정합니다.
+
+> **한국어 프로젝트 참고**: `project.language`가 `"ko"`이고 `kiwipiepy`가 설치되어 있으면, 형태소 단위로 BLEU/ROUGE를 계산합니다. 한국어의 교착어 특성을 반영하여 더 정확한 점수를 얻을 수 있습니다. `pip install slm-factory[korean]`으로 설치하세요.
 
 ```bash
 slm-factory eval run --model my-project-model --config project.yaml

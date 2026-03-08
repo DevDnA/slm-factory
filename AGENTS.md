@@ -1,7 +1,7 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-03-05
-**Commit:** cfb8124
+**Generated:** 2026-03-08
+**Commit:** cf4c562
 **Branch:** main
 
 ## OVERVIEW
@@ -65,8 +65,11 @@ slm-factory/
 | `app` | Typer | `cli.py:30` | CLI entry point (`slm-factory` command) |
 | `QAPair` | dataclass | `models.py:29` | Shared data model — system's lingua franca |
 | `ParsedDocument` | dataclass | `models.py:9` | Document parser output |
-| `BaseParser` | ABC | `parsers/base.py:48` | Parser interface — `parse(path) → ParsedDocument` |
-| `ParserRegistry` | class | `parsers/base.py:64` | Registration + batch parsing with Rich progress |
+| `BaseParser` | ABC | `parsers/base.py:81` | Parser interface — `parse(path) → ParsedDocument` |
+| `ParserRegistry` | class | `parsers/base.py:97` | Registration + batch parsing with Rich progress |
+| `detect_encoding` | func | `parsers/base.py:22` | charset-normalizer encoding detection (EUC-KR/CP949/UTF-8) |
+| `_load_korean_tokenizer` | func | `evaluator.py:46` | Lazy kiwipiepy loader for Korean morpheme tokenization |
+| `_preprocess_for_metrics` | func | `evaluator.py:77` | Morpheme-based text preprocessing for BLEU/ROUGE |
 | `BaseTeacher` | ABC | `teacher/base.py:8` | LLM interface — `generate()` / `agenerate()` |
 | `create_teacher` | func | `teacher/__init__.py:22` | Factory: config.backend → teacher instance |
 | `DeviceInfo` | dataclass | `device.py:19` | Frozen hardware detection result |
