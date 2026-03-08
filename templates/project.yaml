@@ -216,6 +216,26 @@ training:
 #   refresh_interval: 2.0               # 화면 갱신 주기 (초)
 #   theme: "dark"                       # "dark" | "light"
 
+# -- 온톨로지(Ontology) — 지식 그래프 추출 ---------------------------------
+# 문서에서 엔티티(개체)와 관계를 자동 추출하여 지식 그래프를 구성합니다.
+# Teacher LLM을 사용하며, QA 생성 시 추출된 지식을 컨텍스트로 활용할 수 있습니다.
+# 독립 실행: slm-factory tool ontology --config project.yaml
+#
+# ontology:
+#   enabled: false                      # 온톨로지 추출 활성화 여부
+#   entity_types:                       # 추출할 엔티티 유형 (5~7개 권장)
+#     - Person
+#     - Organization
+#     - Concept
+#     - Technology
+#     - Document
+#     - Date
+#     - Location
+#   max_concurrency: 4                  # 동시 추출 요청 수 (Teacher LLM)
+#   min_confidence: 0.5                 # 최소 확신도 (0.0~1.0). 이하는 제거
+#   enrich_qa: false                    # QA 생성 시 온톨로지 컨텍스트 주입 여부
+#   output_file: "ontology.json"        # 지식 그래프 저장 파일명
+
 # -- 6단계: 모델 내보내기(Export) -------------------------------------------
 export:
   merge_lora: true                      # 학습 결과를 원래 모델에 합쳐서 하나의 완성 모델로 저장

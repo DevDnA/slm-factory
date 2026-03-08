@@ -47,6 +47,7 @@ class QAGenerator:
         question: str,
         tables: list[str] | None = None,
         system_prompt: str | None = None,
+        ontology_context: str | None = None,
     ) -> str:
         """QA 생성을 위한 전체 프롬프트를 구성합니다.
         
@@ -56,6 +57,7 @@ class QAGenerator:
             question: 답변할 질문
             tables: 선택적 테이블 마크다운 문자열 목록
             system_prompt: 선택적 시스템 프롬프트(기본값: config.questions.system_prompt)
+            ontology_context: 온톨로지 지식 그래프 컨텍스트 문자열
         
         Returns:
             교사 LLM을 위해 준비된 완전한 프롬프트 문자열
@@ -63,23 +65,22 @@ class QAGenerator:
         if system_prompt is None:
             system_prompt = self.questions_config.system_prompt
         
-        # 최대 컨텍스트로 내용 잘라내기
         truncated_content = content[:self.max_context]
         if len(content) > self.max_context:
             truncated_content += "\n\n[Content truncated...]"
         
-        # 프롬프트 섹션 구성
         prompt_parts = [
             f"# System Instructions\n{system_prompt}",
             f"\n# Document: {doc_title}\n{truncated_content}",
         ]
         
-        # 테이블이 있으면 추가
         if tables:
             tables_section = "\n## Related Tables\n" + "\n\n".join(tables)
             prompt_parts.append(tables_section)
+
+        if ontology_context:
+            prompt_parts.append(f"\n## Related Knowledge\n{ontology_context}")
         
-        # 질문 및 형식 지침 추가
         prompt_parts.extend([
             f"\n# Question\n{question}",
             '\n# Instructions',
@@ -271,6 +272,7 @@ class QAGenerator:
         doc: ParsedDocument,
         question: str,
         category: str = "",
+        ontology_context: str | None = None,
     ) -> QAPair | None:
         async with semaphore:
             try:
@@ -279,6 +281,7 @@ class QAGenerator:
                     content=doc.content,
                     question=question,
                     tables=doc.tables if doc.tables else None,
+                    ontology_context=ontology_context,
                 )
 
                 kwargs: dict[str, Any] = {}
@@ -307,6 +310,7 @@ class QAGenerator:
         self,
         docs: list[ParsedDocument],
         questions: list[str] | None = None,
+        ontology_context: dict[str, str] | None = None,
     ) -> list[QAPair]:
         """여러 문서에 대한 QA 쌍을 비동기적으로 생성합니다.
 
@@ -316,6 +320,7 @@ class QAGenerator:
         Args:
             docs: 파싱된 문서 목록
             questions: 선택적 질문 목록(기본값: config.questions.get_all_questions())
+            ontology_context: 문서 제목 → 온톨로지 컨텍스트 문자열 매핑
 
         Returns:
             생성된 모든 QAPair 객체의 평탄화된 목록
@@ -353,16 +358,26 @@ class QAGenerator:
                 semaphore: asyncio.Semaphore,
                 doc: ParsedDocument,
                 question: str,
+                onto_ctx: str | None,
             ) -> QAPair | None:
-                result = await self._generate_one_async(semaphore, doc, question)
+                result = await self._generate_one_async(
+                    semaphore, doc, question, ontology_context=onto_ctx,
+                )
                 progress.advance(task_id)
                 return result
 
             tasks: list[asyncio.Task[QAPair | None]] = []
             for doc in docs:
+                doc_onto_ctx = (
+                    ontology_context.get(doc.title)
+                    if ontology_context
+                    else None
+                )
                 for question in all_questions:
                     task = asyncio.create_task(
-                        _generate_with_progress(semaphore, doc, question)
+                        _generate_with_progress(
+                            semaphore, doc, question, doc_onto_ctx,
+                        )
                     )
                     tasks.append(task)
 

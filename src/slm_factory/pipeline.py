@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .config import SLMConfig
     from .models import CompareResult, EvalResult, MultiTurnDialogue, ParsedDocument, QAPair
+    from .ontology.models import KnowledgeGraph
 
 from .utils import get_logger, run_async
 
@@ -113,16 +114,81 @@ class Pipeline:
         return docs
 
     # ------------------------------------------------------------------
+    # 단계 1a: 온톨로지 추출 (선택적)
+    # ------------------------------------------------------------------
+
+    def step_extract_ontology(
+        self, docs: list[ParsedDocument],
+    ) -> KnowledgeGraph:
+        """문서에서 온톨로지(지식 그래프)를 추출합니다.
+
+        ``config.ontology.enabled``가 ``False``이면 빈 지식 그래프를
+        반환합니다.
+
+        매개변수
+        ----------
+        docs:
+            :meth:`step_parse`에서 얻은 파싱된 문서입니다.
+
+        반환값
+        -------
+        KnowledgeGraph
+            추출된 지식 그래프입니다. 비활성 시 빈 그래프입니다.
+        """
+        from .ontology.models import KnowledgeGraph
+
+        if not self.config.ontology.enabled:
+            logger.info("Ontology extraction disabled — skipping")
+            return KnowledgeGraph()
+
+        from .ontology import GraphStore, OntologyExtractor
+        from .teacher import create_teacher
+
+        logger.info("Extracting ontology from %d documents...", len(docs))
+
+        teacher = create_teacher(self.config.teacher)
+        extractor = OntologyExtractor(
+            teacher, self.config.ontology, self.config.teacher,
+        )
+        kg = run_async(extractor.extract_all(docs))
+
+        # 기존 그래프가 있으면 병합 (증분 시나리오)
+        ontology_path = self.output_dir / self.config.ontology.output_file
+        existing = GraphStore.load(ontology_path)
+        if existing.entities or existing.relations:
+            doc_titles = {doc.title for doc in docs}
+            kg = GraphStore.merge(
+                existing, kg,
+                changed_docs=doc_titles,
+                deleted_docs=set(),
+            )
+
+        GraphStore.save(kg, ontology_path)
+        logger.info(
+            "Ontology extraction complete: %d entities, %d relations — saved to %s",
+            len(kg.entities), len(kg.relations), ontology_path,
+        )
+        return kg
+
+    # ------------------------------------------------------------------
     # 단계 2: QA 쌍 생성
     # ------------------------------------------------------------------
 
-    def step_generate(self, docs: list[ParsedDocument]) -> list[QAPair]:
+    def step_generate(
+        self,
+        docs: list[ParsedDocument],
+        ontology: KnowledgeGraph | None = None,
+    ) -> list[QAPair]:
         """교사 LLM을 사용하여 파싱된 문서에서 QA 쌍을 생성합니다.
 
         매개변수
         ----------
         docs:
             :meth:`step_parse`에서 얻은 파싱된 문서입니다.
+        ontology:
+            :meth:`step_extract_ontology`에서 얻은 지식 그래프입니다.
+            ``config.ontology.enrich_qa``가 활성화되어 있고 지식 그래프가
+            비어있지 않으면 QA 프롬프트에 컨텍스트로 주입됩니다.
 
         반환값
         -------
@@ -133,10 +199,28 @@ class Pipeline:
 
         logger.info("Generating QA pairs from %d documents...", len(docs))
 
-        generator = QAGenerator(self.config)
-        pairs = run_async(generator.generate_all_async(docs))
+        ontology_context: dict[str, str] | None = None
+        if (
+            ontology is not None
+            and self.config.ontology.enrich_qa
+            and (ontology.entities or ontology.relations)
+        ):
+            ontology_context = {
+                doc.title: ontology.to_context_string(source_doc=doc.title)
+                for doc in docs
+            }
+            ontology_context = {k: v for k, v in ontology_context.items() if v}
+            if ontology_context:
+                logger.info(
+                    "Ontology enrichment enabled: %d documents with context",
+                    len(ontology_context),
+                )
 
-        # 중간 출력을 위해 Alpaca JSON 저장
+        generator = QAGenerator(self.config)
+        pairs = run_async(
+            generator.generate_all_async(docs, ontology_context=ontology_context),
+        )
+
         alpaca_path = self.output_dir / "qa_alpaca.json"
         generator.save_alpaca(pairs, alpaca_path)
 
@@ -582,9 +666,12 @@ class Pipeline:
             logger.info("━━━ [1/6] 문서 파싱 ━━━")
             docs = self.step_parse()
 
+            # 단계 1a: 온톨로지 추출 (선택적)
+            kg = self.step_extract_ontology(docs)
+
             # 단계 2: QA 생성
             logger.info("━━━ [2/6] QA 쌍 생성 ━━━")
-            pairs = self.step_generate(docs)
+            pairs = self.step_generate(docs, ontology=kg)
 
             # 단계 3: 검증 + 점수 + 증강 + 분석
             logger.info("━━━ [3/6] 검증 및 품질 관리 ━━━")
