@@ -16,13 +16,42 @@ from typing import TYPE_CHECKING, Any
 from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeRemainingColumn
 
 if TYPE_CHECKING:
-    from ..config import QuestionsConfig, SLMConfig, TeacherConfig
+    from ..config import ChunkingConfig, QuestionsConfig, SLMConfig, TeacherConfig
     from ..models import ParsedDocument
 
 from ..models import QAPair
 from ..utils import get_logger
 
 logger = get_logger("teacher.qa_generator")
+
+
+def chunk_document(content: str, chunk_size: int, overlap: int) -> list[str]:
+    """문서 내용을 중첩 청크로 분할합니다.
+
+    문단 경계(\n\n)를 우선 존중하여 자연스러운 분할을 시도합니다.
+    문단 경계를 찾을 수 없으면 ``chunk_size``에서 강제 분할합니다.
+    """
+    if len(content) <= chunk_size:
+        return [content]
+
+    chunks: list[str] = []
+    start = 0
+    while start < len(content):
+        end = start + chunk_size
+
+        if end >= len(content):
+            chunks.append(content[start:])
+            break
+
+        # 문단 경계(\n\n)를 찾아 자연스럽게 분할
+        boundary = content.rfind("\n\n", start + chunk_size // 2, end)
+        if boundary > start:
+            end = boundary
+
+        chunks.append(content[start:end])
+        start = end - overlap
+
+    return chunks
 
 
 class QAGenerator:
@@ -38,6 +67,7 @@ class QAGenerator:
         self.teacher = create_teacher(config.teacher)
         self.questions_config = config.questions
         self.teacher_config = config.teacher
+        self.chunking_config = config.chunking
         self.max_context = config.teacher.max_context_chars
     
     def build_prompt(
@@ -48,6 +78,7 @@ class QAGenerator:
         tables: list[str] | None = None,
         system_prompt: str | None = None,
         ontology_context: str | None = None,
+        chunk_info: str | None = None,
     ) -> str:
         """QA 생성을 위한 전체 프롬프트를 구성합니다.
         
@@ -58,6 +89,7 @@ class QAGenerator:
             tables: 선택적 테이블 마크다운 문자열 목록
             system_prompt: 선택적 시스템 프롬프트(기본값: config.questions.system_prompt)
             ontology_context: 온톨로지 지식 그래프 컨텍스트 문자열
+            chunk_info: 청크 위치 정보 (예: "Part 2/5")
         
         Returns:
             교사 LLM을 위해 준비된 완전한 프롬프트 문자열
@@ -69,9 +101,13 @@ class QAGenerator:
         if len(content) > self.max_context:
             truncated_content += "\n\n[Content truncated...]"
         
+        title_with_chunk = doc_title
+        if chunk_info:
+            title_with_chunk = f"{doc_title} ({chunk_info})"
+        
         prompt_parts = [
             f"# System Instructions\n{system_prompt}",
-            f"\n# Document: {doc_title}\n{truncated_content}",
+            f"\n# Document: {title_with_chunk}\n{truncated_content}",
         ]
         
         if tables:
@@ -273,15 +309,19 @@ class QAGenerator:
         question: str,
         category: str = "",
         ontology_context: str | None = None,
+        chunk_content: str | None = None,
+        chunk_info: str | None = None,
     ) -> QAPair | None:
         async with semaphore:
             try:
+                content = chunk_content if chunk_content is not None else doc.content
                 prompt = self.build_prompt(
                     doc_title=doc.title,
-                    content=doc.content,
+                    content=content,
                     question=question,
                     tables=doc.tables if doc.tables else None,
                     ontology_context=ontology_context,
+                    chunk_info=chunk_info,
                 )
 
                 kwargs: dict[str, Any] = {}
@@ -306,6 +346,28 @@ class QAGenerator:
                 logger.error("Error generating QA for question '%s': %s", question[:50], e)
                 return None
 
+    def _get_doc_chunks(self, doc: ParsedDocument) -> list[tuple[str, str | None]]:
+        """문서를 청크로 분할하여 (content, chunk_info) 튜플 리스트를 반환합니다.
+
+        청킹이 비활성화되었거나 문서가 chunk_size보다 짧으면
+        원본 문서를 단일 청크로 반환합니다.
+        """
+        if not self.chunking_config.enabled:
+            return [(doc.content, None)]
+
+        chunks = chunk_document(
+            doc.content,
+            self.chunking_config.chunk_size,
+            self.chunking_config.overlap_chars,
+        )
+        if len(chunks) == 1:
+            return [(chunks[0], None)]
+
+        return [
+            (chunk, f"Part {i + 1}/{len(chunks)}")
+            for i, chunk in enumerate(chunks)
+        ]
+
     async def generate_all_async(
         self,
         docs: list[ParsedDocument],
@@ -316,6 +378,7 @@ class QAGenerator:
 
         세마포어를 사용하여 동시 요청 수를 제한하며,
         ``generate_all``의 비동기 버전입니다.
+        청킹이 활성화되면 문서를 청크로 분할하여 각 청크별로 QA를 생성합니다.
 
         Args:
             docs: 파싱된 문서 목록
@@ -333,6 +396,11 @@ class QAGenerator:
             logger.warning("No questions configured")
             return []
 
+        doc_chunks: list[tuple[ParsedDocument, str, str | None]] = []
+        for doc in docs:
+            for chunk_content, chunk_info in self._get_doc_chunks(doc):
+                doc_chunks.append((doc, chunk_content, chunk_info))
+
         progress = Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -341,13 +409,19 @@ class QAGenerator:
             TimeRemainingColumn(),
         )
 
-        total = len(docs) * len(all_questions)
-        
-        logger.info(
-            "Generating %d QA pairs (concurrency=%d)...",
-            total,
-            max_concurrency,
-        )
+        total = len(doc_chunks) * len(all_questions)
+
+        if self.chunking_config.enabled and len(doc_chunks) > len(docs):
+            logger.info(
+                "Chunking enabled: %d documents → %d chunks, "
+                "generating %d QA pairs (concurrency=%d)...",
+                len(docs), len(doc_chunks), total, max_concurrency,
+            )
+        else:
+            logger.info(
+                "Generating %d QA pairs (concurrency=%d)...",
+                total, max_concurrency,
+            )
 
         pairs: list[QAPair] = []
 
@@ -359,15 +433,20 @@ class QAGenerator:
                 doc: ParsedDocument,
                 question: str,
                 onto_ctx: str | None,
+                chunk_content: str | None,
+                chunk_info: str | None,
             ) -> QAPair | None:
                 result = await self._generate_one_async(
-                    semaphore, doc, question, ontology_context=onto_ctx,
+                    semaphore, doc, question,
+                    ontology_context=onto_ctx,
+                    chunk_content=chunk_content,
+                    chunk_info=chunk_info,
                 )
                 progress.advance(task_id)
                 return result
 
             tasks: list[asyncio.Task[QAPair | None]] = []
-            for doc in docs:
+            for doc, chunk_content, chunk_info in doc_chunks:
                 doc_onto_ctx = (
                     ontology_context.get(doc.title)
                     if ontology_context
@@ -377,6 +456,7 @@ class QAGenerator:
                     task = asyncio.create_task(
                         _generate_with_progress(
                             semaphore, doc, question, doc_onto_ctx,
+                            chunk_content, chunk_info,
                         )
                     )
                     tasks.append(task)

@@ -7,6 +7,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from slm_factory.models import QAPair
+from slm_factory.teacher.qa_generator import chunk_document
 
 
 # ---------------------------------------------------------------------------
@@ -259,3 +260,128 @@ class TestSaveAlpaca:
             data = json.load(f)
 
         assert len(data) == 3
+
+
+# ---------------------------------------------------------------------------
+# chunk_document
+# ---------------------------------------------------------------------------
+
+
+class TestChunkDocument:
+    """chunk_document 함수의 테스트입니다."""
+
+    def test_짧은_문서_단일_청크(self):
+        """chunk_size보다 짧은 문서는 단일 청크로 반환되는지 확인합니다."""
+        content = "짧은 문서입니다."
+        chunks = chunk_document(content, chunk_size=10000, overlap=500)
+        assert len(chunks) == 1
+        assert chunks[0] == content
+
+    def test_긴_문서_여러_청크(self):
+        """chunk_size보다 긴 문서가 여러 청크로 분할되는지 확인합니다."""
+        content = "A" * 30000
+        chunks = chunk_document(content, chunk_size=10000, overlap=500)
+        assert len(chunks) >= 3
+
+    def test_중첩_영역_확인(self):
+        """연속된 청크 사이에 중첩 영역이 존재하는지 확인합니다."""
+        content = "X" * 5000
+        chunks = chunk_document(content, chunk_size=2000, overlap=200)
+        assert len(chunks) >= 2
+        for i in range(len(chunks) - 1):
+            tail = chunks[i][-200:]
+            assert tail in chunks[i + 1]
+
+    def test_문단_경계_존중(self):
+        """문단 경계(\\n\\n)에서 분할을 시도하는지 확인합니다."""
+        para1 = "A" * 1500
+        para2 = "B" * 1500
+        content = para1 + "\n\n" + para2
+        chunks = chunk_document(content, chunk_size=2000, overlap=100)
+        assert len(chunks) >= 2
+        assert chunks[0].endswith("A" * 10)
+
+    def test_빈_문서(self):
+        """빈 문자열이 단일 빈 청크로 반환되는지 확인합니다."""
+        chunks = chunk_document("", chunk_size=10000, overlap=500)
+        assert len(chunks) == 1
+        assert chunks[0] == ""
+
+    def test_정확히_chunk_size(self):
+        """문서 길이가 정확히 chunk_size일 때 단일 청크로 반환되는지 확인합니다."""
+        content = "X" * 5000
+        chunks = chunk_document(content, chunk_size=5000, overlap=500)
+        assert len(chunks) == 1
+        assert chunks[0] == content
+
+
+# ---------------------------------------------------------------------------
+# build_prompt chunk_info
+# ---------------------------------------------------------------------------
+
+
+class TestBuildPromptChunkInfo:
+    """build_prompt의 chunk_info 파라미터 테스트입니다."""
+
+    def test_chunk_info_포함_시_제목에_Part_표시(self, mocker, make_config):
+        """chunk_info가 주어지면 제목에 Part 정보가 포함되는지 확인합니다."""
+        gen, _ = _make_generator(mocker, make_config)
+        prompt = gen.build_prompt(
+            doc_title="테스트 문서",
+            content="내용",
+            question="질문",
+            chunk_info="Part 2/5",
+        )
+        assert "테스트 문서 (Part 2/5)" in prompt
+
+    def test_chunk_info_None_시_기본_제목(self, mocker, make_config):
+        """chunk_info가 None이면 제목에 Part가 포함되지 않는지 확인합니다."""
+        gen, _ = _make_generator(mocker, make_config)
+        prompt = gen.build_prompt(
+            doc_title="테스트 문서",
+            content="내용",
+            question="질문",
+            chunk_info=None,
+        )
+        assert "Part" not in prompt
+        assert "테스트 문서" in prompt
+
+
+# ---------------------------------------------------------------------------
+# _get_doc_chunks
+# ---------------------------------------------------------------------------
+
+
+class TestGetDocChunks:
+    """QAGenerator._get_doc_chunks 메서드의 테스트입니다."""
+
+    def test_청킹_비활성화_시_단일_청크(self, mocker, make_config, make_parsed_doc):
+        """chunking.enabled=False이면 원본 문서를 (content, None)으로 반환하는지 확인합니다."""
+        gen, _ = _make_generator(mocker, make_config)
+        doc = make_parsed_doc(content="테스트 내용")
+        chunks = gen._get_doc_chunks(doc)
+        assert len(chunks) == 1
+        assert chunks[0] == ("테스트 내용", None)
+
+    def test_청킹_활성화_긴_문서(self, mocker, make_config, make_parsed_doc):
+        """chunking이 활성화되고 문서가 길면 여러 (chunk, Part N/M) 튜플을 반환하는지 확인합니다."""
+        gen, _ = _make_generator(
+            mocker, make_config,
+            chunking={"enabled": True, "chunk_size": 1000, "overlap_chars": 100},
+        )
+        doc = make_parsed_doc(content="X" * 3000)
+        chunks = gen._get_doc_chunks(doc)
+        assert len(chunks) >= 3
+        assert chunks[0][1] == f"Part 1/{len(chunks)}"
+        assert chunks[-1][1] == f"Part {len(chunks)}/{len(chunks)}"
+
+    def test_청킹_활성화_짧은_문서(self, mocker, make_config, make_parsed_doc):
+        """chunking이 활성화되어도 짧은 문서는 (content, None)으로 반환되는지 확인합니다."""
+        gen, _ = _make_generator(
+            mocker, make_config,
+            chunking={"enabled": True, "chunk_size": 10000, "overlap_chars": 500},
+        )
+        doc = make_parsed_doc(content="짧은 문서")
+        chunks = gen._get_doc_chunks(doc)
+        assert len(chunks) == 1
+        assert chunks[0][1] is None
