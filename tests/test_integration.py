@@ -274,10 +274,15 @@ class TestScoreRegenerationLoop:
         doc = make_parsed_doc(doc_id="test.pdf")
 
         mock_teacher = MagicMock()
-        mock_teacher.generate.return_value = json.dumps({
+        regen_response = json.dumps({
             "instruction": "나쁜 질문",
             "output": "충분히 긴 재생성된 개선 답변입니다. 정확하고 상세한 내용을 포함합니다.",
         })
+
+        async def mock_agenerate(prompt, **kwargs):
+            return regen_response
+
+        mock_teacher.agenerate = mock_agenerate
 
         mocker.patch("slm_factory.teacher.create_teacher", return_value=mock_teacher)
 
@@ -299,7 +304,6 @@ class TestScoreRegenerationLoop:
         result = pipeline.step_score([good_pair, bad_pair], docs=[doc])
 
         assert len(result) >= 2
-        assert mock_teacher.generate.called
 
     def test_재생성_프롬프트에_이전_점수_피드백_포함(self, make_config, make_qa_pair, make_parsed_doc, tmp_path, mocker):
         """재생성 프롬프트에 이전 점수와 이유가 포함되는지 확인합니다."""
@@ -314,10 +318,12 @@ class TestScoreRegenerationLoop:
         captured_prompts = []
 
         mock_teacher = MagicMock()
-        def capture_generate(prompt, **kwargs):
+
+        async def capture_agenerate(prompt, **kwargs):
             captured_prompts.append(prompt)
             return json.dumps({"instruction": "질문", "output": "개선된 답변입니다. 충분히 길고 정확합니다."})
-        mock_teacher.generate.side_effect = capture_generate
+
+        mock_teacher.agenerate = capture_agenerate
 
         mocker.patch("slm_factory.teacher.create_teacher", return_value=mock_teacher)
 
@@ -473,9 +479,14 @@ class TestEdgeCases:
         doc = make_parsed_doc(doc_id="test.pdf")
 
         mock_teacher = MagicMock()
-        mock_teacher.generate.return_value = json.dumps({
+        regen_response = json.dumps({
             "instruction": "질문", "output": "여전히 부족한 답변입니다. 개선이 필요합니다.",
         })
+
+        async def mock_agenerate(prompt, **kwargs):
+            return regen_response
+
+        mock_teacher.agenerate = mock_agenerate
 
         mocker.patch("slm_factory.teacher.create_teacher", return_value=mock_teacher)
 
@@ -489,4 +500,123 @@ class TestEdgeCases:
 
         result = pipeline.step_score([bad_pair], docs=[doc])
 
-        assert mock_teacher.generate.call_count <= 1
+        assert len(result) == 0
+
+
+# ---------------------------------------------------------------------------
+# Relation 중복 제거 테스트
+# ---------------------------------------------------------------------------
+
+
+class TestRelationNormalization:
+    """온톨로지 멀티청크 추출 시 Relation 중복 제거 검증."""
+
+    def test_동일_관계_중복_제거(self, make_config):
+        """동일 subject-predicate-object 관계가 하나로 합쳐집니다."""
+        from slm_factory.ontology.extractor import OntologyExtractor
+        from slm_factory.ontology.models import Relation
+
+        config = make_config()
+        mock_teacher = MagicMock()
+        extractor = OntologyExtractor(mock_teacher, config.ontology, config.teacher)
+
+        relations = [
+            Relation(subject="삼성전자", predicate="개발", object="갤럭시", source_doc="d1", confidence=0.8),
+            Relation(subject="삼성전자", predicate="개발", object="갤럭시", source_doc="d1", confidence=0.9),
+            Relation(subject="삼성전자", predicate="개발", object="갤럭시", source_doc="d1", confidence=0.7),
+        ]
+
+        result = extractor._normalize_relations(relations)
+
+        assert len(result) == 1
+        assert result[0].confidence == 0.9
+
+    def test_대소문자_무시_중복_제거(self, make_config):
+        """대소문자가 달라도 같은 관계로 인식합니다."""
+        from slm_factory.ontology.extractor import OntologyExtractor
+        from slm_factory.ontology.models import Relation
+
+        config = make_config()
+        mock_teacher = MagicMock()
+        extractor = OntologyExtractor(mock_teacher, config.ontology, config.teacher)
+
+        relations = [
+            Relation(subject="Samsung", predicate="develops", object="Galaxy", confidence=0.8),
+            Relation(subject="SAMSUNG", predicate="DEVELOPS", object="GALAXY", confidence=0.6),
+        ]
+
+        result = extractor._normalize_relations(relations)
+
+        assert len(result) == 1
+        assert result[0].confidence == 0.8
+
+    def test_다른_관계_유지(self, make_config):
+        """서로 다른 관계는 모두 유지됩니다."""
+        from slm_factory.ontology.extractor import OntologyExtractor
+        from slm_factory.ontology.models import Relation
+
+        config = make_config()
+        mock_teacher = MagicMock()
+        extractor = OntologyExtractor(mock_teacher, config.ontology, config.teacher)
+
+        relations = [
+            Relation(subject="A", predicate="소속", object="B"),
+            Relation(subject="A", predicate="개발", object="C"),
+            Relation(subject="B", predicate="소속", object="C"),
+        ]
+
+        result = extractor._normalize_relations(relations)
+
+        assert len(result) == 3
+
+    def test_빈_관계_리스트(self, make_config):
+        """빈 리스트 입력 시 빈 리스트를 반환합니다."""
+        from slm_factory.ontology.extractor import OntologyExtractor
+
+        config = make_config()
+        mock_teacher = MagicMock()
+        extractor = OntologyExtractor(mock_teacher, config.ontology, config.teacher)
+
+        result = extractor._normalize_relations([])
+
+        assert result == []
+
+    def test_extract_one에서_관계_중복_제거_적용(self, make_config):
+        """extract_one이 멀티청크 추출 후 관계를 정규화합니다."""
+        from slm_factory.ontology.extractor import OntologyExtractor
+        from slm_factory.ontology.models import Entity, Relation
+        from slm_factory.models import ParsedDocument
+
+        config = make_config(ontology={"enabled": True})
+        mock_teacher = MagicMock()
+
+        chunk1_response = json.dumps({"entities": [
+            {"name": "X", "entity_type": "Concept"},
+            {"name": "Y", "entity_type": "Concept"},
+        ], "relations": [
+            {"subject": "X", "predicate": "관련", "object": "Y"}
+        ]})
+        chunk2_response = json.dumps({"entities": [
+            {"name": "X", "entity_type": "Concept"},
+            {"name": "Y", "entity_type": "Concept"},
+        ], "relations": [
+            {"subject": "X", "predicate": "관련", "object": "Y"}
+        ]})
+
+        call_count = 0
+
+        async def mock_agenerate(prompt, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            return chunk1_response if call_count == 1 else chunk2_response
+
+        mock_teacher.agenerate = mock_agenerate
+
+        extractor = OntologyExtractor(mock_teacher, config.ontology, config.teacher)
+        doc = ParsedDocument(
+            doc_id="test", title="테스트", content="A" * 20000,
+        )
+
+        entities, relations = asyncio.run(extractor.extract_one(doc))
+
+        assert len(relations) == 1

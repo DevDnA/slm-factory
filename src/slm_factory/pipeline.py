@@ -365,8 +365,7 @@ class Pipeline:
         teacher: BaseTeacher,
         scorer: QualityScorer,
     ) -> list[QAPair]:
-        """낮은 점수의 QA 쌍을 재생성하여 품질을 높입니다."""
-        from .models import QAPair
+        """낮은 점수의 QA 쌍을 비동기 배치로 재생성하여 품질을 높입니다."""
         from .teacher.qa_generator import QAGenerator
 
         generator = QAGenerator(self.config)
@@ -396,47 +395,11 @@ class Pipeline:
                 round_num, max_rounds, len(remaining),
             )
 
-            regen_pairs: list[QAPair] = []
-            for pair, score, reason in remaining:
-                doc = doc_map.get(pair.source_doc)
-                if doc is None:
-                    continue
-
-                onto_ctx = (
-                    ontology_context.get(doc.title)
-                    if ontology_context
-                    else None
+            regen_pairs = run_async(
+                self._regenerate_round(
+                    remaining, doc_map, ontology_context, generator,
                 )
-
-                enhanced_system = (
-                    f"{self.config.questions.system_prompt}\n\n"
-                    f"IMPORTANT: A previous answer scored {score}/5 "
-                    f"(reason: {reason}). "
-                    "Provide a more accurate, complete, and well-structured answer."
-                )
-
-                prompt = generator.build_prompt(
-                    doc_title=doc.title,
-                    content=doc.content,
-                    question=pair.question,
-                    tables=doc.tables if doc.tables else None,
-                    system_prompt=enhanced_system,
-                    ontology_context=onto_ctx,
-                )
-
-                try:
-                    response = generator.teacher.generate(prompt)
-                    parsed = generator.parse_response(response)
-                    if parsed:
-                        regen_pairs.append(QAPair(
-                            question=pair.question,
-                            answer=parsed["output"],
-                            instruction=parsed["instruction"],
-                            source_doc=pair.source_doc,
-                            category=pair.category,
-                        ))
-                except Exception as e:
-                    logger.error("Regeneration failed for '%s': %s", pair.question[:40], e)
+            )
 
             if not regen_pairs:
                 break
@@ -451,6 +414,122 @@ class Pipeline:
             )
 
         return accepted
+
+    async def _regenerate_round(
+        self,
+        remaining: list[tuple[QAPair, int, str]],
+        doc_map: dict[str, ParsedDocument],
+        ontology_context: dict[str, str] | None,
+        generator: object,
+    ) -> list[QAPair]:
+        """한 라운드의 재생성을 비동기 배치로 실행합니다."""
+        import asyncio
+
+        from rich.progress import (
+            BarColumn,
+            Progress,
+            SpinnerColumn,
+            TextColumn,
+            TimeRemainingColumn,
+        )
+
+        from .utils import run_bounded
+
+        semaphore = asyncio.Semaphore(self.config.teacher.max_concurrency)
+
+        progress = Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("{task.completed}/{task.total}"),
+            TimeRemainingColumn(),
+        )
+
+        items = []
+        for pair, score, reason in remaining:
+            doc = doc_map.get(pair.source_doc)
+            if doc is not None:
+                items.append((pair, score, reason, doc))
+
+        if not items:
+            return []
+
+        results: list[QAPair] = []
+        with progress:
+            task_id = progress.add_task(
+                "저품질 QA 재생성 중...", total=len(items),
+            )
+            tasks = [
+                run_bounded(
+                    semaphore,
+                    self._regenerate_one(pair, score, reason, doc, ontology_context, generator),
+                    progress,
+                    task_id,
+                )
+                for pair, score, reason, doc in items
+            ]
+            gathered = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for result in gathered:
+            if isinstance(result, BaseException):
+                logger.error("재생성 실패: %s", result)
+                continue
+            if result is not None:
+                results.append(result)
+
+        return results
+
+    async def _regenerate_one(
+        self,
+        pair: QAPair,
+        score: int,
+        reason: str,
+        doc: ParsedDocument,
+        ontology_context: dict[str, str] | None,
+        generator: object,
+    ) -> QAPair | None:
+        """단일 QA 쌍을 비동기로 재생성합니다."""
+        from .models import QAPair
+
+        onto_ctx = (
+            ontology_context.get(doc.title)
+            if ontology_context
+            else None
+        )
+
+        enhanced_system = (
+            f"{self.config.questions.system_prompt}\n\n"
+            f"IMPORTANT: A previous answer scored {score}/5 "
+            f"(reason: {reason}). "
+            "Provide a more accurate, complete, and well-structured answer."
+        )
+
+        prompt = generator.build_prompt(
+            doc_title=doc.title,
+            content=doc.content,
+            question=pair.question,
+            tables=doc.tables if doc.tables else None,
+            system_prompt=enhanced_system,
+            ontology_context=onto_ctx,
+        )
+
+        try:
+            response = await generator.teacher.agenerate(prompt)
+            parsed = generator.parse_response(response)
+            if parsed:
+                return QAPair(
+                    question=pair.question,
+                    answer=parsed["output"],
+                    instruction=parsed["instruction"],
+                    source_doc=pair.source_doc,
+                    category=pair.category,
+                )
+        except Exception as e:
+            logger.error(
+                "Regeneration failed for '%s': %s",
+                pair.question[:40], e,
+            )
+        return None
 
     # ------------------------------------------------------------------
     # 단계 3b: 데이터 증강

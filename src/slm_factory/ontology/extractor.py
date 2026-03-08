@@ -243,6 +243,34 @@ class OntologyExtractor:
 
         return list(canonical.values())
 
+    def _normalize_relations(self, relations: list[Relation]) -> list[Relation]:
+        """동일 관계의 중복을 제거합니다.
+
+        ``(subject.upper(), predicate.upper(), object.upper())`` 기준으로
+        동일 관계를 그룹화하고, 확신도가 높은 쪽을 선택합니다.
+        멀티청크 추출 시 overlap 영역에서 발생하는 중복을 정리합니다.
+        """
+        canonical: dict[tuple[str, str, str], Relation] = {}
+
+        for relation in relations:
+            key = (
+                relation.subject.upper(),
+                relation.predicate.upper(),
+                relation.object.upper(),
+            )
+            existing = canonical.get(key)
+            if existing is None:
+                canonical[key] = relation
+            else:
+                if relation.confidence > existing.confidence:
+                    canonical[key] = relation
+
+        removed = len(relations) - len(canonical)
+        if removed:
+            logger.debug("관계 정규화: %d개 중복 제거", removed)
+
+        return list(canonical.values())
+
     # ------------------------------------------------------------------
     # 비동기 단건/일괄 처리
     # ------------------------------------------------------------------
@@ -288,6 +316,7 @@ class OntologyExtractor:
                 )
 
         all_entities = self._normalize_entities(all_entities)
+        all_relations = self._normalize_relations(all_relations)
 
         logger.debug(
             "문서 '%s': %d 청크 → %d 엔티티, %d 관계 추출",
