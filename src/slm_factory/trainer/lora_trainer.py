@@ -152,12 +152,18 @@ class LoRATrainer:
             raise
 
         logger.info(
-            "Loaded model %s (%.1fM params, device=%s, dtype=%s)",
+            "Loaded model %s (%.1fM params, device=%s, dtype=%s, gpu_count=%d)",
             model_name,
             sum(p.numel() for p in model.parameters()) / 1e6,
             next(model.parameters()).device,
             device.dtype_name,
+            device.gpu_count,
         )
+        if device.gpu_count > 1:
+            logger.info(
+                "멀티 GPU 모드: %d개의 GPU에 모델이 분산됩니다 (device_map='auto')",
+                device.gpu_count,
+            )
         return model, tokenizer
 
     def _create_lora_config(self) -> Any:
@@ -216,12 +222,23 @@ class LoRATrainer:
         else:
             overrides = {}
 
+        grad_accum = tc.gradient_accumulation_steps
+        gpu_count = device.gpu_count if device is not None else 1
+        if gpu_count > 1 and grad_accum > 1:
+            adjusted = max(1, grad_accum // gpu_count)
+            if adjusted != grad_accum:
+                logger.info(
+                    "멀티 GPU(%d개): gradient_accumulation_steps %d → %d 조정",
+                    gpu_count, grad_accum, adjusted,
+                )
+                grad_accum = adjusted
+
         training_args = TrainingArguments(
             output_dir=str(self.output_dir),
             num_train_epochs=tc.num_epochs,
             per_device_train_batch_size=tc.batch_size,
             per_device_eval_batch_size=tc.batch_size,
-            gradient_accumulation_steps=tc.gradient_accumulation_steps,
+            gradient_accumulation_steps=grad_accum,
             learning_rate=tc.learning_rate,
             lr_scheduler_type=tc.lr_scheduler,
             warmup_ratio=tc.warmup_ratio,
@@ -238,19 +255,21 @@ class LoRATrainer:
             report_to="none",
             seed=42,
             remove_unused_columns=False,
+            **{k: v for k, v in overrides.items() if k not in ("bf16", "fp16", "optim")},
         )
 
         precision = "bf16" if training_args.bf16 else ("fp16" if training_args.fp16 else "fp32")
         logger.info(
             "Training: %d epochs, batch=%d, grad_accum=%d, lr=%.2e, scheduler=%s, "
-            "precision=%s, optim=%s",
+            "precision=%s, optim=%s, gpu_count=%d",
             tc.num_epochs,
             tc.batch_size,
-            tc.gradient_accumulation_steps,
+            grad_accum,
             tc.learning_rate,
             tc.lr_scheduler,
             precision,
             training_args.optim,
+            gpu_count,
         )
         return training_args
 

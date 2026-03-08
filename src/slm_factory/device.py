@@ -35,6 +35,8 @@ class DeviceInfo:
         BitsAndBytes 양자화 사용 가능 여부.
     device_map : str | None
         HuggingFace ``device_map`` 권장값.
+    gpu_count : int
+        감지된 GPU 수 (CUDA만 해당, MPS/CPU는 1 또는 0).
     """
 
     type: str
@@ -44,6 +46,7 @@ class DeviceInfo:
     fp16: bool
     quantization_available: bool
     device_map: str | None
+    gpu_count: int = 1
 
     @property
     def torch_dtype(self) -> Any:
@@ -97,21 +100,26 @@ def detect_device() -> DeviceInfo:
 
     # ── CUDA (NVIDIA GPU) ─────────────────────────────────────────
     if torch.cuda.is_available():
+        gpu_count = torch.cuda.device_count()
         device_name = torch.cuda.get_device_name(0)
         vram_gb = torch.cuda.get_device_properties(0).total_mem / (1024**3)
         cuda_version = torch.version.cuda or "unknown"
         bnb_available = _check_bitsandbytes()
 
+        gpu_suffix = f" x{gpu_count}" if gpu_count > 1 else ""
         info = DeviceInfo(
             type="cuda",
-            name=f"{device_name} ({vram_gb:.1f}GB, CUDA {cuda_version})",
+            name=f"{device_name} ({vram_gb:.1f}GB, CUDA {cuda_version}){gpu_suffix}",
             dtype_name="bfloat16",
             bf16=True,
             fp16=True,
             quantization_available=bnb_available,
             device_map="auto",
+            gpu_count=gpu_count,
         )
         logger.info("디바이스 감지: %s", info.name)
+        if gpu_count > 1:
+            logger.info("멀티 GPU 감지: %d개의 GPU를 사용합니다", gpu_count)
         return info
 
     # ── MPS (Apple Silicon) ───────────────────────────────────────
@@ -128,6 +136,7 @@ def detect_device() -> DeviceInfo:
             fp16=True,
             quantization_available=False,
             device_map=None,
+            gpu_count=1,
         )
         logger.info("디바이스 감지: %s", info.name)
         return info
@@ -145,6 +154,7 @@ def detect_device() -> DeviceInfo:
         fp16=False,
         quantization_available=False,
         device_map=None,
+        gpu_count=0,
     )
     logger.info("디바이스 감지: %s (GPU 미감지)", info.name)
     return info
@@ -168,8 +178,10 @@ def get_training_overrides(device: DeviceInfo) -> dict[str, Any]:
     }
 
     if device.type == "mps":
-        # MPS는 gradient checkpointing이 불안정할 수 있음
         overrides["gradient_checkpointing"] = False
+
+    if device.gpu_count > 1:
+        overrides["ddp_find_unused_parameters"] = False
 
     return overrides
 
@@ -200,6 +212,10 @@ def print_device_summary(device: DeviceInfo) -> None:
     }
     table.add_row("디바이스", type_display.get(device.type, device.type))
     table.add_row("이름", device.name)
+    if device.gpu_count > 1:
+        table.add_row("GPU 수", f"[green]{device.gpu_count}개[/green] (멀티 GPU)")
+    elif device.gpu_count == 1 and device.type != "cpu":
+        table.add_row("GPU 수", "1개")
 
     # 데이터 타입
     dtype_display = {
