@@ -18,7 +18,7 @@ teacher/
 
 1. `create_teacher(config.teacher)` dispatches on `config.backend` → `OllamaTeacher` or `OpenAICompatTeacher`.
 2. Both backends implement `generate(prompt)` (sync) and `agenerate(prompt)` (async with httpx).
-3. `QAGenerator` takes parsed docs + config questions, calls teacher LLM per question per doc, parses JSON responses into `QAPair`.
+3. `QAGenerator` takes parsed docs + config questions, calls teacher LLM per question per doc, parses JSON responses into `QAPair`. Supports smart document chunking via `chunk_document()` + `_get_doc_chunks()` — splits long docs into overlapping chunks at paragraph boundaries.
 4. `DialogueGenerator` expands QA pairs into multi-turn dialogues via teacher LLM.
 
 ## WHERE TO LOOK
@@ -27,6 +27,7 @@ teacher/
 |------|------|-------|
 | Add new LLM backend | New file + `__init__.py` | Subclass `BaseTeacher`, add to `create_teacher()` |
 | Change QA prompt template | `qa_generator.py` | Alpaca-format JSON prompt with "Do NOT" guardrails |
+| Change chunking logic | `qa_generator.py:chunk_document()` | Paragraph-boundary splitting with overlap |
 | Change dialogue format | `dialogue_generator.py` | Multi-turn JSON prompt |
 | Fix Ollama connectivity | `ollama.py` | `health_check()` + retry with exponential backoff |
 | Adjust concurrency | Via `TeacherConfig.max_concurrency` | Controls `asyncio.Semaphore` in generators |

@@ -1,7 +1,7 @@
 # PROJECT KNOWLEDGE BASE
 
 **Generated:** 2026-03-08
-**Commit:** cf4c562
+**Commit:** 2c461f5
 **Branch:** main
 
 ## OVERVIEW
@@ -13,9 +13,9 @@ Teacher-Student knowledge distillation CLI framework for building domain-specifi
 ```
 slm-factory/
 ├── src/slm_factory/          # Source (src layout, setuptools)
-│   ├── cli.py                # ALL CLI commands — monolith (1899 lines)
-│   ├── pipeline.py           # Orchestrator — 12 step_* methods
-│   ├── config.py             # 28 Pydantic v2 models for YAML config
+│   ├── cli.py                # ALL CLI commands — monolith (2118 lines)
+│   ├── pipeline.py           # Orchestrator — 12 step_* methods + async regeneration
+│   ├── config.py             # 30 Pydantic v2 models for YAML config (incl. ChunkingConfig)
 │   ├── models.py             # Shared dataclasses: QAPair, ParsedDocument, etc.
 │   ├── device.py             # CUDA/MPS/CPU auto-detection
 │   ├── utils.py              # Logging (Rich), async helpers, hash utils
@@ -60,7 +60,9 @@ slm-factory/
 | Symbol | Type | Location | Role |
 |--------|------|----------|------|
 | `Pipeline` | class | `pipeline.py:23` | Central orchestrator — 12 `step_*` methods |
+| `Pipeline._regenerate_round` | async | `pipeline.py` | Async batch regeneration per round (semaphore + gather) |
 | `SLMConfig` | class | `config.py:430` | Root Pydantic v2 config (20 sub-configs) |
+| `ChunkingConfig` | class | `config.py:431` | Document chunking settings (chunk_size, overlap_chars) |
 | `load_config` | func | `config.py:474` | YAML → validated `SLMConfig` |
 | `app` | Typer | `cli.py:30` | CLI entry point (`slm-factory` command) |
 | `QAPair` | dataclass | `models.py:29` | Shared data model — system's lingua franca |
@@ -119,8 +121,8 @@ slm-factory check --config project.yaml
 
 ## NOTES
 
-- **`cli.py` is 1899 lines** — all 18 commands in one file. Wizard alone is ~400 lines. Known maintenance burden.
-- **`config.py` has 28 Pydantic models** — single file, 545 lines. 20 sub-configs composed into `SLMConfig`.
+- **`cli.py` is 2118 lines** — all 19 commands in one file (incl. `tool compare-data`). Wizard alone is ~400 lines. Known maintenance burden.
+- **`config.py` has 30 Pydantic models** — single file, 605 lines. 22 sub-configs composed into `SLMConfig` (incl. `ChunkingConfig`).
 - **Pipeline is stateless** — no mutable state between steps. Resume logic lives in CLI, not Pipeline.
 - **`QAPair` changes ripple to 19+ modules** — treat as a stable interface.
 - **`asyncio.run()` in Pipeline** — cannot use Pipeline from an existing event loop.

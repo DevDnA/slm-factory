@@ -16,7 +16,7 @@ ontology/
 
 1. `OntologyExtractor(teacher, config, teacher_config)` wraps Teacher LLM for entity/relation extraction.
 2. `extract_all(docs)` processes all documents with bounded concurrency via `asyncio.Semaphore`.
-3. Per document: builds JSON extraction prompt → calls `teacher.agenerate()` → parses JSON response → validates against allowed entity types → normalizes duplicate entities.
+3. Per document: `extract_one()` splits long docs into chunks via `chunk_document()`, extracts entities/relations per chunk, merges results. `_normalize_entities()` dedup by `(name.upper(), entity_type)`, `_normalize_relations()` dedup by `(subject.upper(), predicate.upper(), object.upper())`.
 4. `GraphStore.save/load` handles JSON persistence. `GraphStore.merge` supports incremental updates with proper deleted document handling.
 5. `KnowledgeGraph.to_context_string()` formats entities/relations for QA prompt injection.
 
@@ -27,7 +27,8 @@ ontology/
 | Change entity types | `config.py:OntologyConfig.entity_types` | Default 7 types, configurable |
 | Change extraction prompt | `extractor.py:_build_extraction_prompt()` | Korean instructions, JSON format |
 | Change validation rules | `extractor.py:_validate_extraction()` | Type filtering + confidence threshold |
-| Change normalization | `extractor.py:_normalize_entities()` | Upper-case dedup, prefer longer names |
+| Change entity normalization | `extractor.py:_normalize_entities()` | Upper-case dedup, prefer longer names |
+| Change relation normalization | `extractor.py:_normalize_relations()` | Upper-case dedup, prefer higher confidence |
 | Change storage format | `graph_store.py` | Currently JSON, could add SQLite |
 | Change QA enrichment format | `models.py:to_context_string()` | Controls what goes into QA prompts |
 

@@ -8,16 +8,17 @@ Tests use underscore-flattened naming mirroring source modules:
 
 | Test File | Source Module | Tests |
 |-----------|---------------|-------|
-| `test_cli.py` | `cli.py` | 45 — CliRunner integration |
-| `test_pipeline.py` | `pipeline.py` | 27 — step_* orchestration |
+| `test_cli.py` | `cli.py` | 51 — CliRunner integration (incl. compare-data) |
+| `test_pipeline.py` | `pipeline.py` | 30 — step_* orchestration + regeneration |
+| `test_integration.py` | cross-module | 22 — chunking→QA, ontology→QA, score→regen chains + relation dedup |
 | `test_evolve_history.py` | `evolve_history.py` | 41 — version tracking |
 | `test_dashboard.py` | `tui/dashboard.py` | 29 — TUI dashboard |
 | `test_reviewer.py` | `tui/reviewer.py` | 28 — TUI reviewer |
-| `test_config.py` | `config.py` | 26 — Pydantic validation |
+| `test_config.py` | `config.py` | 37 — Pydantic validation (incl. ChunkingConfig, ScoringConfig.regenerate) |
 | `test_incremental.py` | `incremental.py` | 24 — hash tracking |
 | `test_parsers_*.py` (6 files) | `parsers/*.py` | ~92 — per-format parser tests |
 | `test_teacher.py` | `teacher/` | 16 — backend tests |
-| `test_qa_generator.py` | `teacher/qa_generator.py` | 16 — QA generation |
+| `test_qa_generator.py` | `teacher/qa_generator.py` | 27 — QA generation + chunking |
 | `test_dialogue_generator.py` | `teacher/dialogue_generator.py` | 20 — dialogue gen |
 | Others (8 files) | Various | ~90 — evaluator, scorer, augmenter, etc. |
 
@@ -49,7 +50,7 @@ This allows **all tests to run without GPU or ML dependencies installed**.
 - **Korean docstrings**: Every test method has a Korean docstring.
 - **Class-based**: All tests in classes (`class TestStepParse`), no bare functions.
 - **Section separators**: `# ---...---` comment blocks between test groups.
-- **1:1 mapping**: Each test file corresponds to one source module.
+- **1:1 mapping**: Each test file corresponds to one source module (except `test_integration.py` — cross-module chains).
 - **Mock-heavy**: External deps (httpx, ML libs, file I/O) mocked via `mocker.patch()`.
 - **CLI tests**: `typer.testing.CliRunner` → `runner.invoke(app, [...])` → assert exit code.
 - **Local helpers**: Private `_make_*()` and `_mock_*()` functions per test file for domain-specific setup.
