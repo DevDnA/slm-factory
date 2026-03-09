@@ -66,14 +66,14 @@ ollama serve
 한국어와 영어를 모두 지원하는 `qwen3:8b`를 권장합니다.
 
 ```bash
-# 권장 Teacher 모델 (한국어/영어 모두 지원)
+# 권장 Teacher 모델 (한국어/다국어, 8GB VRAM)
 ollama pull qwen3:8b
 
-# 영어 전용 대안
-ollama pull llama3.1:8b
+# 고품질 대안 (24GB+ VRAM 필요)
+ollama pull qwen3.5:9b
 
-# 고품질 대안 (더 느림)
-ollama pull gemma2:9b
+# 한국어 최적화 대안
+ollama pull exaone3.5:7.8b
 ```
 
 다운로드 완료 후 정상 동작을 확인합니다.
@@ -283,7 +283,7 @@ teacher:
   temperature: 0.3
 
 student:
-  model: "google/gemma-3-1b-it"   # HuggingFace 모델 ID
+  model: "Qwen/Qwen3.5-2B"       # HuggingFace 모델 ID
 
 export:
   ollama:
@@ -417,7 +417,7 @@ scoring:
   threshold: 3.5
 
 student:
-  model: "google/gemma-3-1b-it"
+  model: "Qwen/Qwen3.5-2B"
   max_seq_length: 4096
 
 training:
@@ -519,7 +519,7 @@ augment:
   num_variants: 2
 
 student:
-  model: "google/gemma-3-1b-it"
+  model: "Qwen/Qwen3.5-2B"
   max_seq_length: 4096
 
 training:

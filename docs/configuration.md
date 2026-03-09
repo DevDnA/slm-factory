@@ -181,7 +181,7 @@ teacher:
   temperature: 0.3
 ```
 
-권장 Ollama 모델: `qwen3:8b` (한국어/다국어 우수), `llama3.1:8b` (영어 우수), `gemma2:9b` (고품질 QA 생성).
+권장 Ollama 모델: `qwen3:8b` (다국어, 8GB VRAM), `qwen3.5:9b` (고품질, 24GB+), `exaone3.5:7.8b` (한국어 최적화).
 
 ---
 
@@ -367,27 +367,25 @@ analyzer:
 
 | 필드 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
-| `model` | `str` | `"google/gemma-3-1b-it"` | HuggingFace 모델 ID. causal LM이어야 합니다 (예: GPT, Llama, Gemma) (빈 값 불가) |
+| `model` | `str` | `"Qwen/Qwen3.5-2B"` | HuggingFace 모델 ID. causal LM이어야 합니다 (예: Qwen, Gemma, Llama) (빈 값 불가) |
 | `max_seq_length` | `int` | `4096` | 학습 데이터의 최대 토큰 길이. 이보다 긴 시퀀스는 잘립니다 |
 
 ```yaml
 student:
-  model: "Qwen/Qwen3-1.7B"
+  model: "Qwen/Qwen3.5-2B"
   max_seq_length: 4096
 ```
 
 권장 모델:
 
-| 모델 | HuggingFace ID | VRAM | 특징 |
-|------|----------------|------|------|
-| Gemma 3 1B IT | `google/gemma-3-1b-it` | ~4GB | 다국어 지원, 빠른 학습 |
-| Gemma 3 4B IT | `google/gemma-3-4b-it` | ~10GB | 고품질 출력, 균형 잡힌 성능 |
-| Llama 3.2 1B | `meta-llama/Llama-3.2-1B-Instruct` | ~4GB | 영어 강점, 경량 |
-| Llama 3.2 3B | `meta-llama/Llama-3.2-3B-Instruct` | ~8GB | 영어 강점, 중간 크기 |
-| Phi-4 Mini | `microsoft/Phi-4-mini-instruct` | ~10GB | 코드 생성, 추론 능력 우수 |
-| Qwen3 1.7B | `Qwen/Qwen3-1.7B` | ~5GB | 한국어 지원 양호, 다국어 |
+| 모델 | HuggingFace ID | VRAM (LoRA) | 특징 |
+|------|----------------|-------------|------|
+| Qwen3.5 2B | `Qwen/Qwen3.5-2B` | ~5GB | 다국어 201언어, Apache 2.0, 8GB VRAM 권장 |
+| Qwen3.5 4B | `Qwen/Qwen3.5-4B` | ~12GB | 고품질, 24GB+ VRAM 권장 |
+| Phi-4 Mini | `microsoft/Phi-4-mini-instruct` | ~10GB (QLoRA) | MIT, 추론 강점, 한국어 공식 지원 |
+| Qwen3 1.7B | `Qwen/Qwen3-1.7B` | ~6GB | 한국어 양호, 검증된 안정성 |
 
-모델 선택 기준: 8GB VRAM 이하는 1B 모델 + 양자화, 한국어 문서는 `Qwen/Qwen3-1.7B` 또는 `google/gemma-3-1b-it` 권장.
+모델 선택 기준: 8GB VRAM은 `Qwen/Qwen3.5-2B` (BF16 LoRA), 24GB+는 `Qwen/Qwen3.5-4B` 권장.
 
 ---
 
@@ -754,7 +752,7 @@ training:
 ```yaml
 # 경량 Student 모델
 student:
-  model: "google/gemma-3-1b-it"
+  model: "Qwen/Qwen3.5-2B"
   max_seq_length: 2048
 
 # 메모리 최적화 학습 설정
@@ -978,7 +976,7 @@ dashboard:
 4. 질문과 시스템 프롬프트를 모두 한국어로 작성하여 한국어 답변을 유도합니다
 5. 한국어 거부 패턴 5개를 추가했습니다
 6. `groundedness.model`을 다국어 지원 모델로 변경했습니다
-7. `student.model: "Qwen/Qwen3-1.7B"` — 한국어 지원이 양호한 모델입니다
+7. `student.model: "Qwen/Qwen3.5-2B"` — 한국어 지원이 우수한 다국어 모델입니다
 8. `export.ollama.parameters.temperature: 0.5` — 정책 문서는 일관성이 중요하므로 낮췄습니다
 
 ---
