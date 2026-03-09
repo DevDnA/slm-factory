@@ -904,7 +904,7 @@ analyzer:
 
 # 한국어 지원 우수한 Student 모델
 student:
-  model: "Qwen/Qwen3-1.7B"
+  model: "Qwen/Qwen3.5-2B"
   max_seq_length: 4096
 
 # 12GB VRAM 기준 설정
