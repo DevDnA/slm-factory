@@ -70,6 +70,9 @@ Modelfile
 # User project config (created by slm-factory init)
 /project.yaml
 
+# E2E test projects
+e2e-test/
+
 # Misc
 .cache/
 *.tmp
