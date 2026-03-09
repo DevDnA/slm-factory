@@ -24,7 +24,8 @@ teacher:
   backend: "ollama"                     # "ollama" (로컬) | "openai" (API/vLLM). vLLM은 openai 백엔드 사용
                                         # ⚠ ollama 사용 시 사전 실행 필요: ollama serve
   model: "qwen3:8b"                     # ⚠ 사전 다운로드 필요: ollama pull qwen3:8b
-                                        # 추천: qwen3:8b (다국어), llama3.1:8b (영어), gemma2:9b (품질)
+                                        # 추천: qwen3:8b (다국어, 8GB VRAM), qwen3.5:9b (고품질, 24GB+)
+                                        #       exaone3.5:7.8b (한국어 최적화)
   api_base: "http://localhost:11434"    # ollama 기본 주소. vLLM: "http://localhost:8000/v1"
   api_key: null                         # ollama는 불필요. openai 백엔드 사용 시 필수
   temperature: 0.3                      # 낮을수록 일관된 답변 (0.1~0.5 권장)
@@ -103,8 +104,9 @@ analyzer:
 
 # -- 4·5단계: 학생 모델(Student Model) + 학습(Training) --------------------
 student:
-  model: "google/gemma-3-1b-it"         # ⚠ 첫 실행 시 HuggingFace에서 자동 다운로드 (~2GB)
-                                        # 추천: gemma-3-1b-it (경량), Qwen/Qwen3-1.7B (다국어)
+  model: "Qwen/Qwen3.5-2B"              # ⚠ 첫 실행 시 HuggingFace에서 자동 다운로드 (~4GB)
+                                        # 추천: Qwen/Qwen3.5-2B (다국어, 8GB VRAM), Qwen/Qwen3.5-4B (고품질, 24GB+)
+                                        #       microsoft/Phi-4-mini-instruct (MIT, 추론 강점)
   max_seq_length: 4096                  # 이 토큰 수를 초과하는 QA 쌍은 convert 단계에서 제외됩니다
                                         # → 줄이면 긴 QA가 버려지지만 VRAM 사용량 감소. 부족 시 2048
 
