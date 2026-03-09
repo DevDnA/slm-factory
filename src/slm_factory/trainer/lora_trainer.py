@@ -200,16 +200,16 @@ class LoRATrainer:
         return lora_config
 
     def _create_training_args(self) -> Any:
-        """설정에서 HuggingFace TrainingArguments를 구성합니다.
+        """설정에서 SFTConfig를 구성합니다.
 
         디바이스에 맞게 bf16/fp16, 옵티마이저 등을 자동 재정의합니다.
 
         반환값
         -------
-        transformers.TrainingArguments
+        trl.SFTConfig
             완전한 학습 인자 명세.
         """
-        from transformers import TrainingArguments
+        from trl import SFTConfig
 
         from ..device import get_training_overrides
 
@@ -233,7 +233,12 @@ class LoRATrainer:
                 )
                 grad_accum = adjusted
 
-        training_args = TrainingArguments(
+        neftune_kwargs: dict[str, Any] = {}
+        if tc.neftune_noise_alpha is not None:
+            neftune_kwargs["neftune_noise_alpha"] = tc.neftune_noise_alpha
+            logger.info("NEFTune enabled: noise_alpha=%.1f", tc.neftune_noise_alpha)
+
+        training_args = SFTConfig(
             output_dir=str(self.output_dir),
             num_train_epochs=tc.num_epochs,
             per_device_train_batch_size=tc.batch_size,
@@ -255,6 +260,7 @@ class LoRATrainer:
             report_to="none",
             seed=42,
             remove_unused_columns=False,
+            **neftune_kwargs,
             **{k: v for k, v in overrides.items() if k not in ("bf16", "fp16", "optim")},
         )
 

@@ -141,3 +141,68 @@ class TestDataAnalyzer:
     def test_compute_stats_empty(self, analyzer):
         stats = analyzer._compute_stats([])
         assert stats == {}
+
+
+class TestDiversityMetrics:
+    """다양성 메트릭 분석 테스트."""
+
+    def test_다양성_메트릭_존재(self, analyzer, sample_pairs):
+        """analyze()가 report.diversity에 다양성 메트릭을 채우는지 확인합니다."""
+        report = analyzer.analyze(sample_pairs)
+
+        assert "unique_bigram_ratio" in report.diversity
+        assert "question_type_coverage" in report.diversity
+        assert "unique_question_types" in report.diversity
+
+    def test_질문_유형_분류(self, analyzer, sample_pairs):
+        """analyze()가 report.question_type_distribution을 채우는지 확인합니다."""
+        report = analyzer.analyze(sample_pairs)
+
+        assert isinstance(report.question_type_distribution, dict)
+        assert len(report.question_type_distribution) > 0
+        total = sum(report.question_type_distribution.values())
+        assert total == len(sample_pairs)
+
+    def test_단일_유형_질문_경고(self, analyzer):
+        """모든 질문이 동일 유형이면 제한적 유형 경고가 발생합니다."""
+        pairs = [
+            QAPair(question="무엇이 핵심인가?", answer="답변입니다.", source_doc="d.pdf", category="c"),
+            QAPair(question="무엇이 중요한가?", answer="답변입니다.", source_doc="d.pdf", category="c"),
+            QAPair(question="무엇이 차이인가?", answer="답변입니다.", source_doc="d.pdf", category="c"),
+        ]
+        report = analyzer.analyze(pairs)
+
+        type_warnings = [w for w in report.warnings if "질문 유형" in w and "제한적" in w]
+        assert len(type_warnings) > 0
+
+    def test_낮은_다양성_경고(self, analyzer):
+        """동일한 질문이 반복되면 낮은 bigram 다양성 경고가 발생합니다."""
+        pairs = [
+            QAPair(question="동일한 질문입니다", answer="답변입니다.", source_doc="d.pdf", category="c")
+            for _ in range(20)
+        ]
+        report = analyzer.analyze(pairs)
+
+        diversity_warnings = [w for w in report.warnings if "다양성" in w and "낮" in w]
+        assert len(diversity_warnings) > 0
+        assert report.diversity["unique_bigram_ratio"] < 0.3
+
+
+class TestClassifyQuestionType:
+    """_classify_question_type 질문 유형 분류 테스트."""
+
+    def test_what_유형(self, analyzer):
+        """'무엇' 계열 질문이 'what'으로 분류되는지 확인합니다."""
+        assert analyzer._classify_question_type("무엇이 핵심인가?") == "what"
+
+    def test_how_유형(self, analyzer):
+        """'어떻게' 계열 질문이 'how'로 분류되는지 확인합니다."""
+        assert analyzer._classify_question_type("어떻게 작동하나?") == "how"
+
+    def test_why_유형(self, analyzer):
+        """'왜' 계열 질문이 'why'로 분류되는지 확인합니다."""
+        assert analyzer._classify_question_type("왜 이런 방식인가?") == "why"
+
+    def test_other_유형(self, analyzer):
+        """분류 규칙에 매칭되지 않는 질문은 'other'로 분류됩니다."""
+        assert analyzer._classify_question_type("설명해주세요") == "other"

@@ -288,7 +288,7 @@ class TestScoreRegenerationLoop:
 
         call_count = [0]
 
-        async def mock_score_all(pairs):
+        async def mock_score_all(pairs, **kwargs):
             call_count[0] += 1
             if call_count[0] == 1:
                 return [good_pair], [(bad_pair, 2, "부정확")]
@@ -327,7 +327,7 @@ class TestScoreRegenerationLoop:
 
         mocker.patch("slm_factory.teacher.create_teacher", return_value=mock_teacher)
 
-        async def mock_score_all(pairs):
+        async def mock_score_all(pairs, **kwargs):
             return [], [(p, 2, "불완전한 답변") for p in pairs]
 
         mock_scorer_cls = mocker.patch("slm_factory.scorer.QualityScorer")
@@ -338,7 +338,7 @@ class TestScoreRegenerationLoop:
         pipeline.step_score([bad_pair], docs=[doc])
 
         assert len(captured_prompts) > 0
-        assert "scored 2/5" in captured_prompts[0]
+        assert "2/5점" in captured_prompts[0]
         assert "불완전한 답변" in captured_prompts[0]
 
     def test_docs_없으면_재생성_건너뜀(self, make_config, make_qa_pair, tmp_path, mocker):
@@ -490,7 +490,7 @@ class TestEdgeCases:
 
         mocker.patch("slm_factory.teacher.create_teacher", return_value=mock_teacher)
 
-        async def always_fail_score(pairs):
+        async def always_fail_score(pairs, **kwargs):
             return [], [(p, 1, "여전히 나쁨") for p in pairs]
 
         mock_scorer_cls = mocker.patch("slm_factory.scorer.QualityScorer")

@@ -173,6 +173,9 @@ class AugmentConfig(BaseModel):
     enabled: bool = False
     num_variants: int = 2
     max_concurrency: int = 4
+    min_similarity: float = 0.3
+    """패러프레이즈된 질문과 원본 질문 간 최소 토큰 겹침 비율입니다.
+    이 값 미만이면 의미가 변질된 것으로 간주하여 제거합니다 (0.0~1.0)."""
 
 
 class AnalyzerConfig(BaseModel):
@@ -229,6 +232,9 @@ class TrainingConfig(BaseModel):
     train_split: float = 0.9
     save_strategy: str = "epoch"
     quantization: QuantizationConfig = Field(default_factory=QuantizationConfig)
+    neftune_noise_alpha: float | None = None
+    """NEFTune 임베딩 노이즈 강도입니다. 설정 시 학습 중 임베딩에 노이즈를
+    주입하여 일반화 성능을 5~15% 향상시킵니다. 권장값: 5.0 (2B 이하), 10.0 (4B 이상)."""
 
     @model_validator(mode="after")
     def _check_training_params(self) -> "TrainingConfig":
@@ -274,6 +280,12 @@ class EvalConfig(BaseModel):
     metrics: list[str] = Field(default_factory=lambda: ["bleu", "rouge"])
     max_samples: int = 50
     output_file: str = "eval_results.json"
+    quality_gate: bool = False
+    """품질 게이트 활성화 여부입니다. True이면 평가 결과가 임계값 미달 시 경고합니다."""
+    quality_thresholds: dict[str, float] = Field(
+        default_factory=lambda: {"bleu": 0.1, "rougeL": 0.2}
+    )
+    """메트릭별 최소 통과 임계값입니다. 평균 점수가 이 값 미만이면 품질 게이트 실패입니다."""
 
     @model_validator(mode="after")
     def _check_eval_params(self) -> "EvalConfig":

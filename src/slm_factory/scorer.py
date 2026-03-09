@@ -27,23 +27,46 @@ class QualityScorer:
         self.config = config
         self.teacher_config = teacher_config
 
-    def _build_scoring_prompt(self, pair: QAPair) -> str:
-        """점수 평가를 위한 프롬프트를 구성합니다."""
+    def _build_scoring_prompt(self, pair: QAPair, source_text: str = "") -> str:
+        """점수 평가를 위한 프롬프트를 구성합니다.
+
+        매개변수
+        ----------
+        pair:
+            평가할 QA 쌍입니다.
+        source_text:
+            원본 문서 텍스트입니다. 제공되면 답변의 근거성(환각 여부)도 평가합니다.
+        """
+        source_section = ""
+        faithfulness_criteria = ""
+        if source_text:
+            # 원본 문서가 너무 길면 앞부분만 사용 (프롬프트 크기 제한)
+            truncated = source_text[:3000]
+            source_section = (
+                "## 원본 문서 (발췌)\n"
+                f"{truncated}\n\n"
+            )
+            faithfulness_criteria = (
+                "- 답변이 원본 문서의 내용에 근거하는지 (환각/지어낸 정보가 없는지)\n"
+            )
+
         return (
             "다음 질문-답변 쌍의 품질을 1~5점으로 평가해주세요.\n\n"
+            f"{source_section}"
             "## 평가 기준\n"
             "- 1점: 답변이 완전히 잘못되었거나 무관합니다\n"
             "- 2점: 답변이 부분적으로 맞지만 심각한 오류가 있습니다\n"
             "- 3점: 답변이 대체로 맞지만 불완전하거나 부정확한 부분이 있습니다\n"
             "- 4점: 답변이 정확하고 충분하지만 약간의 개선 여지가 있습니다\n"
             "- 5점: 답변이 정확하고 완전하며 잘 구조화되어 있습니다\n\n"
+            "## 핵심 체크리스트\n"
+            "- 답변이 질문에 직접적으로 응답하는지\n"
+            "- 구체적 수치, 날짜, 이름 등 세부 정보가 포함되어 있는지\n"
+            f"{faithfulness_criteria}"
+            "\n"
             "## 평가 대상\n"
             f"질문: {pair.question}\n"
             f"답변: {pair.answer}\n\n"
-            "## 참고 예시\n"
-            "예시 1 - 5점: 질문에 정확히 답하고, 구체적 수치/날짜를 포함하며, 논리적으로 구조화됨\n"
-            "예시 2 - 2점: 질문과 관련은 있지만 핵심을 벗어나거나 회피적 답변\n"
-            "예시 3 - 1점: 질문과 무관한 답변이거나 명백한 오류 포함\n\n"
             '반드시 아래 JSON 형식으로만 응답하세요:\n'
             '{"score": <1-5 정수>, "reason": "<평가 근거 한 문장>"}'
         )
@@ -77,9 +100,11 @@ class QualityScorer:
         logger.warning("점수 파싱 실패: %s", text[:100])
         return None
 
-    async def score_one(self, pair: QAPair) -> tuple[QAPair, int, str]:
+    async def score_one(
+        self, pair: QAPair, source_text: str = "",
+    ) -> tuple[QAPair, int, str]:
         """단일 QA 쌍을 점수 평가합니다."""
-        prompt = self._build_scoring_prompt(pair)
+        prompt = self._build_scoring_prompt(pair, source_text=source_text)
 
         kwargs: dict[str, Any] = {}
         if self.teacher_config.backend == "ollama":
@@ -97,9 +122,11 @@ class QualityScorer:
     async def score_all(
         self,
         pairs: list[QAPair],
+        source_texts: dict[str, str] | None = None,
     ) -> tuple[list[QAPair], list[tuple[QAPair, int, str]]]:
         """전체 QA 쌍을 점수 평가하고 threshold 기준으로 필터링합니다."""
         semaphore = asyncio.Semaphore(self.config.max_concurrency)
+        source_map = source_texts or {}
 
         progress = Progress(
             SpinnerColumn(),
@@ -116,7 +143,12 @@ class QualityScorer:
             task_id = progress.add_task("품질 점수 평가 중...", total=len(pairs))
 
             tasks = [
-                run_bounded(semaphore, self.score_one(pair), progress, task_id)
+                run_bounded(
+                    semaphore,
+                    self.score_one(pair, source_text=source_map.get(pair.source_doc, "")),
+                    progress,
+                    task_id,
+                )
                 for pair in pairs
             ]
             results = await asyncio.gather(*tasks, return_exceptions=True)

@@ -262,3 +262,53 @@ class TestKoreanTokenizer:
 
         result = _preprocess_for_metrics("", korean_tokenizer=mock_tokenizer)
         assert result == ""
+
+
+class TestCheckQualityGate:
+    """check_quality_gate 메서드 테스트 — 품질 임계값 기반 통과/실패 판정."""
+
+    def test_임계값_통과(self, evaluator):
+        """모든 메트릭이 임계값을 넘으면 (True, 평균값)을 반환합니다."""
+        results = [
+            EvalResult(question="q1?", reference_answer="a1", generated_answer="g1", scores={"bleu": 0.5, "rougeL": 0.6}),
+            EvalResult(question="q2?", reference_answer="a2", generated_answer="g2", scores={"bleu": 0.3, "rougeL": 0.4}),
+        ]
+        thresholds = {"bleu": 0.3, "rougeL": 0.4}
+        passed, averages = evaluator.check_quality_gate(results, thresholds)
+
+        assert passed is True
+        assert averages["bleu"] == pytest.approx(0.4)
+        assert averages["rougeL"] == pytest.approx(0.5)
+
+    def test_임계값_미달(self, evaluator):
+        """메트릭 평균이 임계값 미만이면 (False, 평균값)을 반환합니다."""
+        results = [
+            EvalResult(question="q1?", reference_answer="a1", generated_answer="g1", scores={"bleu": 0.1, "rougeL": 0.2}),
+            EvalResult(question="q2?", reference_answer="a2", generated_answer="g2", scores={"bleu": 0.2, "rougeL": 0.1}),
+        ]
+        thresholds = {"bleu": 0.5, "rougeL": 0.5}
+        passed, averages = evaluator.check_quality_gate(results, thresholds)
+
+        assert passed is False
+        assert "bleu" in averages
+        assert "rougeL" in averages
+
+    def test_빈_결과(self, evaluator):
+        """빈 결과 리스트를 전달하면 (False, {})를 반환합니다."""
+        passed, averages = evaluator.check_quality_gate([], {"bleu": 0.3})
+
+        assert passed is False
+        assert averages == {}
+
+    def test_일부_메트릭만_미달(self, evaluator):
+        """일부 메트릭만 임계값 미달이어도 전체 게이트가 실패합니다."""
+        results = [
+            EvalResult(question="q1?", reference_answer="a1", generated_answer="g1", scores={"bleu": 0.8, "rougeL": 0.1}),
+            EvalResult(question="q2?", reference_answer="a2", generated_answer="g2", scores={"bleu": 0.9, "rougeL": 0.2}),
+        ]
+        thresholds = {"bleu": 0.5, "rougeL": 0.5}
+        passed, averages = evaluator.check_quality_gate(results, thresholds)
+
+        assert passed is False
+        assert averages["bleu"] == pytest.approx(0.85)
+        assert averages["rougeL"] == pytest.approx(0.15)

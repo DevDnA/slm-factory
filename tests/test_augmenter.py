@@ -9,7 +9,7 @@ import pytest
 
 from slm_factory.config import AugmentConfig, TeacherConfig
 from slm_factory.models import QAPair
-from slm_factory.augmenter import DataAugmenter
+from slm_factory.augmenter import DataAugmenter, _token_overlap_ratio
 
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def teacher_config():
 
 @pytest.fixture
 def augment_config():
-    return AugmentConfig(enabled=True, num_variants=2)
+    return AugmentConfig(enabled=True, num_variants=2, min_similarity=0.0)
 
 
 @pytest.fixture
@@ -164,7 +164,7 @@ class TestAugmentAll:
         assert result[0].question == "원본?"
 
     async def test_num_variants_limit(self, mock_teacher, teacher_config):
-        config = AugmentConfig(enabled=True, num_variants=1)
+        config = AugmentConfig(enabled=True, num_variants=1, min_similarity=0.0)
         augmenter = DataAugmenter(mock_teacher, config, teacher_config)
 
         pairs = [
@@ -178,3 +178,82 @@ class TestAugmentAll:
         result = await augmenter.augment_all(pairs)
         augmented = [p for p in result if p.is_augmented]
         assert len(augmented) == 1
+
+
+class TestTokenOverlapFiltering:
+    async def test_높은_겹침_패러프레이즈_유지(self, mock_teacher, teacher_config):
+        config = AugmentConfig(enabled=True, num_variants=2, min_similarity=0.3)
+        augmenter = DataAugmenter(mock_teacher, config, teacher_config)
+
+        pairs = [
+            QAPair(question="데이터베이스 인덱스란 무엇인가?", answer="답변", source_doc="a.pdf", category="g"),
+        ]
+
+        mock_teacher.agenerate = AsyncMock(
+            return_value=json.dumps({"questions": ["데이터베이스에서 인덱스란 무엇인가?", "인덱스 데이터베이스 개념은?"]})
+        )
+
+        result = await augmenter.augment_all(pairs)
+        augmented = [p for p in result if p.is_augmented]
+        assert len(augmented) >= 1
+
+    async def test_낮은_겹침_패러프레이즈_제거(self, mock_teacher, teacher_config):
+        config = AugmentConfig(enabled=True, num_variants=2, min_similarity=0.3)
+        augmenter = DataAugmenter(mock_teacher, config, teacher_config)
+
+        pairs = [
+            QAPair(question="데이터베이스 인덱스란 무엇인가?", answer="답변", source_doc="a.pdf", category="g"),
+        ]
+
+        mock_teacher.agenerate = AsyncMock(
+            return_value=json.dumps({"questions": ["오늘 날씨가 좋습니다", "점심 메뉴 추천해주세요"]})
+        )
+
+        result = await augmenter.augment_all(pairs)
+        augmented = [p for p in result if p.is_augmented]
+        assert len(augmented) == 0
+
+    async def test_min_similarity_설정_적용(self, mock_teacher, teacher_config):
+        config = AugmentConfig(enabled=True, num_variants=2, min_similarity=0.9)
+        augmenter = DataAugmenter(mock_teacher, config, teacher_config)
+
+        pairs = [
+            QAPair(question="데이터베이스 인덱스란?", answer="답변", source_doc="a.pdf", category="g"),
+        ]
+
+        mock_teacher.agenerate = AsyncMock(
+            return_value=json.dumps({"questions": ["데이터베이스 인덱스 개념은?", "DB 인덱스란?"]})
+        )
+
+        result = await augmenter.augment_all(pairs)
+        augmented_high = [p for p in result if p.is_augmented]
+
+        config_low = AugmentConfig(enabled=True, num_variants=2, min_similarity=0.1)
+        augmenter_low = DataAugmenter(mock_teacher, config_low, teacher_config)
+
+        mock_teacher.agenerate = AsyncMock(
+            return_value=json.dumps({"questions": ["데이터베이스 인덱스 개념은?", "DB 인덱스란?"]})
+        )
+
+        result_low = await augmenter_low.augment_all(pairs)
+        augmented_low = [p for p in result_low if p.is_augmented]
+
+        assert len(augmented_low) >= len(augmented_high)
+
+
+class TestTokenOverlapRatio:
+    def test_완전_일치(self):
+        ratio = _token_overlap_ratio("데이터베이스 인덱스 설명", "데이터베이스 인덱스 설명")
+        assert ratio >= 0.9
+
+    def test_완전_불일치(self):
+        ratio = _token_overlap_ratio("데이터베이스 인덱스", "오늘 날씨 좋다")
+        assert ratio <= 0.1
+
+    def test_빈_문자열(self):
+        ratio = _token_overlap_ratio("", "테스트")
+        assert ratio == 0.0
+        ratio2 = _token_overlap_ratio("테스트", "")
+        assert ratio2 == 0.0
+        ratio3 = _token_overlap_ratio("", "")
+        assert ratio3 == 0.0

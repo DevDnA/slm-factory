@@ -29,6 +29,8 @@ class AnalysisReport:
     answer_length_stats: dict[str, float] = field(default_factory=dict)
     question_length_stats: dict[str, float] = field(default_factory=dict)
     quality_score_stats: dict[str, float] = field(default_factory=dict)
+    diversity: dict[str, float] = field(default_factory=dict)
+    question_type_distribution: dict[str, int] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
 
 
@@ -66,6 +68,9 @@ class DataAnalyzer:
         question_lengths = [len(p.question) for p in pairs]
         report.question_length_stats = self._compute_stats(question_lengths)
         
+        # 다양성 분석
+        self._compute_diversity(report, pairs)
+        
         # 경고 생성
         self._generate_warnings(report, pairs)
         
@@ -83,6 +88,54 @@ class DataAnalyzer:
             "stdev": round(statistics.stdev(values), 1) if len(values) > 1 else 0.0,
         }
     
+    def _classify_question_type(self, question: str) -> str:
+        """질문의 유형을 분류합니다 (what/how/why/when/where/who/yes-no/other)."""
+        q = question.strip().lower()
+        if any(q.startswith(w) for w in ("what ", "무엇", "뭐", "어떤")):
+            return "what"
+        if any(q.startswith(w) for w in ("how ", "어떻게", "얼마나")):
+            return "how"
+        if any(q.startswith(w) for w in ("why ", "왜")):
+            return "why"
+        if any(q.startswith(w) for w in ("when ", "언제")):
+            return "when"
+        if any(q.startswith(w) for w in ("where ", "어디")):
+            return "where"
+        if any(q.startswith(w) for w in ("who ", "누가", "누구")):
+            return "who"
+        if any(w in q for w in ("인가요", "인지", "나요", "습니까", "is it", "does it", "can ")):
+            return "yes-no"
+        return "other"
+
+    def _compute_diversity(self, report: AnalysisReport, pairs: list[QAPair]) -> None:
+        """질문 다양성 메트릭을 계산합니다."""
+        if not pairs:
+            return
+
+        questions = [p.question for p in pairs if not p.is_augmented]
+        if not questions:
+            questions = [p.question for p in pairs]
+
+        question_types = Counter(self._classify_question_type(q) for q in questions)
+        report.question_type_distribution = dict(question_types.most_common())
+
+        all_bigrams: list[tuple[str, str]] = []
+        unique_bigrams: set[tuple[str, str]] = set()
+        for q in questions:
+            tokens = q.lower().split()
+            bigrams = list(zip(tokens, tokens[1:]))
+            all_bigrams.extend(bigrams)
+            unique_bigrams.update(bigrams)
+
+        bigram_diversity = len(unique_bigrams) / max(len(all_bigrams), 1)
+        type_diversity = len(question_types) / 8.0
+
+        report.diversity = {
+            "unique_bigram_ratio": round(bigram_diversity, 3),
+            "question_type_coverage": round(type_diversity, 3),
+            "unique_question_types": len(question_types),
+        }
+
     def _generate_warnings(self, report: AnalysisReport, pairs: list[QAPair]) -> None:
         """데이터 불균형이나 이상치를 경고합니다."""
         if report.source_doc_distribution:
@@ -106,6 +159,18 @@ class DataAnalyzer:
         if report.total_pairs < 50:
             report.warnings.append(
                 f"학습 데이터가 {report.total_pairs}개로 적습니다. 최소 100개 이상을 권장합니다."
+            )
+        
+        if report.diversity.get("unique_bigram_ratio", 1.0) < 0.3:
+            report.warnings.append(
+                "질문 다양성이 낮습니다 (bigram 다양성 < 0.3). "
+                "질문이 유사한 패턴으로 반복되고 있어 모델 학습에 편향이 발생할 수 있습니다."
+            )
+
+        if report.diversity.get("unique_question_types", 8) <= 2:
+            report.warnings.append(
+                f"질문 유형이 {report.diversity.get('unique_question_types', 0)}가지로 제한적입니다. "
+                "다양한 유형(what/how/why 등)의 질문을 추가하면 모델 범용성이 향상됩니다."
             )
     
     def print_summary(self, report: AnalysisReport) -> None:
@@ -156,6 +221,20 @@ class DataAnalyzer:
                 )
         console.print(length_table)
         
+        if report.question_type_distribution:
+            type_table = Table(title="질문 유형 분포", show_header=True)
+            type_table.add_column("유형", style="bold")
+            type_table.add_column("개수", justify="right")
+            for qtype, count in report.question_type_distribution.items():
+                type_table.add_row(qtype, str(count))
+            console.print(type_table)
+
+        if report.diversity:
+            console.print(
+                f"\n다양성: bigram 다양성={report.diversity.get('unique_bigram_ratio', 0):.3f}, "
+                f"유형 커버리지={report.diversity.get('question_type_coverage', 0):.3f}"
+            )
+
         if report.warnings:
             console.print()
             for warning in report.warnings:

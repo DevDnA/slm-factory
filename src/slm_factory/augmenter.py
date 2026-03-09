@@ -19,6 +19,16 @@ from .utils import get_logger, run_bounded
 logger = get_logger("augmenter")
 
 
+def _token_overlap_ratio(original: str, paraphrased: str) -> float:
+    """두 문장의 공백 기반 토큰 겹침 비율을 계산합니다 (0.0~1.0)."""
+    orig_tokens = set(original.lower().split())
+    para_tokens = set(paraphrased.lower().split())
+    if not orig_tokens or not para_tokens:
+        return 0.0
+    intersection = orig_tokens & para_tokens
+    return len(intersection) / max(len(orig_tokens), len(para_tokens))
+
+
 class DataAugmenter:
     """교사 LLM을 사용하여 질문을 패러프레이즈하여 데이터를 증강합니다."""
 
@@ -78,7 +88,15 @@ class DataAugmenter:
             return []
 
         augmented_pairs = []
+        min_sim = self.config.min_similarity
         for new_question in paraphrases[:self.config.num_variants]:
+            overlap = _token_overlap_ratio(pair.question, new_question)
+            if overlap < min_sim:
+                logger.debug(
+                    "패러프레이즈 제거 (겹침 %.2f < %.2f): '%s' → '%s'",
+                    overlap, min_sim, pair.question[:30], new_question[:30],
+                )
+                continue
             augmented = QAPair(
                 question=new_question,
                 answer=pair.answer,

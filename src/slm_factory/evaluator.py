@@ -211,6 +211,42 @@ class ModelEvaluator:
         path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
         logger.info("평가 결과 저장: %s (%d건)", path, len(results))
 
+    def check_quality_gate(
+        self,
+        results: list[EvalResult],
+        thresholds: dict[str, float],
+    ) -> tuple[bool, dict[str, float]]:
+        """평가 결과가 품질 임계값을 충족하는지 확인합니다."""
+        if not results:
+            return False, {}
+
+        averages: dict[str, float] = {}
+        all_keys: list[str] = []
+        for r in results:
+            for k in r.scores:
+                if k not in all_keys:
+                    all_keys.append(k)
+
+        for key in all_keys:
+            vals = [r.scores[key] for r in results if key in r.scores]
+            if vals:
+                averages[key] = sum(vals) / len(vals)
+
+        passed = True
+        for metric, threshold in thresholds.items():
+            avg = averages.get(metric, 0.0)
+            if avg < threshold:
+                logger.warning(
+                    "품질 게이트 실패: %s 평균 %.4f < 임계값 %.4f",
+                    metric, avg, threshold,
+                )
+                passed = False
+
+        if passed:
+            logger.info("품질 게이트 통과: %s", {k: f"{v:.4f}" for k, v in averages.items()})
+
+        return passed, averages
+
     def print_summary(self, results: list[EvalResult]) -> None:
         """평가 결과 요약을 출력합니다."""
         from rich.console import Console

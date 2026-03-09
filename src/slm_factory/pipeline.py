@@ -335,9 +335,15 @@ class Pipeline:
 
         logger.info("Scoring %d QA pairs...", len(pairs))
 
+        source_texts: dict[str, str] | None = None
+        if docs:
+            source_texts = {doc.doc_id: doc.content for doc in docs}
+
         teacher = create_teacher(self.config.teacher)
         scorer = QualityScorer(teacher, self.config.scoring, self.config.teacher)
-        accepted, filtered = run_async(scorer.score_all(pairs))
+        accepted, filtered = run_async(
+            scorer.score_all(pairs, source_texts=source_texts)
+        )
 
         if (
             self.config.scoring.regenerate
@@ -497,11 +503,20 @@ class Pipeline:
             else None
         )
 
+        score_guidance = {
+            1: "이전 답변이 완전히 잘못되었습니다. 문서 내용만을 근거로 정확한 답변을 작성하세요.",
+            2: "이전 답변에 심각한 오류가 있었습니다. 오류를 수정하고 문서에 근거한 답변을 작성하세요.",
+            3: "이전 답변이 불완전했습니다. 누락된 세부 정보를 보완하여 완전한 답변을 작성하세요.",
+        }
+        guidance = score_guidance.get(
+            score,
+            "이전 답변의 품질이 부족했습니다. 더 정확하고 완전한 답변을 작성하세요.",
+        )
         enhanced_system = (
             f"{self.config.questions.system_prompt}\n\n"
-            f"IMPORTANT: A previous answer scored {score}/5 "
-            f"(reason: {reason}). "
-            "Provide a more accurate, complete, and well-structured answer."
+            f"[재생성 지시] 이전 답변 점수: {score}/5점\n"
+            f"평가 사유: {reason}\n"
+            f"개선 방향: {guidance}"
         )
 
         prompt = generator.build_prompt(
@@ -735,6 +750,17 @@ class Pipeline:
         eval_path = self.output_dir / self.config.eval.output_file
         evaluator.save_results(results, eval_path)
         evaluator.print_summary(results)
+
+        if self.config.eval.quality_gate and results:
+            passed, averages = evaluator.check_quality_gate(
+                results, self.config.eval.quality_thresholds,
+            )
+            if not passed:
+                logger.warning(
+                    "⚠ 품질 게이트 미달 — 메트릭 평균: %s / 임계값: %s",
+                    {k: f"{v:.4f}" for k, v in averages.items()},
+                    self.config.eval.quality_thresholds,
+                )
 
         logger.info("Evaluation complete: %d results — saved to %s", len(results), eval_path)
         return results
