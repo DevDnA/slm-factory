@@ -11,7 +11,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[all]"
 
 ollama serve                # 별도 터미널
-ollama pull qwen3:8b        # Teacher 모델
+ollama pull qwen3:8b        # Teacher 모델 (8GB VRAM) 또는 qwen3.5:9b (24GB+)
 
 slm-factory init my-project
 cp /path/to/documents/*.pdf my-project/documents/

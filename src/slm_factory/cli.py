@@ -105,7 +105,7 @@ def _get_error_hints(error: Exception) -> list[str]:
     ):
         return [
             "Ollama가 실행 중인지 확인하세요: `ollama serve`",
-            "모델이 다운로드되었는지 확인하세요: `ollama pull qwen3:8b`",
+            "모델이 다운로드되었는지 확인하세요: `ollama pull qwen3:8b` (또는 설정한 Teacher 모델)",
         ]
 
     if isinstance(error, RuntimeError) and (
