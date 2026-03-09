@@ -107,6 +107,39 @@ class TestValidateOne:
         assert result.passed is False
         assert any("matched_reject_pattern" in r for r in result.reasons)
 
+    def test_한국어_알수없_패턴_거부(self, sample_validation_config):
+        """한국어 '알 수 없' 패턴이 포함된 답변이 거부되는지 확인합니다."""
+        validator = RuleValidator(sample_validation_config)
+        pair = QAPair(
+            question="질문",
+            answer="해당 내용은 주어진 문서에서 확인할 수 없습니다.",
+        )
+        result = validator.validate_one(pair)
+        assert result.passed is False
+        assert any("matched_reject_pattern" in r for r in result.reasons)
+
+    def test_한국어_정보없음_패턴_거부(self, sample_validation_config):
+        """한국어 '정보가 없' 패턴이 포함된 답변이 거부되는지 확인합니다."""
+        validator = RuleValidator(sample_validation_config)
+        pair = QAPair(
+            question="질문",
+            answer="이에 대한 정보가 없습니다.",
+        )
+        result = validator.validate_one(pair)
+        assert result.passed is False
+        assert any("matched_reject_pattern" in r for r in result.reasons)
+
+    def test_한국어_문서에서_찾을수없_패턴_거부(self, sample_validation_config):
+        """한국어 '문서에서 찾을 수 없' 패턴이 포함된 답변이 거부되는지 확인합니다."""
+        validator = RuleValidator(sample_validation_config)
+        pair = QAPair(
+            question="질문",
+            answer="관련 내용은 문서에서 찾을 수 없습니다.",
+        )
+        result = validator.validate_one(pair)
+        assert result.passed is False
+        assert any("matched_reject_pattern" in r for r in result.reasons)
+
     def test_중복_쌍_거부(self, make_qa_pair, sample_validation_config):
         """동일한 질문-답변 쌍이 두 번째부터 중복으로 거부되는지 확인합니다."""
         validator = RuleValidator(sample_validation_config)

@@ -159,7 +159,7 @@ class TestValidationConfig:
         assert cfg.max_answer_length == 2000
         assert cfg.remove_empty is True
         assert cfg.deduplicate is True
-        assert len(cfg.reject_patterns) == 3
+        assert len(cfg.reject_patterns) == 6
         assert isinstance(cfg.groundedness, GroundednessConfig)
 
 

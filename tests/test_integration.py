@@ -219,7 +219,7 @@ class TestOntologyMultiChunkToQA:
 
         assert "홍길동" in prompt
         assert "모비젠" in prompt
-        assert "Related Knowledge" in prompt
+        assert "관련 지식" in prompt
 
     def test_파이프라인에서_온톨로지가_QA생성에_전달(self, make_config, tmp_path, mocker):
         """Pipeline.step_generate가 ontology를 generate_all_async의 ontology_context로 변환하는지 확인합니다."""

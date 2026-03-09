@@ -134,6 +134,9 @@ class ValidationConfig(BaseModel):
         "(?i)i don't know",
         "(?i)not (available|provided|mentioned|found)",
         "(?i)the document does not contain",
+        "(?:알|확인할|파악할|판단할) 수 없",
+        "정보.{0,8}(?:없|부족|찾을 수 없)",
+        "(?:문서|자료|내용)에서?.{0,12}(?:찾을 수 없|포함되어 있지 않|언급되지 않|다루고 있지 않)",
     ])
     groundedness: GroundednessConfig = Field(default_factory=GroundednessConfig)
 

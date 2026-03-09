@@ -99,33 +99,33 @@ class QAGenerator:
         
         truncated_content = content[:self.max_context]
         if len(content) > self.max_context:
-            truncated_content += "\n\n[Content truncated...]"
+            truncated_content += "\n\n[이하 생략...]"
         
         title_with_chunk = doc_title
         if chunk_info:
             title_with_chunk = f"{doc_title} ({chunk_info})"
         
         prompt_parts = [
-            f"# System Instructions\n{system_prompt}",
-            f"\n# Document: {title_with_chunk}\n{truncated_content}",
+            f"# 시스템 지시사항\n{system_prompt}",
+            f"\n# 문서: {title_with_chunk}\n{truncated_content}",
         ]
         
         if tables:
-            tables_section = "\n## Related Tables\n" + "\n\n".join(tables)
+            tables_section = "\n## 관련 표\n" + "\n\n".join(tables)
             prompt_parts.append(tables_section)
 
         if ontology_context:
-            prompt_parts.append(f"\n## Related Knowledge\n{ontology_context}")
+            prompt_parts.append(f"\n## 관련 지식\n{ontology_context}")
         
         prompt_parts.extend([
-            f"\n# Question\n{question}",
-            '\n# Instructions',
-            'Answer the question based strictly on the document content above.',
-            'Return ONLY valid JSON in this exact format:',
-            '{"instruction": "the question", "output": "your detailed answer"}',
+            f"\n# 질문\n{question}",
+            '\n# 지시사항',
+            '위 문서 내용만을 근거로 질문에 답변하세요.',
+            '반드시 아래 JSON 형식으로만 응답하세요:',
+            '{"instruction": "질문 내용", "output": "상세한 답변"}',
             '',
-            'Do NOT include code fences, markdown formatting, or any text outside the JSON object.',
-            'Do NOT add reasoning or explanations.',
+            '코드 블록, 마크다운 서식, JSON 외의 텍스트를 포함하지 마세요.',
+            '추론 과정이나 부가 설명을 추가하지 마세요.',
         ])
         
         return "\n".join(prompt_parts)

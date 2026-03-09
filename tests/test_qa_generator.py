@@ -46,13 +46,13 @@ class TestBuildPrompt:
             question="무엇입니까?",
         )
 
-        assert "System Instructions" in prompt
+        assert "시스템 지시사항" in prompt
         assert "테스트 문서" in prompt
         assert "무엇입니까?" in prompt
-        assert "# Question" in prompt
+        assert "# 질문" in prompt
 
-    def test_tables_포함_시_Related_Tables_존재(self, mocker, make_config):
-        """tables 인자가 있으면 'Related Tables' 섹션이 프롬프트에 포함되는지 확인합니다."""
+    def test_tables_포함_시_관련_표_존재(self, mocker, make_config):
+        """tables 인자가 있으면 '관련 표' 섹션이 프롬프트에 포함되는지 확인합니다."""
         gen, _ = _make_generator(mocker, make_config)
         prompt = gen.build_prompt(
             doc_title="제목",
@@ -61,12 +61,12 @@ class TestBuildPrompt:
             tables=["| A | B |", "| C | D |"],
         )
 
-        assert "Related Tables" in prompt
+        assert "관련 표" in prompt
         assert "| A | B |" in prompt
         assert "| C | D |" in prompt
 
-    def test_tables_None_시_Related_Tables_없음(self, mocker, make_config):
-        """tables=None이면 'Related Tables' 섹션이 프롬프트에 포함되지 않는지 확인합니다."""
+    def test_tables_None_시_관련_표_없음(self, mocker, make_config):
+        """tables=None이면 '관련 표' 섹션이 프롬프트에 포함되지 않는지 확인합니다."""
         gen, _ = _make_generator(mocker, make_config)
         prompt = gen.build_prompt(
             doc_title="제목",
@@ -75,7 +75,7 @@ class TestBuildPrompt:
             tables=None,
         )
 
-        assert "Related Tables" not in prompt
+        assert "관련 표" not in prompt
 
     def test_content_잘림_확인(self, mocker, make_config):
         """content가 max_context_chars보다 길면 잘리고 truncated 표시가 나타나는지 확인합니다."""
@@ -89,7 +89,7 @@ class TestBuildPrompt:
             question="질문",
         )
 
-        assert "[Content truncated...]" in prompt
+        assert "[이하 생략...]" in prompt
         # 원본 100자가 아닌 50자로 잘렸는지 확인
         assert "A" * 100 not in prompt
 
