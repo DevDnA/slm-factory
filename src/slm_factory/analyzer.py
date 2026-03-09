@@ -89,19 +89,23 @@ class DataAnalyzer:
         }
     
     def _classify_question_type(self, question: str) -> str:
-        """질문의 유형을 분류합니다 (what/how/why/when/where/who/yes-no/other)."""
+        """질문의 유형을 분류합니다 (what/how/why/when/where/who/yes-no/other).
+
+        한국어 의문사는 문장 중간·끝에 위치할 수 있으므로 ``in`` 매칭을
+        사용합니다 (예: "인덱스란 **무엇**인가?").
+        """
         q = question.strip().lower()
-        if any(q.startswith(w) for w in ("what ", "무엇", "뭐", "어떤")):
+        if any(w in q for w in ("무엇", "뭐", "어떤", "무슨")) or q.startswith("what "):
             return "what"
-        if any(q.startswith(w) for w in ("how ", "어떻게", "얼마나")):
+        if any(w in q for w in ("어떻게", "얼마나")) or q.startswith("how "):
             return "how"
-        if any(q.startswith(w) for w in ("why ", "왜")):
+        if any(w in q for w in ("왜", "어째서")) or q.startswith("why "):
             return "why"
-        if any(q.startswith(w) for w in ("when ", "언제")):
+        if "언제" in q or q.startswith("when "):
             return "when"
-        if any(q.startswith(w) for w in ("where ", "어디")):
+        if "어디" in q or q.startswith("where "):
             return "where"
-        if any(q.startswith(w) for w in ("who ", "누가", "누구")):
+        if any(w in q for w in ("누가", "누구")) or q.startswith("who "):
             return "who"
         if any(w in q for w in ("인가요", "인지", "나요", "습니까", "is it", "does it", "can ")):
             return "yes-no"
@@ -122,8 +126,8 @@ class DataAnalyzer:
         all_bigrams: list[tuple[str, str]] = []
         unique_bigrams: set[tuple[str, str]] = set()
         for q in questions:
-            tokens = q.lower().split()
-            bigrams = list(zip(tokens, tokens[1:]))
+            chars = q.replace(" ", "").lower()
+            bigrams = [(chars[i], chars[i + 1]) for i in range(len(chars) - 1)]
             all_bigrams.extend(bigrams)
             unique_bigrams.update(bigrams)
 

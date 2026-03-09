@@ -206,3 +206,17 @@ class TestClassifyQuestionType:
     def test_other_유형(self, analyzer):
         """분류 규칙에 매칭되지 않는 질문은 'other'로 분류됩니다."""
         assert analyzer._classify_question_type("설명해주세요") == "other"
+
+    def test_한국어_중간_위치_의문사(self, analyzer):
+        """한국어 의문사가 문장 중간에 있어도 올바르게 분류됩니다."""
+        assert analyzer._classify_question_type("인덱스란 무엇인가?") == "what"
+        assert analyzer._classify_question_type("이 기능은 어떻게 동작하나요?") == "how"
+        assert analyzer._classify_question_type("그것은 왜 필요한가?") == "why"
+
+    def test_누락_패턴_무슨(self, analyzer):
+        """'무슨' 계열 질문이 'what'으로 분류됩니다."""
+        assert analyzer._classify_question_type("무슨 차이가 있나요?") == "what"
+
+    def test_누락_패턴_어째서(self, analyzer):
+        """'어째서' 계열 질문이 'why'로 분류됩니다."""
+        assert analyzer._classify_question_type("어째서 이렇게 되었나요?") == "why"

@@ -257,3 +257,11 @@ class TestTokenOverlapRatio:
         assert ratio2 == 0.0
         ratio3 = _token_overlap_ratio("", "")
         assert ratio3 == 0.0
+
+    def test_한국어_조사_변형_높은_유사도(self):
+        """한국어 교착어 조사 변형이 높은 유사도로 평가됩니다."""
+        ratio = _token_overlap_ratio(
+            "데이터베이스 인덱스란 무엇인가?",
+            "데이터베이스에서 인덱스란 무엇인가?",
+        )
+        assert ratio >= 0.5

@@ -19,14 +19,20 @@ from .utils import get_logger, run_bounded
 logger = get_logger("augmenter")
 
 
+def _char_bigrams(text: str) -> set[tuple[str, str]]:
+    """텍스트에서 공백 제거 후 문자 bigram 집합을 생성합니다."""
+    t = text.replace(" ", "").lower()
+    return {(t[i], t[i + 1]) for i in range(len(t) - 1)}
+
+
 def _token_overlap_ratio(original: str, paraphrased: str) -> float:
-    """두 문장의 공백 기반 토큰 겹침 비율을 계산합니다 (0.0~1.0)."""
-    orig_tokens = set(original.lower().split())
-    para_tokens = set(paraphrased.lower().split())
-    if not orig_tokens or not para_tokens:
+    """두 문장의 문자 bigram 겹침 비율을 계산합니다 (0.0~1.0)."""
+    orig_bg = _char_bigrams(original)
+    para_bg = _char_bigrams(paraphrased)
+    if not orig_bg or not para_bg:
         return 0.0
-    intersection = orig_tokens & para_tokens
-    return len(intersection) / max(len(orig_tokens), len(para_tokens))
+    intersection = orig_bg & para_bg
+    return len(intersection) / max(len(orig_bg), len(para_bg))
 
 
 class DataAugmenter:
