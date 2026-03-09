@@ -24,6 +24,10 @@ from slm_factory.config import (
     TeacherConfig,
     TrainingConfig,
     ValidationConfig,
+    _EN_DEFAULT_OLLAMA_SYSTEM_PROMPT,
+    _EN_DEFAULT_QA_SYSTEM_PROMPT,
+    _KO_DEFAULT_OLLAMA_SYSTEM_PROMPT,
+    _KO_DEFAULT_QA_SYSTEM_PROMPT,
     create_default_config,
     load_config,
 )
@@ -414,3 +418,60 @@ class TestSLMConfigChunking:
         cfg = make_config(chunking={"enabled": True, "chunk_size": 5000})
         assert cfg.chunking.enabled is True
         assert cfg.chunking.chunk_size == 5000
+
+
+# ---------------------------------------------------------------------------
+# 언어별 기본값 자동 전환
+# ---------------------------------------------------------------------------
+
+
+class TestSLMConfigLanguageDefaults:
+    """SLMConfig._apply_language_defaults 검증기 테스트입니다."""
+
+    def test_한국어_QA_시스템_프롬프트_자동_전환(self, make_config):
+        """language='ko'일 때 QA 시스템 프롬프트가 한국어로 자동 전환되는지 확인합니다."""
+        cfg = make_config(project={"language": "ko"})
+        assert cfg.questions.system_prompt == _KO_DEFAULT_QA_SYSTEM_PROMPT
+        assert "문서" in cfg.questions.system_prompt
+
+    def test_한국어_Ollama_시스템_프롬프트_자동_전환(self, make_config):
+        """language='ko'일 때 Ollama 시스템 프롬프트가 한국어로 자동 전환되는지 확인합니다."""
+        cfg = make_config(project={"language": "ko"})
+        assert cfg.export.ollama.system_prompt == _KO_DEFAULT_OLLAMA_SYSTEM_PROMPT
+        assert "어시스턴트" in cfg.export.ollama.system_prompt
+
+    def test_영어_기본값_유지(self, make_config):
+        """language='en'일 때 영어 기본값이 그대로 유지되는지 확인합니다."""
+        cfg = make_config(project={"language": "en"})
+        assert cfg.questions.system_prompt == _EN_DEFAULT_QA_SYSTEM_PROMPT
+        assert cfg.export.ollama.system_prompt == _EN_DEFAULT_OLLAMA_SYSTEM_PROMPT
+
+    def test_한국어_커스텀_프롬프트_보존(self, make_config):
+        """language='ko'이지만 사용자 지정 프롬프트는 덮어쓰지 않는지 확인합니다."""
+        custom_prompt = "내가 직접 작성한 시스템 프롬프트입니다."
+        cfg = make_config(
+            project={"language": "ko"},
+            questions={"system_prompt": custom_prompt},
+        )
+        assert cfg.questions.system_prompt == custom_prompt
+
+    def test_한국어_커스텀_Ollama_프롬프트_보존(self, make_config):
+        """language='ko'이지만 사용자 지정 Ollama 프롬프트는 덮어쓰지 않는지 확인합니다."""
+        custom_prompt = "커스텀 Ollama 프롬프트"
+        cfg = make_config(
+            project={"language": "ko"},
+            export={"ollama": {"system_prompt": custom_prompt}},
+        )
+        assert cfg.export.ollama.system_prompt == custom_prompt
+
+    def test_언어_미지정_영어_기본값(self):
+        """language를 지정하지 않으면 영어 기본값이 적용되는지 확인합니다."""
+        cfg = SLMConfig()
+        assert cfg.project.language == "en"
+        assert cfg.questions.system_prompt == _EN_DEFAULT_QA_SYSTEM_PROMPT
+
+    def test_YAML_로드_한국어_자동_전환(self, tmp_yaml_config):
+        """YAML 파일에서 language='ko'를 로드하면 한국어 프롬프트가 적용되는지 확인합니다."""
+        cfg = load_config(tmp_yaml_config)
+        assert cfg.questions.system_prompt == _KO_DEFAULT_QA_SYSTEM_PROMPT
+        assert cfg.export.ollama.system_prompt == _KO_DEFAULT_OLLAMA_SYSTEM_PROMPT

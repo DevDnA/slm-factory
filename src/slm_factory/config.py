@@ -17,6 +17,37 @@ from pydantic import BaseModel, Field, model_validator
 
 
 # ---------------------------------------------------------------------------
+# 언어별 기본 프롬프트
+# ---------------------------------------------------------------------------
+
+_EN_DEFAULT_QA_SYSTEM_PROMPT = (
+    "You are a helpful assistant that answers questions based strictly on "
+    "the provided document. Answer only from the document content. Do not "
+    "speculate or fabricate information. Be concise and factual. Include "
+    "specific numbers, dates, and names when available. If the document "
+    'does not contain relevant information, say "The document does not '
+    'contain this information."'
+)
+
+_KO_DEFAULT_QA_SYSTEM_PROMPT = (
+    "당신은 제공된 문서를 기반으로 질문에 답변하는 도우미입니다. "
+    "반드시 문서에 포함된 내용만으로 답변하세요. "
+    "추측하거나 정보를 지어내지 마세요. "
+    "간결하고 사실에 기반하여 답변하세요. "
+    "가능한 경우 구체적인 수치, 날짜, 이름을 포함하세요. "
+    '문서에 관련 정보가 없으면 "해당 정보는 문서에 포함되어 있지 않습니다."라고 '
+    "답변하세요."
+)
+
+_EN_DEFAULT_OLLAMA_SYSTEM_PROMPT = "You are a helpful domain-specific assistant."
+
+_KO_DEFAULT_OLLAMA_SYSTEM_PROMPT = (
+    "당신은 도메인 전문 지식을 바탕으로 사용자의 질문에 "
+    "정확하고 유용하게 답변하는 어시스턴트입니다."
+)
+
+
+# ---------------------------------------------------------------------------
 # 하위 모델
 # ---------------------------------------------------------------------------
 
@@ -83,14 +114,7 @@ class QuestionsConfig(BaseModel):
 
     categories: dict[str, list[str]] = Field(default_factory=dict)
     file: Path | None = None
-    system_prompt: str = (
-        "You are a helpful assistant that answers questions based strictly on "
-        "the provided document. Answer only from the document content. Do not "
-        "speculate or fabricate information. Be concise and factual. Include "
-        "specific numbers, dates, and names when available. If the document "
-        'does not contain relevant information, say "The document does not '
-        'contain this information."'
-    )
+    system_prompt: str = _EN_DEFAULT_QA_SYSTEM_PROMPT
     output_format: str = "alpaca"
 
     def get_all_questions(self) -> list[str]:
@@ -254,7 +278,7 @@ class OllamaExportConfig(BaseModel):
 
     enabled: bool = True
     model_name: str = Field("my-project-model", min_length=1)
-    system_prompt: str = "You are a helpful domain-specific assistant."
+    system_prompt: str = _EN_DEFAULT_OLLAMA_SYSTEM_PROMPT
     parameters: dict[str, Any] = Field(default_factory=lambda: {
         "temperature": 0.7,
         "top_p": 0.9,
@@ -537,6 +561,16 @@ class SLMConfig(BaseModel):
         if isinstance(values, dict):
             return {k: v for k, v in values.items() if v is not None}
         return values
+
+    @model_validator(mode="after")
+    def _apply_language_defaults(self) -> "SLMConfig":
+        if self.project.language != "ko":
+            return self
+        if self.questions.system_prompt == _EN_DEFAULT_QA_SYSTEM_PROMPT:
+            self.questions.system_prompt = _KO_DEFAULT_QA_SYSTEM_PROMPT
+        if self.export.ollama.system_prompt == _EN_DEFAULT_OLLAMA_SYSTEM_PROMPT:
+            self.export.ollama.system_prompt = _KO_DEFAULT_OLLAMA_SYSTEM_PROMPT
+        return self
 
 
 # ---------------------------------------------------------------------------
