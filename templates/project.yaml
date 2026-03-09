@@ -5,7 +5,7 @@
 project:
   name: "my-project"
   version: "1.0.0"
-  language: "en"                        # "en", "ko", "ja" 등 문서 언어 코드
+  language: "ko"                        # "en", "ko", "ja" 등 문서 언어 코드
 
 paths:
   documents: "./documents"              # 입력 문서 디렉토리
@@ -35,33 +35,34 @@ teacher:
 
 questions:
   categories:
-    overview:
-      - "What is the main purpose of this document?"
-      - "What problem does this aim to solve?"
-      - "Who are the target users or beneficiaries?"
-      - "What are the key changes or innovations described?"
-      - "What is the scope and limitations?"
-    technical:
-      - "What are the key technical details or specifications?"
-      - "What technologies, methods, or tools are described?"
-      - "What are the system requirements?"
-      - "How does this compare to existing alternatives?"
-      - "What are the performance metrics or benchmarks?"
-    implementation:
-      - "What is the timeline or schedule?"
-      - "What resources (budget, personnel, infrastructure) are required?"
-      - "What are the step-by-step implementation procedures?"
-      - "What risks or challenges are anticipated?"
-      - "What are the expected outcomes or deliverables?"
+    overview:                             # 문서 개요 파악용 질문
+      - "이 문서의 주요 목적은 무엇인가요?"
+      - "이 문서가 해결하고자 하는 문제는 무엇인가요?"
+      - "대상 사용자 또는 수혜자는 누구인가요?"
+      - "이 문서에서 설명하는 주요 변경 사항이나 혁신은 무엇인가요?"
+      - "범위와 한계는 무엇인가요?"
+    technical:                            # 기술 세부사항 파악용 질문
+      - "핵심 기술 세부 사항이나 사양은 무엇인가요?"
+      - "어떤 기술, 방법 또는 도구가 설명되어 있나요?"
+      - "시스템 요구 사항은 무엇인가요?"
+      - "기존 대안과 비교했을 때 어떤 차이가 있나요?"
+      - "성능 지표나 벤치마크는 무엇인가요?"
+    implementation:                       # 구현·실행 관련 질문
+      - "일정이나 타임라인은 어떻게 되나요?"
+      - "필요한 자원(예산, 인력, 인프라)은 무엇인가요?"
+      - "단계별 구현 절차는 무엇인가요?"
+      - "예상되는 위험이나 과제는 무엇인가요?"
+      - "기대되는 결과물이나 산출물은 무엇인가요?"
     # 파일에서 질문을 불러오려면 아래 주석 해제:
     # file: "./questions.txt"
 
   system_prompt: >
-    You are a helpful assistant that answers questions based strictly on the
-    provided document. Answer only from the document content. Do not speculate
-    or fabricate information. Be concise and factual. Include specific numbers,
-    dates, and names when available. If the document does not contain relevant
-    information, say "The document does not contain this information."
+    당신은 제공된 문서를 기반으로 질문에 답변하는 도우미입니다.
+    반드시 문서에 포함된 내용만으로 답변하세요.
+    추측하거나 정보를 지어내지 마세요.
+    간결하고 사실에 기반하여 답변하세요.
+    가능한 경우 구체적인 수치, 날짜, 이름을 포함하세요.
+    문서에 관련 정보가 없으면 "해당 정보는 문서에 포함되어 있지 않습니다."라고 답변하세요.
 
   output_format: "alpaca"
 
@@ -273,7 +274,7 @@ export:
     enabled: true                       # Ollama 모델로 내보내기 (ollama create 실행)
     model_name: "my-project-model"      # `ollama run my-project-model`로 실행할 모델명
                                         # 소문자, 하이픈 사용 권장
-    system_prompt: "You are a helpful domain-specific assistant."
+    system_prompt: "당신은 도메인 전문 지식을 바탕으로 사용자의 질문에 정확하고 유용하게 답변하는 어시스턴트입니다."
                                         # 모델의 기본 시스템 프롬프트
     parameters:
       temperature: 0.7                  # 추론 시 온도. 높을수록 다양한 답변
