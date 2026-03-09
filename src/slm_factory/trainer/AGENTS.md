@@ -1,13 +1,13 @@
 # trainer/
 
-LoRA fine-tuning subsystem. DataLoader for dataset preparation, LoRATrainer for PEFT-based training with device-aware configuration.
+LoRA fine-tuning subsystem. DataLoader for dataset preparation, LoRATrainer for PEFT-based training with device-aware configuration. Multi-GPU DDP support.
 
 ## STRUCTURE
 
 ```
 trainer/
 ├── __init__.py        # Re-exports: DataLoader, LoRATrainer
-└── lora_trainer.py    # 424 lines — DataLoader + LoRATrainer + _RichProgressCallback
+└── lora_trainer.py    # DataLoader + LoRATrainer + _RichProgressCallback
 ```
 
 ## HOW IT WORKS
@@ -15,8 +15,10 @@ trainer/
 1. `DataLoader.load_and_split(path)` reads chat-template JSONL, splits into train/eval `DatasetDict`.
 2. `LoRATrainer.train(dataset_dict)` loads base model + tokenizer, applies LoRA adapter, runs SFTTrainer.
 3. Device detection (`device.py`) auto-selects dtype, optimizer, quantization, gradient checkpointing.
-4. `_RichProgressCallback` logs epoch/loss/lr to Rich console during training.
-5. Early stopping via HuggingFace `EarlyStoppingCallback` when `config.training.early_stopping.enabled`.
+4. Multi-GPU: `DeviceInfo.gpu_count > 1` → auto-configures DDP in training args.
+5. `_RichProgressCallback` logs epoch/loss/lr to Rich console during training.
+6. Early stopping via HuggingFace `EarlyStoppingCallback` when `config.training.early_stopping.enabled`.
+7. `trust_remote_code=True` support — security warning logged when enabled.
 
 ## WHERE TO LOOK
 

@@ -1,6 +1,6 @@
 # tests/
 
-30 test files, flat structure. pytest + pytest-mock + pytest-asyncio. No GPU required — ML libraries auto-mocked.
+36 test files, flat structure. pytest + pytest-mock + pytest-asyncio. No GPU required — ML libraries auto-mocked.
 
 ## STRUCTURE
 
@@ -8,19 +8,19 @@ Tests use underscore-flattened naming mirroring source modules:
 
 | Test File | Source Module | Tests |
 |-----------|---------------|-------|
-| `test_cli.py` | `cli.py` | 51 — CliRunner integration (incl. compare-data) |
-| `test_pipeline.py` | `pipeline.py` | 30 — step_* orchestration + regeneration |
-| `test_integration.py` | cross-module | 22 — chunking→QA, ontology→QA, score→regen chains + relation dedup |
-| `test_evolve_history.py` | `evolve_history.py` | 41 — version tracking |
-| `test_dashboard.py` | `tui/dashboard.py` | 29 — TUI dashboard |
-| `test_reviewer.py` | `tui/reviewer.py` | 28 — TUI reviewer |
-| `test_config.py` | `config.py` | 37 — Pydantic validation (incl. ChunkingConfig, ScoringConfig.regenerate) |
-| `test_incremental.py` | `incremental.py` | 24 — hash tracking |
-| `test_parsers_*.py` (6 files) | `parsers/*.py` | ~92 — per-format parser tests |
-| `test_teacher.py` | `teacher/` | 16 — backend tests |
-| `test_qa_generator.py` | `teacher/qa_generator.py` | 27 — QA generation + chunking |
-| `test_dialogue_generator.py` | `teacher/dialogue_generator.py` | 20 — dialogue gen |
-| Others (8 files) | Various | ~90 — evaluator, scorer, augmenter, etc. |
+| `test_cli.py` (875 lines) | `cli.py` | CliRunner integration (incl. compare-data) |
+| `test_pipeline.py` (749 lines) | `pipeline.py` | step_* orchestration + regeneration |
+| `test_integration.py` (622 lines) | cross-module | chunking→QA, ontology→QA, score→regen chains + relation dedup |
+| `test_evolve_history.py` (703 lines) | `evolve_history.py` | version tracking |
+| `test_config.py` | `config.py` | Pydantic validation (incl. ChunkingConfig, ScoringConfig.regenerate) |
+| `test_device.py` | `device.py` | CUDA/MPS/CPU detection + multi-GPU |
+| `test_trainer.py` | `trainer/lora_trainer.py` | DataLoader + LoRATrainer + DDP |
+| `test_teacher.py` | `teacher/` | backend tests (Ollama streaming, OpenAI-compat) |
+| `test_qa_generator.py` | `teacher/qa_generator.py` | QA generation + chunking |
+| `test_ontology_*.py` (3 files) | `ontology/` | extractor, graph_store, models |
+| `test_parsers_*.py` (6 files) | `parsers/*.py` | per-format parser tests (incl. HWP5, multi-section HWPX) |
+| `test_dashboard.py` / `test_reviewer.py` | `tui/` | TUI widget tests |
+| Others (10 files) | Various | evaluator, scorer, augmenter, converter, etc. |
 
 ## KEY FIXTURES (`conftest.py`)
 
@@ -43,6 +43,8 @@ Tests use underscore-flattened naming mirroring source modules:
 - `peft`, `trl`, `datasets`, `accelerate`, `bitsandbytes`, `sentence_transformers`, `kiwipiepy`
 
 This allows **all tests to run without GPU or ML dependencies installed**.
+
+**Per-test hardware mocking** (test_device.py): `patch.dict("sys.modules", {"torch": mock_torch})` + `importlib.reload()` to test device detection without actual hardware.
 
 ## CONVENTIONS
 

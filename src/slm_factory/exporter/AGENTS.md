@@ -31,7 +31,7 @@ exporter/
 
 - Heavy ML imports (`torch`, `transformers`, `peft`) are lazy — inside methods, not at module level.
 - Subprocess calls (`ollama create`, `convert_hf_to_gguf.py`) use `subprocess.run()` with error checking.
-- `DeviceInfo` from `device.py` determines model loading dtype and device_map.
+- `DeviceInfo` from `device.py` determines model loading dtype and device_map (incl. multi-GPU).
 - `RuntimeError` raised for missing models, failed subprocess calls, missing llama.cpp.
 
 ## ANTI-PATTERNS

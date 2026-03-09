@@ -1,15 +1,16 @@
 # parsers/
 
-Document parsing subsystem. Registry pattern with ABC base class and 5 format-specific implementations.
+Document parsing subsystem. Registry pattern with ABC base class and 7 format-specific implementations (2 optional).
 
 ## STRUCTURE
 
 ```
 parsers/
-├── __init__.py    # Registry instantiation + parser registration
+├── __init__.py    # Registry instantiation + parser registration (incl. optional DOCX, HWP)
 ├── base.py        # BaseParser ABC + ParserRegistry + shared helpers
-├── pdf.py         # PDFParser — PyMuPDF (fitz), table extraction
-├── hwpx.py        # HWPXParser — Korean HWPX (ZIP/XML), optional PyKoSpacing
+├── pdf.py         # PDFParser — PyMuPDF (fitz) + pymupdf4llm fallback for OCR/LLM-optimized output
+├── hwpx.py        # HWPXParser — Korean HWPX (ZIP/XML), multi-section support, optional PyKoSpacing
+├── hwp.py         # HWPParser — HWP5 binary via olefile (optional dependency)
 ├── html.py        # HTMLParser — BeautifulSoup4 + lxml, heading→markdown, charset-normalizer
 ├── text.py        # TextParser — plain text / markdown passthrough
 └── docx.py        # DOCXParser — python-docx (optional dependency)
@@ -29,8 +30,9 @@ parsers/
 | Add new format parser | New file + `__init__.py` | Subclass `BaseParser`, set `extensions`, implement `parse()`, register |
 | Change table rendering | `base.py:rows_to_markdown()` | Shared by PDF, HWPX, HTML, DOCX |
 | Change date extraction | `base.py:extract_date_from_filename()` | YYMMDD pattern from filenames |
-| Fix PDF table parsing | `pdf.py` | Uses `fitz.page.find_tables()` — `type: ignore` for untyped PyMuPDF |
+| Fix PDF parsing/OCR | `pdf.py` | Primary: PyMuPDF `fitz`; fallback: `pymupdf4llm` for LLM-optimized markdown + OCR |
 | Fix Korean spacing | `hwpx.py` | Optional `pykospacing` dep — graceful fallback |
+| Fix HWP5 binary | `hwp.py` | Uses `olefile` — optional `[hwp]` extra |
 | Change encoding detection | `base.py:detect_encoding()` | Shared by HTML and Text parsers. Uses charset-normalizer for EUC-KR/CP949 |
 
 ## CONVENTIONS
@@ -38,9 +40,10 @@ parsers/
 - `extensions: ClassVar[list[str]]` declares supported file types per parser.
 - Output content is always **markdown-formatted** — headings, paragraphs, tables.
 - `metadata` dict holds parser-specific extras (page count, dates, authors).
-- Optional deps use `try/except ImportError` with `None` fallback (see DOCX in `__init__.py`).
-- `type: ignore` on PyMuPDF calls (`pdf.py:31,80`) — library has no type stubs.
+- Optional deps use `try/except ImportError` with `None` fallback (DOCX, HWP in `__init__.py`).
+- `type: ignore` on PyMuPDF calls (`pdf.py`) and olefile (`hwp.py`) — no type stubs.
 - `detect_encoding()` in `base.py` is the shared encoding detection utility — do NOT duplicate in individual parsers.
+- HWPX supports multi-section documents (`Contents/section*.xml`) — merged in sorted order.
 
 ## ANTI-PATTERNS
 

@@ -24,7 +24,7 @@ ontology/
 
 | Task | File | Notes |
 |------|------|-------|
-| Change entity types | `config.py:OntologyConfig.entity_types` | Default 7 types, configurable |
+| Change entity types | `config.py:OntologyConfig.entity_types` | Configurable list |
 | Change extraction prompt | `extractor.py:_build_extraction_prompt()` | Korean instructions, JSON format |
 | Change validation rules | `extractor.py:_validate_extraction()` | Type filtering + confidence threshold |
 | Change entity normalization | `extractor.py:_normalize_entities()` | Upper-case dedup, prefer longer names |
