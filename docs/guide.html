@@ -156,14 +156,14 @@ curl -fsSL https://ollama.com/install.sh | sh
           <h4>3단계: Teacher 모델 다운로드</h4>
           <p>한국어와 영어를 모두 지원하는 <code>qwen3:8b</code>를 권장합니다.</p>
 
-          <pre data-lang="bash"><code># 권장 Teacher 모델 (한국어/영어 모두 지원)
+          <pre data-lang="bash"><code># 권장 Teacher 모델 (한국어/다국어, 8GB VRAM)
 ollama pull qwen3:8b
 
-# 영어 전용 대안
-ollama pull llama3.1:8b
+# 고품질 대안 (24GB+ VRAM 필요)
+ollama pull qwen3.5:9b
 
-# 고품질 대안 (더 느림)
-ollama pull gemma2:9b</code></pre>
+# 한국어 최적화 대안
+ollama pull exaone3.5:7.8b</code></pre>
 
           <p>다운로드 완료 후 정상 동작을 확인합니다.</p>
 
@@ -613,7 +613,7 @@ teacher:
   temperature: 0.3
 
 student:
-  model: "google/gemma-3-1b-it"   # HuggingFace 모델 ID
+  model: "Qwen/Qwen3.5-2B"       # HuggingFace 모델 ID
 
 export:
   ollama:
@@ -742,7 +742,7 @@ scoring:
   threshold: 3.5
 
 student:
-  model: "google/gemma-3-1b-it"
+  model: "Qwen/Qwen3.5-2B"
   max_seq_length: 4096
 
 training:
@@ -842,7 +842,7 @@ augment:
   num_variants: 2
 
 student:
-  model: "google/gemma-3-1b-it"
+  model: "Qwen/Qwen3.5-2B"
   max_seq_length: 4096
 
 training:
@@ -1272,7 +1272,7 @@ RuntimeError: MPS backend out of memory</code></pre>
 
           <p>방법 2: 다른 Teacher 모델 시도</p>
           <pre data-lang="yaml"><code>teacher:
-  model: "llama3.1:8b"             # 또는 "gemma2:9b"</code></pre>
+  model: "qwen3.5:9b"              # 또는 "exaone3.5:7.8b" (한국어 최적화)</code></pre>
 
           <p>방법 3: 질문을 문서 내용에 맞게 조정합니다. 문서를 먼저 읽고 실제로 답변 가능한 질문으로 수정하십시오. 너무 일반적이거나 추상적인 질문은 피하십시오.</p>
 
