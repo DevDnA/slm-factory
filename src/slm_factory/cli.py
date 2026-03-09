@@ -28,6 +28,9 @@ class PipelineStep(str, enum.Enum):
     score = "score"
     augment = "augment"
     analyze = "analyze"
+    convert = "convert"
+    train = "train"
+    export = "export"
 
 
 app = typer.Typer(
@@ -43,11 +46,21 @@ app.add_typer(eval_app, name="eval", rich_help_panel="📊 평가")
 app.add_typer(tool_app, name="tool", rich_help_panel="🔧 도구")
 
 
+def _version_callback(value: bool) -> None:
+    if value:
+        console.print(f"slm-factory [bold]{__version__}[/bold]")
+        raise typer.Exit()
+
+
 @app.callback(invoke_without_command=True)
 def main_callback(
     ctx: typer.Context,
     verbose: bool = typer.Option(False, "--verbose", "-v", help="디버그 로그를 표시합니다"),
     quiet: bool = typer.Option(False, "--quiet", "-q", help="경고와 에러만 표시합니다"),
+    version: bool = typer.Option(
+        False, "--version", "-V", help="버전을 표시합니다",
+        callback=_version_callback, is_eager=True,
+    ),
 ) -> None:
     """Teacher-Student Knowledge Distillation framework for domain-specific SLMs."""
     if verbose:
@@ -377,13 +390,25 @@ def init(
     console.print(f"  5. wizard 실행: [cyan]slm-factory tool wizard --config {config_path}[/cyan]\n")
 
 
-_STEP_ORDER = ["parse", "generate", "validate", "score", "augment", "analyze"]
+_STEP_ORDER = ["parse", "generate", "validate", "score", "augment", "analyze", "convert", "train", "export"]
 
 _RESUME_TO_STEP_IDX: dict[str, int] = {
     "generate": 1,
     "validate": 2,
     "augment": 4,
     "analyze": 5,
+    "convert": 6,
+    "train": 7,
+    "export": 8,
+}
+
+_STEP_OUTPUT_FILES: dict[str, str] = {
+    "generate": "qa_generated.json",
+    "validate": "qa_validated.json",
+    "score": "qa_scored.json",
+    "augment": "qa_augmented.json",
+    "analyze": "data_analysis.json",
+    "convert": "training_data.jsonl",
 }
 
 
@@ -392,6 +417,8 @@ def _run_until_step(pipeline: Pipeline, target: str, resume: bool) -> None:
 
     docs = None
     pairs: list[QAPair] = []
+    training_data_path: Path | None = None
+    adapter_path: Path | None = None
     start_idx = 0
 
     if resume:
@@ -411,6 +438,14 @@ def _run_until_step(pipeline: Pipeline, target: str, resume: bool) -> None:
 
     for idx in range(start_idx, target_idx + 1):
         step = _STEP_ORDER[idx]
+
+        if not resume and idx < target_idx and step in _STEP_OUTPUT_FILES:
+            output_file = Path(pipeline.config.paths.output) / _STEP_OUTPUT_FILES[step]
+            if output_file.exists():
+                console.print(f"  [dim]⏭[/dim] {step} 단계 건너뜀 (이전 결과: {output_file.name})")
+                if step in ("generate", "validate", "score", "augment"):
+                    pairs = pipeline._load_pairs(output_file)
+                continue
 
         if step == "parse":
             docs = pipeline.step_parse()
@@ -445,6 +480,22 @@ def _run_until_step(pipeline: Pipeline, target: str, resume: bool) -> None:
             pipeline.step_analyze(pairs)
             console.print(f"  [green]✓[/green] {len(pairs)}개 QA 쌍 분석 완료")
 
+        elif step == "convert":
+            training_data_path = pipeline.step_convert(pairs)
+            console.print(f"  [green]✓[/green] 학습 데이터 변환 완료: {training_data_path}")
+
+        elif step == "train":
+            if not training_data_path:
+                raise typer.BadParameter("train 단계는 convert 단계가 선행되어야 합니다")
+            adapter_path = pipeline.step_train(training_data_path)
+            console.print(f"  [green]✓[/green] 모델 학습 완료: {adapter_path}")
+
+        elif step == "export":
+            if not adapter_path:
+                raise typer.BadParameter("export 단계는 train 단계가 선행되어야 합니다")
+            model_dir = pipeline.step_export(adapter_path)
+            console.print(f"  [green]✓[/green] 모델 내보내기 완료: {model_dir}")
+
 
 @app.command(rich_help_panel="⚙️ 파이프라인")
 def run(
@@ -453,7 +504,7 @@ def run(
         False, "--resume", "-r", help=_RESUME_HELP
     ),
     until: Optional[PipelineStep] = typer.Option(
-        None, "--until", help="지정된 단계까지만 실행 (parse|generate|validate|score|augment|analyze)"
+        None, "--until", help="지정된 단계까지만 실행"
     ),
 ) -> None:
     """파이프라인을 실행합니다. --until로 단계를 지정하면 해당 단계까지만 실행합니다."""
@@ -710,6 +761,28 @@ def check(
             f"{cfg.teacher.backend} ({cfg.teacher.api_base})",
         )
 
+    # ── 학생 모델 접근 점검 ─────────────────────────────────────
+    try:
+        from huggingface_hub import model_info
+        model_id = cfg.student.model
+        model_info(model_id)
+        table.add_row("학생 모델", "[green]OK[/green]", model_id)
+    except Exception as e:
+        msg = str(e).lower()
+        if "401" in msg or "403" in msg or "gated" in msg:
+            table.add_row(
+                "학생 모델",
+                "[yellow]WARN[/yellow]",
+                f"접근 제한 모델: {cfg.student.model}. `huggingface-cli login` 필요",
+            )
+        else:
+            table.add_row(
+                "학생 모델",
+                "[yellow]WARN[/yellow]",
+                f"{cfg.student.model}: {e}",
+            )
+        all_ok = False
+
     # ── 컴퓨팅 디바이스 감지 ─────────────────────────────────────
     try:
         from .device import detect_device
@@ -867,6 +940,7 @@ def status(
 def clean(
     config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
     all_files: bool = typer.Option(False, "--all", help="모든 출력 파일을 삭제합니다"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="확인 없이 삭제합니다"),
 ) -> None:
     """중간 생성 파일을 정리합니다."""
     import shutil
@@ -905,7 +979,8 @@ def clean(
     for t in targets:
         console.print(f"  {t}")
 
-    typer.confirm("\n삭제하시겠습니까?", abort=True)
+    if not yes:
+        typer.confirm("\n삭제하시겠습니까?", abort=True)
 
     deleted: list[Path] = []
     for t in targets:
@@ -979,12 +1054,21 @@ def compare_data(
 
     try:
         import json as _json
+        from dataclasses import fields as _fields
+
+        _known = {f.name for f in _fields(QAPair)}
 
         baseline_data = _json.loads(baseline_path.read_text(encoding="utf-8"))
-        baseline_pairs = [QAPair(**item) for item in baseline_data]
+        baseline_pairs = [
+            QAPair(**{k: v for k, v in item.items() if k in _known})
+            for item in baseline_data
+        ]
 
         target_data = _json.loads(target_path.read_text(encoding="utf-8"))
-        target_pairs = [QAPair(**item) for item in target_data]
+        target_pairs = [
+            QAPair(**{k: v for k, v in item.items() if k in _known})
+            for item in target_data
+        ]
     except Exception as e:
         _print_error("파일 로드 실패", e)
         raise typer.Exit(code=1)

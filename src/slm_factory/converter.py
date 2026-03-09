@@ -39,7 +39,13 @@ class ChatFormatter:
     
     @property
     def tokenizer(self) -> AutoTokenizer:
-        """토크나이저를 지연 로딩합니다 (필요하지 않으면 import 비용 회피)."""
+        """토크나이저를 지연 로딩합니다 (필요하지 않으면 import 비용 회피).
+
+        Raises
+        ------
+        RuntimeError
+            HuggingFace 인증 실패(gated/private 모델) 또는 모델을 찾을 수 없을 때.
+        """
         if self._tokenizer is None:
             from transformers import AutoTokenizer
             logger.warning(
@@ -48,10 +54,26 @@ class ChatFormatter:
                 "신뢰할 수 있는 출처의 모델만 사용하세요.",
                 self.model_name,
             )
-            self._tokenizer = AutoTokenizer.from_pretrained(
-                self.model_name,
-                trust_remote_code=True,
-            )
+            try:
+                self._tokenizer = AutoTokenizer.from_pretrained(
+                    self.model_name,
+                    trust_remote_code=True,
+                )
+            except OSError as exc:
+                # HuggingFace gated/private 모델 401/403 또는 모델 미존재 404
+                msg = str(exc).lower()
+                if "401" in msg or "403" in msg or "gated" in msg:
+                    raise RuntimeError(
+                        f"모델 '{self.model_name}'은(는) 접근이 제한된 gated 모델입니다. "
+                        f"HuggingFace 토큰을 설정하세요: `huggingface-cli login` "
+                        f"또는 공개 모델로 변경하세요."
+                    ) from exc
+                if "404" in msg or "does not exist" in msg:
+                    raise RuntimeError(
+                        f"모델 '{self.model_name}'을(를) 찾을 수 없습니다. "
+                        f"모델 이름이 올바른지 확인하세요."
+                    ) from exc
+                raise
             logger.info("토크나이저 로드됨: %s", self.model_name)
         return self._tokenizer
     
@@ -85,6 +107,8 @@ class ChatFormatter:
             return self.tokenizer.apply_chat_template(
                 messages, tokenize=False, add_generation_prompt=False,
             )
+        except RuntimeError:
+            raise
         except Exception as e:
             logger.debug(
                 "%s에서 시스템 역할 실패 (오류: %s), 시스템 없이 재시도 중",
@@ -95,6 +119,8 @@ class ChatFormatter:
                 return self.tokenizer.apply_chat_template(
                     messages_no_system, tokenize=False, add_generation_prompt=False,
                 )
+            except RuntimeError:
+                raise
             except Exception as e2:
                 logger.error(
                     "형식화 실패 (%s): %s — 이 QA 쌍은 학습 데이터에서 제외됩니다",

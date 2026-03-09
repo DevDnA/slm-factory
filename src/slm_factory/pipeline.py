@@ -686,7 +686,15 @@ class Pipeline:
         if self.config.export.ollama.enabled:
             logger.info("Generating Ollama Modelfile...")
             ollama_exporter = OllamaExporter(self.config)
-            ollama_exporter.export(model_dir)
+            modelfile_path = ollama_exporter.export(model_dir)
+            ollama_model = (
+                self.config.export.ollama.model_name
+                or self.config.student.model.split("/")[-1]
+            )
+            logger.info(
+                "Ollama Modelfile: %s — 모델 등록 실패 시: ollama create %s -f %s",
+                modelfile_path, ollama_model, modelfile_path,
+            )
 
         logger.info("Export complete — model at %s", model_dir)
         return model_dir
