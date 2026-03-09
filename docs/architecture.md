@@ -231,12 +231,13 @@ documents/
   (PDF, HWPX, HTML, TXT, DOCX)
         │
         ▼ step_parse()
-parsed_documents.json
+  parsed_documents.json
         │
-        ├─▶ step_extract_ontology() ──▶  ontology.json
+        ├──▶ step_extract_ontology()
+        │        └──▶ ontology.json
         │
-        ├─▶ chunking (chunking.enabled=true)
-        │     긴 문서를 청크로 분할 → 각 청크마다 QA 생성
+        ├──▶ chunking (chunking.enabled=true)
+        │      긴 문서를 청크로 분할 → 각 청크마다 QA 생성
         │
         ▼ step_generate()
 qa_alpaca.json
