@@ -137,6 +137,30 @@ class QuestionsConfig(BaseModel):
             )
         return [q for questions in self.categories.values() for q in questions]
 
+    def get_questions_with_categories(self) -> list[tuple[str, str]]:
+        """(카테고리명, 질문) 튜플 리스트를 반환합니다.
+
+        카테고리 정보를 유지하면서 모든 질문을 반환합니다.
+        파일에서 로드한 질문은 카테고리가 빈 문자열입니다.
+        """
+        if self.file is not None:
+            path = Path(self.file)
+            if path.is_file():
+                return [
+                    ("", line.strip())
+                    for line in path.read_text(encoding="utf-8").splitlines()
+                    if line.strip()
+                ]
+            raise FileNotFoundError(
+                f"질문 파일을 찾을 수 없습니다: {path}. "
+                f"questions.file 경로를 확인하세요."
+            )
+        return [
+            (cat_name, q)
+            for cat_name, questions in self.categories.items()
+            for q in questions
+        ]
+
 
 class GroundednessConfig(BaseModel):
     """생성된 답변에 대한 의미론적 근거 검증입니다."""

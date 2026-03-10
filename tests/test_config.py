@@ -151,6 +151,33 @@ class TestQuestionsConfig:
         cfg = QuestionsConfig()
         assert cfg.get_all_questions() == []
 
+    def test_get_questions_with_categories_카테고리_유지(self):
+        """카테고리명과 질문이 튜플로 반환되는지 확인합니다."""
+        cfg = QuestionsConfig(
+            categories={
+                "overview": ["질문1", "질문2"],
+                "technical": ["질문3"],
+            }
+        )
+        result = cfg.get_questions_with_categories()
+        assert len(result) == 3
+        assert ("overview", "질문1") in result
+        assert ("overview", "질문2") in result
+        assert ("technical", "질문3") in result
+
+    def test_get_questions_with_categories_파일에서_로드(self, tmp_path):
+        """파일에서 로드한 질문은 카테고리가 빈 문자열인지 확인합니다."""
+        qfile = tmp_path / "questions.txt"
+        qfile.write_text("파일 질문1\n파일 질문2\n", encoding="utf-8")
+        cfg = QuestionsConfig(file=qfile)
+        result = cfg.get_questions_with_categories()
+        assert result == [("", "파일 질문1"), ("", "파일 질문2")]
+
+    def test_get_questions_with_categories_빈_카테고리(self):
+        """카테고리가 비어있으면 빈 리스트를 반환하는지 확인합니다."""
+        cfg = QuestionsConfig()
+        assert cfg.get_questions_with_categories() == []
+
 
 class TestValidationConfig:
     """ValidationConfig 기본값 테스트입니다."""
@@ -184,7 +211,7 @@ class TestStudentConfig:
     def test_기본값(self):
         """학생 모델 설정의 기본값을 검증합니다."""
         cfg = StudentConfig()
-        assert cfg.model == "Qwen/Qwen3.5-2B"
+        assert cfg.model == "Qwen/Qwen2.5-1.5B"
         assert cfg.max_seq_length == 4096
 
 

@@ -249,10 +249,11 @@ class QAGenerator:
                 )
                 
                 # 응답 생성
-                # Ollama 백엔드의 경우 format="json" 전달
+                # Ollama 백엔드의 경우 format="json" + think=False 전달
                 kwargs = {}
                 if self.teacher_config.backend == "ollama":
                     kwargs["format"] = "json"
+                    kwargs["think"] = False
                 
                 response = self.teacher.generate(prompt, **kwargs)
                 
@@ -327,6 +328,7 @@ class QAGenerator:
                 kwargs: dict[str, Any] = {}
                 if self.teacher_config.backend == "ollama":
                     kwargs["format"] = "json"
+                    kwargs["think"] = False
 
                 response = await self.teacher.agenerate(prompt, **kwargs)
 
@@ -391,8 +393,11 @@ class QAGenerator:
         max_concurrency = self.teacher_config.max_concurrency
         semaphore = asyncio.Semaphore(max_concurrency)
 
-        all_questions = questions or self.questions_config.get_all_questions()
-        if not all_questions:
+        if questions is not None:
+            all_qc = [("", q) for q in questions]
+        else:
+            all_qc = self.questions_config.get_questions_with_categories()
+        if not all_qc:
             logger.warning("No questions configured")
             return []
 
@@ -409,7 +414,7 @@ class QAGenerator:
             TimeRemainingColumn(),
         )
 
-        total = len(doc_chunks) * len(all_questions)
+        total = len(doc_chunks) * len(all_qc)
 
         if self.chunking_config.enabled and len(doc_chunks) > len(docs):
             logger.info(
@@ -435,9 +440,11 @@ class QAGenerator:
                 onto_ctx: str | None,
                 chunk_content: str | None,
                 chunk_info: str | None,
+                category: str = "",
             ) -> QAPair | None:
                 result = await self._generate_one_async(
                     semaphore, doc, question,
+                    category=category,
                     ontology_context=onto_ctx,
                     chunk_content=chunk_content,
                     chunk_info=chunk_info,
@@ -452,11 +459,11 @@ class QAGenerator:
                     if ontology_context
                     else None
                 )
-                for question in all_questions:
+                for category, question in all_qc:
                     task = asyncio.create_task(
                         _generate_with_progress(
                             semaphore, doc, question, doc_onto_ctx,
-                            chunk_content, chunk_info,
+                            chunk_content, chunk_info, category,
                         )
                     )
                     tasks.append(task)
