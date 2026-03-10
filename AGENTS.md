@@ -1,8 +1,8 @@
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** 2026-03-09
-**Commit:** c8f67c8
-**Branch:** main
+**Generated:** 2026-03-10
+**Commit:** 9d87d45
+**Branch:** master
 
 ## OVERVIEW
 
@@ -13,8 +13,8 @@ Teacher-Student knowledge distillation CLI framework for building domain-specifi
 ```
 slm-factory/
 ├── src/slm_factory/          # Source (src layout, setuptools)
-│   ├── cli.py                # ALL CLI commands — monolith (2202 lines)
-│   ├── pipeline.py           # Orchestrator — 12 step_* methods + async regeneration
+│   ├── cli.py                # ALL CLI commands — monolith (2279 lines)
+│   ├── pipeline.py           # Orchestrator — 14 step_* methods + async regeneration
 │   ├── config.py             # 30 Pydantic v2 models for YAML config (incl. ChunkingConfig)
 │   ├── models.py             # Shared dataclasses: QAPair, ParsedDocument, etc.
 │   ├── device.py             # CUDA/MPS/CPU auto-detection + multi-GPU (gpu_count)
@@ -36,7 +36,7 @@ slm-factory/
 │   └── tui/                  # → see tui/AGENTS.md
 ├── tests/                    # → see tests/AGENTS.md
 ├── templates/project.yaml    # Default config template (NOT in package)
-├── docs/                     # 6 Korean markdown guides
+├── docs/                     # 7 Korean markdown guides
 └── pyproject.toml            # Single build config (setuptools)
 ```
 
@@ -60,12 +60,12 @@ slm-factory/
 
 | Symbol | Type | Location | Role |
 |--------|------|----------|------|
-| `Pipeline` | class | `pipeline.py:23` | Central orchestrator — 12 `step_*` methods |
+| `Pipeline` | class | `pipeline.py:26` | Central orchestrator — 14 `step_*` methods |
 | `Pipeline._regenerate_round` | async | `pipeline.py` | Async batch regeneration per round (semaphore + gather) |
-| `SLMConfig` | class | `config.py:430` | Root Pydantic v2 config (20 sub-configs) |
-| `ChunkingConfig` | class | `config.py:431` | Document chunking settings (chunk_size, overlap_chars) |
-| `load_config` | func | `config.py:474` | YAML → validated `SLMConfig` |
-| `app` | Typer | `cli.py:30` | CLI entry point (`slm-factory` command) |
+| `SLMConfig` | class | `config.py:527` | Root Pydantic v2 config (22 sub-configs) |
+| `ChunkingConfig` | class | `config.py:470` | Document chunking settings (chunk_size, overlap_chars) |
+| `load_config` | func | `config.py:583` | YAML → validated `SLMConfig` |
+| `app` | Typer | `cli.py:36` | CLI entry point (`slm-factory` command) |
 | `_STEP_ORDER` | list | `cli.py:393` | Pipeline step execution order (9 steps) |
 | `QAPair` | dataclass | `models.py:29` | Shared data model — system's lingua franca |
 | `ParsedDocument` | dataclass | `models.py:9` | Document parser output |
@@ -75,7 +75,7 @@ slm-factory/
 | `BaseTeacher` | ABC | `teacher/base.py:8` | LLM interface — `generate()` / `agenerate()` |
 | `create_teacher` | func | `teacher/__init__.py:22` | Factory: config.backend → teacher instance |
 | `DeviceInfo` | dataclass | `device.py:19` | Frozen hardware detection (incl. `gpu_count` for multi-GPU) |
-| `detect_device` | func | `device.py:86` | CUDA → MPS → CPU priority detection |
+| `detect_device` | func | `device.py:89` | CUDA → MPS → CPU priority detection |
 | `run_async` | func | `utils.py` | Async bridge — handles event loop detection + nest_asyncio |
 | `run_bounded` | func | `utils.py` | Semaphore-bounded async execution with progress tracking |
 | `EvolveHistory` | class | `evolve_history.py` | Version tracking + quality gate + cleanup |
@@ -101,8 +101,8 @@ slm-factory/
 
 - **Zero TODO/FIXME/HACK markers** in codebase — keep it clean.
 - **Do NOT import ML libs at module level** — breaks fast CLI startup. Always lazy-import inside functions.
-- **Do NOT add `type: ignore`** unless for untyped third-party libs (PyMuPDF, olefile, optional deps). Currently 8 justified suppressions.
-- **Silent `except` with `logger.debug()`** exists in `scorer.py:64` and `augmenter.py:59` (JSON parse fallthrough).
+- **Do NOT add `type: ignore`** unless for untyped third-party libs (PyMuPDF, olefile, optional deps). Currently 6 justified suppressions.
+- **Silent `except` with `logger.debug()`** exists in `scorer.py:88` and `augmenter.py:76` (JSON parse fallthrough).
 - **No CI/CD exists** — no GitHub Actions, no Makefile, no pre-commit hooks, no linter config.
 - **Templates are outside package** — `templates/project.yaml` at repo root, not in `src/slm_factory/`. The `importlib.resources` fallback in `config.py` is fragile.
 
@@ -126,8 +126,8 @@ slm-factory check --config project.yaml
 
 ## NOTES
 
-- **`cli.py` is 2202 lines** — all 19 commands in one file (incl. `tool compare-data`). Wizard alone is ~400 lines. Known maintenance burden.
-- **`config.py` has 30 Pydantic models** — single file, 605 lines. 22 sub-configs composed into `SLMConfig`.
+- **`cli.py` is 2279 lines** — all 18 commands in one file (incl. `tool compare-data`). Wizard alone is ~495 lines. Known maintenance burden.
+- **`config.py` has 30 Pydantic models** — single file, 654 lines. 22 sub-configs composed into `SLMConfig`.
 - **Pipeline is stateless** — no mutable state between steps. Resume logic lives in CLI (detects existing output files), not Pipeline.
 - **`QAPair` changes ripple to 19+ modules** — treat as a stable interface.
 - **`run_async()` in Pipeline** — cannot use Pipeline from an existing event loop (unless `nest_asyncio` installed).
