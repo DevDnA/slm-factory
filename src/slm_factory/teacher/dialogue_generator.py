@@ -70,6 +70,20 @@ class DialogueGenerator:
 
         try:
             data = json.loads(text)
+        except (json.JSONDecodeError, ValueError):
+            logger.debug("대화 JSON 파싱 실패, 정규식 fallback 시도: %s", text[:80])
+            match = re.search(r"\{[\s\S]*\}", text)
+            if match:
+                try:
+                    data = json.loads(match.group())
+                except (json.JSONDecodeError, ValueError):
+                    logger.warning("대화 응답 파싱 최종 실패: %s", text[:100])
+                    return None
+            else:
+                logger.warning("대화 응답에서 JSON을 찾을 수 없음: %s", text[:100])
+                return None
+
+        try:
             raw_turns = data.get("turns", [])
             if not isinstance(raw_turns, list) or len(raw_turns) < 2:
                 logger.warning("대화 턴 수 부족: %d", len(raw_turns) if isinstance(raw_turns, list) else 0)
@@ -105,7 +119,7 @@ class DialogueGenerator:
                 source_doc=pair.source_doc,
                 category=pair.category,
             )
-        except (json.JSONDecodeError, ValueError, TypeError) as e:
+        except (ValueError, TypeError) as e:
             logger.warning("대화 파싱 실패: %s", e)
             return None
 
@@ -116,6 +130,7 @@ class DialogueGenerator:
         kwargs: dict[str, Any] = {}
         if self.teacher_config.backend == "ollama":
             kwargs["format"] = "json"
+            kwargs["think"] = False
 
         response = await self.teacher.agenerate(prompt, **kwargs)
         return self._parse_dialogue(response, pair)

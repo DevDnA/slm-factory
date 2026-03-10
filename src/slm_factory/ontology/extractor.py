@@ -284,6 +284,7 @@ class OntologyExtractor:
         kwargs: dict[str, Any] = {}
         if self.teacher_config.backend == "ollama":
             kwargs["format"] = "json"
+            kwargs["think"] = False
 
         response = await self.teacher.agenerate(prompt, **kwargs)
         entities, relations = self._parse_extraction(response, doc_title)
