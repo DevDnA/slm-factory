@@ -192,6 +192,7 @@ class TestFindConvertScript:
 class TestGGUFExporterExport:
 
     def test_정상_변환_경로_반환(self, make_config, tmp_path, mocker):
+        """2단계 GGUF 변환(HF→f16→q4_k_m)이 정상 동작합니다."""
         model_dir = tmp_path / "merged_model"
         model_dir.mkdir()
 
@@ -204,29 +205,40 @@ class TestGGUFExporterExport:
             make_config, llama_cpp_path=str(llama_dir)
         )
 
+        f16_gguf = model_dir / "test-model-f16.gguf"
         expected_gguf = model_dir / "test-model-q4_k_m.gguf"
 
-        mock_run = mocker.patch("subprocess.run")
-        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        mocker.patch("shutil.which", return_value="/usr/local/bin/llama-quantize")
 
-        # export 호출 시 gguf 파일이 생성되었다고 가정
-        def create_gguf(*args, **kwargs):
-            expected_gguf.touch()
+        call_count = 0
+
+        def run_side_effect(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                f16_gguf.touch()
+            else:
+                expected_gguf.touch()
             return MagicMock(returncode=0, stdout="", stderr="")
 
-        mock_run.side_effect = create_gguf
+        mock_run = mocker.patch("subprocess.run", side_effect=run_side_effect)
 
         result = exporter.export(model_dir)
 
         assert result == expected_gguf
-        mock_run.assert_called_once()
+        assert mock_run.call_count == 2
 
-        call_args = mock_run.call_args
-        cmd = call_args[0][0]
-        assert "convert_hf_to_gguf.py" in cmd[1]
-        assert str(model_dir) in cmd
-        assert "--outtype" in cmd
-        assert "q4_k_m" in cmd
+        convert_cmd = mock_run.call_args_list[0][0][0]
+        assert "convert_hf_to_gguf.py" in convert_cmd[1]
+        assert str(model_dir) in convert_cmd
+        assert "--outtype" in convert_cmd
+        assert "f16" in convert_cmd
+
+        quantize_cmd = mock_run.call_args_list[1][0][0]
+        assert "llama-quantize" in quantize_cmd[0]
+        assert "q4_k_m" in quantize_cmd
+
+        assert not f16_gguf.exists()
 
     def test_모델_디렉토리_없으면_에러(self, make_config):
         exporter = _make_gguf_exporter(make_config)
@@ -277,6 +289,7 @@ class TestGGUFExporterExport:
             exporter.export(model_dir)
 
     def test_gguf_파일_미생성시_glob_폴백(self, make_config, tmp_path, mocker):
+        """예상 파일명이 아닌 다른 이름의 GGUF가 생성된 경우 glob으로 찾습니다."""
         model_dir = tmp_path / "merged_model"
         model_dir.mkdir()
 
@@ -288,8 +301,9 @@ class TestGGUFExporterExport:
             make_config, llama_cpp_path=str(llama_dir)
         )
 
-        # llama.cpp가 다른 이름으로 생성한 경우
         alt_gguf = model_dir / "output-model.gguf"
+
+        mocker.patch("shutil.which", return_value="/usr/local/bin/llama-quantize")
 
         def create_alt_gguf(*args, **kwargs):
             alt_gguf.touch()
@@ -302,6 +316,7 @@ class TestGGUFExporterExport:
         assert result == alt_gguf
 
     def test_gguf_파일_아예_없으면_에러(self, make_config, tmp_path, mocker):
+        """변환 성공했지만 GGUF 파일이 없으면 에러를 발생시킵니다."""
         model_dir = tmp_path / "merged_model"
         model_dir.mkdir()
 
@@ -313,6 +328,7 @@ class TestGGUFExporterExport:
             make_config, llama_cpp_path=str(llama_dir)
         )
 
+        mocker.patch("shutil.which", return_value="/usr/local/bin/llama-quantize")
         mocker.patch(
             "subprocess.run",
             return_value=MagicMock(returncode=0, stdout="", stderr=""),
