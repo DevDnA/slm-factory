@@ -180,6 +180,26 @@ class LoRATrainer:
         if target_modules == "auto":
             target_modules = None
 
+        # PEFT의 모델 타입 → target_modules 매핑에 없는 모델의 경우
+        # (예: qwen3_5 등 신규 모델) 기본값을 사용합니다.
+        if target_modules is None:
+            try:
+                from peft.utils.constants import TRANSFORMERS_MODELS_TO_LORA_TARGET_MODULES_MAPPING
+                from transformers import AutoConfig
+                model_cfg = AutoConfig.from_pretrained(
+                    self.student_config.model, trust_remote_code=True,
+                )
+                model_type = getattr(model_cfg, "model_type", "")
+                if model_type and model_type not in TRANSFORMERS_MODELS_TO_LORA_TARGET_MODULES_MAPPING:
+                    target_modules = ["q_proj", "v_proj"]
+                    logger.info(
+                        "모델 타입 '%s'에 대한 PEFT 기본 매핑이 없어 "
+                        "target_modules=%s를 사용합니다",
+                        model_type, target_modules,
+                    )
+            except (ImportError, Exception):
+                pass
+
         lora_config = LoraConfig(
             r=self.lora_config.r,
             lora_alpha=self.lora_config.alpha,

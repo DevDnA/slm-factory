@@ -82,11 +82,12 @@ class DataAugmenter:
         """단일 QA 쌍의 질문을 패러프레이즈하여 증강된 QA 쌍을 생성합니다."""
         prompt = self._build_paraphrase_prompt(pair.question, self.config.num_variants)
 
-        kwargs: dict[str, Any] = {}
-        if self.teacher_config.backend == "ollama":
-            kwargs["format"] = "json"
-
         try:
+            kwargs: dict[str, Any] = {}
+            if self.teacher_config.backend == "ollama":
+                kwargs["format"] = "json"
+                kwargs["think"] = False
+
             response = await self.teacher.agenerate(prompt, **kwargs)
             paraphrases = self._parse_paraphrases(response)
         except Exception as e:

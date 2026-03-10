@@ -45,7 +45,6 @@ class OllamaTeacher(BaseTeacher):
         self.api_base: str = config.api_base.rstrip("/")
         self.temperature: float = config.temperature
         self.timeout: int = config.timeout
-
         logger.info(
             "OllamaTeacher initialised  model=%s  api_base=%s",
             self.model,
@@ -72,6 +71,7 @@ class OllamaTeacher(BaseTeacher):
         temperature: float = kwargs.pop("temperature", self.temperature)
         fmt: str | None = kwargs.pop("format", None)
         stream: bool = kwargs.pop("stream", False)
+        think: bool | None = kwargs.pop("think", None)
 
         payload: dict[str, Any] = {
             "model": model,
@@ -83,6 +83,8 @@ class OllamaTeacher(BaseTeacher):
         }
         if fmt is not None:
             payload["format"] = fmt
+        if think is not None:
+            payload["think"] = think
 
         logger.debug(
             "POST %s  model=%s  temp=%.2f  stream=%s",
@@ -149,6 +151,11 @@ class OllamaTeacher(BaseTeacher):
         text: str = _clean_thinking_tags(data.get("response", ""))
 
         if not text:
+            thinking = data.get("thinking", "")
+            if thinking:
+                text = _clean_thinking_tags(thinking)
+
+        if not text:
             logger.warning("Ollama returned an empty response for model=%s", model)
 
         return text
@@ -166,6 +173,7 @@ class OllamaTeacher(BaseTeacher):
         마지막 줄은 ``{"done": true, ...stats}``입니다.
         """
         chunks: list[str] = []
+        thinking_chunks: list[str] = []
 
         for attempt in range(_MAX_RETRIES):
             try:
@@ -184,6 +192,9 @@ class OllamaTeacher(BaseTeacher):
                         token = obj.get("response", "")
                         if token:
                             chunks.append(token)
+                        thinking_token = obj.get("thinking", "")
+                        if thinking_token:
+                            thinking_chunks.append(thinking_token)
                         if obj.get("done", False):
                             break
                 break
@@ -236,6 +247,12 @@ class OllamaTeacher(BaseTeacher):
                 ) from e
 
         text = _clean_thinking_tags("".join(chunks))
+        if not text and thinking_chunks:
+            text = _clean_thinking_tags("".join(thinking_chunks))
+            logger.debug(
+                "Using thinking tokens as response (thinking-model streaming, model=%s)",
+                model,
+            )
         if not text:
             logger.warning("Ollama returned an empty streaming response for model=%s", model)
         return text
@@ -248,6 +265,7 @@ class OllamaTeacher(BaseTeacher):
         temperature: float = kwargs.pop("temperature", self.temperature)
         fmt: str | None = kwargs.pop("format", None)
         stream: bool = kwargs.pop("stream", False)
+        think: bool | None = kwargs.pop("think", None)
 
         payload: dict[str, Any] = {
             "model": model,
@@ -259,6 +277,8 @@ class OllamaTeacher(BaseTeacher):
         }
         if fmt is not None:
             payload["format"] = fmt
+        if think is not None:
+            payload["think"] = think
 
         if stream:
             return await self._agenerate_stream(url, payload, model)
@@ -321,6 +341,11 @@ class OllamaTeacher(BaseTeacher):
         text: str = _clean_thinking_tags(data.get("response", ""))
 
         if not text:
+            thinking = data.get("thinking", "")
+            if thinking:
+                text = _clean_thinking_tags(thinking)
+
+        if not text:
             logger.warning("Ollama returned an empty response for model=%s", model)
 
         return text
@@ -333,6 +358,7 @@ class OllamaTeacher(BaseTeacher):
     ) -> str:
         """비동기 NDJSON 스트리밍으로 응답을 수신합니다."""
         chunks: list[str] = []
+        thinking_chunks: list[str] = []
 
         async with httpx.AsyncClient() as client:
             for attempt in range(_MAX_RETRIES):
@@ -352,6 +378,9 @@ class OllamaTeacher(BaseTeacher):
                             token = obj.get("response", "")
                             if token:
                                 chunks.append(token)
+                            thinking_token = obj.get("thinking", "")
+                            if thinking_token:
+                                thinking_chunks.append(thinking_token)
                             if obj.get("done", False):
                                 break
                     break
@@ -404,6 +433,12 @@ class OllamaTeacher(BaseTeacher):
                     ) from e
 
         text = _clean_thinking_tags("".join(chunks))
+        if not text and thinking_chunks:
+            text = _clean_thinking_tags("".join(thinking_chunks))
+            logger.debug(
+                "Using thinking tokens as response (thinking-model streaming, model=%s)",
+                model,
+            )
         if not text:
             logger.warning("Ollama returned an empty streaming response for model=%s", model)
         return text

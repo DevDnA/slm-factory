@@ -109,6 +109,7 @@ class QualityScorer:
         kwargs: dict[str, Any] = {}
         if self.teacher_config.backend == "ollama":
             kwargs["format"] = "json"
+            kwargs["think"] = False
 
         response = await self.teacher.agenerate(prompt, **kwargs)
         result = self._parse_score(response)

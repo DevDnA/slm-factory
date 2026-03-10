@@ -45,10 +45,26 @@ class Pipeline:
 
     def _load_pairs(self, path: Path) -> list[QAPair]:
         """JSON 파일에서 QA 쌍을 로드합니다."""
+        from dataclasses import fields as dc_fields
+
         from .models import QAPair
 
+        valid_fields = {f.name for f in dc_fields(QAPair)}
         data = json.loads(path.read_text(encoding="utf-8"))
-        return [QAPair(**item) for item in data]
+        pairs: list[QAPair] = []
+        for item in data:
+            if "question" in item:
+                filtered = {k: v for k, v in item.items() if k in valid_fields}
+                pairs.append(QAPair(**filtered))
+            elif "instruction" in item:
+                pairs.append(QAPair(
+                    question=item.get("instruction", ""),
+                    answer=item.get("output", ""),
+                    instruction=item.get("instruction", ""),
+                    source_doc=item.get("source_doc", ""),
+                    category=item.get("category", ""),
+                ))
+        return pairs
 
     # ------------------------------------------------------------------
     # 단계 1: 문서 파싱

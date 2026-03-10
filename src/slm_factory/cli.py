@@ -403,8 +403,8 @@ _RESUME_TO_STEP_IDX: dict[str, int] = {
 }
 
 _STEP_OUTPUT_FILES: dict[str, str] = {
-    "generate": "qa_generated.json",
-    "validate": "qa_validated.json",
+    "parse": "parsed_documents.json",
+    "generate": "qa_alpaca.json",
     "score": "qa_scored.json",
     "augment": "qa_augmented.json",
     "analyze": "data_analysis.json",
@@ -412,16 +412,101 @@ _STEP_OUTPUT_FILES: dict[str, str] = {
 }
 
 
-def _run_until_step(pipeline: Pipeline, target: str, resume: bool) -> None:
+def _load_preceding_data(
+    pipeline: Pipeline,
+    from_step: str,
+    output_dir: Path,
+) -> tuple[list, list, Path | None] | None:
+    """--from 사용 시 지정 단계 실행에 필요한 이전 출력 데이터를 로드합니다."""
+    from .models import ParsedDocument
+
+    docs: list[ParsedDocument] = []
+    pairs: list[QAPair] = []
+    training_data_path: Path | None = None
+
+    if from_step in ("generate",):
+        parsed = output_dir / "parsed_documents.json"
+        if parsed.is_file():
+            raw = json.loads(parsed.read_text(encoding="utf-8"))
+            docs = [ParsedDocument(**item) for item in raw]
+        else:
+            console.print(f"[red]오류:[/red] --from {from_step}을 사용하려면 parsed_documents.json이 필요합니다")
+            return None
+
+    elif from_step in ("validate", "score"):
+        alpaca = output_dir / "qa_alpaca.json"
+        if alpaca.is_file():
+            pairs = pipeline._load_pairs(alpaca)
+        else:
+            console.print(f"[red]오류:[/red] --from {from_step}을 사용하려면 qa_alpaca.json이 필요합니다")
+            return None
+
+    elif from_step == "augment":
+        scored = output_dir / "qa_scored.json"
+        alpaca = output_dir / "qa_alpaca.json"
+        if scored.is_file():
+            pairs = pipeline._load_pairs(scored)
+        elif alpaca.is_file():
+            pairs = pipeline._load_pairs(alpaca)
+        else:
+            console.print(f"[red]오류:[/red] --from augment를 사용하려면 qa_scored.json 또는 qa_alpaca.json이 필요합니다")
+            return None
+
+    elif from_step in ("analyze", "convert"):
+        augmented = output_dir / "qa_augmented.json"
+        scored = output_dir / "qa_scored.json"
+        if augmented.is_file():
+            pairs = pipeline._load_pairs(augmented)
+        elif scored.is_file():
+            pairs = pipeline._load_pairs(scored)
+        else:
+            console.print(f"[red]오류:[/red] --from {from_step}을 사용하려면 qa_augmented.json 또는 qa_scored.json이 필요합니다")
+            return None
+
+    elif from_step == "train":
+        training_jsonl = output_dir / "training_data.jsonl"
+        if training_jsonl.is_file():
+            training_data_path = training_jsonl
+        else:
+            console.print("[red]오류:[/red] --from train을 사용하려면 training_data.jsonl이 필요합니다")
+            return None
+
+    elif from_step == "export":
+        adapter = output_dir / "checkpoints" / "adapter"
+        if not adapter.is_dir():
+            console.print("[red]오류:[/red] --from export를 사용하려면 checkpoints/adapter가 필요합니다")
+            return None
+
+    return docs, pairs, training_data_path
+
+
+def _run_until_step(
+    pipeline: Pipeline,
+    target: str,
+    resume: bool,
+    *,
+    from_step: str | None = None,
+) -> Path | None:
+    from .models import ParsedDocument
+    from .ontology.models import KnowledgeGraph
+
     target_idx = _STEP_ORDER.index(target)
 
-    docs = None
+    docs: list[ParsedDocument] | None = None
     pairs: list[QAPair] = []
     training_data_path: Path | None = None
     adapter_path: Path | None = None
+    model_dir: Path | None = None
+    kg: KnowledgeGraph | None = None
     start_idx = 0
 
-    if resume:
+    if from_step:
+        start_idx = _STEP_ORDER.index(from_step)
+        output_dir = Path(pipeline.config.paths.output)
+        _loaded = _load_preceding_data(pipeline, from_step, output_dir)
+        if _loaded is not None:
+            docs, pairs, training_data_path = _loaded
+    elif resume:
         resume_step, resume_data = _find_resume_point(pipeline)
         if resume_step != "start":
             start_idx = _RESUME_TO_STEP_IDX.get(resume_step, 0)
@@ -434,7 +519,7 @@ def _run_until_step(pipeline: Pipeline, target: str, resume: bool) -> None:
         console.print(
             f"\n[bold green]{target} 단계는 이미 완료되었습니다[/bold green]\n"
         )
-        return
+        return None
 
     for idx in range(start_idx, target_idx + 1):
         step = _STEP_ORDER[idx]
@@ -443,18 +528,36 @@ def _run_until_step(pipeline: Pipeline, target: str, resume: bool) -> None:
             output_file = Path(pipeline.config.paths.output) / _STEP_OUTPUT_FILES[step]
             if output_file.exists():
                 console.print(f"  [dim]⏭[/dim] {step} 단계 건너뜀 (이전 결과: {output_file.name})")
-                if step in ("generate", "validate", "score", "augment"):
+                if step == "parse":
+                    raw = json.loads(output_file.read_text(encoding="utf-8"))
+                    docs = [ParsedDocument(**item) for item in raw]
+                    # 기존 온톨로지 파일이 있으면 로드
+                    onto_file = Path(pipeline.config.paths.output) / pipeline.config.ontology.output_file
+                    if pipeline.config.ontology.enabled and onto_file.exists():
+                        from .ontology import GraphStore
+                        kg = GraphStore.load(onto_file)
+                        if kg.entities or kg.relations:
+                            console.print(f"  [dim]⏭[/dim] 온톨로지 로드 ({len(kg.entities)}개 엔티티, {len(kg.relations)}개 관계)")
+                elif step in ("generate", "score", "augment"):
                     pairs = pipeline._load_pairs(output_file)
+                elif step == "convert":
+                    training_data_path = output_file
                 continue
 
         if step == "parse":
             docs = pipeline.step_parse()
             console.print(f"  [green]✓[/green] {len(docs)}개 문서 파싱 완료")
+            # 온톨로지 추출 (parse 직후, config.ontology.enabled 시 실행)
+            kg = pipeline.step_extract_ontology(docs)
+            if kg and (kg.entities or kg.relations):
+                console.print(
+                    f"  [green]✓[/green] 온톨로지 추출: {len(kg.entities)}개 엔티티, {len(kg.relations)}개 관계"
+                )
 
         elif step == "generate":
             if docs is None:
                 docs = pipeline.step_parse()
-            pairs = pipeline.step_generate(docs)
+            pairs = pipeline.step_generate(docs, ontology=kg)
             console.print(f"  [green]✓[/green] {len(pairs)}개 QA 쌍 생성 완료")
 
         elif step == "validate":
@@ -466,7 +569,7 @@ def _run_until_step(pipeline: Pipeline, target: str, resume: bool) -> None:
 
         elif step == "score":
             before = len(pairs)
-            pairs = pipeline.step_score(pairs)
+            pairs = pipeline.step_score(pairs, docs=docs, ontology=kg)
             console.print(
                 f"  [green]✓[/green] 점수 평가: {len(pairs)}개 통과, {before - len(pairs)}개 제거"
             )
@@ -496,6 +599,8 @@ def _run_until_step(pipeline: Pipeline, target: str, resume: bool) -> None:
             model_dir = pipeline.step_export(adapter_path)
             console.print(f"  [green]✓[/green] 모델 내보내기 완료: {model_dir}")
 
+    return model_dir
+
 
 @app.command(rich_help_panel="⚙️ 파이프라인")
 def run(
@@ -506,59 +611,31 @@ def run(
     until: Optional[PipelineStep] = typer.Option(
         None, "--until", help="지정된 단계까지만 실행"
     ),
+    from_step: Optional[PipelineStep] = typer.Option(
+        None, "--from", help="지정된 단계부터 실행 (이전 단계의 출력 파일 필요)"
+    ),
 ) -> None:
     """파이프라인을 실행합니다. --until로 단계를 지정하면 해당 단계까지만 실행합니다."""
     try:
         pipeline = _load_pipeline(config)
         pipeline.config.paths.ensure_dirs()
 
-        if until is not None:
-            console.print(
-                f"\n[bold blue]slm-factory[/bold blue] — {until.value} 단계까지 실행 중...\n"
-            )
-            _run_until_step(pipeline, until.value, resume)
-            console.print(
-                f"\n[bold green]{until.value} 단계까지 완료![/bold green]\n"
-            )
-            return
+        target_step = until.value if until is not None else "export"
+        label = f"{target_step} 단계까지 실행 중..." if until else "전체 파이프라인 시작 중..."
+        if from_step:
+            label = f"{from_step.value} 단계부터 " + label
+        console.print(f"\n[bold blue]slm-factory[/bold blue] — {label}\n")
 
-        console.print(
-            "\n[bold blue]slm-factory[/bold blue] — 전체 파이프라인 시작 중...\n"
+        model_dir = _run_until_step(
+            pipeline, target_step, resume, from_step=from_step.value if from_step else None,
         )
 
-        if not resume:
-            model_dir = pipeline.run()
+        if until:
+            console.print(f"\n[bold green]{target_step} 단계까지 완료![/bold green]\n")
         else:
-            step, data = _find_resume_point(pipeline)
-
-            if step == "start":
-                model_dir = pipeline.run()
-            else:
-                if step == "generate":
-                    docs = data
-                    pairs = pipeline.step_generate(docs)
-                    pairs = pipeline.step_validate(pairs, docs=docs)
-                    pairs = pipeline.step_score(pairs)
-                    pairs = pipeline.step_augment(pairs)
-                elif step == "validate":
-                    # groundedness 검증을 위해 파싱된 문서 로드 시도
-                    docs = _try_load_parsed_docs(pipeline)
-                    pairs = pipeline.step_validate(data, docs=docs)
-                    pairs = pipeline.step_score(pairs)
-                    pairs = pipeline.step_augment(pairs)
-                elif step == "augment":
-                    pairs = pipeline.step_augment(data)
-                else:
-                    pairs = data
-
-                pipeline.step_analyze(pairs)
-                training_data_path = pipeline.step_convert(pairs)
-                adapter_path = pipeline.step_train(training_data_path)
-                model_dir = pipeline.step_export(adapter_path)
-
-        console.print(
-            f"\n[bold green]파이프라인 완료![/bold green] 모델 저장 위치: [cyan]{model_dir}[/cyan]\n"
-        )
+            console.print(
+                f"\n[bold green]파이프라인 완료![/bold green] 모델 저장 위치: [cyan]{model_dir}[/cyan]\n"
+            )
 
     except FileNotFoundError as e:
         _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
@@ -1844,8 +1921,8 @@ def evolve(
         console.print("\n[bold]━━━ [2/5] 검증 · 점수 · 증강 ━━━[/bold]")
         pairs = pipeline.step_validate(merged, docs=docs)
         console.print(f"  [green]✓[/green] 검증: {len(pairs)}개 통과")
-
         pairs = pipeline.step_score(pairs)
+
         pairs = pipeline.step_augment(pairs)
         pipeline.step_analyze(pairs)
         console.print(f"  [green]✓[/green] 최종 학습 데이터: {len(pairs)}개")

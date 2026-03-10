@@ -111,12 +111,19 @@ class OllamaExporter:
             
             if result.returncode == 0:
                 logger.info("✓ Ollama 모델 생성됨: %s", target_name)
-                if result.stdout:
-                    logger.debug("표준 출력: %s", result.stdout)
+                logger.info("✓ 모델 준비 완료! 실행: ollama run %s", target_name)
             else:
-                logger.warning("Ollama 모델 생성 실패 (종료 코드 %d)", result.returncode)
-                if result.stderr:
-                    logger.warning("표준 오류: %s", result.stderr)
+                error_detail = (result.stderr or result.stdout or "").strip()
+                logger.warning(
+                    "Ollama 모델 생성 실패 (종료 코드 %d): %s",
+                    result.returncode,
+                    error_detail or "(상세 오류 없음)",
+                )
+                if "unsupported architecture" in error_detail:
+                    logger.warning(
+                        "이 모델 아키텍처는 Ollama safetensors 변환을 아직 지원하지 않습니다. "
+                        "GGUF 변환 후 재시도하거나 지원되는 아키텍처(Qwen2, Llama, Gemma 등)를 사용하세요."
+                    )
             return result.returncode == 0
                 
         except FileNotFoundError:
@@ -173,9 +180,7 @@ class OllamaExporter:
         if ollama_available:
             logger.info("Ollama 감지됨, 모델 생성 시도 중...")
             success = self.create_model(modelfile_path, model_name_override=model_name_override)
-            if success:
-                logger.info("✓ 모델 준비 완료! 실행: ollama run %s", target_name)
-            else:
+            if not success:
                 logger.info("수동으로 가져오려면 실행: ollama create %s -f %s", target_name, modelfile_path)
         else:
             logger.info("Ollama를 감지하지 못했습니다. 수동으로 가져오려면:")
