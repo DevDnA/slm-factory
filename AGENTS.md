@@ -1,7 +1,7 @@
 # PROJECT KNOWLEDGE BASE
 
 **Generated:** 2026-03-10
-**Commit:** 9d87d45
+**Commit:** 421093e
 **Branch:** master
 
 ## OVERVIEW
@@ -13,7 +13,7 @@ Teacher-Student knowledge distillation CLI framework for building domain-specifi
 ```
 slm-factory/
 ├── src/slm_factory/          # Source (src layout, setuptools)
-│   ├── cli.py                # ALL CLI commands — monolith (2279 lines)
+│   ├── cli.py                # ALL CLI commands — monolith (2286 lines)
 │   ├── pipeline.py           # Orchestrator — 14 step_* methods + async regeneration
 │   ├── config.py             # 30 Pydantic v2 models for YAML config (incl. ChunkingConfig)
 │   ├── models.py             # Shared dataclasses: QAPair, ParsedDocument, etc.
@@ -95,6 +95,7 @@ slm-factory/
 - **JSON as IPC** — intermediate outputs saved to JSON files for resume capability.
 - **No custom exceptions** — uses built-in `FileNotFoundError`, `RuntimeError`, `ValueError` only.
 - **Korean test names** — `def test_정상_문서_반환(self)` pattern with Korean docstrings. Class-based only.
+- **Ollama JSON mode** — all LLM callers pass `format="json"` + `think=False` to Ollama backend to avoid `<think>` tag interference with JSON parsing.
 - **Optional deps** — `try/except ImportError` with `None` fallback in `__init__.py` (parsers: DOCX, HWP).
 
 ## ANTI-PATTERNS (THIS PROJECT)
@@ -126,7 +127,7 @@ slm-factory check --config project.yaml
 
 ## NOTES
 
-- **`cli.py` is 2279 lines** — all 18 commands in one file (incl. `tool compare-data`). Wizard alone is ~495 lines. Known maintenance burden.
+- **`cli.py` is 2286 lines** — all 18 commands in one file (incl. `tool compare-data`). Wizard alone is ~495 lines. Known maintenance burden.
 - **`config.py` has 30 Pydantic models** — single file, 654 lines. 22 sub-configs composed into `SLMConfig`.
 - **Pipeline is stateless** — no mutable state between steps. Resume logic lives in CLI (detects existing output files), not Pipeline.
 - **`QAPair` changes ripple to 19+ modules** — treat as a stable interface.

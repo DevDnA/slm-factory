@@ -42,6 +42,7 @@ teacher/
 - Retry pattern: both backends retry failed requests with exponential backoff (3 retries, doubling delay).
 - JSON response parsing: attempts `json.loads()` first, falls back to regex extraction on parse failure.
 - `_clean_thinking_tags()` strips `<think>` tags from model responses (Ollama).
+- Ollama JSON mode: all generators pass `format="json"` + `think=False` to avoid `<think>` tag interference with JSON parsing.
 
 ## ANTI-PATTERNS
 

@@ -16,7 +16,7 @@ exporter/
 
 1. `HFExporter.export(adapter_path)` → loads base model + LoRA adapter → merges → saves to `output/merged_model/`.
 2. `OllamaExporter.export(model_dir)` → generates `Modelfile` with system prompt + parameters → runs `ollama create` via subprocess.
-3. `GGUFExporter.export(model_dir)` → calls llama.cpp's `convert_hf_to_gguf.py` via subprocess → quantizes.
+3. `GGUFExporter.export(model_dir)` → 2-stage pipeline: Stage 1 calls `convert_hf_to_gguf.py` (HF→f16 GGUF), Stage 2 calls `llama-quantize` for non-convert types (q4_k_m, etc.). Types in `_CONVERT_OUTTYPES` (f32, f16, bf16, q8_0, etc.) skip Stage 2.
 
 ## WHERE TO LOOK
 
@@ -24,7 +24,7 @@ exporter/
 |------|------|-------|
 | Change merge behavior | `hf_export.py` | Uses `device.py` for dtype/device_map |
 | Change Ollama Modelfile | `ollama_export.py` | Template uses `OllamaExportConfig` |
-| Change quantization type | `gguf_export.py` | Valid types in `GGUFExportConfig` validator |
+| Change quantization type | `gguf_export.py` | `_CONVERT_OUTTYPES` for 1-stage, others use 2-stage via `llama-quantize` |
 | Add new export format | New file + `__init__.py` | Wire in `pipeline.step_export()` |
 
 ## CONVENTIONS
@@ -38,3 +38,4 @@ exporter/
 
 - Do NOT import `torch` at module level — exporter may be imported for config validation without GPU.
 - `ollama create` and `ollama rm` are destructive — the `EvolveHistory` class manages version cleanup.
+- Do NOT add quantization types to `_CONVERT_OUTTYPES` unless `convert_hf_to_gguf.py` natively supports them — others must go through `llama-quantize` (Stage 2).

@@ -46,3 +46,4 @@ ontology/
 - Do NOT add ontology models to shared `models.py` — ripple risk to 19+ modules
 - Do NOT add `step_extract_ontology` to `_STEP_ORDER` — it's a side product like `step_analyze`
 - Do NOT import ML libs here — this module uses Teacher LLM only (no torch/transformers)
+- Ollama callers MUST pass `format="json"` + `think=False` — without `think=False`, thinking models emit `<think>` tags that corrupt JSON output.

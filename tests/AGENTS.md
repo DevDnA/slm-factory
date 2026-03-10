@@ -1,6 +1,6 @@
 # tests/
 
-36 test files, flat structure. pytest + pytest-mock + pytest-asyncio. No GPU required — ML libraries auto-mocked.
+35 test files, flat structure. pytest + pytest-mock + pytest-asyncio. No GPU required — ML libraries auto-mocked.
 
 ## STRUCTURE
 
