@@ -1134,16 +1134,23 @@ def compare_data(
         from dataclasses import fields as _fields
 
         _known = {f.name for f in _fields(QAPair)}
+        _alpaca_map = {"instruction": "question", "output": "answer"}
+
+        def _normalize(item: dict) -> dict:
+            mapped = {}
+            for k, v in item.items():
+                mapped[_alpaca_map.get(k, k)] = v
+            return mapped
 
         baseline_data = _json.loads(baseline_path.read_text(encoding="utf-8"))
         baseline_pairs = [
-            QAPair(**{k: v for k, v in item.items() if k in _known})
+            QAPair(**{k: v for k, v in _normalize(item).items() if k in _known})
             for item in baseline_data
         ]
 
         target_data = _json.loads(target_path.read_text(encoding="utf-8"))
         target_pairs = [
-            QAPair(**{k: v for k, v in item.items() if k in _known})
+            QAPair(**{k: v for k, v in _normalize(item).items() if k in _known})
             for item in target_data
         ]
     except Exception as e:

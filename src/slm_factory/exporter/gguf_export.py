@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -28,6 +29,10 @@ class GGUFExporter:
         self.llama_cpp_path = config.gguf_export.llama_cpp_path
         self.model_name = config.project.name
 
+    _CONVERT_OUTTYPES = frozenset(
+        {"f32", "f16", "bf16", "q8_0", "tq1_0", "tq2_0", "auto"}
+    )
+
     def export(self, model_dir: Path) -> Path:
         """모델 디렉토리를 GGUF 형식으로 변환합니다."""
         from rich.console import Console
@@ -40,11 +45,11 @@ class GGUFExporter:
                 f"모델 디렉토리를 찾을 수 없습니다: {model_dir}"
             )
 
-        # llama.cpp 디렉토리 및 변환 스크립트 탐색
         llama_cpp_dir = self._find_llama_cpp()
         convert_script = self._find_convert_script(llama_cpp_dir)
 
-        # 출력 파일 경로
+        needs_quantize = self.quantization_type not in self._CONVERT_OUTTYPES
+        convert_outtype = "f16" if needs_quantize else self.quantization_type
         output_file = model_dir / f"{self.model_name}-{self.quantization_type}.gguf"
 
         logger.info(
@@ -53,20 +58,24 @@ class GGUFExporter:
         )
 
         try:
+            # 1단계: HF → GGUF 변환
+            f16_file = model_dir / f"{self.model_name}-f16.gguf" if needs_quantize else output_file
             with console.status(
-                f"[bold blue]GGUF 변환 중: {self.quantization_type}[/bold blue]"
+                f"[bold blue]HF → GGUF 변환 중 ({convert_outtype})[/bold blue]"
             ):
                 result = subprocess.run(
                     [
-                        "python",
+                        sys.executable,
                         str(convert_script),
                         str(model_dir),
                         "--outtype",
-                        self.quantization_type,
+                        convert_outtype,
+                        "--outfile",
+                        str(f16_file),
                     ],
                     capture_output=True,
                     text=True,
-                    timeout=1800,  # 30분 타임아웃
+                    timeout=1800,
                 )
 
             if result.returncode != 0:
@@ -76,7 +85,40 @@ class GGUFExporter:
                 )
 
             if result.stdout:
-                logger.debug("표준 출력: %s", result.stdout)
+                logger.debug("변환 출력: %s", result.stdout)
+
+            # 2단계: llama-quantize로 양자화 (q4_k_m 등)
+            if needs_quantize:
+                quantize_bin = shutil.which("llama-quantize")
+                if not quantize_bin:
+                    raise FileNotFoundError(
+                        "llama-quantize를 찾을 수 없습니다. "
+                        "llama.cpp를 설치하세요."
+                    )
+
+                with console.status(
+                    f"[bold blue]양자화 중: {self.quantization_type}[/bold blue]"
+                ):
+                    q_result = subprocess.run(
+                        [quantize_bin, str(f16_file), str(output_file), self.quantization_type],
+                        capture_output=True,
+                        text=True,
+                        timeout=1800,
+                    )
+
+                if q_result.returncode != 0:
+                    raise RuntimeError(
+                        f"양자화에 실패했습니다 (종료 코드 {q_result.returncode}). "
+                        f"표준 오류: {q_result.stderr}"
+                    )
+
+                if q_result.stdout:
+                    logger.debug("양자화 출력: %s", q_result.stdout)
+
+                # f16 중간 파일 정리
+                if f16_file.exists() and f16_file != output_file:
+                    f16_file.unlink()
+                    logger.debug("중간 파일 삭제: %s", f16_file)
 
         except subprocess.TimeoutExpired as e:
             raise RuntimeError(
@@ -89,14 +131,13 @@ class GGUFExporter:
             ) from e
 
         if not output_file.exists():
-            # llama.cpp가 다른 이름으로 생성했을 수 있으므로 gguf 파일 검색
             gguf_files = list(model_dir.glob("*.gguf"))
             if gguf_files:
                 output_file = gguf_files[0]
             else:
                 raise RuntimeError(
-                    f"GGUF 파일이 생성되지 않았습니다. "
-                    f"llama.cpp 변환 로그를 확인하세요."
+                    "GGUF 파일이 생성되지 않았습니다. "
+                    "llama.cpp 변환 로그를 확인하세요."
                 )
 
         logger.info("✓ GGUF 파일 생성됨: %s", output_file)
