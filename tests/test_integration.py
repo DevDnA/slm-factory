@@ -397,6 +397,11 @@ class TestFullChainIntegration:
         mocker.patch.object(pipeline, "step_convert", return_value=mock_training_path)
         mocker.patch.object(pipeline, "step_train", return_value=mock_adapter)
         mocker.patch.object(pipeline, "step_export", return_value=mock_export)
+        mocker.patch.object(pipeline, "step_dialogue", return_value=[])
+        mocker.patch.object(pipeline, "step_gguf_export", return_value=mock_export)
+        mocker.patch.object(pipeline, "step_eval", return_value=[])
+        mocker.patch.object(pipeline, "step_autorag_export", return_value=(Path(), Path()))
+        mocker.patch.object(pipeline, "step_rag_index", return_value=Path())
 
         pipeline.run()
 

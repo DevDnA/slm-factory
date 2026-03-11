@@ -371,6 +371,11 @@ class TestPipelineRun:
         mocker.patch.object(pipeline, "step_convert", return_value=mock_training_path)
         mocker.patch.object(pipeline, "step_train", return_value=mock_adapter_path)
         mocker.patch.object(pipeline, "step_export", return_value=mock_export_path)
+        mocker.patch.object(pipeline, "step_dialogue", return_value=[])
+        mocker.patch.object(pipeline, "step_gguf_export", return_value=mock_export_path)
+        mocker.patch.object(pipeline, "step_eval", return_value=[])
+        mocker.patch.object(pipeline, "step_autorag_export", return_value=(Path(), Path()))
+        mocker.patch.object(pipeline, "step_rag_index", return_value=Path())
 
         result = pipeline.run()
 
@@ -381,6 +386,10 @@ class TestPipelineRun:
         pipeline.step_convert.assert_called_once_with(mock_validated)
         pipeline.step_train.assert_called_once_with(mock_training_path)
         pipeline.step_export.assert_called_once_with(mock_adapter_path)
+        pipeline.step_dialogue.assert_called_once_with(mock_validated)
+        pipeline.step_gguf_export.assert_called_once_with(mock_export_path)
+        pipeline.step_autorag_export.assert_called_once()
+        pipeline.step_rag_index.assert_called_once()
         assert result == mock_export_path
 
 
@@ -425,6 +434,7 @@ class TestStepEval:
         mock_evaluator.evaluate.return_value = mock_results
         mock_evaluator.save_results = MagicMock()
         mock_evaluator.print_summary = MagicMock()
+        mock_evaluator.check_quality_gate = MagicMock(return_value=(True, {"bleu": 0.5}))
 
         result = pipeline.step_eval(pairs, "test-model")
 
@@ -448,6 +458,7 @@ class TestStepEval:
         mock_evaluator = mock_evaluator_cls.return_value
         mock_evaluator.evaluate.return_value = mock_results
         mock_evaluator.save_results = MagicMock()
+        mock_evaluator.check_quality_gate = MagicMock(return_value=(True, {"bleu": 0.5}))
         mock_evaluator.print_summary = MagicMock()
 
         pipeline.step_eval(pairs, "test-model")
@@ -741,6 +752,11 @@ class TestStepScoreRegeneration:
         mocker.patch.object(pipeline, "step_convert", return_value=mock_training_path)
         mocker.patch.object(pipeline, "step_train", return_value=mock_adapter_path)
         mocker.patch.object(pipeline, "step_export", return_value=mock_export_path)
+        mocker.patch.object(pipeline, "step_dialogue", return_value=[])
+        mocker.patch.object(pipeline, "step_gguf_export", return_value=mock_export_path)
+        mocker.patch.object(pipeline, "step_eval", return_value=[])
+        mocker.patch.object(pipeline, "step_autorag_export", return_value=(Path(), Path()))
+        mocker.patch.object(pipeline, "step_rag_index", return_value=Path())
 
         pipeline.run()
 

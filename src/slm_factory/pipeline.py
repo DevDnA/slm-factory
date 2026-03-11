@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import time
 from dataclasses import asdict
@@ -813,6 +814,45 @@ class Pipeline:
         return gguf_path
 
     # ------------------------------------------------------------------
+    # RAG 벡터 인덱싱
+    # ------------------------------------------------------------------
+
+    def step_rag_index(self, corpus_path: Path) -> Path:
+        """corpus.parquet을 ChromaDB에 임베딩하여 적재합니다.
+
+        매개변수
+        ----------
+        corpus_path:
+            ``corpus.parquet`` 파일 경로입니다.
+
+        반환값
+        -------
+        Path
+            ChromaDB 저장 경로. 의존성 미설치 시 빈 ``Path()``를 반환합니다.
+        """
+        try:
+            from .rag.indexer import RAGIndexer
+        except ImportError:
+            logger.warning(
+                "RAG 의존성 미설치 — rag_index 건너뜀 "
+                "(pip install slm-factory[rag,validation])"
+            )
+            return Path()
+
+        if not corpus_path or not corpus_path.is_file():
+            logger.warning(
+                "corpus.parquet을 찾을 수 없음: %s — rag_index 건너뜀",
+                corpus_path,
+            )
+            return Path()
+
+        logger.info("ChromaDB 인덱싱 시작: %s", corpus_path)
+        indexer = RAGIndexer(self.config)
+        db_path = indexer.index(corpus_path)
+        logger.info("ChromaDB 인덱싱 완료: %s", db_path)
+        return db_path
+
+    # ------------------------------------------------------------------
     # AutoRAG 데이터 내보내기
     # ------------------------------------------------------------------
 
@@ -929,7 +969,7 @@ class Pipeline:
     def run(self) -> Path:
         """전체 파이프라인을 엔드-투-엔드로 실행합니다.
 
-        단계: 파싱 → 생성 → 검증 → 변환 → 훈련 → 내보내기.
+        단계: 파싱 → 생성 → 검증 → 변환 → 훈련 → 내보내기 → 평가 → RAG.
 
         반환값
         -------
@@ -944,38 +984,56 @@ class Pipeline:
                 self.config.project.name,
             )
 
-            # 출력 디렉토리가 존재하는지 확인
             self.config.paths.ensure_dirs()
 
-            # 단계 1: 파싱
-            logger.info("━━━ [1/6] 문서 파싱 ━━━")
+            logger.info("━━━ [1/11] 문서 파싱 ━━━")
             docs = self.step_parse()
-
-            # 단계 1a: 온톨로지 추출 (선택적)
             kg = self.step_extract_ontology(docs)
 
-            # 단계 2: QA 생성
-            logger.info("━━━ [2/6] QA 쌍 생성 ━━━")
+            logger.info("━━━ [2/11] QA 쌍 생성 ━━━")
             pairs = self.step_generate(docs, ontology=kg)
 
-            # 단계 3: 검증 + 점수 + 증강 + 분석
-            logger.info("━━━ [3/6] 검증 및 품질 관리 ━━━")
+            logger.info("━━━ [3/11] 검증 및 품질 관리 ━━━")
             pairs = self.step_validate(pairs, docs=docs)
             pairs = self.step_score(pairs, docs=docs, ontology=kg)
             pairs = self.step_augment(pairs)
             self.step_analyze(pairs)
 
-            # 단계 4: 변환
-            logger.info("━━━ [4/6] 훈련 데이터 변환 ━━━")
+            logger.info("━━━ [4/11] 훈련 데이터 변환 ━━━")
             training_data_path = self.step_convert(pairs)
 
-            # 단계 5: 훈련
-            logger.info("━━━ [5/6] LoRA 학습 ━━━")
+            logger.info("━━━ [5/11] LoRA 학습 ━━━")
             adapter_path = self.step_train(training_data_path)
 
-            # 단계 6: 내보내기
-            logger.info("━━━ [6/6] 모델 내보내기 ━━━")
+            logger.info("━━━ [6/11] 모델 내보내기 ━━━")
             model_dir = self.step_export(adapter_path)
+
+            logger.info("━━━ [7/11] 멀티턴 대화 생성 ━━━")
+            self.step_dialogue(pairs)
+
+            logger.info("━━━ [8/11] GGUF 변환 ━━━")
+            self.step_gguf_export(model_dir)
+
+            logger.info("━━━ [9/11] 모델 평가 ━━━")
+            ollama_cfg = self.config.export.ollama
+            if ollama_cfg.enabled and ollama_cfg.model_name and pairs:
+                self.step_eval(pairs, ollama_cfg.model_name)
+
+            logger.info("━━━ [10/11] RAG 데이터 내보내기 ━━━")
+            doc_dicts = [
+                asdict(d) if dataclasses.is_dataclass(d) else d
+                for d in docs
+            ]
+            pair_dicts = [
+                asdict(p) if dataclasses.is_dataclass(p) else p
+                for p in pairs
+            ]
+            corpus_path, _qa_path = self.step_autorag_export(
+                doc_dicts, pair_dicts,
+            )
+
+            logger.info("━━━ [11/11] RAG 벡터 인덱싱 ━━━")
+            self.step_rag_index(corpus_path)
 
             elapsed = time.time() - start
             logger.info(
