@@ -377,3 +377,137 @@ wizard에서는 **Step 3a (온톨로지 추출)**로 표시되며, Parse 후 자
 | [아키텍처 가이드](architecture.html) | 온톨로지 모듈의 내부 구조와 설계 원칙 |
 | [개발 가이드](development.html) | 모듈 확장 방법 |
 | [AutoRAG GitHub](https://github.com/Marker-Inc-Korea/AutoRAG) | AutoRAG 공식 저장소 |
+
+---
+
+## 9. 프로덕션 RAG 서빙 가이드
+
+slm-factory로 학습한 SLM과 AutoRAG로 최적화한 RAG 파이프라인을 **프로덕션 환경**에 배포하는 방법을 안내합니다.
+
+### 9.1 데이터 준비: slm-factory → AutoRAG
+
+```bash
+# 1. slm-factory 파이프라인 실행 (파싱 + QA 생성)
+slm-factory run --config project.yaml
+
+# 2. AutoRAG 평가용 데이터 내보내기
+slm-factory tool export-autorag --config project.yaml
+
+# 결과물:
+#   output/autorag/corpus.parquet  — 문서 청크 (검색 대상)
+#   output/autorag/qa.parquet      — QA 평가 데이터
+```
+
+### 9.2 AutoRAG 최적화 실행
+
+```bash
+pip install autorag
+
+# 최적화 실행 (검색·리랭킹·생성 조합 자동 탐색)
+autorag evaluate \
+  --qa_data_path output/autorag/qa.parquet \
+  --corpus_data_path output/autorag/corpus.parquet \
+  --config autorag_config.yaml
+```
+
+**한국어 최적화 권장 컴포넌트:**
+
+| 단계 | 권장 모듈 | 설명 |
+|------|-----------|------|
+| Retrieval | `bm25` + `vectordb` | BM25(형태소)와 벡터 검색 하이브리드 |
+| Embedding | `BAAI/bge-m3` | 다국어 임베딩 (한국어 성능 우수) |
+| Reranking | `Dongjin-kr/ko-reranker` | 한국어 특화 리랭커 |
+| Tokenizer | `ko_kiwi` | 한국어 형태소 분석 (BM25 토크나이저) |
+
+### 9.3 경로 A: AutoRAG 내장 서버 (소규모 / 검증용)
+
+AutoRAG 최적화 결과를 바로 서빙할 수 있는 내장 Quart 서버입니다.
+
+```bash
+# 로컬 실행
+autorag run_api \
+  --trial_dir ./benchmark/0 \
+  --host 0.0.0.0 --port 8000
+
+# Docker 실행
+docker run -p 8000:8000 \
+  -v $(pwd)/benchmark:/app/benchmark \
+  autoraghq/autorag:api-latest \
+  run_api --trial_dir /app/benchmark/0
+```
+
+```bash
+# 테스트
+curl -X POST http://localhost:8000/v1/run \
+  -H "Content-Type: application/json" \
+  -d '{"query": "도메인 특화 질문", "result_column": "generated_texts"}'
+```
+
+**적합한 경우:** PoC, 내부 검증, 소규모 팀 (동시 사용자 ~10명)
+
+### 9.4 경로 B: FastAPI 프로덕션 서버 (대규모)
+
+AutoRAG 최적화 결과를 분석하여 **최적 조합을 직접 구현**하는 방식입니다.
+
+```
+┌─────────────────────────────────────────────────┐
+│              FastAPI Application                │
+│                                                 │
+│  /v1/query ──► Retriever ──► Reranker ──► LLM   │
+│                  │              │           │    │
+│              ChromaDB     ko-reranker   Ollama   │
+│              (bge-m3)                   (SLM)    │
+└─────────────────────────────────────────────────┘
+```
+
+**구현 단계:**
+
+1. **AutoRAG 최적화 결과 분석** — `summary.csv`에서 최적 retriever/reranker/generator 조합 확인
+2. **벡터 DB 구축** — `corpus.parquet`의 청크를 `bge-m3`로 임베딩 → ChromaDB 적재
+3. **FastAPI 서버 구현** — 검색 → 리랭킹 → SLM 생성 파이프라인
+4. **SLM 연동** — slm-factory로 학습한 모델을 Ollama로 서빙, FastAPI에서 호출
+
+```python
+# 최소 구조 예시
+from fastapi import FastAPI
+import chromadb
+import httpx  # Ollama 호출용
+
+app = FastAPI()
+chroma = chromadb.PersistentClient(path="./chroma_db")
+collection = chroma.get_collection("domain_docs")
+
+@app.post("/v1/query")
+async def query(request: QueryRequest):
+    # 1. 벡터 검색
+    results = collection.query(
+        query_texts=[request.query], n_results=10
+    )
+    # 2. 리랭킹 (ko-reranker)
+    reranked = rerank(request.query, results)
+    # 3. SLM 생성 (Ollama)
+    context = "\n".join(reranked[:3])
+    answer = await call_ollama(request.query, context)
+    return {"answer": answer, "sources": reranked[:3]}
+```
+
+**적합한 경우:** 프로덕션 배포, 커스텀 로직 필요, 높은 동시성 요구
+
+### 9.5 단계적 전환 전략
+
+```
+Phase 1: slm-factory (SLM 학습)
+    ↓
+Phase 2: export-autorag → AutoRAG 최적화
+    ↓
+Phase 3a: AutoRAG 내장 서버 (검증)
+    ↓
+Phase 3b: FastAPI 프로덕션 전환 (확장)
+```
+
+| 단계 | 기간 | 목표 | 판단 기준 |
+|------|------|------|-----------|
+| Phase 1 | 1-2주 | SLM 학습 완료 | BLEU ≥ 0.3, ROUGE-L ≥ 0.4 |
+| Phase 2 | 1주 | RAG 파이프라인 최적화 | Retrieval MRR ≥ 0.7 |
+| Phase 3a | 1-2주 | 내장 서버 검증 | 응답 품질 + 지연 시간 확인 |
+| Phase 3b | 2-4주 | 프로덕션 전환 | 동시성, 모니터링, 장애 복구 |

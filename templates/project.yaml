@@ -191,6 +191,13 @@ training:
 #   quantization_type: "q4_k_m"         # q4_k_m (권장), q5_k_m, q8_0, f16
 #   llama_cpp_path: ""                  # llama.cpp 디렉토리 경로 (빈 값이면 자동 탐색)
 
+# -- AutoRAG 데이터 내보내기(AutoRAG Export) -----------------------------------
+# autorag_export:
+#   enabled: false                      # AutoRAG 평가용 parquet 파일을 생성합니다
+#   output_dir: "autorag"               # 출력 디렉토리 (output/ 하위)
+#   chunk_size: 512                     # 검색용 문서 청크 크기 (문자 수, 최소 100)
+#   overlap_chars: 64                   # 청크 간 중첩 문자 수
+
 # -- 증분 학습(Incremental Learning) ----------------------------------------
 # incremental:
 #   enabled: false                      # 문서 변경분만 QA를 재생성합니다
