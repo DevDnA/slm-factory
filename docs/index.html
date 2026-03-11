@@ -113,8 +113,14 @@
               <div class="step-number"></div>
               <div class="step-content">
                 <div class="step-title">준비</div>
-                <div class="step-desc">Ollama를 실행하고, 프로젝트를 생성하고, 학습할 문서를 추가합니다.</div>
-                <pre data-lang="bash"># Ollama 준비 (별도 터미널)
+                <div class="step-desc">slm-factory를 설치하고, Ollama를 실행하고, 프로젝트를 생성합니다.</div>
+                <pre data-lang="bash"># 설치
+git clone https://github.com/DevDnA/slm-factory.git
+cd slm-factory
+python3 -m venv .venv &amp;&amp; source .venv/bin/activate
+pip install -e ".[all]"
+
+# Ollama 준비 (별도 터미널)
 ollama serve
 ollama pull qwen3:8b
 
