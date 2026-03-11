@@ -44,7 +44,6 @@ slm-factory [전역 옵션] <명령어> [옵션]
 | `tool gguf` | 🔧 도구 | 병합된 모델을 GGUF 양자화 형식으로 변환합니다 |
 | `tool update` | 🔧 도구 | 변경된 문서만 감지하여 증분 처리합니다 |
 | `tool evolve` | 🔧 도구 | 자동 진화 (증분→학습→품질게이트→배포) |
-| `tool ontology` | 🔧 도구 | 온톨로지(지식 그래프) 추출 |
 | `tool compare-data` | 🔧 도구 | 두 QA 데이터셋의 품질 비교 |
 | `tool export-autorag` | 🔧 도구 | AutoRAG 평가용 데이터 내보내기 |
 | `tool rag-index` | 🔧 도구 | corpus.parquet을 ChromaDB에 임베딩 적재 |
@@ -195,6 +194,8 @@ slm-factory run [OPTIONS]
 |--------|--------|------|--------|------|
 | `--config` | | `TEXT` | `project.yaml` | 프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다. |
 | `--resume` | `-r` | `FLAG` | `False` | 중간 저장 파일에서 재개합니다. |
+| `--serve` | `-s` | `FLAG` | `False` | 파이프라인 완료 후 RAG API 서버를 자동으로 시작합니다. |
+| `--from` | | `ENUM` | `None` | 지정된 단계부터 실행을 재개합니다. 이전 단계의 출력 파일이 필요합니다. |
 | `--until` | | `ENUM` | `None` | 지정된 단계까지만 실행합니다. 생략하면 전체 파이프라인을 실행합니다. |
 
 **`--until` 단계 값**
@@ -209,10 +210,16 @@ slm-factory run [OPTIONS]
 | `score` | 선택 | Teacher LLM이 QA 쌍을 1~5점으로 평가하고 저품질을 제거합니다 | `output/qa_scored.json` |
 | `augment` | 선택 | 질문을 다양한 표현으로 변형하여 데이터를 증강합니다 | `output/qa_augmented.json` |
 | `analyze` | 선택 | 카테고리 분포, 길이 통계 등 데이터 분석 보고서를 생성합니다 | `output/data_analysis.json` |
+| `convert` | 필수 | 채팅 템플릿 적용 JSONL 변환 | `output/training_data.jsonl` |
+| `train` | 필수 | LoRA 파인튜닝 | `output/checkpoints/adapter/` |
+| `export` | 필수 | 모델 병합 + Ollama Modelfile 생성 | `output/merged_model/` |
+| `dialogue` | 기본 활성 | 멀티턴 대화 생성 | `output/dialogues.json` |
+| `gguf_export` | 기본 활성 | GGUF 양자화 변환 | `output/*.gguf` |
+| `eval` | 기본 활성 | BLEU/ROUGE 평가 | `output/eval_results.json` |
+| `autorag_export` | 기본 활성 | AutoRAG parquet 내보내기 | `output/autorag/` |
+| `rag_index` | 기본 활성 | ChromaDB 벡터 인덱싱 | `output/chroma_db/` |
 
-`--until`을 생략하면 위 6단계에 이어 `convert`, `train`, `export`까지 전체 파이프라인을 실행합니다.
-
-> **참고**: 온톨로지 추출(`ontology`)은 `--until`로 지정할 수 없는 독립 단계입니다. `slm-factory tool ontology` 명령으로 별도 실행하거나, `tool wizard`에서 Step 3a로 실행할 수 있습니다.
+`--until`을 생략하면 위 전체 14단계를 순서대로 실행합니다. 각 단계는 해당 설정의 `enabled` 값에 따라 실행 여부가 결정됩니다.
 
 **`--resume` 동작 방식**
 
@@ -224,6 +231,10 @@ slm-factory run [OPTIONS]
 | `qa_scored.json` | `augment`부터 |
 | `qa_alpaca.json` | `validate`부터 |
 | `parsed_documents.json` | `generate`부터 |
+| `training_data.jsonl` | `train`부터 |
+| `checkpoints/adapter/` | `export`부터 |
+| `dialogues.json` | `gguf_export`부터 |
+| `eval_results.json` | `autorag_export`부터 |
 | 없음 | 처음부터 |
 
 **예시**
@@ -249,6 +260,15 @@ slm-factory run --resume --config my-project/project.yaml
 
 # 특정 단계까지 재개하며 실행
 slm-factory run --until augment --resume --config my-project/project.yaml
+
+# 전체 파이프라인 + RAG 서버 자동 시작
+slm-factory run --serve --config my-project/project.yaml
+
+# RAG 인덱싱까지 실행 (서빙은 별도)
+slm-factory run --until rag_index --config my-project/project.yaml
+
+# 평가까지만 실행
+slm-factory run --until eval --config my-project/project.yaml
 ```
 
 **출력 예시 (전체 파이프라인)**
@@ -478,14 +498,13 @@ slm-factory tool wizard [OPTIONS]
 | `--config` | | `TEXT` | `project.yaml` | 프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다. |
 | `--resume` | `-r` | `FLAG` | `False` | 이전 실행의 중간 결과에서 재개합니다. |
 
-**12단계 진행 순서** (Step 3a는 선택적 하위 단계)
+**14단계 진행 순서** (Step 3a는 선택적 하위 단계)
 
 | # | 단계 | 필수/선택 | 설명 |
 |---|------|:---------:|------|
 | 1 | 설정 파일 로드 | 필수 | `project.yaml`을 자동 탐색하거나 경로를 직접 입력합니다 |
 | 2 | 문서 선택 | 필수 | `documents/` 디렉토리의 파일 목록을 표시하고 전체 또는 개별 선택합니다 |
 | 3 | 문서 파싱 | 필수 | 선택한 문서를 자동으로 파싱합니다 |
-| 3a | 온톨로지 추출 | 선택 | 문서에서 엔티티·관계를 추출하여 지식 그래프를 구성합니다 (`ontology.enabled` 설정 반영) |
 | 3b | 문서 청킹 | 선택 | 긴 문서를 청크로 분할하여 QA 생성 범위를 확장합니다 (`chunking.enabled` 설정 반영) |
 | 4 | QA 쌍 생성 | 필수 | Teacher LLM으로 질문-답변 쌍을 생성합니다. 확인 후 진행합니다. |
 | 5 | QA 검증 | 필수 | 규칙 기반 및 임베딩 기반 검증을 자동으로 실행합니다 |
@@ -497,6 +516,8 @@ slm-factory tool wizard [OPTIONS]
 | 10 | 멀티턴 대화 생성 | 선택 | QA 쌍을 멀티턴 대화 형식으로 확장합니다. 건너뛸 수 있습니다. |
 | 11 | GGUF 변환 | 선택 | 모델을 llama.cpp 호환 GGUF 형식으로 변환합니다. 건너뛸 수 있습니다. |
 | 12 | 모델 평가 | 선택 | BLEU/ROUGE 메트릭으로 학습된 모델을 평가합니다. 건너뛸 수 있습니다. |
+| 13 | AutoRAG 내보내기 | 선택 | QA·문서를 AutoRAG 평가용 parquet으로 내보냅니다. 건너뛸 수 있습니다. (`autorag_export.enabled` 설정 반영) |
+| 14 | RAG 인덱싱 | 선택 | corpus.parquet을 ChromaDB에 임베딩하여 적재합니다. 건너뛸 수 있습니다. |
 
 선택 단계를 건너뛰면 해당 단계를 나중에 실행할 수 있는 CLI 명령어를 안내합니다.
 
@@ -711,53 +732,6 @@ GGUF 변환 완료! 파일: ./my-project/output/merged_model.gguf
 - GGUF 변환은 2단계로 진행됩니다: ① 모델을 F16 GGUF로 변환 → ② 설정된 양자화 타입으로 양자화. 중간 F16 파일은 자동 정리됩니다.
 - GGUF 변환 전에 `export` 명령으로 모델을 먼저 병합해야 합니다.
 - 양자화 타입은 `project.yaml`의 `gguf_export.quantization_type`에서 설정합니다. [설정 레퍼런스](configuration.md)를 참조하십시오.
-
----
-
-### `tool ontology`
-
-문서에서 엔티티(개체)와 관계를 자동 추출하여 지식 그래프를 구성합니다. 기존 Teacher LLM(Ollama)을 사용하며, 추가 외부 서비스가 필요하지 않습니다.
-
-**사용법**
-
-```
-slm-factory tool ontology [OPTIONS]
-```
-
-**옵션**
-
-| 플래그 | 단축키 | 타입 | 기본값 | 설명 |
-|--------|--------|------|--------|------|
-| `--config` | | `TEXT` | `project.yaml` | 프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다. |
-
-**2단계 처리 흐름**
-
-| # | 단계 | 설명 |
-|---|------|------|
-| 1 | 문서 파싱 | 설정된 문서 디렉토리의 파일을 파싱합니다 |
-| 2 | 온톨로지 추출 | Teacher LLM이 각 문서에서 엔티티와 관계를 추출합니다 |
-
-**예시**
-
-```bash
-# 기본 온톨로지 추출
-slm-factory tool ontology --config my-project/project.yaml
-```
-
-**출력 예시 (성공)**
-
-```
-온톨로지 추출 완료! 42개 엔티티, 28개 관계
-  저장 위치: ./my-project/output/ontology.json
-```
-
-**참고**
-
-- 온톨로지 추출은 `project.yaml`의 `ontology` 설정에 관계없이 `tool ontology` 명령 실행 시 항상 활성화됩니다.
-- 추출된 지식 그래프는 `output/ontology.json`에 JSON 형식으로 저장됩니다.
-- 기존 `ontology.json`이 있으면 자동으로 병합(증분 업데이트)됩니다.
-- `ontology.enrich_qa: true`로 설정하면 `run` 명령이나 `wizard`에서 QA 생성 시 추출된 지식이 컨텍스트로 활용됩니다.
-- 엔티티 유형, 최소 확신도, 동시 요청 수 등은 `project.yaml`의 `ontology` 섹션에서 설정합니다. [설정 레퍼런스](configuration.md)를 참조하십시오.
 
 ---
 
@@ -1024,7 +998,9 @@ slm-factory tool rag-serve --config my-project/project.yaml --port 9000
 | 메서드 | 경로 | 설명 |
 |--------|------|------|
 | `POST` | `/v1/query` | 질의 → 문서 검색 → SLM 답변 생성 |
-| `GET` | `/health` | ChromaDB 및 Ollama 연결 상태 확인 |
+| `GET` | `/health` | 기본 헬스체크 (서버 상태) |
+| `GET` | `/health/ready` | ChromaDB 및 Ollama 연결 상태 확인 |
+| `GET` | `/v1/collections` | ChromaDB 컬렉션 목록 조회 |
 
 **API 호출 예시**
 
@@ -1140,6 +1116,11 @@ slm-factory status --config my-project/project.yaml
 │ convert  │ training_data.jsonl      │ 없음   │ -            │
 │ train    │ checkpoints/adapter/     │ 없음   │ -            │
 │ export   │ merged_model/            │ 없음   │ -            │
+│ dialogue │ dialogues.json           │ 없음   │ -            │
+│ gguf     │ *.gguf                   │ 없음   │ -            │
+│ eval     │ eval_results.json        │ 없음   │ -            │
+│ autorag  │ autorag/                 │ 없음   │ -            │
+│ rag      │ chroma_db/               │ 없음   │ -            │
 └──────────┴──────────────────────────┴────────┴──────────────┘
 
 다음 --resume 실행 시 validate부터 재개됩니다
@@ -1249,6 +1230,8 @@ output/
 ├── autorag/                    # tool export-autorag 출력 (선택)
 │   ├── corpus.parquet          # 문서 청크 (검색 코퍼스)
 │   └── qa.parquet              # QA 평가 데이터
+├── chroma_db/                     # rag_index 단계 출력 (선택)
+│   └── ...                        # ChromaDB 벡터 인덱스
 └── merged_model/               # export 단계 출력
     ├── config.json
     ├── model.safetensors
@@ -1274,6 +1257,7 @@ output/
 | `checkpoints/adapter/` | `train` | PEFT 형식의 LoRA 어댑터 가중치입니다. `export` 명령으로 기본 모델과 병합합니다. |
 | `*.gguf` | `tool gguf` | GGUF 양자화 형식으로 변환된 모델 파일입니다. llama.cpp 호환 형식입니다. |
 | `autorag/` | `tool export-autorag` | AutoRAG 평가용 parquet 데이터. `corpus.parquet`(문서 청크)과 `qa.parquet`(QA 평가 데이터)을 포함합니다. |
+| `chroma_db/` | `tool rag-index` | ChromaDB 벡터 인덱스입니다. `tool rag-serve`가 이 디렉토리를 참조하여 유사도 검색을 수행합니다. |
 | `merged_model/` | `export` | LoRA 어댑터가 병합된 최종 모델입니다. `Modelfile`로 Ollama에 즉시 배포할 수 있습니다. |
 
 ---

@@ -194,14 +194,13 @@ slm-factory check --config my-first-project/project.yaml
 slm-factory tool wizard --config my-first-project/project.yaml
 ```
 
-wizard는 다음 12단계를 순서대로 안내합니다 (Step 3a는 선택적 하위 단계).
+wizard는 다음 14단계를 순서대로 안내합니다 (Step 3a는 선택적 하위 단계).
 
 | # | 단계 | 필수/선택 | 설명 |
 |---|------|:---------:|------|
 | 1 | 설정 파일 로드 | **필수** | `project.yaml`을 로드하고 Teacher/Student 모델을 확인합니다 |
 | 2 | 문서 선택 | **필수** | 전체 또는 개별 문서를 선택합니다 |
 | 3 | 문서 파싱 | **필수** | 선택한 문서에서 텍스트와 표를 자동 추출합니다 |
-| 3a | 온톨로지 추출 | 선택 | 문서에서 엔티티·관계를 추출하여 지식 그래프를 구성합니다 (`ontology.enabled` 설정 반영) |
 | 3b | 문서 청킹 | 선택 | 긴 문서를 청크로 분할하여 전체 내용에서 QA를 생성합니다 (`chunking.enabled` 설정 반영) |
 | 4 | QA 쌍 생성 | **필수** | Teacher LLM이 문서 기반 질문-답변 쌍을 생성합니다 |
 | 5 | QA 검증 | **필수** | 규칙 기반 및 임베딩 기반으로 저품질 QA를 필터링합니다 |
@@ -212,6 +211,8 @@ wizard는 다음 12단계를 순서대로 안내합니다 (Step 3a는 선택적 
 | 10 | 멀티턴 대화 생성 | 선택 | QA 쌍을 멀티턴 대화 형식으로 확장합니다 |
 | 11 | GGUF 변환 | 선택 | llama.cpp 호환 GGUF 양자화 형식으로 변환합니다 |
 | 12 | 모델 평가 | 선택 | BLEU/ROUGE 메트릭으로 학습 결과를 자동 평가합니다 |
+| 13 | AutoRAG 내보내기 | 선택 | QA·문서를 AutoRAG 평가용 parquet으로 내보냅니다 (`autorag_export.enabled` 설정 반영) |
+| 14 | RAG 인덱싱 | 선택 | corpus.parquet을 ChromaDB에 임베딩하여 적재합니다 (`rag` 설정 반영) |
 
 선택 단계를 건너뛰면 나중에 개별 실행할 수 있는 CLI 명령어를 안내합니다.
 
@@ -299,6 +300,9 @@ export:
 
 ```bash
 slm-factory run --config project.yaml
+
+# 전체 파이프라인 + RAG 서버 자동 시작
+slm-factory run --serve --config project.yaml
 ```
 
 ---
@@ -317,17 +321,20 @@ slm-factory run --until generate --config project.yaml
 # + QA 검증
 slm-factory run --until validate --config project.yaml
 
-# + 품질 점수 평가 (scoring.enabled: true 필요)
+# + 품질 점수 평가
 slm-factory run --until score --config project.yaml
 
-# + 데이터 증강 (augment.enabled: true 필요)
+# + 데이터 증강
 slm-factory run --until augment --config project.yaml
 
-# 학습만 실행 (QA 데이터가 이미 있을 때)
-slm-factory train --config project.yaml
+# + GGUF 변환까지
+slm-factory run --until gguf_export --config project.yaml
 
-# 내보내기만 실행 (학습이 완료된 후)
-slm-factory export --config project.yaml
+# + 평가까지
+slm-factory run --until eval --config project.yaml
+
+# + RAG 인덱싱까지 (서빙 제외)
+slm-factory run --until rag_index --config project.yaml
 ```
 
 ---
@@ -347,6 +354,9 @@ slm-factory run --resume --config project.yaml
 3. `qa_alpaca.json` 존재 시 → validate 단계부터
 4. `parsed_documents.json` 존재 시 → generate 단계부터
 5. 없으면 처음부터 실행
+6. `eval_results.json` 존재 시 → autorag_export 단계부터
+7. `dialogues.json` 존재 시 → gguf_export 단계부터
+8. `training_data.jsonl` 존재 시 → train 단계부터
 
 모든 명령어 옵션은 [CLI 레퍼런스](cli-reference.md)를 참조하십시오.
 
@@ -637,39 +647,6 @@ scoring:
 ```
 
 **동작**: 각 라운드에서 `threshold` 미만인 QA를 모아 Teacher LLM에 "이전 점수: X, 이유: Y" 피드백과 함께 재생성을 요청합니다. 재생성된 QA는 다시 점수 평가를 받으며, 최대 `max_regenerate_rounds`만큼 반복됩니다.
-
----
-
-### 온톨로지 추출 (ontology)
-
-문서에서 사람, 조직, 기술, 개념 등의 핵심 개체(엔티티)와 그들 사이의 관계를 자동으로 추출합니다. 추출된 지식 그래프는 QA 생성 시 컨텍스트로 활용되어 더 정확하고 구조화된 질문-답변을 생성하는 데 도움을 줍니다.
-
-**쉽게 말하면**: "이 문서에 등장하는 중요한 것들(사람, 기관, 기술)과 그 관계를 자동으로 정리해서, QA를 더 잘 만들 수 있게 해주는 기능"입니다.
-
-**설정**:
-
-```yaml
-ontology:
-  enabled: true
-  enrich_qa: true         # QA 생성 시 추출된 지식 활용
-  min_confidence: 0.5     # 확신도 0.5 이상만 포함
-```
-
-**동작**: Teacher LLM이 각 문서를 분석하여 엔티티(예: "삼성전자"=조직, "이재용"=인물)와 관계(예: "이재용 → 소속 → 삼성전자")를 JSON으로 추출합니다. 추출 결과는 `output/ontology.json`에 저장됩니다.
-
-**독립 실행**: 파이프라인과 별도로 온톨로지만 추출하여 결과를 확인할 수 있습니다.
-
-```bash
-slm-factory tool ontology --config project.yaml
-```
-
-**추천 사용 순서**:
-
-1. `tool ontology`로 먼저 추출 결과를 확인합니다
-2. 결과가 만족스러우면 `ontology.enrich_qa: true`를 설정합니다
-3. `run` 또는 `tool wizard`로 QA 생성 시 자동으로 지식이 활용됩니다
-
-추가 외부 서비스(Neo4j 등)가 필요하지 않습니다. 기존 Teacher LLM(Ollama)만으로 동작합니다.
 
 ---
 

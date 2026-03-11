@@ -60,7 +60,7 @@ slm-factory tool wizard --config my-project/project.yaml
 
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|-----------|
-| `slm-factory run` | 전체 파이프라인 실행 | `--config`, `--until <단계>`, `--resume` / `-r` |
+| `slm-factory run` | 전체 파이프라인 실행 | `--config`, `--until <단계>`, `--resume` / `-r`, `--serve` / `-s` |
 | `slm-factory train` | LoRA 학습 실행 | `--config`, `--data <jsonl>`, `--resume` / `-r` |
 | `slm-factory export` | 모델 내보내기 (LoRA 병합 + Modelfile) | `--config`, `--adapter <경로>` |
 
@@ -79,7 +79,6 @@ slm-factory tool wizard --config my-project/project.yaml
 | `slm-factory tool review` | QA 수동 리뷰 TUI | `--config`, `--data` |
 | `slm-factory tool dashboard` | 파이프라인 대시보드 TUI | `--config` |
 | `slm-factory tool evolve` | 자동 진화 (증분→학습→품질게이트→배포) | `--config`, `--force-update`, `--skip-gate` |
-| `slm-factory tool ontology` | 온톨로지(지식 그래프) 추출 | `--config` |
 | `slm-factory tool convert` | QA → JSONL 변환 | `--config`, `--data` |
 | `slm-factory tool dialogue` | 멀티턴 대화 생성 | `--config`, `--data` |
 | `slm-factory tool gguf` | GGUF 양자화 변환 | `--config`, `--model-dir` |
@@ -106,16 +105,22 @@ slm-factory tool wizard --config my-project/project.yaml
 `slm-factory run` 실행 시 아래 순서로 진행됩니다.
 
 1. **parse** (필수) — PDF/HWPX/HTML/TXT/DOCX 파싱 → `output/parsed_documents.json`
-1a. **ontology** (선택, `ontology.enabled: true`) — 문서에서 엔티티·관계 추출 → `output/ontology.json`
-1b. **chunking** (선택, `chunking.enabled: true`) — 긴 문서를 청크로 분할하여 QA 생성 범위 확장
+1b. **chunking** (선택) — 긴 문서를 청크로 분할하여 QA 생성 범위 확장
 2. **generate** (필수) — Teacher LLM으로 QA 쌍 생성 → `output/qa_alpaca.json`
 3. **validate** (필수) — 규칙 + 임베딩 기반 QA 검증 및 필터링 → `qa_alpaca.json` 갱신
-4. **score** (선택, `scoring.enabled: true`) — Teacher LLM 1~5점 품질 평가 → `output/qa_scored.json`
-5. **augment** (선택, `augment.enabled: true`) — 질문 패러프레이즈 데이터 증강 → `output/qa_augmented.json`
-6. **analyze** (선택, `analyzer.enabled: true`) — 통계 분석 보고서 생성 → `output/data_analysis.json`
+4. **score** (선택) — Teacher LLM 1~5점 품질 평가 → `output/qa_scored.json`
+5. **augment** (선택) — 질문 패러프레이즈 데이터 증강 → `output/qa_augmented.json`
+6. **analyze** (선택) — 통계 분석 보고서 생성 → `output/data_analysis.json`
 7. **convert** (필수) — 채팅 템플릿 적용 JSONL 변환 → `output/training_data.jsonl`
 8. **train** (필수) — LoRA 파인튜닝 → `output/checkpoints/adapter/`
 9. **export** (필수) — 모델 병합 + Ollama Modelfile 생성 → `output/merged_model/`
+10. **dialogue** (선택) — QA 쌍을 멀티턴 대화로 확장 → `output/dialogues.json`
+11. **gguf_export** (선택) — GGUF 양자화 변환 → `output/*.gguf`
+12. **eval** (선택) — BLEU/ROUGE 평가 → `output/eval_results.json`
+13. **autorag_export** (선택) — AutoRAG parquet 내보내기 → `output/autorag/`
+14. **rag_index** (선택) — ChromaDB 벡터 인덱싱 → `output/chroma_db/`
+
+> 모든 선택 단계는 기본으로 활성화됩니다. 개별 비활성화는 `project.yaml`에서 `enabled: false`로 설정합니다.
 
 ---
 
@@ -142,13 +147,16 @@ slm-factory run --config my-project/project.yaml
 특정 단계까지만 실행하고 결과를 확인한 후 다음 단계로 진행합니다.
 
 ```bash
-slm-factory run --until parse    --config my-project/project.yaml
-slm-factory run --until generate --config my-project/project.yaml
-slm-factory run --until validate --config my-project/project.yaml
-slm-factory run --until score    --config my-project/project.yaml
-slm-factory run --until augment  --config my-project/project.yaml
-slm-factory train                --config my-project/project.yaml
-slm-factory export               --config my-project/project.yaml
+slm-factory run --until parse     --config my-project/project.yaml
+slm-factory run --until generate  --config my-project/project.yaml
+slm-factory run --until validate  --config my-project/project.yaml
+slm-factory run --until score     --config my-project/project.yaml
+slm-factory run --until augment   --config my-project/project.yaml
+slm-factory run --until convert   --config my-project/project.yaml
+slm-factory run --until train     --config my-project/project.yaml
+slm-factory run --until export    --config my-project/project.yaml
+slm-factory run --until eval      --config my-project/project.yaml
+slm-factory run --until rag_index --config my-project/project.yaml
 ```
 
 ### 4. 기존 데이터로 학습만 (train --data)
@@ -184,6 +192,14 @@ slm-factory eval compare \
   --config my-project/project.yaml
 ```
 
+### 7. 전체 파이프라인 + RAG 서버 (run --serve)
+
+SLM 학습부터 RAG 인덱싱, API 서버 시작까지 한 번에 실행합니다.
+
+```bash
+slm-factory run --serve --config my-project/project.yaml
+```
+
 ---
 
 ## 출력 파일 구조
@@ -191,7 +207,6 @@ slm-factory eval compare \
 ```
 output/
 ├── parsed_documents.json       # 파싱된 문서 텍스트 및 메타데이터
-├── ontology.json                  # 온톨로지 지식 그래프 (엔티티, 관계)
 ├── qa_alpaca.json              # Teacher LLM이 생성한 QA 쌍 (Alpaca 형식)
 ├── qa_scored.json              # 품질 점수 평가를 통과한 QA 쌍
 ├── qa_augmented.json           # 데이터 증강이 완료된 QA 쌍
@@ -207,6 +222,7 @@ output/
 │       └── adapter_model.safetensors
 ├── *.gguf                      # GGUF 양자화 변환 결과 (선택)
 ├── autorag/                    # AutoRAG 평가용 데이터 (corpus.parquet, qa.parquet)
+├── chroma_db/                  # RAG 벡터 인덱스 (ChromaDB)
 └── merged_model/               # 병합된 최종 모델 (HuggingFace 형식)
     ├── config.json
     ├── model.safetensors
@@ -243,16 +259,10 @@ export:
     model_name: "my-project-model"
     system_prompt: "당신은 도메인 전문 도우미입니다."
 
-# 문서 청킹 (선택, 긴 문서 처리 시 권장)
-# chunking:
-#   enabled: true                       # 긴 문서를 청크로 분할
-#   chunk_size: 10000                   # 청크 최대 문자 수
-#   overlap_chars: 500                  # 청크 간 중첩 문자 수
-
-# 온톨로지 (선택)
-# ontology:
-#   enabled: true                       # 문서에서 지식 그래프 추출
-#   enrich_qa: true                     # QA 생성 시 온톨로지 컨텍스트 활용
+chunking:
+  enabled: true
+  chunk_size: 10000
+  overlap_chars: 500
 ```
 
 > 전체 설정 옵션(scoring, augment, validation, training, LoRA 등)은 [설정 레퍼런스](configuration.md)를 참조하십시오.
