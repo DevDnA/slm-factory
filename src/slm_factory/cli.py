@@ -31,6 +31,7 @@ class PipelineStep(str, enum.Enum):
     convert = "convert"
     train = "train"
     export = "export"
+    eval = "eval"
 
 
 app = typer.Typer(
@@ -390,7 +391,7 @@ def init(
     console.print(f"  5. wizard 실행: [cyan]slm-factory tool wizard --config {config_path}[/cyan]\n")
 
 
-_STEP_ORDER = ["parse", "generate", "validate", "score", "augment", "analyze", "convert", "train", "export"]
+_STEP_ORDER = ["parse", "generate", "validate", "score", "augment", "analyze", "convert", "train", "export", "eval"]
 
 _RESUME_TO_STEP_IDX: dict[str, int] = {
     "generate": 1,
@@ -400,6 +401,7 @@ _RESUME_TO_STEP_IDX: dict[str, int] = {
     "convert": 6,
     "train": 7,
     "export": 8,
+    "eval": 9,
 }
 
 _STEP_OUTPUT_FILES: dict[str, str] = {
@@ -598,6 +600,14 @@ def _run_until_step(
                 raise typer.BadParameter("export 단계는 train 단계가 선행되어야 합니다")
             model_dir = pipeline.step_export(adapter_path)
             console.print(f"  [green]✓[/green] 모델 내보내기 완료: {model_dir}")
+
+        elif step == "eval":
+            ollama_cfg = pipeline.config.export.ollama
+            if ollama_cfg.enabled and ollama_cfg.model_name and pairs:
+                eval_results = pipeline.step_eval(pairs, ollama_cfg.model_name)
+                console.print(f"  [green]✓[/green] 모델 평가 완료: {len(eval_results)}개 결과")
+            else:
+                console.print("  [dim]⏭[/dim] eval 건너뜀 (Ollama 모델 미설정 또는 QA 쌍 없음)")
 
     return model_dir
 
