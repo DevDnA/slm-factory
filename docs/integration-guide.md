@@ -38,7 +38,7 @@ RAG 파이프라인은 검색(Retrieval), 리랭킹(Reranking), 프롬프트(Pro
 | **목적** | 도메인 특화 SLM 생성 | 최적 RAG 파이프라인 탐색 |
 | **접근법** | Teacher-Student 지식 증류 | RAG 전략 벤치마크 |
 | **입력** | 도메인 문서 | 도메인 문서 + QA 데이터셋 |
-| **출력** | 파인튜닝된 SLM (Ollama) | 최적화된 RAG 파이프라인 설정 |
+| **출력** | 파인튜닝된 SLM (Ollama) | 최적화된 RAG 파이프라인 + 즉시 배포 가능한 API 서버 |
 | **문서 활용** | QA 학습 데이터 생성 | 검색 코퍼스 (벡터 DB) |
 
 ### 온톨로지란?
@@ -380,9 +380,13 @@ wizard에서는 **Step 3a (온톨로지 추출)**로 표시되며, Parse 후 자
 
 ---
 
-## 9. 프로덕션 RAG 서빙 가이드
+## 9. RAG 서비스 구축 가이드
 
-slm-factory로 학습한 SLM과 AutoRAG로 최적화한 RAG 파이프라인을 **프로덕션 환경**에 배포하는 방법을 안내합니다.
+slm-factory와 AutoRAG를 조합하면 **도메인 특화 RAG 서비스**를 실제로 구축할 수 있습니다.
+
+AutoRAG는 단순한 벤치마크 도구가 아닙니다. 최적 검색·생성 조합을 탐색한 뒤, 그 결과를 **즉시 배포 가능한 API 서버**로 제공합니다. slm-factory로 SLM을 만들고, AutoRAG로 RAG 파이프라인을 최적화하면 — 사용자 질의를 받아 근거 기반 답변을 반환하는 **완전한 RAG API 서비스**가 완성됩니다.
+
+> 이 시스템은 완전한 엔터프라이즈 프로덕션은 아니지만, 소규모 팀·사내 서비스·PoC 용도로는 **즉시 운영 가능**합니다. 프로덕션 확장을 위해 보완할 사항은 [9.6절](#96-프로덕션-보완-체크리스트)에서 다룹니다.
 
 ### 9.1 데이터 준비: slm-factory → AutoRAG
 
@@ -419,17 +423,17 @@ autorag evaluate \
 | Reranking | `Dongjin-kr/ko-reranker` | 한국어 특화 리랭커 |
 | Tokenizer | `ko_kiwi` | 한국어 형태소 분석 (BM25 토크나이저) |
 
-### 9.3 경로 A: AutoRAG 내장 서버 (소규모 / 검증용)
+### 9.3 경로 A: AutoRAG 내장 서버 — 즉시 사용 가능한 RAG 서비스
 
-AutoRAG 최적화 결과를 바로 서빙할 수 있는 내장 Quart 서버입니다.
+AutoRAG 최적화가 완료되면, 별도 개발 없이 **즉시 RAG API 서비스를 배포**할 수 있습니다. AutoRAG 내장 Quart 서버가 최적화 결과를 그대로 서빙합니다.
 
 ```bash
-# 로컬 실행
+# 로컬 실행 — 이것만으로 RAG 서비스가 동작합니다
 autorag run_api \
   --trial_dir ./benchmark/0 \
   --host 0.0.0.0 --port 8000
 
-# Docker 실행
+# Docker 실행 — 배포 환경에서도 동일하게 동작합니다
 docker run -p 8000:8000 \
   -v $(pwd)/benchmark:/app/benchmark \
   autoraghq/autorag:api-latest \
@@ -437,13 +441,18 @@ docker run -p 8000:8000 \
 ```
 
 ```bash
-# 테스트
+# API 호출 테스트
 curl -X POST http://localhost:8000/v1/run \
   -H "Content-Type: application/json" \
   -d '{"query": "도메인 특화 질문", "result_column": "generated_texts"}'
 ```
 
-**적합한 경우:** PoC, 내부 검증, 소규모 팀 (동시 사용자 ~10명)
+**이 시점에서 무엇이 동작하는가:**
+- 사용자 질문을 받으면 벡터 검색 → 리랭킹 → SLM 생성까지 자동 실행
+- 최적화 과정에서 선택된 최적 검색·생성 전략이 그대로 적용됨
+- REST API를 통해 외부 시스템(웹앱, 챗봇, 내부 도구)에서 호출 가능
+
+**적합한 경우:** 사내 도구, 소규모 팀 서비스, 부서 단위 AI 어시스턴트 (동시 사용자 ~10명)
 
 ### 9.4 경로 B: FastAPI 프로덕션 서버 (대규모)
 
@@ -493,21 +502,70 @@ async def query(request: QueryRequest):
 
 **적합한 경우:** 프로덕션 배포, 커스텀 로직 필요, 높은 동시성 요구
 
-### 9.5 단계적 전환 전략
+### 9.5 구축 단계 요약
 
 ```
-Phase 1: slm-factory (SLM 학습)
+Phase 1: slm-factory (SLM 학습 + Ollama 배포)
     ↓
 Phase 2: export-autorag → AutoRAG 최적화
     ↓
-Phase 3a: AutoRAG 내장 서버 (검증)
-    ↓
-Phase 3b: FastAPI 프로덕션 전환 (확장)
+Phase 3: RAG 서비스 운영
+    ├─ A: AutoRAG 내장 서버 (소규모 서비스)
+    └─ B: FastAPI 커스텀 서버 (대규모 확장)
 ```
 
 | 단계 | 기간 | 목표 | 판단 기준 |
 |------|------|------|-----------|
 | Phase 1 | 1-2주 | SLM 학습 완료 | BLEU ≥ 0.3, ROUGE-L ≥ 0.4 |
 | Phase 2 | 1주 | RAG 파이프라인 최적화 | Retrieval MRR ≥ 0.7 |
-| Phase 3a | 1-2주 | 내장 서버 검증 | 응답 품질 + 지연 시간 확인 |
-| Phase 3b | 2-4주 | 프로덕션 전환 | 동시성, 모니터링, 장애 복구 |
+| Phase 3 | 1-2주 | RAG 서비스 배포 | API 응답 품질 + 지연 시간 |
+
+> **Phase 3 시점에서 실체적인 RAG 서비스가 동작합니다.** `autorag run_api`를 실행하는 것만으로 REST API를 제공하는 도메인 AI 서비스가 완성됩니다. 내부 사용자에게 바로 공개할 수 있습니다.
+
+---
+
+### 9.6 프로덕션 보완 체크리스트
+
+AutoRAG 내장 서버로 RAG 서비스를 즉시 운영할 수 있지만, **엔터프라이즈 프로덕션 환경**에서는 다음 항목을 보완해야 합니다. 중요도와 난이도를 함께 표시합니다.
+
+#### 즉시 보완 (서비스 공개 전)
+
+| 항목 | 설명 | 보완 방법 |
+|------|------|-----------|
+| **HTTPS/TLS** | API 통신 암호화 | Nginx/Caddy 리버스 프록시로 TLS 종단. `certbot`으로 인증서 자동 발급 |
+| **인증/인가** | 허가된 사용자만 접근 | API 키 기반: Nginx `auth_request` 또는 FastAPI 미들웨어. 기업 환경: SSO/LDAP 연동 |
+| **입력 검증** | 프롬프트 인젝션 방어 | 질의 길이 제한 (예: 2,000자), 금칙어 필터링, 시스템 프롬프트 고정 |
+| **헬스체크** | 서비스 상태 모니터링 | `/health` 엔드포인트 추가. Ollama 연결 + 벡터 DB 상태를 포함 |
+
+#### 운영 안정화 (서비스 공개 후)
+
+| 항목 | 설명 | 보완 방법 |
+|------|------|-----------|
+| **요청 제한** | 과부하 방지 | Nginx `limit_req_zone` 또는 FastAPI `slowapi`. 사용자별 분당 요청 수 제한 |
+| **로깅** | 질의/응답 추적 | 구조화 로깅 (JSON). 질의, 검색된 문서 ID, 응답 시간, 에러를 기록 |
+| **모니터링** | 성능·품질 추적 | Prometheus + Grafana: 응답 지연(p50/p95/p99), 에러율, Ollama 추론 시간 |
+| **자동 재시작** | 장애 복구 | systemd `Restart=always` 또는 Docker `restart: unless-stopped` |
+| **백업** | 데이터 보호 | 벡터 DB(ChromaDB) 정기 백업. AutoRAG trial 디렉토리 버전 관리 |
+
+#### 프로덕션 확장 (사용자 증가 시)
+
+| 항목 | 설명 | 보완 방법 |
+|------|------|-----------|
+| **로드 밸런서** | 수평 확장 | AutoRAG 서버 인스턴스 다중 구동 + Nginx upstream. 또는 FastAPI 전환 (경로 B) |
+| **GPU 추론 최적화** | 높은 동시성 | Ollama 대신 vLLM 또는 TGI(Text Generation Inference)로 전환. 배치 추론 지원 |
+| **응답 캐싱** | 반복 질의 최적화 | Redis 캐시. 동일 질의 재처리 방지 (TTL 기반) |
+| **벡터 DB 확장** | 대규모 코퍼스 | ChromaDB → Milvus 또는 Weaviate. 분산 인덱싱, 수백만 문서 지원 |
+| **모델 버전 관리** | SLM 업데이트 | `tool evolve`로 SLM 갱신 시, Ollama 모델명에 버전 태그 부여 (`v1`, `v2`). Blue-Green 배포로 무중단 전환 |
+
+#### 전환 판단 기준: 경로 A → 경로 B
+
+AutoRAG 내장 서버(경로 A)에서 FastAPI 커스텀 서버(경로 B)로 전환해야 하는 시점:
+
+| 신호 | 의미 |
+|------|------|
+| 동시 사용자 10명 이상에서 응답 지연 증가 | 내장 서버의 동시성 한계 |
+| 인증·권한 로직이 복잡해짐 | 내장 서버에 미들웨어 추가 어려움 |
+| 검색 결과 후처리 로직 필요 | 커스텀 비즈니스 로직 삽입 필요 |
+| 멀티 모델 라우팅 필요 | 질문 유형별 다른 SLM 호출 |
+
+경로 A에서 충분히 운영하다가, 위 신호가 나타나면 경로 B로 전환하십시오. AutoRAG 최적화 결과(`summary.csv`)의 최적 조합 정보를 그대로 FastAPI 구현에 반영하면 됩니다.
