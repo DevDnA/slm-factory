@@ -1,6 +1,6 @@
 # tests/
 
-35 test files, flat structure. pytest + pytest-mock + pytest-asyncio. No GPU required — ML libraries auto-mocked.
+39 test files, flat structure. pytest + pytest-mock + pytest-asyncio. No GPU required — ML libraries auto-mocked.
 
 ## STRUCTURE
 
@@ -12,7 +12,8 @@ Tests use underscore-flattened naming mirroring source modules:
 | `test_pipeline.py` (749 lines) | `pipeline.py` | step_* orchestration + regeneration |
 | `test_integration.py` (622 lines) | cross-module | chunking→QA, ontology→QA, score→regen chains + relation dedup |
 | `test_evolve_history.py` (703 lines) | `evolve_history.py` | version tracking |
-| `test_config.py` | `config.py` | Pydantic validation (incl. ChunkingConfig, ScoringConfig.regenerate) |
+| `test_config.py` | `config.py` | Pydantic validation (incl. ChunkingConfig, ScoringConfig.regenerate, RagConfig, AutoRAGExportConfig) |
+| `test_autorag_export.py` (428 lines) | `exporter/autorag_export.py` | AutoRAG parquet export (corpus + QA chunking) |
 | `test_device.py` | `device.py` | CUDA/MPS/CPU detection + multi-GPU |
 | `test_trainer.py` | `trainer/lora_trainer.py` | DataLoader + LoRATrainer + DDP |
 | `test_teacher.py` | `teacher/` | backend tests (Ollama streaming, OpenAI-compat) |
@@ -20,7 +21,8 @@ Tests use underscore-flattened naming mirroring source modules:
 | `test_ontology_*.py` (3 files) | `ontology/` | extractor, graph_store, models |
 | `test_parsers_*.py` (6 files) | `parsers/*.py` | per-format parser tests (incl. HWP5, multi-section HWPX) |
 | `test_dashboard.py` / `test_reviewer.py` | `tui/` | TUI widget tests |
-| Others (10 files) | Various | evaluator, scorer, augmenter, converter, etc. |
+| `test_exporter_gguf.py` (356 lines) | `exporter/` | GGUF 2-stage quantization export |
+| Others (9 files) | Various | evaluator, scorer, augmenter, converter, etc. |
 
 ## KEY FIXTURES (`conftest.py`)
 

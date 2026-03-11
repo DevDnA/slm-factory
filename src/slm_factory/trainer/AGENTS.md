@@ -19,6 +19,7 @@ trainer/
 5. `_RichProgressCallback` logs epoch/loss/lr to Rich console during training.
 6. Early stopping via HuggingFace `EarlyStoppingCallback` when `config.training.early_stopping.enabled`.
 7. `trust_remote_code=True` support — security warning logged when enabled.
+8. `_MPSCacheCleanupCallback` clears MPS tensor cache (`torch.mps.empty_cache()`) after each training step to prevent memory accumulation and swap storm on Apple Silicon.
 
 ## WHERE TO LOOK
 
@@ -30,6 +31,7 @@ trainer/
 | Change callbacks | `lora_trainer.py:_create_callbacks()` | Rich progress + optional early stopping |
 | Change dataset loading | `lora_trainer.py:DataLoader` | JSONL → HuggingFace `Dataset` → train/eval split |
 | Modify training loop | `lora_trainer.py:LoRATrainer.train()` | Creates SFTTrainer, handles device placement |
+| Change MPS memory handling | `lora_trainer.py:_MPSCacheCleanupCallback` | Auto-added when device is MPS |
 
 ## CONVENTIONS
 
@@ -38,6 +40,7 @@ trainer/
 - Device-aware: `detect_device()` determines dtype, optimizer, quantization, device_map automatically.
 - Adapter saved to `{output_dir}/lora_adapter/` — Pipeline's `step_export()` reads from here.
 - Error handling wraps common failures (OOM, missing model) with Korean log messages and re-raises.
+- `_MPSCacheCleanupCallback` auto-injected in `_create_callbacks()` when `device.type == "mps"` — do NOT add manually.
 
 ## ANTI-PATTERNS
 
