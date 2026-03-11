@@ -113,8 +113,13 @@
               <div class="step-number"></div>
               <div class="step-content">
                 <div class="step-title">준비</div>
-                <div class="step-desc">프로젝트를 생성하고 학습할 문서를 추가합니다.</div>
-                <pre data-lang="bash">slm-factory init my-project
+                <div class="step-desc">Ollama를 실행하고, 프로젝트를 생성하고, 학습할 문서를 추가합니다.</div>
+                <pre data-lang="bash"># Ollama 준비 (별도 터미널)
+ollama serve
+ollama pull qwen3:8b
+
+# 프로젝트 생성 + 문서 추가
+slm-factory init my-project
 cp /path/to/documents/*.pdf my-project/documents/</pre>
               </div>
             </li>
