@@ -19,6 +19,20 @@ from ..utils import get_logger
 logger = get_logger("trainer.lora_trainer")
 
 
+class _MPSCacheCleanupCallback(TrainerCallback):
+    """MPS 디바이스의 GPU 텐서 캐시를 주기적으로 정리하는 콜백입니다.
+
+    Apple Silicon 통합 메모리 환경에서 학습 중 메모리 누적으로 인한
+    스왑 폭풍을 방지합니다.
+    """
+
+    def on_step_end(self, args, state, control, **kwargs):
+        import torch
+
+        if torch.backends.mps.is_available():
+            torch.mps.empty_cache()
+
+
 class _RichProgressCallback(TrainerCallback):
     """학습 진행 상황을 로거를 통해 표시하는 콜백입니다."""
 
@@ -326,6 +340,10 @@ class LoRATrainer:
             )
 
         callbacks.append(_RichProgressCallback())
+
+        if self._device_info and self._device_info.type == "mps":
+            callbacks.append(_MPSCacheCleanupCallback())
+            logger.info("MPS 캐시 정리 콜백 활성화")
 
         return callbacks
 
