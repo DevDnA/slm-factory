@@ -372,6 +372,33 @@ class GGUFExportConfig(BaseModel):
         return self
 
 
+class AutoRAGExportConfig(BaseModel):
+    """AutoRAG 연동을 위한 데이터 내보내기 설정입니다.
+
+    slm-factory의 파싱된 문서와 QA 쌍을 AutoRAG 평가용
+    ``corpus.parquet`` + ``qa.parquet`` 형식으로 변환합니다.
+    """
+
+    enabled: bool = False
+    output_dir: str = "autorag"
+    chunk_size: int = 512
+    overlap_chars: int = 64
+
+    @model_validator(mode="after")
+    def _check_autorag_export_params(self) -> "AutoRAGExportConfig":
+        """AutoRAG 내보내기 설정의 유효성을 검증합니다."""
+        if self.chunk_size < 100:
+            raise ValueError(
+                f"chunk_size({self.chunk_size})는 100 이상이어야 합니다"
+            )
+        if self.overlap_chars >= self.chunk_size:
+            raise ValueError(
+                f"overlap_chars({self.overlap_chars})는 "
+                f"chunk_size({self.chunk_size})보다 작아야 합니다"
+            )
+        return self
+
+
 class IncrementalConfig(BaseModel):
     """증분 학습 설정입니다."""
 
@@ -569,6 +596,7 @@ class SLMConfig(BaseModel):
     export: ExportConfig = Field(default_factory=ExportConfig)
     eval: EvalConfig = Field(default_factory=EvalConfig)
     gguf_export: GGUFExportConfig = Field(default_factory=GGUFExportConfig)
+    autorag_export: AutoRAGExportConfig = Field(default_factory=AutoRAGExportConfig)
     incremental: IncrementalConfig = Field(default_factory=IncrementalConfig)
     dialogue: DialogueConfig = Field(default_factory=DialogueConfig)
     review: ReviewConfig = Field(default_factory=ReviewConfig)
