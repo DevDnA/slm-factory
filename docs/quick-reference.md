@@ -86,6 +86,8 @@ slm-factory tool wizard --config my-project/project.yaml
 | `slm-factory tool update` | 증분 업데이트 (변경 문서만) | `--config` |
 | `slm-factory tool compare-data` | 두 QA 데이터셋 품질 비교 | `--baseline` / `-b`, `--target` / `-t` |
 | `slm-factory tool export-autorag` | AutoRAG 평가용 데이터 내보내기 | `--config`, `--qa-file` |
+| `slm-factory tool rag-index` | ChromaDB에 임베딩 적재 | `--config`, `--corpus-dir` |
+| `slm-factory tool rag-serve` | RAG API 서버 시작 | `--config`, `--host`, `--port` |
 
 ### ℹ️ 정보
 

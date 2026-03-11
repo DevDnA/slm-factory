@@ -100,6 +100,8 @@
                 <li class="toc-h3"><a href="#tool-ontology"><code>tool ontology</code></a></li>
                 <li class="toc-h3"><a href="#tool-compare-data"><code>tool compare-data</code></a></li>
                 <li class="toc-h3"><a href="#tool-export-autorag"><code>tool export-autorag</code></a></li>
+                <li class="toc-h3"><a href="#tool-rag-index"><code>tool rag-index</code></a></li>
+                <li class="toc-h3"><a href="#tool-rag-serve"><code>tool rag-serve</code></a></li>
               </ol>
             </li>
             <li>
@@ -275,6 +277,16 @@
                   <td><code>tool export-autorag</code></td>
                   <td>🔧 도구</td>
                   <td>AutoRAG 평가용 데이터 내보내기</td>
+                </tr>
+                <tr>
+                  <td><code>tool rag-index</code></td>
+                  <td>🔧 도구</td>
+                  <td>corpus.parquet을 ChromaDB에 임베딩 적재</td>
+                </tr>
+                <tr>
+                  <td><code>tool rag-serve</code></td>
+                  <td>🔧 도구</td>
+                  <td>RAG API 서버 시작 (ChromaDB 검색 + Ollama 생성)</td>
                 </tr>
                 <tr>
                   <td><code>status</code></td>
@@ -1583,6 +1595,87 @@ slm-factory tool export-autorag --config my-project/project.yaml \
               <li><code>qa.parquet</code>은 QA 쌍의 질문·답변·컨텍스트를 AutoRAG 평가 형식으로 변환합니다.</li>
               <li>AutoRAG 최적화 실행: <code>autorag evaluate --qa_data_path output/autorag/qa.parquet --corpus_data_path output/autorag/corpus.parquet --config autorag_config.yaml</code></li>
               <li>상세 설정은 <a href="configuration.html">설정 레퍼런스</a>의 <code>autorag_export</code> 섹션을 참조하십시오.</li>
+            </ul>
+          </article>
+
+          <hr>
+
+          <!-- tool rag-index -->
+          <article id="tool-rag-index">
+            <h3><code>tool rag-index</code></h3>
+            <p><code>corpus.parquet</code>을 sentence-transformers 모델로 임베딩한 뒤 ChromaDB에 적재합니다. <code>tool export-autorag</code>로 생성한 코퍼스 데이터를 벡터 검색이 가능한 형태로 변환합니다.</p>
+
+            <h4>사용법</h4>
+            <pre data-lang="bash"><code>slm-factory tool rag-index [OPTIONS]</code></pre>
+
+            <h4>옵션</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>플래그</th><th>타입</th><th>기본값</th><th>설명</th></tr></thead>
+                <tbody>
+                  <tr><td><code>--config</code></td><td><code>TEXT</code></td><td><code>project.yaml</code></td><td>프로젝트 설정 파일 경로입니다.</td></tr>
+                  <tr><td><code>--corpus-dir</code></td><td><code>TEXT</code></td><td>(자동 감지)</td><td><code>corpus.parquet</code>이 있는 디렉토리 경로입니다. 기본값은 <code>output/autorag</code>입니다.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4>예시</h4>
+            <pre data-lang="bash"><code># 기본 실행
+slm-factory tool rag-index --config my-project/project.yaml</code></pre>
+
+            <h4>참고</h4>
+            <ul>
+              <li>사전 조건: <code>tool export-autorag</code>로 <code>corpus.parquet</code>을 먼저 생성해야 합니다.</li>
+              <li>임베딩 모델 기본값은 <code>BAAI/bge-m3</code>입니다. 한국어 문서에 우수한 성능을 보입니다.</li>
+              <li><code>pip install slm-factory[rag,validation]</code>으로 의존성을 설치하세요.</li>
+              <li>기존 컬렉션에 재실행하면 upsert(갱신/추가)됩니다.</li>
+            </ul>
+          </article>
+
+          <hr>
+
+          <!-- tool rag-serve -->
+          <article id="tool-rag-serve">
+            <h3><code>tool rag-serve</code></h3>
+            <p>ChromaDB 벡터 검색과 Ollama SLM 생성을 결합한 RAG API 서버를 실행합니다.</p>
+
+            <h4>사용법</h4>
+            <pre data-lang="bash"><code>slm-factory tool rag-serve [OPTIONS]</code></pre>
+
+            <h4>옵션</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>플래그</th><th>타입</th><th>기본값</th><th>설명</th></tr></thead>
+                <tbody>
+                  <tr><td><code>--config</code></td><td><code>TEXT</code></td><td><code>project.yaml</code></td><td>프로젝트 설정 파일 경로입니다.</td></tr>
+                  <tr><td><code>--host</code></td><td><code>TEXT</code></td><td>(설정 파일 값)</td><td>서버 바인드 호스트입니다.</td></tr>
+                  <tr><td><code>--port</code></td><td><code>INT</code></td><td>(설정 파일 값)</td><td>서버 포트입니다.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4>API 엔드포인트</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead><tr><th>메서드</th><th>경로</th><th>설명</th></tr></thead>
+                <tbody>
+                  <tr><td><code>POST</code></td><td><code>/v1/query</code></td><td>질의 &rarr; 문서 검색 &rarr; SLM 답변 생성</td></tr>
+                  <tr><td><code>GET</code></td><td><code>/health</code></td><td>ChromaDB 및 Ollama 연결 상태 확인</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4>API 호출 예시</h4>
+            <pre data-lang="bash"><code>curl -X POST http://localhost:8000/v1/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "도메인 질문", "top_k": 5}'</code></pre>
+
+            <h4>참고</h4>
+            <ul>
+              <li>사전 조건: <code>tool rag-index</code>로 ChromaDB를 먼저 구축해야 합니다.</li>
+              <li>Ollama가 실행 중이어야 합니다 (<code>ollama serve</code>).</li>
+              <li>SLM 모델은 <code>rag.ollama_model</code> 또는 <code>export.ollama.model_name</code>에서 결정됩니다.</li>
+              <li><code>pip install slm-factory[rag,validation]</code>으로 의존성을 설치하세요.</li>
             </ul>
           </article>
 

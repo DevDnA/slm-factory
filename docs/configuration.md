@@ -635,7 +635,40 @@ autorag_export:
 
 ---
 
-## 20. incremental — 증분 학습 설정
+## 20. rag — RAG 서비스 설정
+
+> `corpus.parquet`을 ChromaDB에 임베딩하여 적재하고, Ollama SLM과 연동하는 RAG API 서버를 실행합니다.
+
+| 필드 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `embedding_model` | `str` | `"BAAI/bge-m3"` | 임베딩 모델 이름 (sentence-transformers 호환). 한국어는 `bge-m3` 권장 |
+| `vector_db_path` | `str` | `"chroma_db"` | ChromaDB 저장 경로. `paths.output` 하위에 생성됩니다 |
+| `collection_name` | `str` | `"corpus"` | ChromaDB 컬렉션 이름 |
+| `top_k` | `int` | `5` | 검색 시 반환할 최대 문서 청크 수. 1 이상이어야 합니다 |
+| `server_host` | `str` | `"0.0.0.0"` | RAG API 서버 바인드 호스트 |
+| `server_port` | `int` | `8000` | RAG API 서버 포트 (1~65535) |
+| `ollama_model` | `str` | `""` | Ollama 모델명. 빈 문자열이면 `export.ollama.model_name`을 사용합니다 |
+
+```yaml
+rag:
+  embedding_model: "BAAI/bge-m3"
+  vector_db_path: "chroma_db"
+  collection_name: "corpus"
+  top_k: 5
+  server_host: "0.0.0.0"
+  server_port: 8000
+  ollama_model: ""
+```
+
+**참고**
+
+- `tool rag-index`로 인덱싱, `tool rag-serve`로 서버를 실행합니다. CLI 사용법은 [CLI 레퍼런스](cli-reference.md)를 참조하십시오.
+- `pip install slm-factory[rag,validation]`으로 의존성을 설치하세요.
+- 임베딩 모델은 sentence-transformers 호환 모델이면 모두 사용 가능합니다. 한국어 문서에는 `BAAI/bge-m3`가 권장됩니다.
+
+---
+
+## 21. incremental — 증분 학습 설정
 
 > 문서 추가 시 기존 QA를 유지하면서 새 문서만 처리합니다. 해시 기반으로 변경을 감지합니다.
 
@@ -656,7 +689,7 @@ incremental:
 
 ---
 
-## 21. dialogue — 멀티턴 대화 설정
+## 22. dialogue — 멀티턴 대화 설정
 
 > QA 쌍을 멀티턴 대화 형식으로 확장합니다.
 
@@ -679,7 +712,7 @@ dialogue:
 
 ---
 
-## 22. review — QA 리뷰 설정
+## 23. review — QA 리뷰 설정
 
 > TUI에서 QA 쌍을 수동으로 검토하고 승인/거부/편집합니다.
 
@@ -698,7 +731,7 @@ review:
 
 ---
 
-## 23. dashboard — 대시보드 설정
+## 24. dashboard — 대시보드 설정
 
 > 파이프라인 진행 상태를 실시간 TUI로 모니터링합니다.
 
@@ -717,7 +750,7 @@ dashboard:
 
 ---
 
-## 24. 설정 레시피
+## 25. 설정 레시피
 
 자주 사용되는 설정 패턴을 레시피 형태로 제공합니다. 각 레시피는 특정 상황에 맞게 최소한의 필드만 변경합니다.
 
@@ -829,7 +862,7 @@ teacher:
 
 ---
 
-## 25. 전체 설정 예시 (한국어 정책 문서 프로젝트)
+## 26. 전체 설정 예시 (한국어 정책 문서 프로젝트)
 
 한국어 회사 정책 문서를 처리하는 완전한 `project.yaml` 예시입니다.
 
@@ -1009,7 +1042,7 @@ dashboard:
 
 ---
 
-## 26. 설정 검증 (slm-factory check)
+## 27. 설정 검증 (slm-factory check)
 
 설정 파일이 올바른지 확인하려면 `check` 명령을 사용합니다:
 
@@ -1046,7 +1079,7 @@ $ slm-factory check --config project.yaml
 
 ---
 
-## 27. ontology — 온톨로지(지식 그래프) 추출 설정
+## 28. ontology — 온톨로지(지식 그래프) 추출 설정
 
 > 문서에서 엔티티(개체)와 관계를 자동 추출하여 지식 그래프를 구성합니다. QA 생성 시 추출된 지식을 컨텍스트로 활용할 수 있습니다.
 

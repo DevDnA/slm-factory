@@ -47,6 +47,8 @@ slm-factory [전역 옵션] <명령어> [옵션]
 | `tool ontology` | 🔧 도구 | 온톨로지(지식 그래프) 추출 |
 | `tool compare-data` | 🔧 도구 | 두 QA 데이터셋의 품질 비교 |
 | `tool export-autorag` | 🔧 도구 | AutoRAG 평가용 데이터 내보내기 |
+| `tool rag-index` | 🔧 도구 | corpus.parquet을 ChromaDB에 임베딩 적재 |
+| `tool rag-serve` | 🔧 도구 | RAG API 서버 시작 (ChromaDB 검색 + Ollama 생성) |
 | `status` | ℹ️ 정보 | 각 파이프라인 단계의 진행 상태를 표시합니다 |
 | `clean` | ℹ️ 정보 | 중간 생성 파일을 정리합니다 |
 | `version` | ℹ️ 정보 | slm-factory 버전을 출력합니다 |
@@ -946,6 +948,110 @@ output/autorag/
 - `qa.parquet`은 QA 쌍의 질문·답변·컨텍스트를 AutoRAG 평가 형식으로 변환합니다.
 - AutoRAG 최적화 실행: `autorag evaluate --qa_data_path output/autorag/qa.parquet --corpus_data_path output/autorag/corpus.parquet --config autorag_config.yaml`
 - 상세 설정은 [설정 레퍼런스](configuration.md)의 `autorag_export` 섹션을 참조하십시오.
+
+---
+
+### `tool rag-index`
+
+`corpus.parquet`을 sentence-transformers 모델로 임베딩한 뒤 ChromaDB에 적재합니다. `tool export-autorag`로 생성한 코퍼스 데이터를 벡터 검색이 가능한 형태로 변환합니다.
+
+**사용법**
+
+```
+slm-factory tool rag-index [OPTIONS]
+```
+
+**옵션**
+
+| 플래그 | 타입 | 기본값 | 설명 |
+|--------|------|--------|------|
+| `--config` | `TEXT` | `project.yaml` | 프로젝트 설정 파일 경로입니다. |
+| `--corpus-dir` | `TEXT` | (자동 감지) | `corpus.parquet`이 있는 디렉토리 경로입니다. 기본값은 `output/autorag`입니다. |
+
+**예시**
+
+```bash
+# 기본 실행
+slm-factory tool rag-index --config my-project/project.yaml
+
+# 코퍼스 디렉토리 직접 지정
+slm-factory tool rag-index --config my-project/project.yaml --corpus-dir ./output/autorag
+```
+
+**출력**
+
+ChromaDB가 `output/chroma_db/`에 생성됩니다. 임베딩 모델과 벡터DB 경로는 `project.yaml`의 `rag` 섹션에서 설정합니다.
+
+**참고**
+
+- 사전 조건: `tool export-autorag`로 `corpus.parquet`을 먼저 생성해야 합니다.
+- 임베딩 모델 기본값은 `BAAI/bge-m3`입니다. 한국어 문서에 우수한 성능을 보입니다.
+- `pip install slm-factory[rag,validation]`으로 의존성을 설치하세요.
+- 기존 컬렉션에 재실행하면 upsert(갱신/추가)됩니다.
+
+---
+
+### `tool rag-serve`
+
+ChromaDB 벡터 검색과 Ollama SLM 생성을 결합한 RAG API 서버를 실행합니다. `tool rag-index`로 구축한 벡터 DB에서 관련 문서를 검색하고, SLM이 문서 기반 답변을 생성합니다.
+
+**사용법**
+
+```
+slm-factory tool rag-serve [OPTIONS]
+```
+
+**옵션**
+
+| 플래그 | 타입 | 기본값 | 설명 |
+|--------|------|--------|------|
+| `--config` | `TEXT` | `project.yaml` | 프로젝트 설정 파일 경로입니다. |
+| `--host` | `TEXT` | (설정 파일 값) | 서버 바인드 호스트입니다. |
+| `--port` | `INT` | (설정 파일 값) | 서버 포트입니다. |
+
+**예시**
+
+```bash
+# 기본 실행
+slm-factory tool rag-serve --config my-project/project.yaml
+
+# 포트 지정
+slm-factory tool rag-serve --config my-project/project.yaml --port 9000
+```
+
+**API 엔드포인트**
+
+| 메서드 | 경로 | 설명 |
+|--------|------|------|
+| `POST` | `/v1/query` | 질의 → 문서 검색 → SLM 답변 생성 |
+| `GET` | `/health` | ChromaDB 및 Ollama 연결 상태 확인 |
+
+**API 호출 예시**
+
+```bash
+curl -X POST http://localhost:8000/v1/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "도메인 질문", "top_k": 5}'
+```
+
+**응답 형식**
+
+```json
+{
+  "answer": "문서 기반 답변...",
+  "sources": [
+    {"content": "관련 문서 청크...", "doc_id": "...", "score": 0.85}
+  ],
+  "query": "도메인 질문"
+}
+```
+
+**참고**
+
+- 사전 조건: `tool rag-index`로 ChromaDB를 먼저 구축해야 합니다.
+- Ollama가 실행 중이어야 합니다 (`ollama serve`).
+- SLM 모델은 `rag.ollama_model` 또는 `export.ollama.model_name`에서 결정됩니다.
+- `pip install slm-factory[rag,validation]`으로 의존성을 설치하세요.
 
 ---
 

@@ -89,13 +89,14 @@
           <li><a href="#evolve">16. evolve &mdash; 자동 진화 설정</a></li>
           <li><a href="#gguf-export">17. gguf_export &mdash; GGUF 변환 설정</a></li>
           <li><a href="#autorag-export">18. autorag_export &mdash; AutoRAG 데이터 내보내기 설정</a></li>
-          <li><a href="#incremental">19. incremental &mdash; 증분 학습 설정</a></li>
-          <li><a href="#dialogue">20. dialogue &mdash; 멀티턴 대화 설정</a></li>
-          <li><a href="#review">21. review &mdash; QA 리뷰 설정</a></li>
-          <li><a href="#dashboard">22. dashboard &mdash; 대시보드 설정</a></li>
-          <li><a href="#recipes">23. 설정 레시피</a></li>
-          <li><a href="#full-example">24. 전체 설정 예시</a></li>
-          <li><a href="#check">25. 설정 검증 (slm-factory check)</a></li>
+          <li><a href="#rag">19. rag &mdash; RAG 서비스 설정</a></li>
+          <li><a href="#incremental">20. incremental &mdash; 증분 학습 설정</a></li>
+          <li><a href="#dialogue">21. dialogue &mdash; 멀티턴 대화 설정</a></li>
+          <li><a href="#review">22. review &mdash; QA 리뷰 설정</a></li>
+          <li><a href="#dashboard">23. dashboard &mdash; 대시보드 설정</a></li>
+          <li><a href="#recipes">24. 설정 레시피</a></li>
+          <li><a href="#full-example">25. 전체 설정 예시</a></li>
+          <li><a href="#check">26. 설정 검증 (slm-factory check)</a></li>
         </ol>
       </nav>
 
@@ -1065,8 +1066,48 @@ If the document does not contain relevant information, say "The document does no
       <!-- ============================================================
            Section 19: incremental
            ============================================================ -->
+      <section id="rag">
+        <h2>19. rag &mdash; RAG 서비스 설정</h2>
+        <blockquote><p><code>corpus.parquet</code>을 ChromaDB에 임베딩하여 적재하고, Ollama SLM과 연동하는 RAG API 서버를 실행합니다.</p></blockquote>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>embedding_model</code></td><td><code>str</code></td><td><code>"BAAI/bge-m3"</code></td><td>임베딩 모델 이름 (sentence-transformers 호환). 한국어는 <code>bge-m3</code> 권장</td></tr>
+              <tr><td><code>vector_db_path</code></td><td><code>str</code></td><td><code>"chroma_db"</code></td><td>ChromaDB 저장 경로. <code>paths.output</code> 하위에 생성됩니다</td></tr>
+              <tr><td><code>collection_name</code></td><td><code>str</code></td><td><code>"corpus"</code></td><td>ChromaDB 컬렉션 이름</td></tr>
+              <tr><td><code>top_k</code></td><td><code>int</code></td><td><code>5</code></td><td>검색 시 반환할 최대 문서 청크 수. 1 이상이어야 합니다</td></tr>
+              <tr><td><code>server_host</code></td><td><code>str</code></td><td><code>"0.0.0.0"</code></td><td>RAG API 서버 바인드 호스트</td></tr>
+              <tr><td><code>server_port</code></td><td><code>int</code></td><td><code>8000</code></td><td>RAG API 서버 포트 (1~65535)</td></tr>
+              <tr><td><code>ollama_model</code></td><td><code>str</code></td><td><code>""</code></td><td>Ollama 모델명. 빈 문자열이면 <code>export.ollama.model_name</code>을 사용합니다</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <pre data-lang="yaml"><code>rag:
+  embedding_model: "BAAI/bge-m3"
+  vector_db_path: "chroma_db"
+  collection_name: "corpus"
+  top_k: 5
+  server_host: "0.0.0.0"
+  server_port: 8000
+  ollama_model: ""</code></pre>
+
+        <h4>참고</h4>
+        <ul>
+          <li><code>tool rag-index</code>로 인덱싱, <code>tool rag-serve</code>로 서버를 실행합니다. CLI 사용법은 <a href="cli-reference.html">CLI 레퍼런스</a>를 참조하십시오.</li>
+          <li><code>pip install slm-factory[rag,validation]</code>으로 의존성을 설치하세요.</li>
+          <li>임베딩 모델은 sentence-transformers 호환 모델이면 모두 사용 가능합니다. 한국어 문서에는 <code>BAAI/bge-m3</code>가 권장됩니다.</li>
+        </ul>
+      </section>
+
+      <hr>
+
       <section id="incremental">
-        <h2>19. incremental &mdash; 증분 학습 설정</h2>
+        <h2>20. incremental &mdash; 증분 학습 설정</h2>
         <blockquote><p>문서 추가 시 기존 QA를 유지하면서 새 문서만 처리합니다. 해시 기반으로 변경을 감지합니다.</p></blockquote>
 
         <div class="table-wrapper">
@@ -1096,7 +1137,7 @@ If the document does not contain relevant information, say "The document does no
            Section 20: dialogue
            ============================================================ -->
       <section id="dialogue">
-        <h2>20. dialogue &mdash; 멀티턴 대화 설정</h2>
+        <h2>21. dialogue &mdash; 멀티턴 대화 설정</h2>
         <blockquote><p>QA 쌍을 멀티턴 대화 형식으로 확장합니다.</p></blockquote>
 
         <div class="table-wrapper">
@@ -1133,7 +1174,7 @@ If the document does not contain relevant information, say "The document does no
            Section 21: review
            ============================================================ -->
       <section id="review">
-        <h2>21. review &mdash; QA 리뷰 설정</h2>
+        <h2>22. review &mdash; QA 리뷰 설정</h2>
         <blockquote><p>TUI에서 QA 쌍을 수동으로 검토하고 승인/거부/편집합니다.</p></blockquote>
 
         <div class="table-wrapper">
@@ -1161,7 +1202,7 @@ If the document does not contain relevant information, say "The document does no
            Section 22: dashboard
            ============================================================ -->
       <section id="dashboard">
-        <h2>22. dashboard &mdash; 대시보드 설정</h2>
+        <h2>23. dashboard &mdash; 대시보드 설정</h2>
         <blockquote><p>파이프라인 진행 상태를 실시간 TUI로 모니터링합니다.</p></blockquote>
 
         <div class="table-wrapper">
@@ -1189,7 +1230,7 @@ If the document does not contain relevant information, say "The document does no
            Section 23: 설정 레시피
            ============================================================ -->
       <section id="recipes">
-        <h2>23. 설정 레시피</h2>
+        <h2>24. 설정 레시피</h2>
 
         <p>자주 사용되는 설정 패턴을 레시피 형태로 제공합니다. 각 레시피는 특정 상황에 맞게 최소한의 필드만 변경합니다.</p>
         <p>각 설정을 언제 사용할지에 대한 맥락은 <a href="guide.html">사용 가이드</a>를 참조하십시오.</p>
@@ -1284,7 +1325,7 @@ training:
            Section 24: 전체 설정 예시
            ============================================================ -->
       <section id="full-example">
-        <h2>24. 전체 설정 예시 (한국어 정책 문서 프로젝트)</h2>
+        <h2>25. 전체 설정 예시 (한국어 정책 문서 프로젝트)</h2>
 
         <p>한국어 회사 정책 문서를 처리하는 완전한 <code>project.yaml</code> 예시입니다.</p>
 
@@ -1468,7 +1509,7 @@ dashboard:
            Section 25: 설정 검증
            ============================================================ -->
       <section id="check">
-        <h2>25. 설정 검증 (slm-factory check)</h2>
+        <h2>26. 설정 검증 (slm-factory check)</h2>
 
         <p>설정 파일이 올바른지 확인하려면 <code>check</code> 명령을 사용합니다:</p>
         <pre data-lang="bash"><code>slm-factory check --config project.yaml</code></pre>
@@ -1504,7 +1545,7 @@ dashboard:
 
       <hr>
 
-          <h2 id="ontology">26. ontology — 온톨로지(지식 그래프) 추출 설정</h2>
+          <h2 id="ontology">27. ontology — 온톨로지(지식 그래프) 추출 설정</h2>
 
           <blockquote>
             <p>문서에서 엔티티(개체)와 관계를 자동 추출하여 지식 그래프를 구성합니다. QA 생성 시 추출된 지식을 컨텍스트로 활용할 수 있습니다.</p>
