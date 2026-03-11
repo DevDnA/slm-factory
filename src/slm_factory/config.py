@@ -614,25 +614,6 @@ class ChunkingConfig(BaseModel):
         return self
 
 
-class OntologyConfig(BaseModel):
-    """온톨로지/지식 그래프 추출 설정입니다.
-
-    문서에서 엔티티(개체)와 관계를 자동 추출하여 지식 그래프를 구성합니다.
-    Teacher LLM을 사용하며, QA 생성 시 추출된 지식을 컨텍스트로 활용할 수
-    있습니다.
-    """
-
-    enabled: bool = True
-    entity_types: list[str] = Field(default_factory=lambda: [
-        "Person", "Organization", "Concept", "Technology",
-        "Document", "Date", "Location",
-    ])
-    max_concurrency: int = 4
-    min_confidence: float = 0.5
-    enrich_qa: bool = True
-    output_file: str = "ontology.json"
-
-
 # ---------------------------------------------------------------------------
 # 루트 설정
 # ---------------------------------------------------------------------------
@@ -668,7 +649,6 @@ class SLMConfig(BaseModel):
     evolve: EvolveConfig = Field(default_factory=EvolveConfig)
     dashboard: DashboardConfig = Field(default_factory=DashboardConfig)
     chunking: ChunkingConfig = Field(default_factory=ChunkingConfig)
-    ontology: OntologyConfig = Field(default_factory=OntologyConfig)
 
     @model_validator(mode="before")
     @classmethod

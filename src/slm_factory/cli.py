@@ -525,7 +525,6 @@ def _run_until_step(
     from_step: str | None = None,
 ) -> Path | None:
     from .models import ParsedDocument
-    from .ontology.models import KnowledgeGraph
 
     target_idx = _STEP_ORDER.index(target)
 
@@ -535,7 +534,6 @@ def _run_until_step(
     adapter_path: Path | None = None
     model_dir: Path | None = None
     corpus_path: Path | None = None
-    kg: KnowledgeGraph | None = None
     start_idx = 0
 
     if from_step:
@@ -569,13 +567,6 @@ def _run_until_step(
                 if step == "parse":
                     raw = json.loads(output_file.read_text(encoding="utf-8"))
                     docs = [ParsedDocument(**item) for item in raw]
-                    # 기존 온톨로지 파일이 있으면 로드
-                    onto_file = Path(pipeline.config.paths.output) / pipeline.config.ontology.output_file
-                    if pipeline.config.ontology.enabled and onto_file.exists():
-                        from .ontology import GraphStore
-                        kg = GraphStore.load(onto_file)
-                        if kg.entities or kg.relations:
-                            console.print(f"  [dim]⏭[/dim] 온톨로지 로드 ({len(kg.entities)}개 엔티티, {len(kg.relations)}개 관계)")
                 elif step in ("generate", "score", "augment"):
                     pairs = pipeline._load_pairs(output_file)
                 elif step == "convert":
@@ -585,17 +576,11 @@ def _run_until_step(
         if step == "parse":
             docs = pipeline.step_parse()
             console.print(f"  [green]✓[/green] {len(docs)}개 문서 파싱 완료")
-            # 온톨로지 추출 (parse 직후, config.ontology.enabled 시 실행)
-            kg = pipeline.step_extract_ontology(docs)
-            if kg and (kg.entities or kg.relations):
-                console.print(
-                    f"  [green]✓[/green] 온톨로지 추출: {len(kg.entities)}개 엔티티, {len(kg.relations)}개 관계"
-                )
 
         elif step == "generate":
             if docs is None:
                 docs = pipeline.step_parse()
-            pairs = pipeline.step_generate(docs, ontology=kg)
+            pairs = pipeline.step_generate(docs)
             console.print(f"  [green]✓[/green] {len(pairs)}개 QA 쌍 생성 완료")
 
         elif step == "validate":
@@ -607,7 +592,7 @@ def _run_until_step(
 
         elif step == "score":
             before = len(pairs)
-            pairs = pipeline.step_score(pairs, docs=docs, ontology=kg)
+            pairs = pipeline.step_score(pairs, docs=docs)
             console.print(
                 f"  [green]✓[/green] 점수 평가: {len(pairs)}개 통과, {before - len(pairs)}개 제거"
             )
@@ -1231,34 +1216,6 @@ def clean(
     console.print(f"\n[bold green]{len(deleted)}개 항목 삭제 완료[/bold green]\n")
 
 
-@tool_app.command(name="ontology")
-def extract_ontology(
-    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
-) -> None:
-    """문서에서 온톨로지(지식 그래프)를 추출합니다."""
-    try:
-        pipeline = _load_pipeline(config)
-        pipeline.config.paths.ensure_dirs()
-        pipeline.config.ontology.enabled = True
-
-        docs = pipeline.step_parse()
-        kg = pipeline.step_extract_ontology(docs)
-
-        console.print(
-            f"\n[bold green]온톨로지 추출 완료![/bold green] "
-            f"[cyan]{len(kg.entities)}[/cyan]개 엔티티, "
-            f"[cyan]{len(kg.relations)}[/cyan]개 관계\n"
-            f"  저장 위치: [cyan]{pipeline.output_dir / pipeline.config.ontology.output_file}[/cyan]\n"
-        )
-
-    except FileNotFoundError as e:
-        _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
-        raise typer.Exit(code=1)
-    except Exception as e:
-        _print_error("온톨로지 추출 실패", e, hints=_get_error_hints(e))
-        raise typer.Exit(code=1)
-
-
 @tool_app.command(name="compare-data")
 def compare_data(
     baseline: str = typer.Option(..., "--baseline", "-b", help="기준 QA 데이터 파일 경로"),
@@ -1652,30 +1609,6 @@ def wizard(
             pipeline.config.chunking.enabled = False
             console.print("  [yellow]⏭ 건너뜀[/yellow]")
 
-    # ── Step 3a: 온톨로지 추출 (선택) ────────────────────────────────
-    kg = None
-    if skip_to_step <= 3:
-        onto_default = pipeline.config.ontology.enabled
-        console.print("\n[bold]━━━ [3a/14] 온톨로지 추출 (선택) ━━━[/bold]")
-        console.print("  [dim]문서에서 엔티티와 관계를 추출하여 지식 그래프를 구성합니다. Ollama 실행 필요.[/dim]")
-        console.print(
-            f"  [dim]설정: ontology.enabled = {str(onto_default).lower()}[/dim]"
-        )
-        if Confirm.ask("  온톨로지를 추출하시겠습니까?", default=onto_default):
-            pipeline.config.ontology.enabled = True
-            assert docs is not None
-            try:
-                kg = pipeline.step_extract_ontology(docs)
-                console.print(
-                    f"  [green]✓[/green] {len(kg.entities)}개 엔티티, "
-                    f"{len(kg.relations)}개 관계 추출"
-                )
-            except Exception as e:
-                _print_error("온톨로지 추출 실패", e, hints=_get_error_hints(e))
-                console.print("  [yellow]⏭ 건너뛰고 계속합니다[/yellow]")
-        else:
-            console.print("  [yellow]⏭ 건너뜀[/yellow]")
-
     # ── Step 4: QA 생성 ───────────────────────────────────────────
     console.print("\n[bold]━━━ [4/14] QA 쌍 생성 (필수) ━━━[/bold]")
     if skip_to_step > 4:
@@ -1717,7 +1650,7 @@ def wizard(
 
         assert docs is not None
         try:
-            pairs = pipeline.step_generate(docs, ontology=kg)
+            pairs = pipeline.step_generate(docs)
             console.print(f"  [green]✓[/green] {len(pairs)}개 QA 쌍 생성 완료")
         except Exception as e:
             _print_error("QA 생성 실패", e, hints=_get_error_hints(e), resume_cmd=_resume_cmd)
@@ -1762,7 +1695,7 @@ def wizard(
                 pipeline.config.scoring.regenerate = True
             try:
                 before = len(pairs)
-                pairs = pipeline.step_score(pairs, docs=docs, ontology=kg)
+                pairs = pipeline.step_score(pairs, docs=docs)
                 console.print(
                     f"  [green]✓[/green] {len(pairs)}개 통과, "
                     f"{before - len(pairs)}개 제거"

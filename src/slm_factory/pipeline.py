@@ -15,7 +15,6 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .config import SLMConfig
     from .models import CompareResult, EvalResult, MultiTurnDialogue, ParsedDocument, QAPair
-    from .ontology.models import KnowledgeGraph
     from .scorer import QualityScorer
     from .teacher.base import BaseTeacher
 
@@ -133,70 +132,12 @@ class Pipeline:
         return docs
 
     # ------------------------------------------------------------------
-    # 단계 1a: 온톨로지 추출 (선택적)
-    # ------------------------------------------------------------------
-
-    def step_extract_ontology(
-        self, docs: list[ParsedDocument],
-    ) -> KnowledgeGraph:
-        """문서에서 온톨로지(지식 그래프)를 추출합니다.
-
-        ``config.ontology.enabled``가 ``False``이면 빈 지식 그래프를
-        반환합니다.
-
-        매개변수
-        ----------
-        docs:
-            :meth:`step_parse`에서 얻은 파싱된 문서입니다.
-
-        반환값
-        -------
-        KnowledgeGraph
-            추출된 지식 그래프입니다. 비활성 시 빈 그래프입니다.
-        """
-        from .ontology.models import KnowledgeGraph
-
-        if not self.config.ontology.enabled:
-            logger.info("Ontology extraction disabled — skipping")
-            return KnowledgeGraph()
-
-        from .ontology import GraphStore, OntologyExtractor
-        from .teacher import create_teacher
-
-        logger.info("Extracting ontology from %d documents...", len(docs))
-
-        teacher = create_teacher(self.config.teacher)
-        extractor = OntologyExtractor(
-            teacher, self.config.ontology, self.config.teacher,
-        )
-        kg = run_async(extractor.extract_all(docs))
-
-        # 기존 그래프가 있으면 병합 (증분 시나리오)
-        ontology_path = self.output_dir / self.config.ontology.output_file
-        existing = GraphStore.load(ontology_path)
-        if existing.entities or existing.relations:
-            doc_titles = {doc.title for doc in docs}
-            kg = GraphStore.merge(
-                existing, kg,
-                changed_docs=doc_titles,
-                deleted_docs=set(),
-            )
-
-        GraphStore.save(kg, ontology_path)
-        logger.info(
-            "Ontology extraction complete: %d entities, %d relations — saved to %s",
-            len(kg.entities), len(kg.relations), ontology_path,
-        )
-        return kg
-
-    # ------------------------------------------------------------------
     # 단계 2: QA 쌍 생성
     # ------------------------------------------------------------------
 
     def step_generate(
         self,
         docs: list[ParsedDocument],
-        ontology: KnowledgeGraph | None = None,
     ) -> list[QAPair]:
         """교사 LLM을 사용하여 파싱된 문서에서 QA 쌍을 생성합니다.
 
@@ -204,10 +145,6 @@ class Pipeline:
         ----------
         docs:
             :meth:`step_parse`에서 얻은 파싱된 문서입니다.
-        ontology:
-            :meth:`step_extract_ontology`에서 얻은 지식 그래프입니다.
-            ``config.ontology.enrich_qa``가 활성화되어 있고 지식 그래프가
-            비어있지 않으면 QA 프롬프트에 컨텍스트로 주입됩니다.
 
         반환값
         -------
@@ -218,26 +155,9 @@ class Pipeline:
 
         logger.info("Generating QA pairs from %d documents...", len(docs))
 
-        ontology_context: dict[str, str] | None = None
-        if (
-            ontology is not None
-            and self.config.ontology.enrich_qa
-            and (ontology.entities or ontology.relations)
-        ):
-            ontology_context = {
-                doc.title: ontology.to_context_string(source_doc=doc.title)
-                for doc in docs
-            }
-            ontology_context = {k: v for k, v in ontology_context.items() if v}
-            if ontology_context:
-                logger.info(
-                    "Ontology enrichment enabled: %d documents with context",
-                    len(ontology_context),
-                )
-
         generator = QAGenerator(self.config)
         pairs = run_async(
-            generator.generate_all_async(docs, ontology_context=ontology_context),
+            generator.generate_all_async(docs),
         )
 
         alpaca_path = self.output_dir / "qa_alpaca.json"
@@ -322,27 +242,8 @@ class Pipeline:
         self,
         pairs: list[QAPair],
         docs: list[ParsedDocument] | None = None,
-        ontology: KnowledgeGraph | None = None,
     ) -> list[QAPair]:
-        """교사 LLM을 사용하여 QA 쌍의 품질을 점수 평가하고 필터링합니다.
-
-        ``scoring.regenerate``가 활성화되면 낮은 점수의 QA 쌍을
-        개선된 프롬프트로 재생성합니다.
-
-        매개변수
-        ----------
-        pairs:
-            점수 평가할 QA 쌍입니다.
-        docs:
-            재생성 시 원본 문서 참조용입니다.
-        ontology:
-            재생성 시 온톨로지 컨텍스트 주입용입니다.
-
-        반환값
-        -------
-        list[QAPair]
-            threshold 이상의 점수를 받은 QA 쌍입니다.
-        """
+        """교사 LLM을 사용하여 QA 쌍의 품질을 점수 평가하고 필터링합니다."""
         if not self.config.scoring.enabled:
             logger.info("Scoring disabled — skipping")
             return pairs
@@ -368,7 +269,7 @@ class Pipeline:
             and docs
         ):
             accepted = self._regenerate_low_quality(
-                accepted, filtered, docs, ontology, teacher, scorer,
+                accepted, filtered, docs, teacher, scorer,
             )
 
         scored_path = self.output_dir / "qa_scored.json"
@@ -384,7 +285,6 @@ class Pipeline:
         accepted: list[QAPair],
         filtered: list[tuple[QAPair, int, str]],
         docs: list[ParsedDocument],
-        ontology: KnowledgeGraph | None,
         teacher: BaseTeacher,
         scorer: QualityScorer,
     ) -> list[QAPair]:
@@ -393,18 +293,6 @@ class Pipeline:
 
         generator = QAGenerator(self.config)
         doc_map = {doc.doc_id: doc for doc in docs}
-
-        ontology_context: dict[str, str] | None = None
-        if (
-            ontology is not None
-            and self.config.ontology.enrich_qa
-            and (ontology.entities or ontology.relations)
-        ):
-            ontology_context = {
-                doc.title: ontology.to_context_string(source_doc=doc.title)
-                for doc in docs
-            }
-            ontology_context = {k: v for k, v in ontology_context.items() if v}
 
         max_rounds = self.config.scoring.max_regenerate_rounds
         remaining = filtered
@@ -420,7 +308,7 @@ class Pipeline:
 
             regen_pairs = run_async(
                 self._regenerate_round(
-                    remaining, doc_map, ontology_context, generator,
+                    remaining, doc_map, generator,
                 )
             )
 
@@ -442,7 +330,6 @@ class Pipeline:
         self,
         remaining: list[tuple[QAPair, int, str]],
         doc_map: dict[str, ParsedDocument],
-        ontology_context: dict[str, str] | None,
         generator: object,
     ) -> list[QAPair]:
         """한 라운드의 재생성을 비동기 배치로 실행합니다."""
@@ -485,7 +372,7 @@ class Pipeline:
             tasks = [
                 run_bounded(
                     semaphore,
-                    self._regenerate_one(pair, score, reason, doc, ontology_context, generator),
+                    self._regenerate_one(pair, score, reason, doc, generator),
                     progress,
                     task_id,
                 )
@@ -508,17 +395,10 @@ class Pipeline:
         score: int,
         reason: str,
         doc: ParsedDocument,
-        ontology_context: dict[str, str] | None,
         generator: object,
     ) -> QAPair | None:
         """단일 QA 쌍을 비동기로 재생성합니다."""
         from .models import QAPair
-
-        onto_ctx = (
-            ontology_context.get(doc.title)
-            if ontology_context
-            else None
-        )
 
         score_guidance = {
             1: "이전 답변이 완전히 잘못되었습니다. 문서 내용만을 근거로 정확한 답변을 작성하세요.",
@@ -542,7 +422,6 @@ class Pipeline:
             question=pair.question,
             tables=doc.tables if doc.tables else None,
             system_prompt=enhanced_system,
-            ontology_context=onto_ctx,
         )
 
         try:
@@ -988,14 +867,13 @@ class Pipeline:
 
             logger.info("━━━ [1/11] 문서 파싱 ━━━")
             docs = self.step_parse()
-            kg = self.step_extract_ontology(docs)
 
             logger.info("━━━ [2/11] QA 쌍 생성 ━━━")
-            pairs = self.step_generate(docs, ontology=kg)
+            pairs = self.step_generate(docs)
 
             logger.info("━━━ [3/11] 검증 및 품질 관리 ━━━")
             pairs = self.step_validate(pairs, docs=docs)
-            pairs = self.step_score(pairs, docs=docs, ontology=kg)
+            pairs = self.step_score(pairs, docs=docs)
             pairs = self.step_augment(pairs)
             self.step_analyze(pairs)
 

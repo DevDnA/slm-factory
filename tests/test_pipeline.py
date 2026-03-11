@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from slm_factory.config import SLMConfig
-from slm_factory.ontology.models import KnowledgeGraph
+
 from slm_factory.pipeline import Pipeline
 
 
@@ -359,10 +359,7 @@ class TestPipelineRun:
         mock_adapter_path = tmp_path / "adapter"
         mock_export_path = tmp_path / "export"
 
-        mock_kg = KnowledgeGraph()
-
         mocker.patch.object(pipeline, "step_parse", return_value=mock_docs)
-        mocker.patch.object(pipeline, "step_extract_ontology", return_value=mock_kg)
         mocker.patch.object(pipeline, "step_generate", return_value=mock_pairs)
         mocker.patch.object(pipeline, "step_validate", return_value=mock_validated)
         mocker.patch.object(pipeline, "step_score", return_value=mock_validated)
@@ -380,8 +377,7 @@ class TestPipelineRun:
         result = pipeline.run()
 
         pipeline.step_parse.assert_called_once()
-        pipeline.step_extract_ontology.assert_called_once_with(mock_docs)
-        pipeline.step_generate.assert_called_once_with(mock_docs, ontology=mock_kg)
+        pipeline.step_generate.assert_called_once_with(mock_docs)
         pipeline.step_validate.assert_called_once()
         pipeline.step_convert.assert_called_once_with(mock_validated)
         pipeline.step_train.assert_called_once_with(mock_training_path)
@@ -731,7 +727,7 @@ class TestStepScoreRegeneration:
         assert len(result) == len(pairs)
 
     def test_파이프라인_run에서_step_score에_docs_전달(self, make_config, tmp_path, mocker):
-        """Pipeline.run()에서 step_score가 docs와 ontology를 받는지 확인합니다."""
+        """Pipeline.run()에서 step_score가 docs를 받는지 확인합니다."""
         pipeline = _make_pipeline(make_config, tmp_path)
 
         mock_docs = [MagicMock()]
@@ -740,10 +736,8 @@ class TestStepScoreRegeneration:
         mock_training_path = tmp_path / "training_data.jsonl"
         mock_adapter_path = tmp_path / "adapter"
         mock_export_path = tmp_path / "export"
-        mock_kg = KnowledgeGraph()
 
         mocker.patch.object(pipeline, "step_parse", return_value=mock_docs)
-        mocker.patch.object(pipeline, "step_extract_ontology", return_value=mock_kg)
         mocker.patch.object(pipeline, "step_generate", return_value=mock_pairs)
         mocker.patch.object(pipeline, "step_validate", return_value=mock_validated)
         mocker.patch.object(pipeline, "step_score", return_value=mock_validated)
@@ -761,5 +755,5 @@ class TestStepScoreRegeneration:
         pipeline.run()
 
         pipeline.step_score.assert_called_once_with(
-            mock_validated, docs=mock_docs, ontology=mock_kg,
+            mock_validated, docs=mock_docs,
         )

@@ -77,7 +77,6 @@ class QAGenerator:
         question: str,
         tables: list[str] | None = None,
         system_prompt: str | None = None,
-        ontology_context: str | None = None,
         chunk_info: str | None = None,
     ) -> str:
         """QA 생성을 위한 전체 프롬프트를 구성합니다.
@@ -88,7 +87,6 @@ class QAGenerator:
             question: 답변할 질문
             tables: 선택적 테이블 마크다운 문자열 목록
             system_prompt: 선택적 시스템 프롬프트(기본값: config.questions.system_prompt)
-            ontology_context: 온톨로지 지식 그래프 컨텍스트 문자열
             chunk_info: 청크 위치 정보 (예: "Part 2/5")
         
         Returns:
@@ -114,9 +112,6 @@ class QAGenerator:
             tables_section = "\n## 관련 표\n" + "\n\n".join(tables)
             prompt_parts.append(tables_section)
 
-        if ontology_context:
-            prompt_parts.append(f"\n## 관련 지식\n{ontology_context}")
-        
         prompt_parts.extend([
             f"\n# 질문\n{question}",
             '\n# 지시사항',
@@ -309,7 +304,6 @@ class QAGenerator:
         doc: ParsedDocument,
         question: str,
         category: str = "",
-        ontology_context: str | None = None,
         chunk_content: str | None = None,
         chunk_info: str | None = None,
     ) -> QAPair | None:
@@ -321,7 +315,6 @@ class QAGenerator:
                     content=content,
                     question=question,
                     tables=doc.tables if doc.tables else None,
-                    ontology_context=ontology_context,
                     chunk_info=chunk_info,
                 )
 
@@ -374,7 +367,6 @@ class QAGenerator:
         self,
         docs: list[ParsedDocument],
         questions: list[str] | None = None,
-        ontology_context: dict[str, str] | None = None,
     ) -> list[QAPair]:
         """여러 문서에 대한 QA 쌍을 비동기적으로 생성합니다.
 
@@ -385,7 +377,6 @@ class QAGenerator:
         Args:
             docs: 파싱된 문서 목록
             questions: 선택적 질문 목록(기본값: config.questions.get_all_questions())
-            ontology_context: 문서 제목 → 온톨로지 컨텍스트 문자열 매핑
 
         Returns:
             생성된 모든 QAPair 객체의 평탄화된 목록
@@ -437,7 +428,6 @@ class QAGenerator:
                 semaphore: asyncio.Semaphore,
                 doc: ParsedDocument,
                 question: str,
-                onto_ctx: str | None,
                 chunk_content: str | None,
                 chunk_info: str | None,
                 category: str = "",
@@ -445,7 +435,6 @@ class QAGenerator:
                 result = await self._generate_one_async(
                     semaphore, doc, question,
                     category=category,
-                    ontology_context=onto_ctx,
                     chunk_content=chunk_content,
                     chunk_info=chunk_info,
                 )
@@ -454,15 +443,10 @@ class QAGenerator:
 
             tasks: list[asyncio.Task[QAPair | None]] = []
             for doc, chunk_content, chunk_info in doc_chunks:
-                doc_onto_ctx = (
-                    ontology_context.get(doc.title)
-                    if ontology_context
-                    else None
-                )
                 for category, question in all_qc:
                     task = asyncio.create_task(
                         _generate_with_progress(
-                            semaphore, doc, question, doc_onto_ctx,
+                            semaphore, doc, question,
                             chunk_content, chunk_info, category,
                         )
                     )
