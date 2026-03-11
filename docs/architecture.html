@@ -83,7 +83,7 @@
         <p>모든 파이프라인 동작은 <code>project.yaml</code> 파일 하나로 제어됩니다. 코드 수정 없이 문서 파싱 옵션, Teacher 모델, 질문 카테고리, 검증 규칙, Student 모델, 학습 하이퍼파라미터, 내보내기 형식을 변경할 수 있습니다.</p>
 
         <h3 id="step-independence">1.2 단계별 독립 실행</h3>
-        <p>Pipeline 클래스는 총 14개의 <code>step_*</code> 메서드를 제공합니다. 이 중 핵심 파이프라인은 10개의 독립적인 단계(parse, ontology, generate, validate, score, augment, analyze, convert, train, export)로 구성되며, 추가로 4개의 도구/평가 단계(eval, gguf_export, dialogue, compare)가 있습니다. 각 단계는 CLI 명령어로 개별 실행 가능하며, 이전 단계의 출력 파일을 입력으로 사용합니다. 특정 단계만 재실행하거나 중간 결과를 검토할 수 있습니다.</p>
+        <p>Pipeline 클래스는 총 14개의 <code>step_*</code> 메서드를 제공합니다. 이 중 핵심 파이프라인은 9개의 독립적인 단계(parse, generate, validate, score, augment, analyze, convert, train, export)로 구성되며, 추가로 4개의 도구/평가 단계(eval, gguf_export, dialogue, compare)가 있습니다. 각 단계는 CLI 명령어로 개별 실행 가능하며, 이전 단계의 출력 파일을 입력으로 사용합니다. 특정 단계만 재실행하거나 중간 결과를 검토할 수 있습니다.</p>
 
         <h3 id="lazy-import">1.3 지연 임포트 (Lazy Import)</h3>
         <p><code>torch</code>, <code>transformers</code>, <code>peft</code>, <code>sentence-transformers</code> 등 무거운 라이브러리는 실제 사용 시점에만 로드됩니다. CLI 초기 응답 속도를 빠르게 유지하고, 특정 단계만 실행할 때 불필요한 의존성을 로드하지 않습니다. <code>parse</code> 명령어는 딥러닝 라이브러리를 전혀 로드하지 않습니다.</p>
@@ -105,223 +105,10 @@
 
         <h3 id="component-structure">2.1 컴포넌트 구조 다이어그램</h3>
 
-        <!-- SVG 1: Component Structure Diagram -->
-        <div class="diagram">
-          <svg role="img" aria-labelledby="svg1-title svg1-desc" viewBox="0 0 800 640" xmlns="http://www.w3.org/2000/svg">
-            <title id="svg1-title">컴포넌트 구조 다이어그램</title>
-            <desc id="svg1-desc">CLI에서 Pipeline으로, Pipeline에서 9개 처리 모듈(Parse, Generate, Validate, Score, Augment, Analyze, Convert, Train, Export)로 이어지는 구조와 각 모듈의 출력 파일, 그리고 모든 컴포넌트에 주입되는 Config를 보여주는 다이어그램</desc>
-            <defs>
-              <marker id="s1-arrow" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto"><polyline points="0 0, 5 2, 0 4" fill="none" stroke="#2C5282" stroke-width="1" stroke-linejoin="round"/></marker>
-              <marker id="s1-arrow-gray" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto"><polyline points="0 0, 5 2, 0 4" fill="none" stroke="#A0AEC0" stroke-width="1" stroke-linejoin="round"/></marker>
-            </defs>
-            <style>
-              .s1-title { font: 700 14px Pretendard, sans-serif; fill: #FFFFFF; }
-              .s1-sub { font: 400 11px Pretendard, sans-serif; fill: rgba(255,255,255,0.8); }
-              .s1-label { font: 600 13px Pretendard, sans-serif; fill: #1A202C; }
-              .s1-mod { font: 400 11px Pretendard, sans-serif; fill: #4A5568; }
-              .s1-file { font: 500 10px "JetBrains Mono", monospace; fill: #2F855A; }
-              .s1-cfg { font: 400 11px Pretendard, sans-serif; fill: #4A5568; }
-            </style>
-
-            <!-- CLI -->
-            <rect x="255" y="15" width="290" height="48" rx="6" fill="#1B3A5C"/>
-            <text x="400" y="36" text-anchor="middle" class="s1-title">CLI (cli.py)</text>
-            <text x="400" y="52" text-anchor="middle" class="s1-sub">Entry Point (Typer)</text>
-
-            <!-- Arrow CLI → Pipeline -->
-            <line x1="400" y1="63" x2="400" y2="83" stroke="#2C5282" stroke-width="2" marker-end="url(#s1-arrow)"/>
-
-            <!-- Pipeline -->
-            <rect x="255" y="88" width="290" height="48" rx="6" fill="#1B3A5C"/>
-            <text x="400" y="109" text-anchor="middle" class="s1-title">Pipeline (pipeline.py)</text>
-            <text x="400" y="125" text-anchor="middle" class="s1-sub">Orchestrator (14 steps)</text>
-
-            <!-- Fan-out from Pipeline -->
-            <line x1="400" y1="136" x2="400" y2="152" stroke="#2C5282" stroke-width="2"/>
-            <line x1="145" y1="152" x2="655" y2="152" stroke="#2C5282" stroke-width="2"/>
-            <line x1="145" y1="152" x2="145" y2="170" stroke="#2C5282" stroke-width="2" marker-end="url(#s1-arrow)"/>
-            <line x1="400" y1="152" x2="400" y2="170" stroke="#2C5282" stroke-width="2" marker-end="url(#s1-arrow)"/>
-            <line x1="655" y1="152" x2="655" y2="170" stroke="#2C5282" stroke-width="2" marker-end="url(#s1-arrow)"/>
-
-            <!-- Row 1: Parse, Generate, Validate -->
-            <rect x="35" y="178" width="220" height="55" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
-            <text x="145" y="200" text-anchor="middle" class="s1-label">1. Parse</text>
-            <text x="145" y="218" text-anchor="middle" class="s1-mod">parsers/</text>
-
-            <rect x="290" y="178" width="220" height="55" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
-            <text x="400" y="200" text-anchor="middle" class="s1-label">2. Generate</text>
-            <text x="400" y="218" text-anchor="middle" class="s1-mod">teacher/</text>
-
-            <rect x="545" y="178" width="220" height="55" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
-            <text x="655" y="200" text-anchor="middle" class="s1-label">3. Validate</text>
-            <text x="655" y="218" text-anchor="middle" class="s1-mod">validator/</text>
-
-            <!-- Row 1 output labels -->
-            <rect x="35" y="241" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
-            <text x="145" y="257" text-anchor="middle" class="s1-file">parsed_documents.json</text>
-
-            <rect x="290" y="241" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
-            <text x="400" y="257" text-anchor="middle" class="s1-file">qa_alpaca.json</text>
-
-            <rect x="545" y="241" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
-            <text x="655" y="257" text-anchor="middle" class="s1-file">(filtered pairs)</text>
-
-            <!-- Arrows Row 1 → Row 2 -->
-            <line x1="145" y1="265" x2="145" y2="290" stroke="#2C5282" stroke-width="2" marker-end="url(#s1-arrow)"/>
-            <line x1="400" y1="265" x2="400" y2="290" stroke="#2C5282" stroke-width="2" marker-end="url(#s1-arrow)"/>
-            <line x1="655" y1="265" x2="655" y2="290" stroke="#2C5282" stroke-width="2" marker-end="url(#s1-arrow)"/>
-
-            <!-- Row 2: Ontology, Score, Augment, Analyze -->
-            <rect x="35" y="298" width="160" height="55" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
-            <text x="115" y="320" text-anchor="middle" class="s1-label">1a. Ontology (선택)</text>
-            <text x="115" y="338" text-anchor="middle" class="s1-mod">ontology/</text>
-
-            <rect x="210" y="298" width="160" height="55" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
-            <text x="290" y="320" text-anchor="middle" class="s1-label">3a. Score</text>
-            <text x="290" y="338" text-anchor="middle" class="s1-mod">scorer.py</text>
-
-            <rect x="385" y="298" width="160" height="55" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
-            <text x="465" y="320" text-anchor="middle" class="s1-label">3b. Augment</text>
-            <text x="465" y="338" text-anchor="middle" class="s1-mod">augmenter.py</text>
-
-            <rect x="560" y="298" width="205" height="55" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
-            <text x="662" y="320" text-anchor="middle" class="s1-label">3c. Analyze</text>
-            <text x="662" y="338" text-anchor="middle" class="s1-mod">analyzer.py</text>
-
-            <!-- Row 2 output labels -->
-            <rect x="35" y="361" width="160" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
-            <text x="115" y="377" text-anchor="middle" class="s1-file">ontology.json</text>
-
-            <rect x="210" y="361" width="160" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
-            <text x="290" y="377" text-anchor="middle" class="s1-file">qa_scored.json</text>
-
-            <rect x="385" y="361" width="160" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
-            <text x="465" y="377" text-anchor="middle" class="s1-file">qa_augmented.json</text>
-
-            <rect x="560" y="361" width="205" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
-            <text x="662" y="377" text-anchor="middle" class="s1-file">data_analysis.json</text>
-
-            <!-- Arrows Row 2 → Row 3 -->
-            <line x1="115" y1="385" x2="115" y2="410" stroke="#2C5282" stroke-width="2" marker-end="url(#s1-arrow)"/>
-            <line x1="290" y1="385" x2="290" y2="410" stroke="#2C5282" stroke-width="2" marker-end="url(#s1-arrow)"/>
-            <line x1="465" y1="385" x2="465" y2="410" stroke="#2C5282" stroke-width="2" marker-end="url(#s1-arrow)"/>
-            <line x1="662" y1="385" x2="662" y2="410" stroke="#2C5282" stroke-width="2" marker-end="url(#s1-arrow)"/>
-
-            <!-- Row 3: Convert, Train, Export -->
-            <rect x="35" y="418" width="220" height="55" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
-            <text x="145" y="440" text-anchor="middle" class="s1-label">4. Convert</text>
-            <text x="145" y="458" text-anchor="middle" class="s1-mod">converter.py</text>
-
-            <rect x="290" y="418" width="220" height="55" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
-            <text x="400" y="440" text-anchor="middle" class="s1-label">5. Train</text>
-            <text x="400" y="458" text-anchor="middle" class="s1-mod">trainer/</text>
-
-            <rect x="545" y="418" width="220" height="55" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
-            <text x="655" y="440" text-anchor="middle" class="s1-label">6. Export</text>
-            <text x="655" y="458" text-anchor="middle" class="s1-mod">exporter/</text>
-
-            <!-- Row 3 output labels -->
-            <rect x="35" y="481" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
-            <text x="145" y="497" text-anchor="middle" class="s1-file">training_data.jsonl</text>
-
-            <rect x="290" y="481" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
-            <text x="400" y="497" text-anchor="middle" class="s1-file">adapter/</text>
-
-            <rect x="545" y="481" width="220" height="24" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
-            <text x="655" y="497" text-anchor="middle" class="s1-file">merged_model/ Modelfile</text>
-
-            <!-- Config box -->
-            <line x1="400" y1="520" x2="400" y2="555" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3"/>
-            <rect x="230" y="560" width="340" height="48" rx="8" fill="#F7F8FA" stroke="#CBD5E0" stroke-width="1"/>
-            <text x="400" y="581" text-anchor="middle" class="s1-label">Config (config.py)</text>
-            <text x="400" y="598" text-anchor="middle" class="s1-cfg">Injected into all components</text>
-          </svg>
-          <p class="diagram-caption">그림 2-1. slm-factory 컴포넌트 구조</p>
-        </div>
+        
 
         <h3 id="module-dependencies">2.2 모듈 의존성 다이어그램</h3>
 
-        <!-- SVG 2: Module Dependency Diagram -->
-        <div class="diagram">
-          <svg role="img" aria-labelledby="svg2-title svg2-desc" viewBox="0 0 760 720" xmlns="http://www.w3.org/2000/svg">
-            <title id="svg2-title">모듈 의존성 다이어그램</title>
-            <desc id="svg2-desc">cli.py에서 pipeline.py로, pipeline.py에서 parsers, teacher, validator, scorer, augmenter, analyzer, converter, trainer, exporter, evaluator, comparator, incremental, tui 모듈로 이어지는 의존성 트리와 모든 모듈이 공유하는 config.py, models.py, utils.py를 보여주는 다이어그램</desc>
-            <defs>
-              <marker id="s2-arrow" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto"><polyline points="0 0, 5 2, 0 4" fill="none" stroke="#2C5282" stroke-width="1" stroke-linejoin="round"/></marker>
-            </defs>
-            <style>
-              .s2-pkg { font: 700 13px Pretendard, sans-serif; fill: #FFFFFF; }
-              .s2-file { font: 500 11px "JetBrains Mono", monospace; fill: #1A202C; }
-              .s2-cls { font: 400 10px Pretendard, sans-serif; fill: #4A5568; }
-              .s2-grp { font: 600 12px Pretendard, sans-serif; fill: #1A202C; }
-              .s2-shared { font: 600 12px Pretendard, sans-serif; fill: #4A5568; }
-            </style>
-
-            <!-- cli.py -->
-            <rect x="20" y="15" width="120" height="32" rx="6" fill="#1B3A5C"/>
-            <text x="80" y="36" text-anchor="middle" class="s2-pkg">cli.py</text>
-            <line x1="80" y1="47" x2="80" y2="62" stroke="#2C5282" stroke-width="2" marker-end="url(#s2-arrow)"/>
-
-            <!-- pipeline.py -->
-            <rect x="20" y="68" width="160" height="32" rx="6" fill="#1B3A5C"/>
-            <text x="100" y="89" text-anchor="middle" class="s2-pkg">pipeline.py</text>
-
-            <!-- Vertical trunk line from pipeline.py -->
-            <line x1="100" y1="100" x2="100" y2="630" stroke="#A0AEC0" stroke-width="1"/>
-
-            <!-- Branch: parsers/ -->
-            <line x1="100" y1="130" x2="170" y2="130" stroke="#2C5282" stroke-width="2" marker-end="url(#s2-arrow)"/>
-            <rect x="180" y="110" width="550" height="90" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
-            <text x="195" y="130" class="s2-grp">parsers/</text>
-            <text x="195" y="148" class="s2-file">base.py <tspan class="s2-cls">(BaseParser, ParserRegistry)</tspan></text>
-            <text x="195" y="163" class="s2-file">pdf.py <tspan class="s2-cls">(PDFParser)</tspan>  hwpx.py <tspan class="s2-cls">(HWPXParser)</tspan>  html.py <tspan class="s2-cls">(HTMLParser)</tspan></text>
-            <text x="195" y="178" class="s2-file">text.py <tspan class="s2-cls">(TextParser)</tspan>  docx.py <tspan class="s2-cls">(DOCXParser)</tspan></text>
-
-            <!-- Branch: teacher/ -->
-            <line x1="100" y1="230" x2="170" y2="230" stroke="#2C5282" stroke-width="2" marker-end="url(#s2-arrow)"/>
-            <rect x="180" y="210" width="550" height="80" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
-            <text x="195" y="230" class="s2-grp">teacher/</text>
-            <text x="195" y="248" class="s2-file">base.py <tspan class="s2-cls">(BaseTeacher)</tspan>  ollama.py <tspan class="s2-cls">(OllamaTeacher)</tspan></text>
-            <text x="195" y="263" class="s2-file">openai_compat.py <tspan class="s2-cls">(OpenAICompatTeacher)</tspan>  qa_generator.py <tspan class="s2-cls">(QAGenerator)</tspan></text>
-            <text x="195" y="278" class="s2-file">dialogue_generator.py <tspan class="s2-cls">(DialogueGenerator)</tspan></text>
-
-            <!-- Branch: validator/ -->
-            <line x1="100" y1="320" x2="170" y2="320" stroke="#2C5282" stroke-width="2" marker-end="url(#s2-arrow)"/>
-            <rect x="180" y="305" width="400" height="50" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
-            <text x="195" y="325" class="s2-grp">validator/</text>
-            <text x="195" y="343" class="s2-file">rules.py <tspan class="s2-cls">(RuleValidator)</tspan>  similarity.py <tspan class="s2-cls">(GroundednessChecker)</tspan></text>
-
-            <!-- Branch: standalone modules -->
-            <line x1="100" y1="385" x2="170" y2="385" stroke="#2C5282" stroke-width="2" marker-end="url(#s2-arrow)"/>
-            <rect x="180" y="370" width="550" height="40" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
-            <text x="195" y="390" class="s2-file">scorer.py <tspan class="s2-cls">(QualityScorer)</tspan>  augmenter.py <tspan class="s2-cls">(DataAugmenter)</tspan>  analyzer.py <tspan class="s2-cls">(DataAnalyzer)</tspan>  converter.py <tspan class="s2-cls">(ChatFormatter)</tspan></text>
-            <text x="195" y="405" class="s2-file">ontology/ <tspan class="s2-cls">models.py (Entity, Relation, KnowledgeGraph)  extractor.py (OntologyExtractor)  graph_store.py (GraphStore)</tspan></text>
-
-            <!-- Branch: trainer/ -->
-            <line x1="100" y1="440" x2="170" y2="440" stroke="#2C5282" stroke-width="2" marker-end="url(#s2-arrow)"/>
-            <rect x="180" y="425" width="400" height="40" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
-            <text x="195" y="440" class="s2-grp">trainer/</text>
-            <text x="195" y="455" class="s2-file">lora_trainer.py <tspan class="s2-cls">(DataLoader, LoRATrainer)</tspan></text>
-
-            <!-- Branch: exporter/ -->
-            <line x1="100" y1="495" x2="170" y2="495" stroke="#2C5282" stroke-width="2" marker-end="url(#s2-arrow)"/>
-            <rect x="180" y="478" width="550" height="50" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
-            <text x="195" y="498" class="s2-grp">exporter/</text>
-            <text x="195" y="516" class="s2-file">hf_export.py <tspan class="s2-cls">(HFExporter)</tspan>  ollama_export.py <tspan class="s2-cls">(OllamaExporter)</tspan>  gguf_export.py <tspan class="s2-cls">(GGUFExporter)</tspan></text>
-
-            <!-- Branch: other modules -->
-            <line x1="100" y1="558" x2="170" y2="558" stroke="#2C5282" stroke-width="2" marker-end="url(#s2-arrow)"/>
-            <rect x="180" y="543" width="550" height="40" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
-            <text x="195" y="568" class="s2-file">evaluator.py <tspan class="s2-cls">(ModelEvaluator)</tspan>  comparator.py <tspan class="s2-cls">(ModelComparator)</tspan>  incremental.py <tspan class="s2-cls">(IncrementalTracker)</tspan>  tui/ <tspan class="s2-cls">(QAReviewerApp, PipelineDashboard)</tspan></text>
-
-            <!-- Shared modules -->
-            <rect x="20" y="640" width="720" height="60" rx="8" fill="#F7F8FA" stroke="#CBD5E0" stroke-width="1"/>
-            <text x="40" y="662" class="s2-shared">모든 모듈</text>
-            <text x="40" y="682" class="s2-file">config.py <tspan class="s2-cls">(SLMConfig + 20개 하위 모델)</tspan>    models.py <tspan class="s2-cls">(ParsedDocument, QAPair, EvalResult, DialogueTurn, MultiTurnDialogue, CompareResult)</tspan></text>
-            <text x="40" y="694" class="s2-file">utils.py <tspan class="s2-cls">(setup_logging, get_logger)</tspan></text>
-          </svg>
-          <p class="diagram-caption">그림 2-2. 모듈 의존성 트리</p>
-        </div>
       </section>
 
       <hr>
@@ -372,8 +159,8 @@ class CSVParser(BaseParser):
         <h3 id="adapter-pattern">3.4 Adapter 패턴 (converter.py)</h3>
         <p><code>ChatFormatter</code>는 HuggingFace <code>tokenizer.apply_chat_template()</code>을 래핑하여 통일된 <code>QAPair</code> 형식을 모델별 채팅 형식으로 변환합니다. Gemma처럼 시스템 역할을 지원하지 않는 모델은 시스템 메시지를 제거하고 자동으로 재시도합니다. <code>max_seq_length</code> 초과 항목은 자동으로 제외됩니다.</p>
 
-        <h3 id="async-pattern">3.5 비동기 동시성 패턴 (scorer, augmenter, ontology extractor)</h3>
-        <p>Scorer, Augmenter, OntologyExtractor는 <code>asyncio.Semaphore</code>로 동시 요청 수를 제한하면서 병렬 처리합니다.</p>
+        <h3 id="async-pattern">3.5 비동기 동시성 패턴 (scorer, augmenter)</h3>
+        <p>Scorer, Augmenter는 <code>asyncio.Semaphore</code>로 동시 요청 수를 제한하면서 병렬 처리합니다.</p>
 
         <pre data-lang="python"><code>semaphore = asyncio.Semaphore(config.max_concurrency)
 
@@ -412,12 +199,6 @@ results = await asyncio.gather(*tasks, return_exceptions=True)</code></pre>
             </thead>
             <tbody>
               <tr><td>parse</td><td>파일 시스템 (PDF/HWPX/HTML/TXT/DOCX)</td><td><code>list[ParsedDocument]</code></td><td><code>parsed_documents.json</code></td></tr>
-              <tr>
-                  <td>ontology (선택)</td>
-                  <td><code>list[ParsedDocument]</code></td>
-                  <td><code>KnowledgeGraph</code></td>
-                  <td><code>ontology.json</code></td>
-                </tr>
               <tr><td>generate</td><td><code>list[ParsedDocument]</code></td><td><code>list[QAPair]</code></td><td><code>qa_alpaca.json</code></td></tr>
               <tr><td>validate</td><td><code>list[QAPair]</code></td><td><code>list[QAPair]</code> (필터링)</td><td>없음 (메모리 전달)</td></tr>
               <tr><td>score</td><td><code>list[QAPair]</code></td><td><code>list[QAPair]</code> (필터링)</td><td><code>qa_scored.json</code></td></tr>
@@ -436,108 +217,7 @@ results = await asyncio.gather(*tasks, return_exceptions=True)</code></pre>
 
         <h3 id="file-chain">4.2 중간 파일 체인 다이어그램</h3>
 
-        <!-- SVG 3: Intermediate File Chain Diagram -->
-        <div class="diagram">
-          <svg role="img" aria-labelledby="svg3-title svg3-desc" viewBox="0 0 620 800" xmlns="http://www.w3.org/2000/svg">
-            <title id="svg3-title">중간 파일 체인 다이어그램</title>
-            <desc id="svg3-desc">documents 디렉토리에서 시작하여 parsed_documents.json, qa_alpaca.json, 메모리 단계를 거쳐 score/augment/analyze로 분기한 뒤 training_data.jsonl, adapter, merged_model로 이어지는 중간 파일 체인을 보여주는 다이어그램</desc>
-            <defs>
-              <marker id="s3-arrow" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto"><polyline points="0 0, 5 2, 0 4" fill="none" stroke="#2C5282" stroke-width="1" stroke-linejoin="round"/></marker>
-              <marker id="s3-arrow-green" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto"><polyline points="0 0, 5 2, 0 4" fill="none" stroke="#2F855A" stroke-width="1" stroke-linejoin="round"/></marker>
-            </defs>
-            <style>
-              .s3-step { font: 600 11px "JetBrains Mono", monospace; fill: #3182CE; }
-              .s3-file { font: 600 12px "JetBrains Mono", monospace; fill: #1A202C; }
-              .s3-sub { font: 400 10px "JetBrains Mono", monospace; fill: #4A5568; }
-              .s3-dir { font: 700 13px Pretendard, sans-serif; fill: #1A202C; }
-              .s3-note { font: 400 10px Pretendard, sans-serif; fill: #4A5568; }
-            </style>
-
-            <!-- documents/ -->
-            <rect x="60" y="15" width="250" height="48" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
-            <text x="185" y="35" text-anchor="middle" class="s3-dir">documents/</text>
-            <text x="185" y="52" text-anchor="middle" class="s3-note">(PDF, HWPX, HTML, TXT, DOCX)</text>
-
-            <!-- Arrow + step label -->
-            <line x1="185" y1="63" x2="185" y2="93" stroke="#2C5282" stroke-width="2" marker-end="url(#s3-arrow)"/>
-            <text x="200" y="82" class="s3-step">step_parse()</text>
-
-            <!-- parsed_documents.json -->
-            <rect x="60" y="100" width="250" height="32" rx="6" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
-            <text x="185" y="121" text-anchor="middle" class="s3-file">parsed_documents.json</text>
-
-            <!-- Branch: step_extract_ontology() -->
-            <text x="455" y="97" text-anchor="middle" class="s3-step">step_extract_ontology()</text>
-            <line x1="310" y1="116" x2="340" y2="116" stroke="#2F855A" stroke-width="1" marker-end="url(#s3-arrow-green)"/>
-            <rect x="340" y="103" width="230" height="26" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
-            <text x="455" y="121" text-anchor="middle" class="s3-sub">ontology.json</text>
-
-            <line x1="185" y1="132" x2="185" y2="162" stroke="#2C5282" stroke-width="2" marker-end="url(#s3-arrow)"/>
-            <text x="200" y="151" class="s3-step">step_generate()</text>
-
-            <!-- qa_alpaca.json -->
-            <rect x="60" y="169" width="250" height="32" rx="6" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
-            <text x="185" y="190" text-anchor="middle" class="s3-file">qa_alpaca.json</text>
-
-            <line x1="185" y1="201" x2="185" y2="231" stroke="#2C5282" stroke-width="2" marker-end="url(#s3-arrow)"/>
-            <text x="200" y="220" class="s3-step">step_validate()</text>
-
-            <!-- [메모리] -->
-            <rect x="60" y="238" width="250" height="32" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1" stroke-dasharray="6,3"/>
-            <text x="185" y="259" text-anchor="middle" class="s3-file">[메모리]</text>
-
-            <!-- Vertical trunk from 메모리 down -->
-            <line x1="185" y1="270" x2="185" y2="430" stroke="#A0AEC0" stroke-width="1"/>
-
-            <!-- Branch: step_score() -->
-            <line x1="185" y1="300" x2="330" y2="300" stroke="#2F855A" stroke-width="1" marker-end="url(#s3-arrow-green)"/>
-            <text x="240" y="293" class="s3-step">step_score()</text>
-            <rect x="340" y="287" width="230" height="26" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
-            <text x="455" y="305" text-anchor="middle" class="s3-sub">qa_scored.json</text>
-
-            <!-- Branch: step_augment() -->
-            <line x1="185" y1="345" x2="330" y2="345" stroke="#2F855A" stroke-width="1" marker-end="url(#s3-arrow-green)"/>
-            <text x="230" y="338" class="s3-step">step_augment()</text>
-            <rect x="340" y="332" width="230" height="26" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
-            <text x="455" y="350" text-anchor="middle" class="s3-sub">qa_augmented.json</text>
-
-            <!-- Branch: step_analyze() -->
-            <line x1="185" y1="390" x2="330" y2="390" stroke="#2F855A" stroke-width="1" marker-end="url(#s3-arrow-green)"/>
-            <text x="230" y="383" class="s3-step">step_analyze()</text>
-            <rect x="340" y="377" width="230" height="26" rx="4" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
-            <text x="455" y="395" text-anchor="middle" class="s3-sub">data_analysis.json</text>
-
-            <!-- Continue down -->
-            <line x1="185" y1="430" x2="185" y2="460" stroke="#2C5282" stroke-width="2" marker-end="url(#s3-arrow)"/>
-            <text x="200" y="449" class="s3-step">step_convert()</text>
-
-            <!-- training_data.jsonl -->
-            <rect x="60" y="467" width="250" height="32" rx="6" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
-            <text x="185" y="488" text-anchor="middle" class="s3-file">training_data.jsonl</text>
-
-            <line x1="185" y1="499" x2="185" y2="529" stroke="#2C5282" stroke-width="2" marker-end="url(#s3-arrow)"/>
-            <text x="200" y="518" class="s3-step">step_train()</text>
-
-            <!-- checkpoints/adapter/ -->
-            <rect x="60" y="536" width="250" height="85" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
-            <text x="185" y="556" text-anchor="middle" class="s3-dir">checkpoints/adapter/</text>
-            <text x="80" y="574" class="s3-sub">adapter_config.json</text>
-            <text x="80" y="589" class="s3-sub">adapter_model.safetensors</text>
-            <text x="80" y="604" class="s3-sub">tokenizer_config.json</text>
-
-            <line x1="185" y1="621" x2="185" y2="651" stroke="#2C5282" stroke-width="2" marker-end="url(#s3-arrow)"/>
-            <text x="200" y="640" class="s3-step">step_export()</text>
-
-            <!-- merged_model/ -->
-            <rect x="60" y="658" width="250" height="100" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
-            <text x="185" y="678" text-anchor="middle" class="s3-dir">merged_model/</text>
-            <text x="80" y="696" class="s3-sub">model.safetensors</text>
-            <text x="80" y="711" class="s3-sub">config.json</text>
-            <text x="80" y="726" class="s3-sub">tokenizer.json</text>
-            <text x="80" y="741" class="s3-sub">Modelfile</text>
-          </svg>
-          <p class="diagram-caption">그림 4-1. 중간 파일 체인</p>
-        </div>
+        
 
         <h3 id="resume">4.3 재개 메커니즘 (--resume)</h3>
         <p><code>--resume</code> 옵션을 사용하면 CLI가 중간 파일의 존재 여부를 확인하여 완료된 단계를 건너뜁니다. 체크포인트 감지 우선순위는 다음과 같습니다.</p>
@@ -803,14 +483,7 @@ parsed_documents.json   →  generate 단계부터 재개
 │   ├── enabled: bool = False
 │   ├── refresh_interval: float = 2.0
 │   └── theme: str = "dark"
-│
-└── ontology: OntologyConfig
-    ├── enabled: bool = False
-    ├── entity_types: list[str] = ["Person", "Organization", ...]
-    ├── max_concurrency: int = 4
-    ├── min_confidence: float = 0.5
-    ├── enrich_qa: bool = False
-    └── output_file: str = "ontology.json"</code></pre>
+</code></pre>
 
         <p>각 필드의 상세 설명은 <a href="configuration.html">설정 레퍼런스</a> 참조</p>
 
@@ -1021,169 +694,7 @@ def _strip_none_sections(cls, values: dict) -&gt; dict:
 
         <h3 id="wizard-flow">7.1 실행 흐름 다이어그램</h3>
 
-        <!-- SVG 6: Wizard Flow Diagram -->
-        <div class="diagram">
-          <svg role="img" aria-labelledby="svg6-title svg6-desc" viewBox="0 0 680 1010" xmlns="http://www.w3.org/2000/svg">
-            <title id="svg6-title">Wizard 실행 흐름 다이어그램</title>
-            <desc id="svg6-desc">Wizard 모드의 12단계 실행 흐름을 보여주는 다이어그램. 필수 단계(자동/확인)는 네이비 색상, 선택적 단계는 주황색 점선 테두리로 구분됩니다.</desc>
-            <defs>
-              <marker id="s6-arrow" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto"><polyline points="0 0, 5 2, 0 4" fill="none" stroke="#2C5282" stroke-width="1" stroke-linejoin="round"/></marker>
-              <marker id="s6-arrow-orange" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto"><polyline points="0 0, 5 2, 0 4" fill="none" stroke="#ED8936" stroke-width="1" stroke-linejoin="round"/></marker>
-            </defs>
-            <style>
-              .s6-req { font: 700 12px Pretendard, sans-serif; fill: #FFFFFF; }
-              .s6-req-sub { font: 400 10px Pretendard, sans-serif; fill: rgba(255,255,255,0.8); }
-              .s6-opt { font: 700 12px Pretendard, sans-serif; fill: #1A202C; }
-              .s6-opt-sub { font: 400 10px Pretendard, sans-serif; fill: #4A5568; }
-              .s6-tag { font: 700 9px Pretendard, sans-serif; }
-              .s6-impl { font: 400 10px "JetBrains Mono", monospace; fill: #4A5568; }
-              .s6-impl-w { font: 400 10px "JetBrains Mono", monospace; fill: rgba(255,255,255,0.7); }
-            </style>
-
-            <!-- Legend -->
-            <rect x="20" y="10" width="16" height="16" rx="3" fill="#1B3A5C"/>
-            <text x="42" y="23" style="font: 600 11px Pretendard, sans-serif; fill: #1A202C;">필수 단계</text>
-            <rect x="130" y="10" width="16" height="16" rx="3" fill="#FFFAF0" stroke="#C05621" stroke-width="1" stroke-dasharray="4,2"/>
-            <text x="152" y="23" style="font: 600 11px Pretendard, sans-serif; fill: #1A202C;">선택적 단계</text>
-
-            <!-- Step 1: 설정 파일 (required auto) -->
-            <rect x="30" y="42" width="400" height="48" rx="6" fill="#1B3A5C"/>
-            <text x="50" y="63" class="s6-req">Step 1. 설정 파일</text>
-            <text x="50" y="80" class="s6-impl-w">_find_config() → load_config()</text>
-            <rect x="440" y="50" width="40" height="18" rx="9" fill="rgba(255,255,255,0.15)"/>
-            <text x="460" y="63" text-anchor="middle" class="s6-tag" fill="#fff">자동</text>
-            <text x="490" y="63" class="s6-impl">자동 탐색 실패 시 Prompt.ask()</text>
-
-            <line x1="230" y1="90" x2="230" y2="106" stroke="#2C5282" stroke-width="2" marker-end="url(#s6-arrow)"/>
-
-            <!-- Step 2: 문서 선택 (required confirm) -->
-            <rect x="30" y="112" width="400" height="48" rx="6" fill="#1B3A5C"/>
-            <text x="50" y="133" class="s6-req">Step 2. 문서 선택</text>
-            <text x="50" y="150" class="s6-impl-w">디렉토리 스캔 → Rich Table → Confirm</text>
-            <rect x="440" y="120" width="40" height="18" rx="9" fill="rgba(255,255,255,0.15)"/>
-            <text x="460" y="133" text-anchor="middle" class="s6-tag" fill="#fff">확인</text>
-            <text x="490" y="133" class="s6-impl">전체 선택 또는 개별 번호 입력</text>
-
-            <line x1="230" y1="160" x2="230" y2="176" stroke="#2C5282" stroke-width="2" marker-end="url(#s6-arrow)"/>
-
-            <!-- Step 3: 문서 파싱 (required auto) -->
-            <rect x="30" y="182" width="400" height="48" rx="6" fill="#1B3A5C"/>
-            <text x="50" y="203" class="s6-req">Step 3. 문서 파싱</text>
-            <text x="50" y="220" class="s6-impl-w">pipeline.step_parse(files=selected)</text>
-            <rect x="440" y="190" width="40" height="18" rx="9" fill="rgba(255,255,255,0.15)"/>
-            <text x="460" y="203" text-anchor="middle" class="s6-tag" fill="#fff">자동</text>
-            <text x="490" y="203" class="s6-impl">자동 진행 (확인 없음)</text>
-
-            <line x1="230" y1="230" x2="230" y2="246" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#s6-arrow-orange)"/>
-
-            <!-- Step 3a: 온톨로지 (optional) -->
-            <rect x="30" y="252" width="400" height="48" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1" stroke-dasharray="6,3"/>
-            <text x="50" y="273" class="s6-opt">Step 3a. 온톨로지 (선택적)</text>
-            <text x="50" y="290" class="s6-impl">Confirm(default=ontology.enabled) → step_extract_ontology()</text>
-            <rect x="440" y="260" width="40" height="18" rx="9" fill="#FFFAF0" stroke="#C05621" stroke-width="1"/>
-            <text x="460" y="273" text-anchor="middle" class="s6-tag" fill="#C05621">선택</text>
-            <text x="490" y="273" class="s6-impl">config.ontology.enabled 기본값 반영</text>
-
-            <line x1="230" y1="300" x2="230" y2="316" stroke="#2C5282" stroke-width="2" marker-end="url(#s6-arrow)"/>
-
-            <!-- Step 4: QA 생성 (required confirm) -->
-            <rect x="30" y="322" width="400" height="48" rx="6" fill="#1B3A5C"/>
-            <text x="50" y="343" class="s6-req">Step 4. QA 생성</text>
-            <text x="50" y="360" class="s6-impl-w">Confirm → pipeline.step_generate(docs)</text>
-            <rect x="440" y="330" width="40" height="18" rx="9" fill="rgba(255,255,255,0.15)"/>
-            <text x="460" y="343" text-anchor="middle" class="s6-tag" fill="#fff">확인</text>
-            <text x="490" y="343" class="s6-impl">거부 시 파싱 결과 경로 안내 후 종료</text>
-
-            <line x1="230" y1="370" x2="230" y2="386" stroke="#2C5282" stroke-width="2" marker-end="url(#s6-arrow)"/>
-
-            <!-- Step 5: 검증 (required auto) -->
-            <rect x="30" y="392" width="400" height="48" rx="6" fill="#1B3A5C"/>
-            <text x="50" y="413" class="s6-req">Step 5. 검증</text>
-            <text x="50" y="430" class="s6-impl-w">pipeline.step_validate(pairs, docs)</text>
-            <rect x="440" y="400" width="40" height="18" rx="9" fill="rgba(255,255,255,0.15)"/>
-            <text x="460" y="413" text-anchor="middle" class="s6-tag" fill="#fff">자동</text>
-            <text x="490" y="413" class="s6-impl">자동 진행 (확인 없음)</text>
-
-            <line x1="230" y1="440" x2="230" y2="456" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#s6-arrow-orange)"/>
-
-            <!-- Step 6: 품질 평가 (optional) -->
-            <rect x="30" y="462" width="400" height="48" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1" stroke-dasharray="6,3"/>
-            <text x="50" y="483" class="s6-opt">Step 6. 품질 평가 (선택적)</text>
-            <text x="50" y="500" class="s6-impl">Confirm(default=scoring.enabled) → step_score()</text>
-            <rect x="440" y="470" width="40" height="18" rx="9" fill="#FFFAF0" stroke="#C05621" stroke-width="1"/>
-            <text x="460" y="483" text-anchor="middle" class="s6-tag" fill="#C05621">선택</text>
-            <text x="490" y="483" class="s6-impl">config.scoring.enabled 기본값 반영</text>
-
-            <line x1="230" y1="510" x2="230" y2="526" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#s6-arrow-orange)"/>
-
-            <!-- Step 7: 데이터 증강 (optional) -->
-            <rect x="30" y="532" width="400" height="48" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1" stroke-dasharray="6,3"/>
-            <text x="50" y="553" class="s6-opt">Step 7. 데이터 증강 (선택적)</text>
-            <text x="50" y="570" class="s6-impl">Confirm(default=augment.enabled) → step_augment()</text>
-            <rect x="440" y="540" width="40" height="18" rx="9" fill="#FFFAF0" stroke="#C05621" stroke-width="1"/>
-            <text x="460" y="553" text-anchor="middle" class="s6-tag" fill="#C05621">선택</text>
-            <text x="490" y="553" class="s6-impl">config.augment.enabled 기본값 반영</text>
-
-            <line x1="230" y1="580" x2="230" y2="596" stroke="#2C5282" stroke-width="2" marker-end="url(#s6-arrow)"/>
-
-            <!-- 분석 (required auto, no step number) -->
-            <rect x="30" y="602" width="400" height="48" rx="6" fill="#1B3A5C"/>
-            <text x="50" y="623" class="s6-req">분석</text>
-            <text x="50" y="640" class="s6-impl-w">pipeline.step_analyze(pairs)</text>
-            <rect x="440" y="610" width="40" height="18" rx="9" fill="rgba(255,255,255,0.15)"/>
-            <text x="460" y="623" text-anchor="middle" class="s6-tag" fill="#fff">자동</text>
-            <text x="490" y="623" class="s6-impl">자동 진행 (확인 없음)</text>
-
-            <line x1="230" y1="650" x2="230" y2="666" stroke="#2C5282" stroke-width="2" marker-end="url(#s6-arrow)"/>
-
-            <!-- Step 8: 학습 (required confirm) -->
-            <rect x="30" y="672" width="400" height="48" rx="6" fill="#1B3A5C"/>
-            <text x="50" y="693" class="s6-req">Step 8. 학습</text>
-            <text x="50" y="710" class="s6-impl-w">step_convert() → Confirm → step_train()</text>
-            <rect x="440" y="680" width="40" height="18" rx="9" fill="rgba(255,255,255,0.15)"/>
-            <text x="460" y="693" text-anchor="middle" class="s6-tag" fill="#fff">확인</text>
-            <text x="490" y="693" class="s6-impl">거부 시 학습 데이터 경로 안내 후 종료</text>
-
-            <line x1="230" y1="720" x2="230" y2="736" stroke="#2C5282" stroke-width="2" marker-end="url(#s6-arrow)"/>
-
-            <!-- Step 9: 내보내기 (required confirm) -->
-            <rect x="30" y="742" width="400" height="48" rx="6" fill="#1B3A5C"/>
-            <text x="50" y="763" class="s6-req">Step 9. 내보내기</text>
-            <text x="50" y="780" class="s6-impl-w">Confirm → step_export()</text>
-            <rect x="440" y="750" width="40" height="18" rx="9" fill="rgba(255,255,255,0.15)"/>
-            <text x="460" y="763" text-anchor="middle" class="s6-tag" fill="#fff">확인</text>
-            <text x="490" y="763" class="s6-impl">거부 시 어댑터 경로 안내 후 종료</text>
-
-            <line x1="230" y1="790" x2="230" y2="806" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#s6-arrow-orange)"/>
-
-            <!-- Step 10: 멀티턴 대화 (optional) -->
-            <rect x="30" y="812" width="400" height="48" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1" stroke-dasharray="6,3"/>
-            <text x="50" y="833" class="s6-opt">Step 10. 멀티턴 대화 (선택적)</text>
-            <text x="50" y="850" class="s6-impl">Confirm(default=dialogue.enabled) → step_dialogue()</text>
-            <rect x="440" y="820" width="40" height="18" rx="9" fill="#FFFAF0" stroke="#C05621" stroke-width="1"/>
-            <text x="460" y="833" text-anchor="middle" class="s6-tag" fill="#C05621">선택</text>
-
-            <line x1="230" y1="860" x2="230" y2="876" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#s6-arrow-orange)"/>
-
-            <!-- Step 11: GGUF 변환 (optional) -->
-            <rect x="30" y="882" width="400" height="48" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1" stroke-dasharray="6,3"/>
-            <text x="50" y="903" class="s6-opt">Step 11. GGUF 변환 (선택적)</text>
-            <text x="50" y="920" class="s6-impl">Confirm(default=gguf_export.enabled) → step_gguf_export()</text>
-            <rect x="440" y="890" width="40" height="18" rx="9" fill="#FFFAF0" stroke="#C05621" stroke-width="1"/>
-            <text x="460" y="903" text-anchor="middle" class="s6-tag" fill="#C05621">선택</text>
-
-            <line x1="230" y1="930" x2="230" y2="946" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#s6-arrow-orange)"/>
-
-            <!-- Step 12: 모델 평가 (optional) -->
-            <rect x="30" y="952" width="400" height="48" rx="6" fill="#FFFAF0" stroke="#C05621" stroke-width="1" stroke-dasharray="6,3"/>
-            <text x="50" y="973" class="s6-opt">Step 12. 모델 평가 (선택적)</text>
-            <text x="50" y="990" class="s6-impl">Confirm(default=eval.enabled) → step_eval()</text>
-            <rect x="440" y="960" width="40" height="18" rx="9" fill="#FFFAF0" stroke="#C05621" stroke-width="1"/>
-            <text x="460" y="973" text-anchor="middle" class="s6-tag" fill="#C05621">선택</text>
-            <text x="490" y="973" class="s6-impl">config.eval.enabled 기본값 반영</text>
-          </svg>
-          <p class="diagram-caption">그림 7-1. Wizard 실행 흐름 (필수: 네이비, 선택: 주황 점선)</p>
-        </div>
+        
 
         <h3 id="wizard-steps">7.2 필수/선택 단계 분류</h3>
 
@@ -1207,7 +718,7 @@ def _strip_none_sections(cls, values: dict) -&gt; dict:
               </tr>
               <tr>
                  <td><span class="tag tag-optional">선택 (설정 의존)</span></td>
-                 <td>온톨로지 추출, 품질 평가, 데이터 증강, 멀티턴 대화, GGUF 변환, 모델 평가</td>
+                 <td>품질 평가, 데이터 증강, 멀티턴 대화, GGUF 변환, 모델 평가</td>
                 <td><code>Confirm.ask(default=config값)</code></td>
                 <td>config 의존</td>
               </tr>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="slm-factory SLM을 RAG와 온톨로지로 확장하는 종합 가이드 - 기술 조합 분석, 장단점, 연동 방법">
+  <meta name="description" content="slm-factory SLM을 RAG로 확장하는 종합 가이드 - 기술 조합 분석, 장단점, 연동 방법">
   <title>기술 확장 가이드 - slm-factory</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
   <link rel="stylesheet" href="./assets/style.css">
@@ -117,13 +117,6 @@
 
           <p>요약하면, slm-factory는 <strong>"모델 자체를 도메인에 맞게 만드는 도구"</strong>이고, AutoRAG는 <strong>"모델이 참조할 문서 검색 시스템을 최적화하는 도구"</strong>입니다.</p>
 
-          <hr>
-
-          <h3 id="ontology-intro">온톨로지 (QA 학습 품질 향상 옵션)</h3>
-          <p>slm-factory는 문서에서 엔티티·관계를 추출하여 QA 생성 프롬프트에 맥락으로 주입하는 온톨로지 기능을 제공합니다. RAG 서비스와는 별개로, <strong>학습 데이터 품질 향상</strong>을 위한 선택적 기능입니다. <code>ontology.enrich_qa: true</code> 설정으로 활성화합니다.</p>
-          <div class="callout callout-info"><div class="callout-content">
-            <p>상세 설정은 <a href="configuration.html">설정 레퍼런스</a>의 <code>ontology</code> 블록, 사용법은 <a href="cli-reference.html">CLI 레퍼런스</a>의 <code>tool ontology</code>를 참고하십시오.</p>
-          </div></div>
         </section>
 
 
@@ -156,10 +149,6 @@
               </tbody>
             </table>
           </div>
-
-          <blockquote>
-            <p><strong>온톨로지 옵션</strong>: 두 패턴 모두 <code>ontology.enrich_qa: true</code> 설정으로 QA 학습 데이터 품질을 높일 수 있습니다. 문서 간 관계가 복잡한 도메인(법률, 의료, 기술 표준)에서 효과적입니다.</p>
-          </blockquote>
 
           <h3>패턴 선택 기준</h3>
           <div class="table-wrapper">
@@ -617,7 +606,7 @@ Phase 3: RAG 서비스 운영
               <thead><tr><th>문서</th><th>내용</th></tr></thead>
               <tbody>
                 <tr><td><a href="guide.html">사용 가이드</a></td><td>slm-factory 설치부터 모델 배포까지 단계별 안내</td></tr>
-                <tr><td><a href="configuration.html">설정 레퍼런스</a></td><td><code>rag</code>, <code>ontology</code>, <code>export.ollama</code> 설정 상세</td></tr>
+                <tr><td><a href="configuration.html">설정 레퍼런스</a></td><td><code>rag</code>, <code>export.ollama</code> 설정 상세</td></tr>
                 <tr><td><a href="cli-reference.html">CLI 레퍼런스</a></td><td><code>tool rag-index</code>, <code>tool rag-serve</code>, <code>tool wizard</code> 명령어 상세</td></tr>
                 <tr><td><a href="architecture.html">아키텍처 가이드</a></td><td>모듈 내부 구조와 설계 원칙</td></tr>
                 <tr><td><a href="development.html">개발 가이드</a></td><td>모듈 확장 방법</td></tr>
