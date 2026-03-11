@@ -81,7 +81,7 @@ slm-factory 사용자 관점에서 실제로 의미 있는 4가지 확장 패턴
 | **장점** | 도메인 이해 + 최신 정보 + 출처 제시, 가장 널리 검증된 조합 |
 | **단점** | 두 시스템 운영 복잡도, 검색 지연 추가 |
 | **적합한 경우** | 대부분의 도메인 AI 시스템 (가장 범용적 조합) |
-| **slm-factory 설정** | slm-factory + AutoRAG 연동 (섹션 4 참조) |
+| **slm-factory 설정** | RAG 서비스 가이드 (섹션 4 참조) |
 
 ### 패턴 3: SLM + 온톨로지
 
@@ -128,49 +128,28 @@ slm-factory 사용자 관점에서 실제로 의미 있는 4가지 확장 패턴
 
 ---
 
-## 4. AutoRAG 연동 가이드
+## 4. RAG 서비스 가이드
 
-### 통합 아키텍처
+slm-factory는 AutoRAG 데이터 포맷을 활용하여 도메인 특화 RAG 서비스를 구축합니다. export-autorag로 데이터를 준비하고 내장 RAG로 즉시 서비스하거나, AutoRAG 최적화를 거쳐 프로덕션으로 확장합니다.
 
-slm-factory와 AutoRAG의 통합은 하나의 도메인 문서 세트에서 시작하여 두 갈래 경로로 처리됩니다.
+```
+export-autorag → corpus.parquet → rag-index → ChromaDB → rag-serve → REST API
+                                                            ↑ (선택) AutoRAG 최적화
+```
 
-- **왼쪽 경로 (slm-factory)**: 도메인 문서에서 QA 학습 데이터를 생성하고, Student 모델을 파인튜닝하여 Ollama에 배포합니다.
-- **오른쪽 경로 (AutoRAG)**: 동일한 도메인 문서를 벡터 DB에 색인하고, 최적의 RAG 파이프라인을 자동으로 탐색합니다.
-- **수렴 지점 (Ollama)**: `export.ollama.model_name` 설정으로 배포된 모델명이 AutoRAG YAML의 `model:` 값과 동일하면, AutoRAG는 자동으로 slm-factory가 만든 SLM을 사용합니다.
-
-### 단계별 연동
-
-**Step 1: slm-factory로 도메인 SLM 생성**
+### 4.1 데이터 준비
 
 ```bash
-slm-factory init my-domain-project
-cp /path/to/domain-docs/*.pdf my-domain-project/documents/
-slm-factory tool wizard --config my-domain-project/project.yaml
+# 1. slm-factory 파이프라인 실행 (파싱 + QA 생성)
+slm-factory run --config project.yaml
+
+# 2. AutoRAG 평가용 데이터 내보내기
+slm-factory tool export-autorag --config project.yaml
+
+# 결과물:
+#   output/autorag/corpus.parquet  — 문서 청크 (검색 대상)
+#   output/autorag/qa.parquet      — QA 평가 데이터
 ```
-
-```yaml
-# project.yaml 설정
-export:
-  ollama:
-    model_name: "my-domain-model"
-    system_prompt: "당신은 도메인 전문 AI 어시스턴트입니다."
-```
-
-```bash
-# 모델 배포
-cd my-domain-project/output/merged_model
-ollama create my-domain-model -f Modelfile
-ollama run my-domain-model "이 도메인에 대해 설명해주세요"
-```
-
-**Step 2: AutoRAG 설치 및 데이터 준비**
-
-```bash
-pip install autorag
-mkdir -p autorag-project/data
-```
-
-AutoRAG에 필요한 두 개의 parquet 파일을 준비합니다.
 
 코퍼스 데이터 (`corpus.parquet`):
 
@@ -189,7 +168,65 @@ AutoRAG에 필요한 두 개의 parquet 파일을 준비합니다.
 | `retrieval_gt` | `list[list[str]]` | 정답 근거 문서 ID 목록 |
 | `generation_gt` | `list[str]` | 정답 텍스트 목록 |
 
-**Step 3: AutoRAG YAML에서 slm-factory 모델 연결**
+### 4.2 내장 RAG 서빙 — 즉시 시작
+
+slm-factory에 내장된 **ChromaDB 인덱싱 + FastAPI 서빙**으로, AutoRAG 없이도 즉시 RAG 서비스를 구동할 수 있습니다.
+
+```bash
+# 1. corpus.parquet 생성 (4.1의 export-autorag 실행 후)
+slm-factory tool export-autorag --config project.yaml
+
+# 2. ChromaDB에 벡터 임베딩 적재
+slm-factory tool rag-index --config project.yaml
+
+# 3. RAG API 서버 실행
+slm-factory tool rag-serve --config project.yaml
+# → POST http://localhost:8000/v1/query  질의 엔드포인트
+# → GET  http://localhost:8000/health     헬스체크
+```
+
+```bash
+# API 호출 테스트
+curl -X POST http://localhost:8000/v1/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "도메인 특화 질문", "top_k": 5}'
+```
+
+**동작 방식:**
+- `rag-index`: `corpus.parquet` 문서를 `BAAI/bge-m3`로 임베딩 → ChromaDB에 적재
+- `rag-serve`: 질의 임베딩 → ChromaDB 유사도 검색 → Ollama SLM 생성 → JSON 응답
+
+**적합한 경우:** PoC, 데모, 소규모 사내 서비스. AutoRAG 최적화 과정 없이 즉시 시작하고 싶을 때.
+
+> **팁**: 검색 품질 최적화가 필요하면 4.3절(AutoRAG)으로 최적 검색·리랭킹·생성 조합을 탐색하십시오.
+
+### 4.3 AutoRAG 최적화 (선택)
+
+내장 RAG로 충분하지만, 검색 품질 최적화가 필요하면 AutoRAG로 최적 조합을 탐색할 수 있습니다.
+
+```bash
+pip install autorag
+
+# 최적화 실행 (검색·리랭킹·생성 조합 자동 탐색)
+autorag evaluate \
+  --qa_data_path output/autorag/qa.parquet \
+  --corpus_data_path output/autorag/corpus.parquet \
+  --config autorag_config.yaml
+
+# 결과 확인
+autorag dashboard --trial_dir ./benchmark/0
+```
+
+**한국어 최적화 권장 컴포넌트:**
+
+| 단계 | 권장 모듈 | 설명 |
+|------|-----------|------|
+| Retrieval | `bm25` + `vectordb` | BM25(형태소)와 벡터 검색 하이브리드 |
+| Embedding | `BAAI/bge-m3` | 다국어 임베딩 (한국어 성능 우수) |
+| Reranking | `Dongjin-kr/ko-reranker` | 한국어 특화 리랭커 |
+| Tokenizer | `ko_kiwi` | 한국어 형태소 분석 (BM25 토크나이저) |
+
+AutoRAG YAML에서 slm-factory 모델을 연결할 때는 `export.ollama.model_name` 값을 그대로 사용합니다.
 
 ```yaml
 # autorag-config.yaml
@@ -226,38 +263,156 @@ node_lines:
 
 > **핵심 연결 포인트**: slm-factory의 `export.ollama.model_name: "my-domain-model"` 값이 AutoRAG YAML의 `model: my-domain-model`과 일치해야 합니다. Ollama가 두 시스템의 다리 역할을 합니다.
 
-**Step 4: AutoRAG 실행**
+AutoRAG 최적화가 완료되면, 별도 개발 없이 **즉시 RAG API 서비스를 배포**할 수 있습니다. AutoRAG 내장 Quart 서버가 최적화 결과를 그대로 서빙합니다.
 
 ```bash
-autorag evaluate \
-  --config autorag-config.yaml \
-  --qa_data_path autorag-project/data/qa.parquet \
-  --corpus_data_path autorag-project/data/corpus.parquet \
-  --project_dir autorag-project/results
-
-# 결과 확인
-autorag dashboard --trial_dir autorag-project/results/0
-```
-
-**Step 5: 최적 RAG 시스템 배포**
-
-```bash
+# 로컬 실행 — 이것만으로 RAG 서비스가 동작합니다
 autorag run_api \
-  --config_path autorag-project/best_pipeline.yaml \
+  --trial_dir ./benchmark/0 \
   --host 0.0.0.0 --port 8000
 
+# Docker 실행 — 배포 환경에서도 동일하게 동작합니다
+docker run -p 8000:8000 \
+  -v $(pwd)/benchmark:/app/benchmark \
+  autoraghq/autorag:api-latest \
+  run_api --trial_dir /app/benchmark/0
+```
+
+```bash
 # API 호출 테스트
 curl -X POST http://localhost:8000/v1/run \
   -H "Content-Type: application/json" \
-  -d '{"query": "이 규정의 예외 조항은 무엇입니까?"}'
+  -d '{"query": "도메인 특화 질문", "result_column": "generated_texts"}'
 ```
 
-### 운영 팁
+**이 시점에서 무엇이 동작하는가:**
+- 사용자 질문을 받으면 벡터 검색 → 리랭킹 → SLM 생성까지 자동 실행
+- 최적화 과정에서 선택된 최적 검색·생성 전략이 그대로 적용됨
+- REST API를 통해 외부 시스템(웹앱, 챗봇, 내부 도구)에서 호출 가능
+
+**적합한 경우:** 사내 도구, 소규모 팀 서비스, 부서 단위 AI 어시스턴트 (동시 사용자 ~10명)
+
+### 4.4 FastAPI 프로덕션 서버 (선택)
+
+AutoRAG 최적화 결과를 분석하여 **최적 조합을 직접 구현**하는 방식입니다.
+
+```
+┌─────────────────────────────────────────────────┐
+│              FastAPI Application                │
+│                                                 │
+│  /v1/query ──► Retriever ──► Reranker ──► LLM   │
+│                  │              │           │    │
+│              ChromaDB     ko-reranker   Ollama   │
+│              (bge-m3)                   (SLM)    │
+└─────────────────────────────────────────────────┘
+```
+
+**구현 단계:**
+
+1. **AutoRAG 최적화 결과 분석** — `summary.csv`에서 최적 retriever/reranker/generator 조합 확인
+2. **벡터 DB 구축** — `corpus.parquet`의 청크를 `bge-m3`로 임베딩 → ChromaDB 적재
+3. **FastAPI 서버 구현** — 검색 → 리랭킹 → SLM 생성 파이프라인
+4. **SLM 연동** — slm-factory로 학습한 모델을 Ollama로 서빙, FastAPI에서 호출
+
+```python
+# 최소 구조 예시
+from fastapi import FastAPI
+import chromadb
+import httpx  # Ollama 호출용
+
+app = FastAPI()
+chroma = chromadb.PersistentClient(path="./chroma_db")
+collection = chroma.get_collection("domain_docs")
+
+@app.post("/v1/query")
+async def query(request: QueryRequest):
+    # 1. 벡터 검색
+    results = collection.query(
+        query_texts=[request.query], n_results=10
+    )
+    # 2. 리랭킹 (ko-reranker)
+    reranked = rerank(request.query, results)
+    # 3. SLM 생성 (Ollama)
+    context = "\n".join(reranked[:3])
+    answer = await call_ollama(request.query, context)
+    return {"answer": answer, "sources": reranked[:3]}
+```
+
+**적합한 경우:** 프로덕션 배포, 커스텀 로직 필요, 높은 동시성 요구
+
+### 4.5 구축 단계 요약
+
+```
+Phase 1: slm-factory (SLM 학습 + Ollama 배포)
+    ↓
+Phase 2: export-autorag → corpus.parquet 생성
+    ↓
+Phase 3: RAG 서비스 운영
+    ├─ A: slm-factory 내장 RAG (즉시 시작)
+    ├─ B: AutoRAG 내장 서버 (최적화 탐색)
+    └─ C: FastAPI 커스텀 서버 (대규모 확장)
+```
+
+| 단계 | 기간 | 목표 | 판단 기준 |
+|------|------|------|-----------|
+| Phase 1 | 1-2주 | SLM 학습 완료 | BLEU ≥ 0.3, ROUGE-L ≥ 0.4 |
+| Phase 2 | 1주 | RAG 파이프라인 최적화 | Retrieval MRR ≥ 0.7 |
+| Phase 3 | 1-2주 | RAG 서비스 배포 | API 응답 품질 + 지연 시간 |
+
+> **Phase 3 시점에서 실체적인 RAG 서비스가 동작합니다.** 경로 A라면 `slm-factory tool rag-serve` 한 줄로, 경로 B라면 `autorag run_api` 한 줄로 REST API를 제공하는 도메인 AI 서비스가 완성됩니다.
+
+### 4.6 프로덕션 보완 체크리스트
+
+slm-factory 내장 RAG 또는 AutoRAG 서버로 RAG 서비스를 즉시 운영할 수 있지만, **엔터프라이즈 프로덕션 환경**에서는 다음 항목을 보완해야 합니다.
+
+#### 즉시 보완 (서비스 공개 전)
+
+| 항목 | 설명 | 보완 방법 |
+|------|------|-----------|
+| **HTTPS/TLS** | API 통신 암호화 | Nginx/Caddy 리버스 프록시로 TLS 종단. `certbot`으로 인증서 자동 발급 |
+| **인증/인가** | 허가된 사용자만 접근 | API 키 기반: Nginx `auth_request` 또는 FastAPI 미들웨어. 기업 환경: SSO/LDAP 연동 |
+| **입력 검증** | 프롬프트 인젝션 방어 | 질의 길이 제한 (예: 2,000자), 금칙어 필터링, 시스템 프롬프트 고정 |
+| **헬스체크** | 서비스 상태 모니터링 | `/health` 엔드포인트 추가. Ollama 연결 + 벡터 DB 상태를 포함 |
+
+#### 운영 안정화 (서비스 공개 후)
+
+| 항목 | 설명 | 보완 방법 |
+|------|------|-----------|
+| **요청 제한** | 과부하 방지 | Nginx `limit_req_zone` 또는 FastAPI `slowapi`. 사용자별 분당 요청 수 제한 |
+| **로깅** | 질의/응답 추적 | 구조화 로깅 (JSON). 질의, 검색된 문서 ID, 응답 시간, 에러를 기록 |
+| **모니터링** | 성능·품질 추적 | Prometheus + Grafana: 응답 지연(p50/p95/p99), 에러율, Ollama 추론 시간 |
+| **자동 재시작** | 장애 복구 | systemd `Restart=always` 또는 Docker `restart: unless-stopped` |
+| **백업** | 데이터 보호 | 벡터 DB(ChromaDB) 정기 백업. AutoRAG trial 디렉토리 버전 관리 |
+
+#### 프로덕션 확장 (사용자 증가 시)
+
+| 항목 | 설명 | 보완 방법 |
+|------|------|-----------|
+| **로드 밸런서** | 수평 확장 | 서버 인스턴스 다중 구동 + Nginx upstream. 또는 FastAPI 전환 (경로 C) |
+| **GPU 추론 최적화** | 높은 동시성 | Ollama 대신 vLLM 또는 TGI(Text Generation Inference)로 전환. 배치 추론 지원 |
+| **응답 캐싱** | 반복 질의 최적화 | Redis 캐시. 동일 질의 재처리 방지 (TTL 기반) |
+| **벡터 DB 확장** | 대규모 코퍼스 | ChromaDB → Milvus 또는 Weaviate. 분산 인덱싱, 수백만 문서 지원 |
+| **모델 버전 관리** | SLM 업데이트 | `tool evolve`로 SLM 갱신 시, Ollama 모델명에 버전 태그 부여 (`v1`, `v2`). Blue-Green 배포로 무중단 전환 |
+
+#### 전환 판단 기준: 경로 A → B → C
+
+slm-factory 내장 RAG(경로 A) 또는 AutoRAG 서버(경로 B)에서 FastAPI 커스텀 서버(경로 C)로 전환해야 하는 시점:
+
+| 신호 | 의미 |
+|------|------|
+| 동시 사용자 10명 이상에서 응답 지연 증가 | 내장 서버의 동시성 한계 |
+| 인증·권한 로직이 복잡해짐 | 내장 서버에 미들웨어 추가 어려움 |
+| 검색 결과 후처리 로직 필요 | 커스텀 비즈니스 로직 삽입 필요 |
+| 멀티 모델 라우팅 필요 | 질문 유형별 다른 SLM 호출 |
+
+경로 A에서 시작하여, 검색 품질 최적화가 필요하면 경로 B(AutoRAG)로, 위 신호가 나타나면 경로 C(FastAPI)로 전환하십시오. AutoRAG 최적화 결과(`summary.csv`)의 최적 조합 정보를 그대로 FastAPI 구현에 반영하면 됩니다.
+
+### 4.7 운영 팁
 
 - **문서 분리 전략**: 핵심 도메인 지식은 SLM 학습에, 세부 참조 자료는 RAG 검색 코퍼스에 활용합니다.
 - **모델 크기**: RAG와 함께 사용하면 1B~3B 소형 모델로도 충분합니다. SLM이 모든 지식을 기억할 필요 없이 "검색된 문서 이해"에 집중하면 됩니다.
 - **시스템 프롬프트 통일**: slm-factory 학습 시 사용한 시스템 프롬프트와 AutoRAG 생성 시 프롬프트를 일관되게 유지하십시오.
-- **업데이트**: slm-factory의 `tool evolve`로 SLM을 진화시키고, AutoRAG 코퍼스에 새 문서를 추가하여 양쪽을 동시에 갱신합니다.
+- **업데이트**: slm-factory의 `tool evolve`로 SLM을 진화시키고, RAG 코퍼스에 새 문서를 추가하여 양쪽을 동시에 갱신합니다.
 
 ---
 
@@ -378,231 +533,4 @@ wizard에서는 **Step 3a (온톨로지 추출)**로 표시되며, Parse 후 자
 | [개발 가이드](development.html) | 모듈 확장 방법 |
 | [AutoRAG GitHub](https://github.com/Marker-Inc-Korea/AutoRAG) | AutoRAG 공식 저장소 |
 
----
 
-## 9. RAG 서비스 구축 가이드
-
-slm-factory는 **도메인 특화 RAG 서비스**를 세 가지 경로로 구축할 수 있습니다.
-
-| 경로 | 도구 | 방법 | 적합 상황 |
-|------|------|------|-----------|
-| **A — slm-factory 내장** | `tool rag-index` + `tool rag-serve` | corpus.parquet → ChromaDB 임베딩 → FastAPI 서빙 | PoC, 데모, 소규모 사내 서비스 |
-| **B — AutoRAG 내장 서버** | AutoRAG `run_api` | 검색·리랭킹·생성 최적 조합 자동 탐색 후 서빙 | 품질 최적화가 필요한 서비스 |
-| **C — FastAPI 커스텀** | 직접 구현 | AutoRAG 최적화 결과 기반 커스텀 서버 | 대규모 프로덕션, 커스텀 로직 |
-
-> 소규모 서비스라면 **경로 A만으로 충분**합니다. 프로덕션 품질이 필요하면 경로 B → C 순서로 진행하십시오. 프로덕션 보완 사항은 [9.7절](#97-프로덕션-보완-체크리스트)에서 다룹니다.
-
-### 9.1 데이터 준비: slm-factory → AutoRAG
-
-```bash
-# 1. slm-factory 파이프라인 실행 (파싱 + QA 생성)
-slm-factory run --config project.yaml
-
-# 2. AutoRAG 평가용 데이터 내보내기
-slm-factory tool export-autorag --config project.yaml
-
-# 결과물:
-#   output/autorag/corpus.parquet  — 문서 청크 (검색 대상)
-#   output/autorag/qa.parquet      — QA 평가 데이터
-```
-
-### 9.2 경로 A: slm-factory 내장 RAG — 가장 빠른 시작
-
-slm-factory에 내장된 **ChromaDB 인덱싱 + FastAPI 서빙**으로, AutoRAG 없이도 즉시 RAG 서비스를 구동할 수 있습니다.
-
-```bash
-# 1. corpus.parquet 생성 (9.1의 export-autorag 실행 후)
-slm-factory tool export-autorag --config project.yaml
-
-# 2. ChromaDB에 벡터 임베딩 적재
-slm-factory tool rag-index --config project.yaml
-
-# 3. RAG API 서버 실행
-slm-factory tool rag-serve --config project.yaml
-# → POST http://localhost:8000/v1/query  질의 엔드포인트
-# → GET  http://localhost:8000/health     헬스체크
-```
-
-```bash
-# API 호출 테스트
-curl -X POST http://localhost:8000/v1/query \
-  -H "Content-Type: application/json" \
-  -d '{"query": "도메인 특화 질문", "top_k": 5}'
-```
-
-**동작 방식:**
-- `rag-index`: `corpus.parquet` 문서를 `BAAI/bge-m3`로 임베딩 → ChromaDB에 적재
-- `rag-serve`: 질의 임베딩 → ChromaDB 유사도 검색 → Ollama SLM 생성 → JSON 응답
-
-**적합한 경우:** PoC, 데모, 소규모 사내 서비스. AutoRAG 최적화 과정 없이 즉시 시작하고 싶을 때.
-
-> **팁**: 검색 품질 최적화가 필요하면 경로 B(AutoRAG)로 최적 검색·리랭킹·생성 조합을 탐색하십시오.
-
-### 9.3 AutoRAG 최적화 실행
-
-```bash
-pip install autorag
-
-# 최적화 실행 (검색·리랭킹·생성 조합 자동 탐색)
-autorag evaluate \
-  --qa_data_path output/autorag/qa.parquet \
-  --corpus_data_path output/autorag/corpus.parquet \
-  --config autorag_config.yaml
-```
-
-**한국어 최적화 권장 컴포넌트:**
-
-| 단계 | 권장 모듈 | 설명 |
-|------|-----------|------|
-| Retrieval | `bm25` + `vectordb` | BM25(형태소)와 벡터 검색 하이브리드 |
-| Embedding | `BAAI/bge-m3` | 다국어 임베딩 (한국어 성능 우수) |
-| Reranking | `Dongjin-kr/ko-reranker` | 한국어 특화 리랭커 |
-| Tokenizer | `ko_kiwi` | 한국어 형태소 분석 (BM25 토크나이저) |
-
-### 9.4 경로 B: AutoRAG 내장 서버 — 최적화 기반 RAG 서비스
-
-AutoRAG 최적화가 완료되면, 별도 개발 없이 **즉시 RAG API 서비스를 배포**할 수 있습니다. AutoRAG 내장 Quart 서버가 최적화 결과를 그대로 서빙합니다.
-
-```bash
-# 로컬 실행 — 이것만으로 RAG 서비스가 동작합니다
-autorag run_api \
-  --trial_dir ./benchmark/0 \
-  --host 0.0.0.0 --port 8000
-
-# Docker 실행 — 배포 환경에서도 동일하게 동작합니다
-docker run -p 8000:8000 \
-  -v $(pwd)/benchmark:/app/benchmark \
-  autoraghq/autorag:api-latest \
-  run_api --trial_dir /app/benchmark/0
-```
-
-```bash
-# API 호출 테스트
-curl -X POST http://localhost:8000/v1/run \
-  -H "Content-Type: application/json" \
-  -d '{"query": "도메인 특화 질문", "result_column": "generated_texts"}'
-```
-
-**이 시점에서 무엇이 동작하는가:**
-- 사용자 질문을 받으면 벡터 검색 → 리랭킹 → SLM 생성까지 자동 실행
-- 최적화 과정에서 선택된 최적 검색·생성 전략이 그대로 적용됨
-- REST API를 통해 외부 시스템(웹앱, 챗봇, 내부 도구)에서 호출 가능
-
-**적합한 경우:** 사내 도구, 소규모 팀 서비스, 부서 단위 AI 어시스턴트 (동시 사용자 ~10명)
-
-### 9.5 경로 C: FastAPI 프로덕션 서버 (대규모)
-
-AutoRAG 최적화 결과를 분석하여 **최적 조합을 직접 구현**하는 방식입니다.
-
-```
-┌─────────────────────────────────────────────────┐
-│              FastAPI Application                │
-│                                                 │
-│  /v1/query ──► Retriever ──► Reranker ──► LLM   │
-│                  │              │           │    │
-│              ChromaDB     ko-reranker   Ollama   │
-│              (bge-m3)                   (SLM)    │
-└─────────────────────────────────────────────────┘
-```
-
-**구현 단계:**
-
-1. **AutoRAG 최적화 결과 분석** — `summary.csv`에서 최적 retriever/reranker/generator 조합 확인
-2. **벡터 DB 구축** — `corpus.parquet`의 청크를 `bge-m3`로 임베딩 → ChromaDB 적재
-3. **FastAPI 서버 구현** — 검색 → 리랭킹 → SLM 생성 파이프라인
-4. **SLM 연동** — slm-factory로 학습한 모델을 Ollama로 서빙, FastAPI에서 호출
-
-```python
-# 최소 구조 예시
-from fastapi import FastAPI
-import chromadb
-import httpx  # Ollama 호출용
-
-app = FastAPI()
-chroma = chromadb.PersistentClient(path="./chroma_db")
-collection = chroma.get_collection("domain_docs")
-
-@app.post("/v1/query")
-async def query(request: QueryRequest):
-    # 1. 벡터 검색
-    results = collection.query(
-        query_texts=[request.query], n_results=10
-    )
-    # 2. 리랭킹 (ko-reranker)
-    reranked = rerank(request.query, results)
-    # 3. SLM 생성 (Ollama)
-    context = "\n".join(reranked[:3])
-    answer = await call_ollama(request.query, context)
-    return {"answer": answer, "sources": reranked[:3]}
-```
-
-**적합한 경우:** 프로덕션 배포, 커스텀 로직 필요, 높은 동시성 요구
-
-### 9.6 구축 단계 요약
-
-```
-Phase 1: slm-factory (SLM 학습 + Ollama 배포)
-    ↓
-Phase 2: export-autorag → corpus.parquet 생성
-    ↓
-Phase 3: RAG 서비스 운영
-    ├─ A: slm-factory 내장 RAG (즉시 시작)
-    ├─ B: AutoRAG 내장 서버 (최적화 탐색)
-    └─ C: FastAPI 커스텀 서버 (대규모 확장)
-```
-
-| 단계 | 기간 | 목표 | 판단 기준 |
-|------|------|------|-----------|
-| Phase 1 | 1-2주 | SLM 학습 완료 | BLEU ≥ 0.3, ROUGE-L ≥ 0.4 |
-| Phase 2 | 1주 | RAG 파이프라인 최적화 | Retrieval MRR ≥ 0.7 |
-| Phase 3 | 1-2주 | RAG 서비스 배포 | API 응답 품질 + 지연 시간 |
-
-> **Phase 3 시점에서 실체적인 RAG 서비스가 동작합니다.** 경로 A라면 `slm-factory tool rag-serve` 한 줄로, 경로 B라면 `autorag run_api` 한 줄로 REST API를 제공하는 도메인 AI 서비스가 완성됩니다.
-
----
-
-### 9.7 프로덕션 보완 체크리스트
-
-slm-factory 내장 RAG 또는 AutoRAG 서버로 RAG 서비스를 즉시 운영할 수 있지만, **엔터프라이즈 프로덕션 환경**에서는 다음 항목을 보완해야 합니다.
-
-#### 즉시 보완 (서비스 공개 전)
-
-| 항목 | 설명 | 보완 방법 |
-|------|------|-----------|
-| **HTTPS/TLS** | API 통신 암호화 | Nginx/Caddy 리버스 프록시로 TLS 종단. `certbot`으로 인증서 자동 발급 |
-| **인증/인가** | 허가된 사용자만 접근 | API 키 기반: Nginx `auth_request` 또는 FastAPI 미들웨어. 기업 환경: SSO/LDAP 연동 |
-| **입력 검증** | 프롬프트 인젝션 방어 | 질의 길이 제한 (예: 2,000자), 금칙어 필터링, 시스템 프롬프트 고정 |
-| **헬스체크** | 서비스 상태 모니터링 | `/health` 엔드포인트 추가. Ollama 연결 + 벡터 DB 상태를 포함 |
-
-#### 운영 안정화 (서비스 공개 후)
-
-| 항목 | 설명 | 보완 방법 |
-|------|------|-----------|
-| **요청 제한** | 과부하 방지 | Nginx `limit_req_zone` 또는 FastAPI `slowapi`. 사용자별 분당 요청 수 제한 |
-| **로깅** | 질의/응답 추적 | 구조화 로깅 (JSON). 질의, 검색된 문서 ID, 응답 시간, 에러를 기록 |
-| **모니터링** | 성능·품질 추적 | Prometheus + Grafana: 응답 지연(p50/p95/p99), 에러율, Ollama 추론 시간 |
-| **자동 재시작** | 장애 복구 | systemd `Restart=always` 또는 Docker `restart: unless-stopped` |
-| **백업** | 데이터 보호 | 벡터 DB(ChromaDB) 정기 백업. AutoRAG trial 디렉토리 버전 관리 |
-
-#### 프로덕션 확장 (사용자 증가 시)
-
-| 항목 | 설명 | 보완 방법 |
-|------|------|-----------|
-| **로드 밸런서** | 수평 확장 | 서버 인스턴스 다중 구동 + Nginx upstream. 또는 FastAPI 전환 (경로 C) |
-| **GPU 추론 최적화** | 높은 동시성 | Ollama 대신 vLLM 또는 TGI(Text Generation Inference)로 전환. 배치 추론 지원 |
-| **응답 캐싱** | 반복 질의 최적화 | Redis 캐시. 동일 질의 재처리 방지 (TTL 기반) |
-| **벡터 DB 확장** | 대규모 코퍼스 | ChromaDB → Milvus 또는 Weaviate. 분산 인덱싱, 수백만 문서 지원 |
-| **모델 버전 관리** | SLM 업데이트 | `tool evolve`로 SLM 갱신 시, Ollama 모델명에 버전 태그 부여 (`v1`, `v2`). Blue-Green 배포로 무중단 전환 |
-
-#### 전환 판단 기준: 경로 A → B → C
-
-slm-factory 내장 RAG(경로 A) 또는 AutoRAG 서버(경로 B)에서 FastAPI 커스텀 서버(경로 C)로 전환해야 하는 시점:
-
-| 신호 | 의미 |
-|------|------|
-| 동시 사용자 10명 이상에서 응답 지연 증가 | 내장 서버의 동시성 한계 |
-| 인증·권한 로직이 복잡해짐 | 내장 서버에 미들웨어 추가 어려움 |
-| 검색 결과 후처리 로직 필요 | 커스텀 비즈니스 로직 삽입 필요 |
-| 멀티 모델 라우팅 필요 | 질문 유형별 다른 SLM 호출 |
-
-경로 A에서 시작하여, 검색 품질 최적화가 필요하면 경로 B(AutoRAG)로, 위 신호가 나타나면 경로 C(FastAPI)로 전환하십시오. AutoRAG 최적화 결과(`summary.csv`)의 최적 조합 정보를 그대로 FastAPI 구현에 반영하면 됩니다.
