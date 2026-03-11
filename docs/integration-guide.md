@@ -148,6 +148,40 @@ curl -X POST http://localhost:8000/v1/query \
 - `rag-index`: `corpus.parquet` 문서를 `BAAI/bge-m3`로 임베딩 → ChromaDB에 적재
 - `rag-serve`: 질의 임베딩 → ChromaDB 유사도 검색 → Ollama SLM 생성 → JSON 응답
 
+**질의 → 응답 흐름:**
+
+```
+사용자 질의: "이 규정의 예외 조항은?"
+       │
+       ▼
+  ① POST /v1/query ──────── FastAPI (rag-serve)
+       │
+       ▼
+  ② 질의 임베딩 ─────────── bge-m3로 벡터 변환
+       │
+       ▼
+  ③ ChromaDB 검색 ────────── cosine 유사도 top_k개 문서 청크 반환
+       │
+       ▼
+  ④ 프롬프트 조합 ────────── 시스템 지시 + 검색 문서 + 질문 결합
+       │                     "다음 문서를 참고하여 답변하십시오.
+       │                      {검색된 문서 청크들}
+       │                      질문: 이 규정의 예외 조항은?"
+       ▼
+  ⑤ Ollama SLM 생성 ──────── 도메인 특화 SLM이 컨텍스트 기반 답변 생성
+       │
+       ▼
+  ⑥ JSON 응답
+       {
+         "answer": "제3조에 따르면 예외 조항은...",
+         "sources": [
+           {"content": "제3조 예외...", "doc_id": "chunk_03", "score": 0.92},
+           {"content": "관련 규정...", "doc_id": "chunk_07", "score": 0.85}
+         ],
+         "query": "이 규정의 예외 조항은?"
+       }
+```
+
 **적합한 경우:** PoC, 데모, 소규모 사내 서비스. AutoRAG 최적화 과정 없이 즉시 시작하고 싶을 때.
 
 > **팁**: 검색 품질 최적화가 필요하면 4.3절(AutoRAG)으로 최적 검색·리랭킹·생성 조합을 탐색하십시오.
