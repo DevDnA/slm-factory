@@ -85,6 +85,7 @@ slm-factory tool wizard --config my-project/project.yaml
 | `slm-factory tool gguf` | GGUF 양자화 변환 | `--config`, `--model-dir` |
 | `slm-factory tool update` | 증분 업데이트 (변경 문서만) | `--config` |
 | `slm-factory tool compare-data` | 두 QA 데이터셋 품질 비교 | `--baseline` / `-b`, `--target` / `-t` |
+| `slm-factory tool export-autorag` | AutoRAG 평가용 데이터 내보내기 | `--config`, `--qa-file` |
 
 ### ℹ️ 정보
 
@@ -203,6 +204,7 @@ output/
 │       ├── adapter_config.json
 │       └── adapter_model.safetensors
 ├── *.gguf                      # GGUF 양자화 변환 결과 (선택)
+├── autorag/                    # AutoRAG 평가용 데이터 (corpus.parquet, qa.parquet)
 └── merged_model/               # 병합된 최종 모델 (HuggingFace 형식)
     ├── config.json
     ├── model.safetensors

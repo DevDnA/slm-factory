@@ -68,6 +68,7 @@
             <li><a href="#section-6">6. 활용 시나리오</a></li>
             <li><a href="#section-7">7. 주의사항</a></li>
             <li><a href="#related-docs">8. 관련 문서</a></li>
+            <li><a href="#section-9">9. RAG 서비스 구축 가이드</a></li>
           </ol>
         </nav>
 
@@ -839,6 +840,231 @@ ontology:
               </tbody>
             </table>
           </div>
+        </section>
+
+
+        <!-- Section 9: RAG 서비스 구축 가이드 -->
+        <section id="section-9">
+          <h2>9. RAG 서비스 구축 가이드</h2>
+
+          <p>slm-factory와 AutoRAG를 조합하면 <strong>도메인 특화 RAG 서비스</strong>를 실제로 구축할 수 있습니다.</p>
+
+          <p>AutoRAG는 단순한 벤치마크 도구가 아닙니다. 최적 검색·생성 조합을 탐색한 뒤, 그 결과를 <strong>즉시 배포 가능한 API 서버</strong>로 제공합니다. slm-factory로 SLM을 만들고, AutoRAG로 RAG 파이프라인을 최적화하면 &mdash; 사용자 질의를 받아 근거 기반 답변을 반환하는 <strong>완전한 RAG API 서비스</strong>가 완성됩니다.</p>
+
+          <div class="callout callout-info">
+            <div class="callout-content">
+              <p>이 시스템은 완전한 엔터프라이즈 프로덕션은 아니지만, 소규모 팀·사내 서비스·PoC 용도로는 <strong>즉시 운영 가능</strong>합니다. 프로덕션 확장을 위해 보완할 사항은 <a href="#section-9-6">9.6절</a>에서 다룹니다.</p>
+            </div>
+          </div>
+
+          <hr>
+
+          <h3 id="section-9-1">9.1 데이터 준비: slm-factory &rarr; AutoRAG</h3>
+
+          <pre data-lang="bash"><code># 1. slm-factory 파이프라인 실행 (파싱 + QA 생성)
+slm-factory run --config project.yaml
+
+# 2. AutoRAG 평가용 데이터 내보내기
+slm-factory tool export-autorag --config project.yaml
+
+# 결과물:
+#   output/autorag/corpus.parquet  — 문서 청크 (검색 대상)
+#   output/autorag/qa.parquet      — QA 평가 데이터</code></pre>
+
+          <hr>
+
+          <h3 id="section-9-2">9.2 AutoRAG 최적화 실행</h3>
+
+          <pre data-lang="bash"><code>pip install autorag
+
+# 최적화 실행 (검색·리랭킹·생성 조합 자동 탐색)
+autorag evaluate \
+  --qa_data_path output/autorag/qa.parquet \
+  --corpus_data_path output/autorag/corpus.parquet \
+  --config autorag_config.yaml</code></pre>
+
+          <p><strong>한국어 최적화 권장 컴포넌트:</strong></p>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>단계</th><th>권장 모듈</th><th>설명</th></tr></thead>
+              <tbody>
+                <tr><td>Retrieval</td><td><code>bm25</code> + <code>vectordb</code></td><td>BM25(형태소)와 벡터 검색 하이브리드</td></tr>
+                <tr><td>Embedding</td><td><code>BAAI/bge-m3</code></td><td>다국어 임베딩 (한국어 성능 우수)</td></tr>
+                <tr><td>Reranking</td><td><code>Dongjin-kr/ko-reranker</code></td><td>한국어 특화 리랭커</td></tr>
+                <tr><td>Tokenizer</td><td><code>ko_kiwi</code></td><td>한국어 형태소 분석 (BM25 토크나이저)</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <hr>
+
+          <h3 id="section-9-3">9.3 경로 A: AutoRAG 내장 서버 &mdash; 즉시 사용 가능한 RAG 서비스</h3>
+
+          <p>AutoRAG 최적화가 완료되면, 별도 개발 없이 <strong>즉시 RAG API 서비스를 배포</strong>할 수 있습니다. AutoRAG 내장 Quart 서버가 최적화 결과를 그대로 서빙합니다.</p>
+
+          <pre data-lang="bash"><code># 로컬 실행 — 이것만으로 RAG 서비스가 동작합니다
+autorag run_api \
+  --trial_dir ./benchmark/0 \
+  --host 0.0.0.0 --port 8000
+
+# Docker 실행 — 배포 환경에서도 동일하게 동작합니다
+docker run -p 8000:8000 \
+  -v $(pwd)/benchmark:/app/benchmark \
+  autoraghq/autorag:api-latest \
+  run_api --trial_dir /app/benchmark/0</code></pre>
+
+          <pre data-lang="bash"><code># API 호출 테스트
+curl -X POST http://localhost:8000/v1/run \
+  -H "Content-Type: application/json" \
+  -d '{"query": "도메인 특화 질문", "result_column": "generated_texts"}'</code></pre>
+
+          <p><strong>이 시점에서 무엇이 동작하는가:</strong></p>
+          <ul>
+            <li>사용자 질문을 받으면 벡터 검색 &rarr; 리랭킹 &rarr; SLM 생성까지 자동 실행</li>
+            <li>최적화 과정에서 선택된 최적 검색·생성 전략이 그대로 적용됨</li>
+            <li>REST API를 통해 외부 시스템(웹앱, 챗봇, 내부 도구)에서 호출 가능</li>
+          </ul>
+
+          <p><strong>적합한 경우:</strong> 사내 도구, 소규모 팀 서비스, 부서 단위 AI 어시스턴트 (동시 사용자 ~10명)</p>
+
+          <hr>
+
+          <h3 id="section-9-4">9.4 경로 B: FastAPI 프로덕션 서버 (대규모)</h3>
+
+          <p>AutoRAG 최적화 결과를 분석하여 <strong>최적 조합을 직접 구현</strong>하는 방식입니다.</p>
+
+          <pre><code>┌─────────────────────────────────────────────────┐
+│              FastAPI Application                │
+│                                                 │
+│  /v1/query ──► Retriever ──► Reranker ──► LLM   │
+│                  │              │           │    │
+│              ChromaDB     ko-reranker   Ollama   │
+│              (bge-m3)                   (SLM)    │
+└─────────────────────────────────────────────────┘</code></pre>
+
+          <p><strong>구현 단계:</strong></p>
+          <ol>
+            <li><strong>AutoRAG 최적화 결과 분석</strong> &mdash; <code>summary.csv</code>에서 최적 retriever/reranker/generator 조합 확인</li>
+            <li><strong>벡터 DB 구축</strong> &mdash; <code>corpus.parquet</code>의 청크를 <code>bge-m3</code>로 임베딩 &rarr; ChromaDB 적재</li>
+            <li><strong>FastAPI 서버 구현</strong> &mdash; 검색 &rarr; 리랭킹 &rarr; SLM 생성 파이프라인</li>
+            <li><strong>SLM 연동</strong> &mdash; slm-factory로 학습한 모델을 Ollama로 서빙, FastAPI에서 호출</li>
+          </ol>
+
+          <pre data-lang="python"><code># 최소 구조 예시
+from fastapi import FastAPI
+import chromadb
+import httpx  # Ollama 호출용
+
+app = FastAPI()
+chroma = chromadb.PersistentClient(path="./chroma_db")
+collection = chroma.get_collection("domain_docs")
+
+@app.post("/v1/query")
+async def query(request: QueryRequest):
+    # 1. 벡터 검색
+    results = collection.query(
+        query_texts=[request.query], n_results=10
+    )
+    # 2. 리랭킹 (ko-reranker)
+    reranked = rerank(request.query, results)
+    # 3. SLM 생성 (Ollama)
+    context = "\n".join(reranked[:3])
+    answer = await call_ollama(request.query, context)
+    return {"answer": answer, "sources": reranked[:3]}</code></pre>
+
+          <p><strong>적합한 경우:</strong> 프로덕션 배포, 커스텀 로직 필요, 높은 동시성 요구</p>
+
+          <hr>
+
+          <h3 id="section-9-5">9.5 구축 단계 요약</h3>
+
+          <pre><code>Phase 1: slm-factory (SLM 학습 + Ollama 배포)
+    ↓
+Phase 2: export-autorag → AutoRAG 최적화
+    ↓
+Phase 3: RAG 서비스 운영
+    ├─ A: AutoRAG 내장 서버 (소규모 서비스)
+    └─ B: FastAPI 커스텀 서버 (대규모 확장)</code></pre>
+
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>단계</th><th>기간</th><th>목표</th><th>판단 기준</th></tr></thead>
+              <tbody>
+                <tr><td>Phase 1</td><td>1-2주</td><td>SLM 학습 완료</td><td>BLEU &ge; 0.3, ROUGE-L &ge; 0.4</td></tr>
+                <tr><td>Phase 2</td><td>1주</td><td>RAG 파이프라인 최적화</td><td>Retrieval MRR &ge; 0.7</td></tr>
+                <tr><td>Phase 3</td><td>1-2주</td><td>RAG 서비스 배포</td><td>API 응답 품질 + 지연 시간</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <blockquote>
+            <p><strong>Phase 3 시점에서 실체적인 RAG 서비스가 동작합니다.</strong> <code>autorag run_api</code>를 실행하는 것만으로 REST API를 제공하는 도메인 AI 서비스가 완성됩니다. 내부 사용자에게 바로 공개할 수 있습니다.</p>
+          </blockquote>
+
+          <hr>
+
+          <h3 id="section-9-6">9.6 프로덕션 보완 체크리스트</h3>
+
+          <p>AutoRAG 내장 서버로 RAG 서비스를 즉시 운영할 수 있지만, <strong>엔터프라이즈 프로덕션 환경</strong>에서는 다음 항목을 보완해야 합니다.</p>
+
+          <h4>즉시 보완 (서비스 공개 전)</h4>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>항목</th><th>설명</th><th>보완 방법</th></tr></thead>
+              <tbody>
+                <tr><td><strong>HTTPS/TLS</strong></td><td>API 통신 암호화</td><td>Nginx/Caddy 리버스 프록시로 TLS 종단. <code>certbot</code>으로 인증서 자동 발급</td></tr>
+                <tr><td><strong>인증/인가</strong></td><td>허가된 사용자만 접근</td><td>API 키 기반: Nginx <code>auth_request</code> 또는 FastAPI 미들웨어. 기업 환경: SSO/LDAP 연동</td></tr>
+                <tr><td><strong>입력 검증</strong></td><td>프롬프트 인젝션 방어</td><td>질의 길이 제한 (예: 2,000자), 금칙어 필터링, 시스템 프롬프트 고정</td></tr>
+                <tr><td><strong>헬스체크</strong></td><td>서비스 상태 모니터링</td><td><code>/health</code> 엔드포인트 추가. Ollama 연결 + 벡터 DB 상태를 포함</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4>운영 안정화 (서비스 공개 후)</h4>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>항목</th><th>설명</th><th>보완 방법</th></tr></thead>
+              <tbody>
+                <tr><td><strong>요청 제한</strong></td><td>과부하 방지</td><td>Nginx <code>limit_req_zone</code> 또는 FastAPI <code>slowapi</code>. 사용자별 분당 요청 수 제한</td></tr>
+                <tr><td><strong>로깅</strong></td><td>질의/응답 추적</td><td>구조화 로깅 (JSON). 질의, 검색된 문서 ID, 응답 시간, 에러를 기록</td></tr>
+                <tr><td><strong>모니터링</strong></td><td>성능·품질 추적</td><td>Prometheus + Grafana: 응답 지연(p50/p95/p99), 에러율, Ollama 추론 시간</td></tr>
+                <tr><td><strong>자동 재시작</strong></td><td>장애 복구</td><td>systemd <code>Restart=always</code> 또는 Docker <code>restart: unless-stopped</code></td></tr>
+                <tr><td><strong>백업</strong></td><td>데이터 보호</td><td>벡터 DB(ChromaDB) 정기 백업. AutoRAG trial 디렉토리 버전 관리</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4>프로덕션 확장 (사용자 증가 시)</h4>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>항목</th><th>설명</th><th>보완 방법</th></tr></thead>
+              <tbody>
+                <tr><td><strong>로드 밸런서</strong></td><td>수평 확장</td><td>AutoRAG 서버 인스턴스 다중 구동 + Nginx upstream. 또는 FastAPI 전환 (경로 B)</td></tr>
+                <tr><td><strong>GPU 추론 최적화</strong></td><td>높은 동시성</td><td>Ollama 대신 vLLM 또는 TGI(Text Generation Inference)로 전환. 배치 추론 지원</td></tr>
+                <tr><td><strong>응답 캐싱</strong></td><td>반복 질의 최적화</td><td>Redis 캐시. 동일 질의 재처리 방지 (TTL 기반)</td></tr>
+                <tr><td><strong>벡터 DB 확장</strong></td><td>대규모 코퍼스</td><td>ChromaDB &rarr; Milvus 또는 Weaviate. 분산 인덱싱, 수백만 문서 지원</td></tr>
+                <tr><td><strong>모델 버전 관리</strong></td><td>SLM 업데이트</td><td><code>tool evolve</code>로 SLM 갱신 시, Ollama 모델명에 버전 태그 부여. Blue-Green 배포로 무중단 전환</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h4>전환 판단 기준: 경로 A &rarr; 경로 B</h4>
+
+          <p>AutoRAG 내장 서버(경로 A)에서 FastAPI 커스텀 서버(경로 B)로 전환해야 하는 시점:</p>
+
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>신호</th><th>의미</th></tr></thead>
+              <tbody>
+                <tr><td>동시 사용자 10명 이상에서 응답 지연 증가</td><td>내장 서버의 동시성 한계</td></tr>
+                <tr><td>인증·권한 로직이 복잡해짐</td><td>내장 서버에 미들웨어 추가 어려움</td></tr>
+                <tr><td>검색 결과 후처리 로직 필요</td><td>커스텀 비즈니스 로직 삽입 필요</td></tr>
+                <tr><td>멀티 모델 라우팅 필요</td><td>질문 유형별 다른 SLM 호출</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p>경로 A에서 충분히 운영하다가, 위 신호가 나타나면 경로 B로 전환하십시오. AutoRAG 최적화 결과(<code>summary.csv</code>)의 최적 조합 정보를 그대로 FastAPI 구현에 반영하면 됩니다.</p>
         </section>
 
       </div><!-- /.content-container -->

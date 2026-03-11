@@ -277,6 +277,11 @@ slm-factory tool wizard --config my-project/project.yaml</code></pre>
                   <td>증분 업데이트 (변경 문서만)</td>
                   <td><code>--config</code></td>
                 </tr>
+                <tr>
+                  <td><code>slm-factory tool export-autorag</code></td>
+                  <td>AutoRAG 평가용 데이터 내보내기</td>
+                  <td><code>--config</code>, <code>--qa-file</code></td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -634,6 +639,7 @@ slm-factory eval compare \
 │       ├── adapter_config.json
 │       └── adapter_model.safetensors
 ├── *.gguf                      # GGUF 양자화 변환 결과 (선택)
+├── autorag/                    # AutoRAG 평가용 데이터 (corpus.parquet, qa.parquet)
 └── merged_model/               # 병합된 최종 모델 (HuggingFace 형식)
     ├── config.json
     ├── model.safetensors

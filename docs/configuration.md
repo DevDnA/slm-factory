@@ -47,7 +47,7 @@ my-project/
 |------|------|--------|------|
 | `name` | `str` | `"my-project"` | 프로젝트 식별자. 내보낸 모델 이름에 반영됩니다 (빈 값 불가) |
 | `version` | `str` | `"1.0.0"` | 시맨틱 버전. 모델 버전 관리에 사용됩니다 |
-| `language` | `str` | `"en"` | 문서 언어 코드. `"en"` (영어), `"ko"` (한국어), `"ja"` (일본어) 등 |
+| `language` | `str` | `"en"` | 문서 언어 코드. `"ko"` 설정 시 QA 생성·검증·평가 프롬프트가 자동으로 한국어로 전환됩니다. `"en"` (영어), `"ko"` (한국어), `"ja"` (일본어) 등 |
 
 ```yaml
 project:
@@ -607,7 +607,35 @@ gguf_export:
 
 ---
 
-## 19. incremental — 증분 학습 설정
+## 19. autorag_export — AutoRAG 데이터 내보내기 설정
+
+> slm-factory의 파싱·QA 데이터를 AutoRAG 평가용 parquet 형식으로 내보냅니다.
+
+| 필드 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `enabled` | `bool` | `false` | AutoRAG 내보내기 기능 활성화 여부 |
+| `output_dir` | `str` | `"autorag"` | 출력 디렉토리명. `paths.output` 하위에 생성됩니다 |
+| `chunk_size` | `int` | `512` | 코퍼스 청크 크기 (문자 수). 100 이상이어야 합니다 |
+| `overlap_chars` | `int` | `64` | 청크 간 중첩 문자 수. `chunk_size`보다 작아야 합니다 |
+
+```yaml
+autorag_export:
+  enabled: true
+  output_dir: "autorag"
+  chunk_size: 512
+  overlap_chars: 64
+```
+
+**참고**
+
+- `tool export-autorag` 명령으로 직접 실행할 수 있습니다. CLI 사용법은 [CLI 레퍼런스](cli-reference.md)를 참조하십시오.
+- `run` 명령에서 자동 실행하려면 `enabled: true`로 설정합니다.
+- 출력 파일: `output/{output_dir}/corpus.parquet` (문서 청크), `output/{output_dir}/qa.parquet` (QA 평가 데이터)
+- 청크 크기는 벡터 검색 성능에 영향을 줍니다. 한국어 문서는 300~600자가 적합합니다.
+
+---
+
+## 20. incremental — 증분 학습 설정
 
 > 문서 추가 시 기존 QA를 유지하면서 새 문서만 처리합니다. 해시 기반으로 변경을 감지합니다.
 
@@ -628,7 +656,7 @@ incremental:
 
 ---
 
-## 20. dialogue — 멀티턴 대화 설정
+## 21. dialogue — 멀티턴 대화 설정
 
 > QA 쌍을 멀티턴 대화 형식으로 확장합니다.
 
@@ -651,7 +679,7 @@ dialogue:
 
 ---
 
-## 21. review — QA 리뷰 설정
+## 22. review — QA 리뷰 설정
 
 > TUI에서 QA 쌍을 수동으로 검토하고 승인/거부/편집합니다.
 
@@ -670,7 +698,7 @@ review:
 
 ---
 
-## 22. dashboard — 대시보드 설정
+## 23. dashboard — 대시보드 설정
 
 > 파이프라인 진행 상태를 실시간 TUI로 모니터링합니다.
 
@@ -689,7 +717,7 @@ dashboard:
 
 ---
 
-## 23. 설정 레시피
+## 24. 설정 레시피
 
 자주 사용되는 설정 패턴을 레시피 형태로 제공합니다. 각 레시피는 특정 상황에 맞게 최소한의 필드만 변경합니다.
 
@@ -801,7 +829,7 @@ teacher:
 
 ---
 
-## 24. 전체 설정 예시 (한국어 정책 문서 프로젝트)
+## 25. 전체 설정 예시 (한국어 정책 문서 프로젝트)
 
 한국어 회사 정책 문서를 처리하는 완전한 `project.yaml` 예시입니다.
 
@@ -981,7 +1009,7 @@ dashboard:
 
 ---
 
-## 25. 설정 검증 (slm-factory check)
+## 26. 설정 검증 (slm-factory check)
 
 설정 파일이 올바른지 확인하려면 `check` 명령을 사용합니다:
 
@@ -1018,7 +1046,7 @@ $ slm-factory check --config project.yaml
 
 ---
 
-## 26. ontology — 온톨로지(지식 그래프) 추출 설정
+## 27. ontology — 온톨로지(지식 그래프) 추출 설정
 
 > 문서에서 엔티티(개체)와 관계를 자동 추출하여 지식 그래프를 구성합니다. QA 생성 시 추출된 지식을 컨텍스트로 활용할 수 있습니다.
 

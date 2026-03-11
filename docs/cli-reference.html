@@ -97,6 +97,9 @@
                 <li class="toc-h3"><a href="#tool-gguf"><code>tool gguf</code></a></li>
                 <li class="toc-h3"><a href="#tool-evolve"><code>tool evolve</code></a></li>
                 <li class="toc-h3"><a href="#tool-update"><code>tool update</code></a></li>
+                <li class="toc-h3"><a href="#tool-ontology"><code>tool ontology</code></a></li>
+                <li class="toc-h3"><a href="#tool-compare-data"><code>tool compare-data</code></a></li>
+                <li class="toc-h3"><a href="#tool-export-autorag"><code>tool export-autorag</code></a></li>
               </ol>
             </li>
             <li>
@@ -262,6 +265,16 @@
                   <td><code>tool ontology</code></td>
                   <td>🔧 도구</td>
                   <td>온톨로지(지식 그래프) 추출</td>
+                </tr>
+                <tr>
+                  <td><code>tool compare-data</code></td>
+                  <td>🔧 도구</td>
+                  <td>두 QA 데이터셋의 품질 비교</td>
+                </tr>
+                <tr>
+                  <td><code>tool export-autorag</code></td>
+                  <td>🔧 도구</td>
+                  <td>AutoRAG 평가용 데이터 내보내기</td>
                 </tr>
                 <tr>
                   <td><code>status</code></td>
@@ -1426,7 +1439,8 @@ slm-factory tool gguf --config my-project/project.yaml --model-dir ./my-project/
             <div class="callout callout-info">
               <div class="callout-content">
                 <ul>
-                  <li>GGUF 변환 전에 <code>export</code> 명령으로 모델을 먼저 병합해야 합니다.</li>
+                  <li>GGUF 변환은 2단계로 진행됩니다: ① 모델을 F16 GGUF로 변환 &rarr; ② 설정된 양자화 타입으로 양자화. 중간 F16 파일은 자동 정리됩니다.</li>
+              <li>GGUF 변환 전에 <code>export</code> 명령으로 모델을 먼저 병합해야 합니다.</li>
                   <li>양자화 타입은 <code>project.yaml</code>의 <code>gguf_export.quantization_type</code>에서 설정합니다. <a href="configuration.html">설정 레퍼런스</a>를 참조하십시오.</li>
                 </ul>
               </div>
@@ -1510,6 +1524,66 @@ slm-factory tool ontology --config my-project/project.yaml</code></pre>
             <li><code>ontology.enrich_qa: true</code>로 설정하면 <code>run</code> 명령이나 <code>wizard</code>에서 QA 생성 시 추출된 지식이 컨텍스트로 활용됩니다.</li>
             <li>엔티티 유형, 최소 확신도, 동시 요청 수 등은 <code>project.yaml</code>의 <code>ontology</code> 섹션에서 설정합니다. <a href="configuration.html">설정 레퍼런스</a>를 참조하십시오.</li>
           </ul>
+          </article>
+
+          <hr>
+
+          <!-- tool export-autorag -->
+          <article id="tool-export-autorag">
+            <h3><code>tool export-autorag</code></h3>
+            <p>slm-factory의 파싱·QA 데이터를 AutoRAG 평가용 parquet 형식으로 내보냅니다. <code>parsed_documents.json</code>에서 문서 청크를 생성하고, QA 파일에서 평가 데이터를 추출하여 AutoRAG가 요구하는 <code>corpus.parquet</code>과 <code>qa.parquet</code>을 생성합니다.</p>
+
+            <h4>사용법</h4>
+            <pre data-lang="bash"><code>slm-factory tool export-autorag [OPTIONS]</code></pre>
+
+            <h4>옵션</h4>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>플래그</th>
+                    <th>타입</th>
+                    <th>기본값</th>
+                    <th>설명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>--config</code></td>
+                    <td><code>TEXT</code></td>
+                    <td><code>project.yaml</code></td>
+                    <td>프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다.</td>
+                  </tr>
+                  <tr>
+                    <td><code>--qa-file</code></td>
+                    <td><code>TEXT</code></td>
+                    <td>(자동 감지)</td>
+                    <td>QA 데이터 파일 경로입니다. 지정하지 않으면 <code>qa_scored.json</code> &rarr; <code>qa_validated.json</code> &rarr; <code>qa_alpaca.json</code> 순서로 자동 탐색합니다.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4>예시</h4>
+            <pre data-lang="bash"><code># 기본 실행 (QA 파일 자동 탐색)
+slm-factory tool export-autorag --config my-project/project.yaml
+
+# QA 파일 직접 지정
+slm-factory tool export-autorag --config my-project/project.yaml \
+  --qa-file ./output/qa_scored.json</code></pre>
+
+            <h4>출력</h4>
+            <pre><code>output/autorag/
+&#x251C;&#x2500;&#x2500; corpus.parquet    # 문서 청크 (검색 코퍼스)
+&#x2514;&#x2500;&#x2500; qa.parquet        # QA 평가 데이터</code></pre>
+
+            <h4>참고</h4>
+            <ul>
+              <li><code>corpus.parquet</code>은 <code>parsed_documents.json</code>의 텍스트를 <code>autorag_export.chunk_size</code> 단위로 분할하여 생성합니다. 청크 간 중첩은 <code>autorag_export.overlap_chars</code>로 설정합니다.</li>
+              <li><code>qa.parquet</code>은 QA 쌍의 질문·답변·컨텍스트를 AutoRAG 평가 형식으로 변환합니다.</li>
+              <li>AutoRAG 최적화 실행: <code>autorag evaluate --qa_data_path output/autorag/qa.parquet --corpus_data_path output/autorag/corpus.parquet --config autorag_config.yaml</code></li>
+              <li>상세 설정은 <a href="configuration.html">설정 레퍼런스</a>의 <code>autorag_export</code> 섹션을 참조하십시오.</li>
+            </ul>
           </article>
 
           <hr>
@@ -1929,6 +2003,9 @@ slm-factory clean --all --config my-project/project.yaml</code></pre>
 &#x2502;       &#x251C;&#x2500;&#x2500; adapter_model.safetensors
 &#x2502;       &#x2514;&#x2500;&#x2500; ...
 &#x251C;&#x2500;&#x2500; *.gguf                      # tool gguf 출력 (선택)
+&#x251C;&#x2500;&#x2500; autorag/                    # tool export-autorag 출력 (선택)
+&#x2502;   &#x251C;&#x2500;&#x2500; corpus.parquet          # 문서 청크 (검색 코퍼스)
+&#x2502;   &#x2514;&#x2500;&#x2500; qa.parquet              # QA 평가 데이터
 &#x2514;&#x2500;&#x2500; merged_model/               # export 단계 출력
     &#x251C;&#x2500;&#x2500; config.json
     &#x251C;&#x2500;&#x2500; model.safetensors
@@ -2006,6 +2083,11 @@ slm-factory clean --all --config my-project/project.yaml</code></pre>
                   <td><code>*.gguf</code></td>
                   <td><code>tool gguf</code></td>
                   <td>GGUF 양자화 형식으로 변환된 모델 파일입니다. llama.cpp 호환 형식입니다.</td>
+                </tr>
+                <tr>
+                  <td><code>autorag/</code></td>
+                  <td><code>tool export-autorag</code></td>
+                  <td>AutoRAG 평가용 parquet 데이터. <code>corpus.parquet</code>(문서 청크)과 <code>qa.parquet</code>(QA 평가 데이터)을 포함합니다.</td>
                 </tr>
                 <tr>
                   <td><code>merged_model/</code></td>
