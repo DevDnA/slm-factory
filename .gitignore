@@ -78,3 +78,7 @@ e2e-test/
 *.tmp
 tmp/
 .ai*rules.md
+
+# AI agent knowledge base (auto-generated)
+AGENTS.md
+**/AGENTS.md
