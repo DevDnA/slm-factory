@@ -63,13 +63,16 @@ slm-factory run --serve --config my-project/project.yaml
 ```bash
 curl -X POST http://localhost:8000/v1/query \
   -H "Content-Type: application/json" \
-  -d '{"question": "우리 회사 휴가 정책은?"}'
+  -d '{"query": "우리 회사 휴가 정책은?"}'
 ```
 
 ```json
 {
   "answer": "연차 휴가는 입사 1년 후 15일이 부여되며...",
-  "sources": ["인사규정.pdf - 제15조"]
+  "sources": [
+    {"content": "제15조(연차휴가) 입사 1년 후 15일...", "doc_id": "인사규정.pdf-chunk-0", "score": 0.85}
+  ],
+  "query": "우리 회사 휴가 정책은?"
 }
 ```
 
