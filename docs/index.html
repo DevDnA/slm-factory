@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="slm-factory 문서 포털 - 도메인 특화 소형 언어모델(SLM) 자동 생성 프레임워크">
+  <meta name="description" content="slm-factory - 도메인 문서만 넣으면 SLM 학습부터 RAG API 서빙까지 한 번에">
   <title>문서 홈 - slm-factory</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
   <link rel="stylesheet" href="./assets/style.css">
@@ -49,8 +49,8 @@
       <header class="page-header">
         <div class="content-container">
           <span class="badge">Documentation</span>
-          <h1>slm-factory 문서</h1>
-          <p class="subtitle">도메인 문서로부터 특화된 소형 언어모델(SLM)을 자동 생성하는 Teacher-Student 지식 증류 프레임워크</p>
+          <h1>문서 넣고, 명령어 하나, RAG API 서빙</h1>
+          <p class="subtitle">도메인 문서만 넣으면 SLM 학습부터 RAG API 서버까지 한 번에</p>
         </div>
       </header>
 
@@ -64,88 +64,39 @@
 
 
         <!-- ============================================================
-             Overview
+             High-Level Flow
              ============================================================ -->
-        <section id="overview">
-          <h2>개요</h2>
-          <p><strong>slm-factory</strong>는 도메인 문서(PDF, HWPX, HTML, TXT, DOCX)에서 소형 언어모델(SLM)을 자동으로 생성합니다. 대형 언어모델(Teacher)이 문서를 읽고 QA 데이터를 생성하면, 소형 모델(Student)이 이를 학습하여 특정 분야에 특화된 경량 모델을 만듭니다.</p>
-
-          <div class="callout callout-info">
-            <p><strong>한 줄 요약</strong> &mdash; 도메인 문서를 넣으면, 파싱 &rarr; QA 생성 &rarr; 검증 &rarr; LoRA 학습 &rarr; Ollama 배포까지 한 번의 명령으로 자동화합니다.</p>
-          </div>
-
-          <!-- Pipeline Overview SVG -->
+        <section id="flow">
           <div class="diagram">
-            <svg role="img" aria-labelledby="pipeline-title pipeline-desc" viewBox="0 0 880 220" xmlns="http://www.w3.org/2000/svg">
-              <title id="pipeline-title">slm-factory 파이프라인 개요</title>
-              <desc id="pipeline-desc">문서 입력부터 SLM 배포까지 9단계 파이프라인 흐름도</desc>
+            <svg role="img" aria-labelledby="flow-title flow-desc" viewBox="0 0 880 140" xmlns="http://www.w3.org/2000/svg">
+              <title id="flow-title">slm-factory 사용 흐름</title>
+              <desc id="flow-desc">도메인 문서에서 RAG API 서빙까지 3단계 흐름</desc>
               <defs>
-                <marker id="arrow-idx" viewBox="0 0 5 4" refX="5" refY="2" markerWidth="5" markerHeight="4" orient="auto-start-reverse">
-                  <polyline points="0 0, 5 2, 0 4" fill="none" stroke="#2C5282" stroke-width="1" stroke-linejoin="round"/>
+                <marker id="arrow-flow" viewBox="0 0 6 4" refX="6" refY="2" markerWidth="6" markerHeight="4" orient="auto-start-reverse">
+                  <polyline points="0 0, 6 2, 0 4" fill="none" stroke="#2C5282" stroke-width="1" stroke-linejoin="round"/>
                 </marker>
               </defs>
 
-              <!-- Required steps -->
-              <rect x="10" y="30" width="88" height="50" rx="6" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
-              <text x="54" y="52" text-anchor="middle" font-size="11" font-weight="700" fill="#1B3A5C">Parse</text>
-              <text x="54" y="68" text-anchor="middle" font-size="9" fill="#4A5568">문서 파싱</text>
+              <!-- Box 1: 도메인 문서 -->
+              <rect x="15" y="30" width="235" height="80" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+              <text x="132" y="62" text-anchor="middle" font-size="14" font-weight="700" fill="#1B3A5C">도메인 문서</text>
+              <text x="132" y="82" text-anchor="middle" font-size="11" fill="#4A5568">PDF &#183; HWPX &#183; HTML &#183; DOCX &#183; TXT</text>
 
-              <line x1="100" y1="55" x2="118" y2="55" stroke="#2C5282" stroke-width="1" marker-end="url(#arrow-idx)"/>
+              <!-- Arrow 1 -->
+              <line x1="255" y1="70" x2="298" y2="70" stroke="#2C5282" stroke-width="1.5" marker-end="url(#arrow-flow)"/>
 
-              <rect x="120" y="30" width="88" height="50" rx="6" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
-              <text x="164" y="52" text-anchor="middle" font-size="11" font-weight="700" fill="#1B3A5C">Generate</text>
-              <text x="164" y="68" text-anchor="middle" font-size="9" fill="#4A5568">QA 생성</text>
+              <!-- Box 2: slm-factory run --serve -->
+              <rect x="305" y="30" width="270" height="80" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="1.5"/>
+              <text x="440" y="60" text-anchor="middle" font-size="12" font-weight="700" fill="#1B3A5C" font-family="'JetBrains Mono', 'Fira Code', monospace">slm-factory run --serve</text>
+              <text x="440" y="82" text-anchor="middle" font-size="11" fill="#4A5568">14단계 자동화 파이프라인</text>
 
-              <line x1="210" y1="55" x2="228" y2="55" stroke="#2C5282" stroke-width="1" marker-end="url(#arrow-idx)"/>
+              <!-- Arrow 2 -->
+              <line x1="580" y1="70" x2="623" y2="70" stroke="#2C5282" stroke-width="1.5" marker-end="url(#arrow-flow)"/>
 
-              <rect x="230" y="30" width="88" height="50" rx="6" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
-              <text x="274" y="52" text-anchor="middle" font-size="11" font-weight="700" fill="#1B3A5C">Validate</text>
-              <text x="274" y="68" text-anchor="middle" font-size="9" fill="#4A5568">QA 검증</text>
-
-              <!-- Optional steps -->
-              <line x1="320" y1="55" x2="338" y2="55" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrow-idx)"/>
-
-              <rect x="340" y="30" width="88" height="50" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="5 3"/>
-              <text x="384" y="52" text-anchor="middle" font-size="11" font-weight="600" fill="#C05621">Score</text>
-              <text x="384" y="68" text-anchor="middle" font-size="9" fill="#4A5568">품질 평가</text>
-
-              <rect x="340" y="100" width="88" height="50" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="5 3"/>
-              <text x="384" y="122" text-anchor="middle" font-size="11" font-weight="600" fill="#C05621">Augment</text>
-              <text x="384" y="138" text-anchor="middle" font-size="9" fill="#4A5568">데이터 증강</text>
-
-              <rect x="340" y="170" width="88" height="50" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="5 3"/>
-              <text x="384" y="192" text-anchor="middle" font-size="11" font-weight="600" fill="#C05621">Analyze</text>
-              <text x="384" y="208" text-anchor="middle" font-size="9" fill="#4A5568">통계 분석</text>
-
-              <!-- Continue to required -->
-              <line x1="430" y1="125" x2="458" y2="125" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#arrow-idx)"/>
-
-              <rect x="460" y="100" width="88" height="50" rx="6" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
-              <text x="504" y="122" text-anchor="middle" font-size="11" font-weight="700" fill="#1B3A5C">Convert</text>
-              <text x="504" y="138" text-anchor="middle" font-size="9" fill="#4A5568">데이터 변환</text>
-
-              <line x1="550" y1="125" x2="568" y2="125" stroke="#2C5282" stroke-width="1" marker-end="url(#arrow-idx)"/>
-
-              <rect x="570" y="100" width="88" height="50" rx="6" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
-              <text x="614" y="122" text-anchor="middle" font-size="11" font-weight="700" fill="#1B3A5C">Train</text>
-              <text x="614" y="138" text-anchor="middle" font-size="9" fill="#4A5568">LoRA 학습</text>
-
-              <line x1="660" y1="125" x2="678" y2="125" stroke="#2C5282" stroke-width="1" marker-end="url(#arrow-idx)"/>
-
-              <rect x="680" y="100" width="88" height="50" rx="6" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
-              <text x="724" y="122" text-anchor="middle" font-size="11" font-weight="700" fill="#1B3A5C">Export</text>
-              <text x="724" y="138" text-anchor="middle" font-size="9" fill="#4A5568">모델 배포</text>
-
-              <line x1="770" y1="125" x2="788" y2="125" stroke="#2C5282" stroke-width="1" marker-end="url(#arrow-idx)"/>
-
-              <rect x="790" y="100" width="84" height="50" rx="6" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
-              <text x="832" y="122" text-anchor="middle" font-size="11" font-weight="700" fill="#2F855A">SLM</text>
-              <text x="832" y="138" text-anchor="middle" font-size="9" fill="#4A5568">완성</text>
-
-              <!-- Labels -->
-              <text x="164" y="16" text-anchor="middle" font-size="10" font-weight="600" fill="#2C5282">필수 단계</text>
-              <text x="384" y="16" text-anchor="middle" font-size="10" font-weight="600" fill="#ED8936">선택 단계</text>
-              <text x="614" y="88" text-anchor="middle" font-size="10" font-weight="600" fill="#2C5282">필수 단계</text>
+              <!-- Box 3: RAG API 서빙 -->
+              <rect x="630" y="30" width="235" height="80" rx="8" fill="#F0FFF4" stroke="#2F855A" stroke-width="1.5"/>
+              <text x="748" y="62" text-anchor="middle" font-size="14" font-weight="700" fill="#2F855A">RAG API 서빙</text>
+              <text x="748" y="82" text-anchor="middle" font-size="11" fill="#4A5568">http://localhost:8000</text>
             </svg>
           </div>
         </section>
@@ -157,34 +108,70 @@
         <section id="quick-start">
           <h2>빠른 시작</h2>
 
-          <h3>1. 설치</h3>
-          <pre data-lang="bash">git clone https://github.com/DevDnA/slm-factory.git
-cd slm-factory
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[all]"</pre>
-
-          <h3>2. Ollama 준비</h3>
-          <pre data-lang="bash">ollama serve              # 별도 터미널
-ollama pull qwen3:8b      # Teacher 모델 다운로드</pre>
-
-          <h3>3. 프로젝트 생성 및 실행</h3>
-          <pre data-lang="bash"># 프로젝트 초기화
-slm-factory init my-project
-
-# 학습할 문서 추가
-cp /path/to/documents/*.pdf my-project/documents/
-
-# wizard로 전체 파이프라인 실행 (권장)
-slm-factory tool wizard --config my-project/project.yaml</pre>
-
-          <h3>4. 모델 테스트</h3>
-          <pre data-lang="bash">cd my-project/output/merged_model
-ollama create my-project-model -f Modelfile
-ollama run my-project-model</pre>
+          <ol class="step-list">
+            <li class="step-item">
+              <div class="step-number"></div>
+              <div class="step-content">
+                <div class="step-title">준비</div>
+                <div class="step-desc">프로젝트를 생성하고 학습할 문서를 추가합니다.</div>
+                <pre data-lang="bash">slm-factory init my-project
+cp /path/to/documents/*.pdf my-project/documents/</pre>
+              </div>
+            </li>
+            <li class="step-item">
+              <div class="step-number"></div>
+              <div class="step-content">
+                <div class="step-title">실행 &mdash; 명령어 하나로 전체 파이프라인 + RAG 서버</div>
+                <pre data-lang="bash">slm-factory run --serve --config my-project/project.yaml</pre>
+                <div class="callout callout-info">
+                  <p>14단계 파이프라인(파싱 &rarr; QA 생성 &rarr; 검증 &rarr; 학습 &rarr; Ollama 배포 &rarr; RAG 인덱싱)이 자동으로 실행되고, 완료 후 RAG API 서버가 자동으로 시작됩니다.</p>
+                </div>
+              </div>
+            </li>
+            <li class="step-item">
+              <div class="step-number"></div>
+              <div class="step-content">
+                <div class="step-title">확인 &mdash; API로 즉시 질의</div>
+                <pre data-lang="bash">curl -X POST http://localhost:8000/v1/query \
+  -H "Content-Type: application/json" \
+  -d '{"question": "우리 회사 휴가 정책은?"}'</pre>
+                <pre data-lang="json">{
+  "answer": "연차 휴가는 입사 1년 후 15일이 부여되며...",
+  "sources": ["인사규정.pdf - 제15조"]
+}</pre>
+              </div>
+            </li>
+          </ol>
 
           <div class="callout callout-success">
-            <p>wizard가 문서 선택부터 파싱, QA 생성, 검증, 학습, 배포까지 단계별로 안내합니다. 상세한 진행 방법은 <a href="guide.html">사용 가이드</a>를 참조하십시오.</p>
+            <p>상세한 설치 방법과 Ollama 설정은 <a href="guide.html">사용 가이드</a>를 참조하십시오. 대화형 설정이 필요하면 <code>slm-factory tool wizard</code>를 사용할 수 있습니다.</p>
+          </div>
+        </section>
+
+
+        <!-- ============================================================
+             Value Proposition
+             ============================================================ -->
+        <section id="value">
+          <h2>무엇을 해결하는가</h2>
+
+          <div class="card-grid">
+            <div class="card">
+              <div class="card-title">도메인 특화 학습</div>
+              <div class="card-desc">범용 LLM은 우리 조직의 업무를 모릅니다. 도메인 문서로 직접 학습한 SLM이 전문 지식을 내재화합니다.</div>
+            </div>
+            <div class="card">
+              <div class="card-title">API 비용 제로</div>
+              <div class="card-desc">외부 LLM API 호출 비용이 계속 쌓이지 않습니다. 로컬 SLM 추론으로 GPU 서버 한 대면 충분합니다.</div>
+            </div>
+            <div class="card">
+              <div class="card-title">온프레미스 완전 격리</div>
+              <div class="card-desc">사내 문서가 외부 서버로 전송되지 않습니다. 온프레미스 환경에서 완전히 격리하여 운영합니다.</div>
+            </div>
+            <div class="card">
+              <div class="card-title">할루시네이션 차단</div>
+              <div class="card-desc">RAG 검색 근거와 SLM 도메인 지식을 결합하여 근거 없는 답변을 차단합니다.</div>
+            </div>
           </div>
         </section>
 
@@ -283,53 +270,6 @@ ollama run my-project-model</pre>
                   <td><strong>기여자 / 개발자</strong></td>
                   <td><a href="architecture.html">아키텍처</a> &rarr; <a href="development.html">개발 가이드</a></td>
                   <td>내부 구조 이해 및 모듈 확장 방법</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-
-        <!-- ============================================================
-             Tech Stack Summary
-             ============================================================ -->
-        <section id="tech-stack">
-          <h2>기술 스택</h2>
-
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>카테고리</th>
-                  <th>주요 패키지</th>
-                  <th>역할</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><strong>Core</strong></td>
-                  <td>typer, pydantic, pyyaml, rich, httpx</td>
-                  <td>CLI, 설정 관리, 출력 포맷팅</td>
-                </tr>
-                <tr>
-                  <td><strong>Parsing</strong></td>
-                  <td>pymupdf, beautifulsoup4, lxml, python-docx</td>
-                  <td>문서 파싱 (PDF, HTML, DOCX)</td>
-                </tr>
-                <tr>
-                  <td><strong>ML/Training</strong></td>
-                  <td>torch, transformers, peft, trl, accelerate</td>
-                  <td>LoRA 파인튜닝</td>
-                </tr>
-                <tr>
-                  <td><strong>Evaluation</strong></td>
-                  <td>evaluate, rouge-score, nltk</td>
-                  <td>모델 평가 (BLEU/ROUGE)</td>
-                </tr>
-                <tr>
-                  <td><strong>TUI</strong></td>
-                  <td>textual</td>
-                  <td>대시보드, QA 리뷰 인터페이스</td>
                 </tr>
               </tbody>
             </table>
