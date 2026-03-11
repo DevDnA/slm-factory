@@ -847,13 +847,22 @@ ontology:
         <section id="section-9">
           <h2>9. RAG 서비스 구축 가이드</h2>
 
-          <p>slm-factory와 AutoRAG를 조합하면 <strong>도메인 특화 RAG 서비스</strong>를 실제로 구축할 수 있습니다.</p>
+          <p>slm-factory는 <strong>도메인 특화 RAG 서비스</strong>를 세 가지 경로로 구축할 수 있습니다.</p>
 
-          <p>AutoRAG는 단순한 벤치마크 도구가 아닙니다. 최적 검색·생성 조합을 탐색한 뒤, 그 결과를 <strong>즉시 배포 가능한 API 서버</strong>로 제공합니다. slm-factory로 SLM을 만들고, AutoRAG로 RAG 파이프라인을 최적화하면 &mdash; 사용자 질의를 받아 근거 기반 답변을 반환하는 <strong>완전한 RAG API 서비스</strong>가 완성됩니다.</p>
+          <div class="table-wrapper">
+            <table>
+              <thead><tr><th>경로</th><th>도구</th><th>방법</th><th>적합 상황</th></tr></thead>
+              <tbody>
+                <tr><td><strong>A &mdash; slm-factory 내장</strong></td><td><code>tool rag-index</code> + <code>tool rag-serve</code></td><td>corpus.parquet &rarr; ChromaDB 임베딩 &rarr; FastAPI 서빙</td><td>PoC, 데모, 소규모 사내 서비스</td></tr>
+                <tr><td><strong>B &mdash; AutoRAG 내장 서버</strong></td><td>AutoRAG <code>run_api</code></td><td>검색·리랭킹·생성 최적 조합 자동 탐색 후 서빙</td><td>품질 최적화가 필요한 서비스</td></tr>
+                <tr><td><strong>C &mdash; FastAPI 커스텀</strong></td><td>직접 구현</td><td>AutoRAG 최적화 결과 기반 커스텀 서버</td><td>대규모 프로덕션, 커스텀 로직</td></tr>
+              </tbody>
+            </table>
+          </div>
 
           <div class="callout callout-info">
             <div class="callout-content">
-              <p>이 시스템은 완전한 엔터프라이즈 프로덕션은 아니지만, 소규모 팀·사내 서비스·PoC 용도로는 <strong>즉시 운영 가능</strong>합니다. 프로덕션 확장을 위해 보완할 사항은 <a href="#section-9-6">9.6절</a>에서 다룹니다.</p>
+              <p>소규모 서비스라면 <strong>경로 A만으로 충분</strong>합니다. 프로덕션 품질이 필요하면 경로 B &rarr; C 순서로 진행하십시오. 프로덕션 보완 사항은 <a href="#section-9-7">9.7절</a>에서 다룹니다.</p>
             </div>
           </div>
 
@@ -873,7 +882,43 @@ slm-factory tool export-autorag --config project.yaml
 
           <hr>
 
-          <h3 id="section-9-2">9.2 AutoRAG 최적화 실행</h3>
+          <h3 id="section-9-2">9.2 경로 A: slm-factory 내장 RAG &mdash; 가장 빠른 시작</h3>
+
+          <p>slm-factory에 내장된 <strong>ChromaDB 인덱싱 + FastAPI 서빙</strong>으로, AutoRAG 없이도 즉시 RAG 서비스를 구동할 수 있습니다.</p>
+
+          <pre data-lang="bash"><code># 1. corpus.parquet 생성 (9.1의 export-autorag 실행 후)
+slm-factory tool export-autorag --config project.yaml
+
+# 2. ChromaDB에 벡터 임베딩 적재
+slm-factory tool rag-index --config project.yaml
+
+# 3. RAG API 서버 실행
+slm-factory tool rag-serve --config project.yaml
+# → POST http://localhost:8000/v1/query  질의 엔드포인트
+# → GET  http://localhost:8000/health     헬스체크</code></pre>
+
+          <pre data-lang="bash"><code># API 호출 테스트
+curl -X POST http://localhost:8000/v1/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "도메인 특화 질문", "top_k": 5}'</code></pre>
+
+          <p><strong>동작 방식:</strong></p>
+          <ul>
+            <li><code>rag-index</code>: <code>corpus.parquet</code> 문서를 <code>BAAI/bge-m3</code>로 임베딩 &rarr; ChromaDB에 적재</li>
+            <li><code>rag-serve</code>: 질의 임베딩 &rarr; ChromaDB 유사도 검색 &rarr; Ollama SLM 생성 &rarr; JSON 응답</li>
+          </ul>
+
+          <p><strong>적합한 경우:</strong> PoC, 데모, 소규모 사내 서비스. AutoRAG 최적화 과정 없이 즉시 시작하고 싶을 때.</p>
+
+          <div class="callout callout-info">
+            <div class="callout-content">
+              <p><strong>팁</strong>: 검색 품질 최적화가 필요하면 경로 B(AutoRAG)로 최적 검색·리랭킹·생성 조합을 탐색하십시오.</p>
+            </div>
+          </div>
+
+          <hr>
+
+          <h3 id="section-9-3">9.3 AutoRAG 최적화 실행</h3>
 
           <pre data-lang="bash"><code>pip install autorag
 
@@ -898,7 +943,7 @@ autorag evaluate \
 
           <hr>
 
-          <h3 id="section-9-3">9.3 경로 A: AutoRAG 내장 서버 &mdash; 즉시 사용 가능한 RAG 서비스</h3>
+          <h3 id="section-9-4">9.4 경로 B: AutoRAG 내장 서버 &mdash; 최적화 기반 RAG 서비스</h3>
 
           <p>AutoRAG 최적화가 완료되면, 별도 개발 없이 <strong>즉시 RAG API 서비스를 배포</strong>할 수 있습니다. AutoRAG 내장 Quart 서버가 최적화 결과를 그대로 서빙합니다.</p>
 
@@ -929,7 +974,7 @@ curl -X POST http://localhost:8000/v1/run \
 
           <hr>
 
-          <h3 id="section-9-4">9.4 경로 B: FastAPI 프로덕션 서버 (대규모)</h3>
+          <h3 id="section-9-5">9.5 경로 C: FastAPI 프로덕션 서버 (대규모)</h3>
 
           <p>AutoRAG 최적화 결과를 분석하여 <strong>최적 조합을 직접 구현</strong>하는 방식입니다.</p>
 
@@ -976,15 +1021,16 @@ async def query(request: QueryRequest):
 
           <hr>
 
-          <h3 id="section-9-5">9.5 구축 단계 요약</h3>
+          <h3 id="section-9-6">9.6 구축 단계 요약</h3>
 
           <pre><code>Phase 1: slm-factory (SLM 학습 + Ollama 배포)
     ↓
-Phase 2: export-autorag → AutoRAG 최적화
+Phase 2: export-autorag → corpus.parquet 생성
     ↓
 Phase 3: RAG 서비스 운영
-    ├─ A: AutoRAG 내장 서버 (소규모 서비스)
-    └─ B: FastAPI 커스텀 서버 (대규모 확장)</code></pre>
+    ├─ A: slm-factory 내장 RAG (즉시 시작)
+    ├─ B: AutoRAG 내장 서버 (최적화 탐색)
+    └─ C: FastAPI 커스텀 서버 (대규모 확장)</code></pre>
 
           <div class="table-wrapper">
             <table>
@@ -998,14 +1044,14 @@ Phase 3: RAG 서비스 운영
           </div>
 
           <blockquote>
-            <p><strong>Phase 3 시점에서 실체적인 RAG 서비스가 동작합니다.</strong> <code>autorag run_api</code>를 실행하는 것만으로 REST API를 제공하는 도메인 AI 서비스가 완성됩니다. 내부 사용자에게 바로 공개할 수 있습니다.</p>
+            <p><strong>Phase 3 시점에서 실체적인 RAG 서비스가 동작합니다.</strong> 경로 A라면 <code>slm-factory tool rag-serve</code> 한 줄로, 경로 B라면 <code>autorag run_api</code> 한 줄로 REST API를 제공하는 도메인 AI 서비스가 완성됩니다.</p>
           </blockquote>
 
           <hr>
 
-          <h3 id="section-9-6">9.6 프로덕션 보완 체크리스트</h3>
+          <h3 id="section-9-7">9.7 프로덕션 보완 체크리스트</h3>
 
-          <p>AutoRAG 내장 서버로 RAG 서비스를 즉시 운영할 수 있지만, <strong>엔터프라이즈 프로덕션 환경</strong>에서는 다음 항목을 보완해야 합니다.</p>
+          <p>slm-factory 내장 RAG 또는 AutoRAG 서버로 RAG 서비스를 즉시 운영할 수 있지만, <strong>엔터프라이즈 프로덕션 환경</strong>에서는 다음 항목을 보완해야 합니다.</p>
 
           <h4>즉시 보완 (서비스 공개 전)</h4>
           <div class="table-wrapper">
@@ -1039,7 +1085,7 @@ Phase 3: RAG 서비스 운영
             <table>
               <thead><tr><th>항목</th><th>설명</th><th>보완 방법</th></tr></thead>
               <tbody>
-                <tr><td><strong>로드 밸런서</strong></td><td>수평 확장</td><td>AutoRAG 서버 인스턴스 다중 구동 + Nginx upstream. 또는 FastAPI 전환 (경로 B)</td></tr>
+                <tr><td><strong>로드 밸런서</strong></td><td>수평 확장</td><td>서버 인스턴스 다중 구동 + Nginx upstream. 또는 FastAPI 전환 (경로 C)</td></tr>
                 <tr><td><strong>GPU 추론 최적화</strong></td><td>높은 동시성</td><td>Ollama 대신 vLLM 또는 TGI(Text Generation Inference)로 전환. 배치 추론 지원</td></tr>
                 <tr><td><strong>응답 캐싱</strong></td><td>반복 질의 최적화</td><td>Redis 캐시. 동일 질의 재처리 방지 (TTL 기반)</td></tr>
                 <tr><td><strong>벡터 DB 확장</strong></td><td>대규모 코퍼스</td><td>ChromaDB &rarr; Milvus 또는 Weaviate. 분산 인덱싱, 수백만 문서 지원</td></tr>
@@ -1048,9 +1094,9 @@ Phase 3: RAG 서비스 운영
             </table>
           </div>
 
-          <h4>전환 판단 기준: 경로 A &rarr; 경로 B</h4>
+          <h4>전환 판단 기준: 경로 A &rarr; B &rarr; C</h4>
 
-          <p>AutoRAG 내장 서버(경로 A)에서 FastAPI 커스텀 서버(경로 B)로 전환해야 하는 시점:</p>
+          <p>slm-factory 내장 RAG(경로 A) 또는 AutoRAG 서버(경로 B)에서 FastAPI 커스텀 서버(경로 C)로 전환해야 하는 시점:</p>
 
           <div class="table-wrapper">
             <table>
@@ -1064,7 +1110,7 @@ Phase 3: RAG 서비스 운영
             </table>
           </div>
 
-          <p>경로 A에서 충분히 운영하다가, 위 신호가 나타나면 경로 B로 전환하십시오. AutoRAG 최적화 결과(<code>summary.csv</code>)의 최적 조합 정보를 그대로 FastAPI 구현에 반영하면 됩니다.</p>
+          <p>경로 A에서 시작하여, 검색 품질 최적화가 필요하면 경로 B(AutoRAG)로, 위 신호가 나타나면 경로 C(FastAPI)로 전환하십시오. AutoRAG 최적화 결과(<code>summary.csv</code>)의 최적 조합 정보를 그대로 FastAPI 구현에 반영하면 됩니다.</p>
         </section>
 
       </div><!-- /.content-container -->
