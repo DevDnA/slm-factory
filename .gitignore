@@ -82,3 +82,4 @@ tmp/
 # AI agent knowledge base (auto-generated)
 AGENTS.md
 **/AGENTS.md
+test-run/
