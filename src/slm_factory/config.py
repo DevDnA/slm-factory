@@ -165,7 +165,7 @@ class QuestionsConfig(BaseModel):
 class GroundednessConfig(BaseModel):
     """생성된 답변에 대한 의미론적 근거 검증입니다."""
 
-    enabled: bool = False
+    enabled: bool = True
     model: str = "all-MiniLM-L6-v2"
     threshold: float = 0.3
 
@@ -201,10 +201,10 @@ class ValidationConfig(BaseModel):
 
 class ScoringConfig(BaseModel):
     """교사 LLM을 사용한 QA 쌍 품질 점수 설정입니다."""
-    enabled: bool = False
+    enabled: bool = True
     threshold: float = 3.0
     max_concurrency: int = 4
-    regenerate: bool = False
+    regenerate: bool = True
     max_regenerate_rounds: int = 2
 
     @model_validator(mode="after")
@@ -221,7 +221,7 @@ class ScoringConfig(BaseModel):
 
 class AugmentConfig(BaseModel):
     """QA 쌍 데이터 증강 설정입니다."""
-    enabled: bool = False
+    enabled: bool = True
     num_variants: int = 2
     max_concurrency: int = 4
     min_similarity: float = 0.3
@@ -263,7 +263,7 @@ class EarlyStoppingConfig(BaseModel):
 class QuantizationConfig(BaseModel):
     """훈련을 위한 양자화 설정입니다."""
 
-    enabled: bool = False
+    enabled: bool = True
     bits: int = 4
 
 
@@ -326,12 +326,12 @@ class ExportConfig(BaseModel):
 class EvalConfig(BaseModel):
     """학습된 모델의 자동 평가 설정입니다."""
 
-    enabled: bool = False
+    enabled: bool = True
     test_split: float = 0.1
     metrics: list[str] = Field(default_factory=lambda: ["bleu", "rouge"])
     max_samples: int = 50
     output_file: str = "eval_results.json"
-    quality_gate: bool = False
+    quality_gate: bool = True
     """품질 게이트 활성화 여부입니다. True이면 평가 결과가 임계값 미달 시 경고합니다."""
     quality_thresholds: dict[str, float] = Field(
         default_factory=lambda: {"bleu": 0.1, "rougeL": 0.2}
@@ -355,7 +355,7 @@ class EvalConfig(BaseModel):
 class GGUFExportConfig(BaseModel):
     """GGUF 양자화 변환 설정입니다."""
 
-    enabled: bool = False
+    enabled: bool = True
     quantization_type: str = "q4_k_m"
     llama_cpp_path: str = ""
 
@@ -391,11 +391,26 @@ class RagConfig(BaseModel):
     top_k: int = 5
     """검색 시 반환할 최대 문서 청크 수."""
 
+    batch_size: int = 64
+    """ChromaDB 인덱싱 시 배치 크기."""
+
     server_host: str = "0.0.0.0"
     """RAG API 서버 바인드 호스트."""
 
     server_port: int = 8000
     """RAG API 서버 포트."""
+
+    workers: int = 1
+    """uvicorn 워커 프로세스 수."""
+
+    log_level: str = "info"
+    """uvicorn 로그 레벨."""
+
+    cors_origins: list[str] = Field(default_factory=lambda: ["*"])
+    """CORS 허용 오리진 목록."""
+
+    request_timeout: float = 120.0
+    """RAG 질의 타임아웃 (초)."""
 
     ollama_model: str = ""
     """Ollama 모델명. 빈 문자열이면 ``export.ollama.model_name``을 사용합니다."""
@@ -409,6 +424,14 @@ class RagConfig(BaseModel):
             raise ValueError(
                 f"server_port({self.server_port})는 1~65535 범위여야 합니다"
             )
+        if self.batch_size < 1:
+            raise ValueError(f"batch_size({self.batch_size})는 1 이상이어야 합니다")
+        if self.workers < 1:
+            raise ValueError(f"workers({self.workers})는 1 이상이어야 합니다")
+        if self.request_timeout <= 0:
+            raise ValueError(
+                f"request_timeout({self.request_timeout})은 0보다 커야 합니다"
+            )
         return self
 
 
@@ -419,7 +442,7 @@ class AutoRAGExportConfig(BaseModel):
     ``corpus.parquet`` + ``qa.parquet`` 형식으로 변환합니다.
     """
 
-    enabled: bool = False
+    enabled: bool = True
     output_dir: str = "autorag"
     chunk_size: int = 512
     overlap_chars: int = 64
@@ -442,7 +465,7 @@ class AutoRAGExportConfig(BaseModel):
 class IncrementalConfig(BaseModel):
     """증분 학습 설정입니다."""
 
-    enabled: bool = False
+    enabled: bool = True
     hash_file: str = "document_hashes.json"
     merge_strategy: Literal["append", "replace"] = "append"
     resume_adapter: str = ""
@@ -451,7 +474,7 @@ class IncrementalConfig(BaseModel):
 class DialogueConfig(BaseModel):
     """멀티턴 대화 생성 설정입니다."""
 
-    enabled: bool = False
+    enabled: bool = True
     min_turns: int = 2
     max_turns: int = 5
     include_single_qa: bool = True
@@ -474,7 +497,7 @@ class DialogueConfig(BaseModel):
 class ReviewConfig(BaseModel):
     """QA 수동 리뷰 설정입니다."""
 
-    enabled: bool = False
+    enabled: bool = True
     auto_open: bool = True
     output_file: str = "qa_reviewed.json"
 
@@ -553,7 +576,7 @@ class EvolveConfig(BaseModel):
 class DashboardConfig(BaseModel):
     """TUI 대시보드 설정입니다."""
 
-    enabled: bool = False
+    enabled: bool = True
     refresh_interval: float = 2.0
     theme: str = "dark"
 
@@ -565,7 +588,7 @@ class ChunkingConfig(BaseModel):
     ``max_context_chars``보다 짧은 문서는 청킹하지 않습니다.
     """
 
-    enabled: bool = False
+    enabled: bool = True
     chunk_size: int = 10000
     """각 청크의 최대 문자 수입니다."""
 
@@ -599,14 +622,14 @@ class OntologyConfig(BaseModel):
     있습니다.
     """
 
-    enabled: bool = False
+    enabled: bool = True
     entity_types: list[str] = Field(default_factory=lambda: [
         "Person", "Organization", "Concept", "Technology",
         "Document", "Date", "Location",
     ])
     max_concurrency: int = 4
     min_confidence: float = 0.5
-    enrich_qa: bool = False
+    enrich_qa: bool = True
     output_file: str = "ontology.json"
 
 

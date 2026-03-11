@@ -81,23 +81,23 @@ validation:
     - "정보.{0,8}(?:없|부족|찾을 수 없)"
     - "(?:문서|자료|내용)에서?.{0,12}(?:찾을 수 없|포함되어 있지 않|언급되지 않|다루고 있지 않)"
   groundedness:
-    enabled: false                      # 필수 설치: pip install slm-factory[validation]
+    enabled: true                       # 필수 설치: pip install slm-factory[validation]
     model: "all-MiniLM-L6-v2"
     threshold: 0.3
 
 # -- 3a단계: 품질 점수 평가(Quality Scoring) --------------------------------
 scoring:
-  enabled: false                        # Teacher LLM이 QA 쌍을 1~5점으로 평가합니다
+  enabled: true                         # Teacher LLM이 QA 쌍을 1~5점으로 평가합니다
                                         # 활성화 시 LLM 호출 추가 → 시간 2배 증가
                                         # 원본 문서를 함께 전달하여 환각(Hallucination) 탐지도 수행
   threshold: 3.0                        # 이 점수 미만의 QA 쌍을 제거합니다 (1.0~5.0)
   max_concurrency: 4                    # 동시 평가 요청 수
-  regenerate: false                     # 낮은 점수의 QA를 재생성하여 품질 향상 시도
+  regenerate: true                      # 낮은 점수의 QA를 재생성하여 품질 향상 시도
   max_regenerate_rounds: 2              # 최대 재생성 반복 횟수
 
 # -- 3b단계: 데이터 증강(Data Augmentation) ---------------------------------
 augment:
-  enabled: false                        # 질문을 다양한 표현으로 변형하여 학습 데이터를 늘립니다
+  enabled: true                         # 질문을 다양한 표현으로 변형하여 학습 데이터를 늘립니다
                                         # QA 100개 미만일 때 활성화 권장
   num_variants: 2                       # 각 질문당 생성할 변형 수 (데이터가 N배 증가)
   max_concurrency: 4                    # 동시 증강 요청 수
@@ -164,7 +164,7 @@ training:
                                         # → "steps": 에포크 대신 일정 스텝마다 실행
 
   quantization:
-    enabled: false                       # true로 바꾸면 모델을 4비트로 압축 로드하여 VRAM 크게 절약
+    enabled: true                        # true로 바꾸면 모델을 4비트로 압축 로드하여 VRAM 크게 절약
                                          # → VRAM 8GB 이하에서 학습해야 할 때 활성화 (속도는 다소 감소)
     bits: 4                              # 양자화 비트 수. 4가 기본 (4 | 8)
 
@@ -172,120 +172,123 @@ training:
                                          # → 권장값: 5.0 (2B 이하), 10.0 (4B 이상). 미설정 시 비활성
 
 # -- 자동 평가(Evaluation) -------------------------------------------------
-# eval:
-#   enabled: false                      # 학습된 모델을 held-out QA로 자동 평가합니다
-#   test_split: 0.1                     # 전체 QA 중 평가용 비율 (0.0~1.0)
-#   metrics: ["bleu", "rouge"]          # 평가 메트릭: bleu, rouge, bertscore
-#                                       # 한국어(language: "ko") + kiwipiepy 설치 시 형태소 단위 평가 자동 적용
-#                                       # → pip install slm-factory[korean]
-#   max_samples: 50                     # 최대 평가 샘플 수
-#   output_file: "eval_results.json"    # 평가 결과 저장 파일
-#   quality_gate: false                 # 평가 점수가 임계값 미달 시 경고를 출력합니다
-#   quality_thresholds:                 # 메트릭별 최소 통과 임계값
-#     bleu: 0.1
-#     rougeL: 0.2
+eval:
+  enabled: true                         # 학습된 모델을 held-out QA로 자동 평가합니다
+  test_split: 0.1                       # 전체 QA 중 평가용 비율 (0.0~1.0)
+  metrics: ["bleu", "rouge"]            # 평가 메트릭: bleu, rouge, bertscore
+                                        # 한국어(language: "ko") + kiwipiepy 설치 시 형태소 단위 평가 자동 적용
+                                        # → pip install slm-factory[korean]
+  max_samples: 50                       # 최대 평가 샘플 수
+  output_file: "eval_results.json"      # 평가 결과 저장 파일
+  quality_gate: true                    # 평가 점수가 임계값 미달 시 경고를 출력합니다
+  quality_thresholds:                   # 메트릭별 최소 통과 임계값
+    bleu: 0.1
+    rougeL: 0.2
 
 # -- GGUF 변환(GGUF Export) ------------------------------------------------
-# gguf_export:
-#   enabled: false                      # llama.cpp GGUF 포맷으로 변환합니다
-#   quantization_type: "q4_k_m"         # q4_k_m (권장), q5_k_m, q8_0, f16
-#   llama_cpp_path: ""                  # llama.cpp 디렉토리 경로 (빈 값이면 자동 탐색)
+gguf_export:
+  enabled: true                         # llama.cpp GGUF 포맷으로 변환합니다
+  quantization_type: "q4_k_m"           # q4_k_m (권장), q5_k_m, q8_0, f16
+  llama_cpp_path: ""                    # llama.cpp 디렉토리 경로 (빈 값이면 자동 탐색)
 
 # -- AutoRAG 데이터 내보내기(AutoRAG Export) -----------------------------------
-# autorag_export:
-#   enabled: false                      # AutoRAG 평가용 parquet 파일을 생성합니다
-#   output_dir: "autorag"               # 출력 디렉토리 (output/ 하위)
-#   chunk_size: 512                     # 검색용 문서 청크 크기 (문자 수, 최소 100)
-#   overlap_chars: 64                   # 청크 간 중첩 문자 수
+autorag_export:
+  enabled: true                         # RAG 서비스를 위한 parquet 데이터를 생성합니다
+  output_dir: "autorag"                 # 출력 디렉토리 (output/ 하위)
+  chunk_size: 512                       # 검색용 문서 청크 크기 (문자 수, 최소 100)
+  overlap_chars: 64                     # 청크 간 중첩 문자 수
 
 # -- RAG 서비스(RAG Service) ------------------------------------------------
 # corpus.parquet을 ChromaDB에 임베딩하여 적재하고,
 # Ollama SLM과 연동하는 RAG API 서버를 실행합니다.
-# 실행: slm-factory tool rag-index → slm-factory tool rag-serve
-#
-# rag:
-#   embedding_model: "BAAI/bge-m3"      # 임베딩 모델 (sentence-transformers 호환)
-#   vector_db_path: "chroma_db"          # ChromaDB 저장 경로 (output/ 하위)
-#   collection_name: "corpus"            # ChromaDB 컬렉션 이름
-#   top_k: 5                             # 검색 시 반환할 최대 청크 수
-#   server_host: "0.0.0.0"              # RAG API 서버 호스트
-#   server_port: 8000                    # RAG API 서버 포트
-#   ollama_model: ""                     # Ollama 모델명 (빈 값이면 export.ollama.model_name 사용)
+# 파이프라인 기본 실행 시 인덱싱까지 자동 수행됩니다.
+# 서버 실행: slm-factory tool rag-serve --config project.yaml
+rag:
+  embedding_model: "BAAI/bge-m3"        # 임베딩 모델 (sentence-transformers 호환)
+  vector_db_path: "chroma_db"           # ChromaDB 저장 경로 (output/ 하위)
+  collection_name: "corpus"             # ChromaDB 컬렉션 이름
+  top_k: 5                              # 검색 시 반환할 최대 청크 수
+  batch_size: 64                        # 인덱싱 배치 크기
+  server_host: "0.0.0.0"               # RAG API 서버 호스트
+  server_port: 8000                     # RAG API 서버 포트
+  workers: 1                            # uvicorn 워커 수
+  log_level: "info"                     # uvicorn 로그 레벨
+  cors_origins: ["*"]                   # CORS 허용 오리진
+  request_timeout: 120.0                # RAG 질의 타임아웃 (초)
+  ollama_model: ""                      # Ollama 모델명 (빈 값이면 export.ollama.model_name 사용)
 
 # -- 증분 학습(Incremental Learning) ----------------------------------------
-# incremental:
-#   enabled: false                      # 문서 변경분만 QA를 재생성합니다
-#   hash_file: "document_hashes.json"   # 문서 해시 저장 파일
-#   merge_strategy: "append"            # "append" (기존 유지+추가) | "replace" (전체 교체)
-#   resume_adapter: ""                  # 이전 어댑터 경로 (이어서 학습)
+incremental:
+  enabled: true                         # 문서 변경분만 QA를 재생성합니다
+  hash_file: "document_hashes.json"     # 문서 해시 저장 파일
+  merge_strategy: "append"              # "append" (기존 유지+추가) | "replace" (전체 교체)
+  resume_adapter: ""                    # 이전 어댑터 경로 (이어서 학습)
 
 # -- 멀티턴 대화 생성(Dialogue Generation) -----------------------------------
-# dialogue:
-#   enabled: false                      # 단일 QA를 멀티턴 대화로 확장합니다
-#   min_turns: 2                        # 최소 대화 턴 수
-#   max_turns: 5                        # 최대 대화 턴 수
-#   include_single_qa: true             # 단일 QA도 학습 데이터에 포함
+dialogue:
+  enabled: true                         # 단일 QA를 멀티턴 대화로 확장합니다
+  min_turns: 2                          # 최소 대화 턴 수
+  max_turns: 5                          # 최대 대화 턴 수
+  include_single_qa: true               # 단일 QA도 학습 데이터에 포함
 
 # -- QA 리뷰(Review) -------------------------------------------------------
-# review:
-#   enabled: false                      # TUI에서 QA 쌍을 수동 검토합니다
-#   auto_open: true                     # review 명령 시 자동으로 TUI 실행
-#   output_file: "qa_reviewed.json"     # 리뷰 결과 저장 파일
+review:
+  enabled: true                         # TUI에서 QA 쌍을 수동 검토합니다
+  auto_open: true                       # review 명령 시 자동으로 TUI 실행
+  output_file: "qa_reviewed.json"       # 리뷰 결과 저장 파일
 
 # -- 모델 비교(Compare) ----------------------------------------------------
-# compare:
-#   enabled: false                      # 기본 모델 vs 파인튜닝 모델 답변 비교
-#   base_model: ""                      # 비교 기준 모델 (Ollama 모델명)
-#   finetuned_model: ""                 # 파인튜닝된 모델 (Ollama 모델명)
-#   metrics: ["bleu", "rouge"]          # 비교에 사용할 메트릭
-#   max_samples: 20                     # 비교할 최대 질문 수
-#   output_file: "compare_results.json" # 비교 결과 저장 파일
-#   # 주의: enabled: true 시 base_model과 finetuned_model은 필수입니다
+compare:
+  enabled: false                        # 기본 모델 vs 파인튜닝 모델 답변 비교 (base_model, finetuned_model 설정 필요)
+  base_model: ""                        # 비교 기준 모델 (Ollama 모델명)
+  finetuned_model: ""                   # 파인튜닝된 모델 (Ollama 모델명)
+  metrics: ["bleu", "rouge"]            # 비교에 사용할 메트릭
+  max_samples: 20                       # 비교할 최대 질문 수
+  output_file: "compare_results.json"   # 비교 결과 저장 파일
+  # 주의: enabled: true 시 base_model과 finetuned_model은 필수입니다
 
 # -- 자동 진화(Evolution) ---------------------------------------------------
-# evolve:
-#   quality_gate: true                    # 이전 모델보다 나은 경우에만 배포합니다
-#   gate_metric: "rougeL"                 # 품질 비교 메트릭: bleu, rouge1, rouge2, rougeL
-#   gate_min_improvement: 0.0             # 최소 개선율(%). 0이면 어떤 개선이든 통과
-#   version_format: "date"                # 버전 형식: "date" (vYYYYMMDD)
-#   history_file: "evolve_history.json"   # 진화 히스토리 파일명
-#   keep_previous_versions: 3             # 보관할 이전 버전 수 (초과분 ollama rm)
+evolve:
+  quality_gate: true                      # 이전 모델보다 나은 경우에만 배포합니다
+  gate_metric: "rougeL"                   # 품질 비교 메트릭: bleu, rouge1, rouge2, rougeL
+  gate_min_improvement: 0.0               # 최소 개선율(%). 0이면 어떤 개선이든 통과
+  version_format: "date"                  # 버전 형식: "date" (vYYYYMMDD)
+  history_file: "evolve_history.json"     # 진화 히스토리 파일명
+  keep_previous_versions: 3               # 보관할 이전 버전 수 (초과분 ollama rm)
 
 # -- TUI 대시보드(Dashboard) ------------------------------------------------
-# dashboard:
-#   enabled: false                      # 터미널 대시보드로 파이프라인 모니터링
-#   refresh_interval: 2.0               # 화면 갱신 주기 (초)
-#   theme: "dark"                       # "dark" | "light"
+dashboard:
+  enabled: true                         # 터미널 대시보드로 파이프라인 모니터링
+  refresh_interval: 2.0                 # 화면 갱신 주기 (초)
+  theme: "dark"                         # "dark" | "light"
 
 # -- 문서 청킹(Document Chunking) ------------------------------------------
 # 긴 문서를 청크로 분할하여 QA 품질을 향상합니다.
 # 비활성화 시 기존처럼 max_context_chars로 잘라서 단일 QA를 생성합니다.
 # 활성화 시 문서를 chunk_size 단위로 나누고 각 청크마다 QA를 생성합니다.
-#
-# chunking:
-#   enabled: false                      # 청킹 활성화 여부
-#   chunk_size: 10000                   # 각 청크의 최대 문자 수
-#   overlap_chars: 500                  # 청크 간 중첩 문자 수 (문맥 연속성 유지)
+chunking:
+  enabled: true                         # 청킹 활성화 여부
+  chunk_size: 10000                     # 각 청크의 최대 문자 수
+  overlap_chars: 500                    # 청크 간 중첩 문자 수 (문맥 연속성 유지)
 
 # -- 온톨로지(Ontology) — 지식 그래프 추출 ---------------------------------
 # 문서에서 엔티티(개체)와 관계를 자동 추출하여 지식 그래프를 구성합니다.
 # Teacher LLM을 사용하며, QA 생성 시 추출된 지식을 컨텍스트로 활용할 수 있습니다.
 # 독립 실행: slm-factory tool ontology --config project.yaml
-#
-# ontology:
-#   enabled: false                      # 온톨로지 추출 활성화 여부
-#   entity_types:                       # 추출할 엔티티 유형 (5~7개 권장)
-#     - Person
-#     - Organization
-#     - Concept
-#     - Technology
-#     - Document
-#     - Date
-#     - Location
-#   max_concurrency: 4                  # 동시 추출 요청 수 (Teacher LLM)
-#   min_confidence: 0.5                 # 최소 확신도 (0.0~1.0). 이하는 제거
-#   enrich_qa: false                    # QA 생성 시 온톨로지 컨텍스트 주입 여부
-#   output_file: "ontology.json"        # 지식 그래프 저장 파일명
+ontology:
+  enabled: true                         # 온톨로지 추출 활성화 여부
+  entity_types:                         # 추출할 엔티티 유형 (5~7개 권장)
+    - Person
+    - Organization
+    - Concept
+    - Technology
+    - Document
+    - Date
+    - Location
+  max_concurrency: 4                    # 동시 추출 요청 수 (Teacher LLM)
+  min_confidence: 0.5                   # 최소 확신도 (0.0~1.0). 이하는 제거
+  enrich_qa: true                       # QA 생성 시 온톨로지 컨텍스트 주입 여부
+  output_file: "ontology.json"          # 지식 그래프 저장 파일명
 
 # -- 6단계: 모델 내보내기(Export) -------------------------------------------
 export:
