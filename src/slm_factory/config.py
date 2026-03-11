@@ -372,6 +372,46 @@ class GGUFExportConfig(BaseModel):
         return self
 
 
+class RagConfig(BaseModel):
+    """RAG 서비스 구축 설정입니다.
+
+    ``corpus.parquet``을 ChromaDB에 임베딩하여 적재하고,
+    Ollama SLM과 연동하는 RAG API 서버를 실행합니다.
+    """
+
+    embedding_model: str = "BAAI/bge-m3"
+    """임베딩 모델 이름 (sentence-transformers 호환)."""
+
+    vector_db_path: str = "chroma_db"
+    """ChromaDB 저장 경로. ``paths.output`` 하위에 생성됩니다."""
+
+    collection_name: str = "corpus"
+    """ChromaDB 컬렉션 이름."""
+
+    top_k: int = 5
+    """검색 시 반환할 최대 문서 청크 수."""
+
+    server_host: str = "0.0.0.0"
+    """RAG API 서버 바인드 호스트."""
+
+    server_port: int = 8000
+    """RAG API 서버 포트."""
+
+    ollama_model: str = ""
+    """Ollama 모델명. 빈 문자열이면 ``export.ollama.model_name``을 사용합니다."""
+
+    @model_validator(mode="after")
+    def _check_rag_params(self) -> "RagConfig":
+        """RAG 설정의 유효성을 검증합니다."""
+        if self.top_k < 1:
+            raise ValueError(f"top_k({self.top_k})는 1 이상이어야 합니다")
+        if self.server_port < 1 or self.server_port > 65535:
+            raise ValueError(
+                f"server_port({self.server_port})는 1~65535 범위여야 합니다"
+            )
+        return self
+
+
 class AutoRAGExportConfig(BaseModel):
     """AutoRAG 연동을 위한 데이터 내보내기 설정입니다.
 
@@ -597,6 +637,7 @@ class SLMConfig(BaseModel):
     eval: EvalConfig = Field(default_factory=EvalConfig)
     gguf_export: GGUFExportConfig = Field(default_factory=GGUFExportConfig)
     autorag_export: AutoRAGExportConfig = Field(default_factory=AutoRAGExportConfig)
+    rag: RagConfig = Field(default_factory=RagConfig)
     incremental: IncrementalConfig = Field(default_factory=IncrementalConfig)
     dialogue: DialogueConfig = Field(default_factory=DialogueConfig)
     review: ReviewConfig = Field(default_factory=ReviewConfig)

@@ -198,6 +198,20 @@ training:
 #   chunk_size: 512                     # 검색용 문서 청크 크기 (문자 수, 최소 100)
 #   overlap_chars: 64                   # 청크 간 중첩 문자 수
 
+# -- RAG 서비스(RAG Service) ------------------------------------------------
+# corpus.parquet을 ChromaDB에 임베딩하여 적재하고,
+# Ollama SLM과 연동하는 RAG API 서버를 실행합니다.
+# 실행: slm-factory tool rag-index → slm-factory tool rag-serve
+#
+# rag:
+#   embedding_model: "BAAI/bge-m3"      # 임베딩 모델 (sentence-transformers 호환)
+#   vector_db_path: "chroma_db"          # ChromaDB 저장 경로 (output/ 하위)
+#   collection_name: "corpus"            # ChromaDB 컬렉션 이름
+#   top_k: 5                             # 검색 시 반환할 최대 청크 수
+#   server_host: "0.0.0.0"              # RAG API 서버 호스트
+#   server_port: 8000                    # RAG API 서버 포트
+#   ollama_model: ""                     # Ollama 모델명 (빈 값이면 export.ollama.model_name 사용)
+
 # -- 증분 학습(Incremental Learning) ----------------------------------------
 # incremental:
 #   enabled: false                      # 문서 변경분만 QA를 재생성합니다

@@ -1952,6 +1952,134 @@ def export_autorag(
         raise typer.Exit(code=1)
 
 
+@tool_app.command(name="rag-index")
+def rag_index(
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
+    corpus_dir: Optional[str] = typer.Option(
+        None,
+        "--corpus-dir",
+        help="corpus.parquet이 있는 디렉토리 경로 (기본값: output/autorag)",
+    ),
+) -> None:
+    """corpus.parquet을 ChromaDB에 임베딩하여 적재합니다."""
+    try:
+        from .rag.indexer import RAGIndexer
+
+        pipeline = _load_pipeline(config)
+        pipeline.config.paths.ensure_dirs()
+
+        if corpus_dir is not None:
+            corpus_path = Path(corpus_dir) / "corpus.parquet"
+        else:
+            corpus_path = (
+                pipeline.config.paths.output
+                / pipeline.config.autorag_export.output_dir
+                / "corpus.parquet"
+            )
+
+        if not corpus_path.is_file():
+            _print_error(
+                "코퍼스 데이터 미발견",
+                f"파일을 찾을 수 없음: {corpus_path}",
+                [
+                    "먼저 AutoRAG 데이터를 내보내세요: "
+                    "slm-factory tool export-autorag --config project.yaml",
+                ],
+            )
+            raise typer.Exit(code=1)
+
+        console.print(
+            f"\n[bold]RAG 인덱싱[/bold]\n"
+            f"  코퍼스: [cyan]{corpus_path}[/cyan]\n"
+            f"  임베딩: [cyan]{pipeline.config.rag.embedding_model}[/cyan]\n"
+            f"  벡터DB: [cyan]{pipeline.config.paths.output / pipeline.config.rag.vector_db_path}[/cyan]\n"
+        )
+
+        indexer = RAGIndexer(pipeline.config)
+        db_path = indexer.index(corpus_path)
+
+        console.print(
+            f"\n[bold green]인덱싱 완료![/bold green]\n"
+            f"  ChromaDB: [cyan]{db_path}[/cyan]\n\n"
+            f"[dim]다음 단계: slm-factory tool rag-serve --config {config}[/dim]\n"
+        )
+
+    except ImportError:
+        _print_error(
+            "RAG 의존성 미설치",
+            "chromadb 또는 sentence-transformers가 설치되지 않았습니다",
+            ["pip install slm-factory[rag,validation]"],
+        )
+        raise typer.Exit(code=1)
+    except Exception as e:
+        _print_error("RAG 인덱싱 실패", e, hints=_get_error_hints(e))
+        raise typer.Exit(code=1)
+
+
+@tool_app.command(name="rag-serve")
+def rag_serve(
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
+    host: Optional[str] = typer.Option(
+        None, "--host", help="서버 바인드 호스트 (기본값: 설정 파일 값)",
+    ),
+    port: Optional[int] = typer.Option(
+        None, "--port", help="서버 포트 (기본값: 설정 파일 값)",
+    ),
+) -> None:
+    """RAG API 서버를 시작합니다. ChromaDB 검색 + Ollama SLM 생성."""
+    try:
+        from .rag.server import run_server
+
+        pipeline = _load_pipeline(config)
+
+        if host is not None:
+            pipeline.config.rag.server_host = host
+        if port is not None:
+            pipeline.config.rag.server_port = port
+
+        db_path = (
+            pipeline.config.paths.output / pipeline.config.rag.vector_db_path
+        )
+        if not db_path.is_dir():
+            _print_error(
+                "벡터DB 미발견",
+                f"ChromaDB를 찾을 수 없음: {db_path}",
+                [
+                    "먼저 인덱싱을 실행하세요: "
+                    "slm-factory tool rag-index --config project.yaml",
+                ],
+            )
+            raise typer.Exit(code=1)
+
+        ollama_model = (
+            pipeline.config.rag.ollama_model
+            or pipeline.config.export.ollama.model_name
+        )
+
+        console.print(
+            f"\n[bold]RAG API 서버 시작[/bold]\n"
+            f"  모델:   [cyan]{ollama_model}[/cyan]\n"
+            f"  벡터DB: [cyan]{db_path}[/cyan]\n"
+            f"  주소:   [cyan]http://{pipeline.config.rag.server_host}:{pipeline.config.rag.server_port}[/cyan]\n\n"
+            f"[dim]API 테스트: curl -X POST http://localhost:{pipeline.config.rag.server_port}/v1/query "
+            f'-H "Content-Type: application/json" '
+            f"-d '{{\"query\": \"질문\"}}'[/dim]\n"
+        )
+
+        run_server(pipeline.config)
+
+    except ImportError:
+        _print_error(
+            "RAG 의존성 미설치",
+            "fastapi, uvicorn 또는 chromadb가 설치되지 않았습니다",
+            ["pip install slm-factory[rag,validation]"],
+        )
+        raise typer.Exit(code=1)
+    except Exception as e:
+        _print_error("RAG 서버 실행 실패", e, hints=_get_error_hints(e))
+        raise typer.Exit(code=1)
+
+
 @tool_app.command(name="evolve")
 def evolve(
     config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
