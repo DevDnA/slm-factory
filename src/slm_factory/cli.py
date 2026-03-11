@@ -31,7 +31,11 @@ class PipelineStep(str, enum.Enum):
     convert = "convert"
     train = "train"
     export = "export"
+    dialogue = "dialogue"
+    gguf_export = "gguf_export"
     eval = "eval"
+    autorag_export = "autorag_export"
+    rag_index = "rag_index"
 
 
 app = typer.Typer(
@@ -391,7 +395,7 @@ def init(
     console.print(f"  5. wizard 실행: [cyan]slm-factory tool wizard --config {config_path}[/cyan]\n")
 
 
-_STEP_ORDER = ["parse", "generate", "validate", "score", "augment", "analyze", "convert", "train", "export", "eval"]
+_STEP_ORDER = ["parse", "generate", "validate", "score", "augment", "analyze", "convert", "train", "export", "dialogue", "gguf_export", "eval", "autorag_export", "rag_index"]
 
 _RESUME_TO_STEP_IDX: dict[str, int] = {
     "generate": 1,
@@ -401,7 +405,11 @@ _RESUME_TO_STEP_IDX: dict[str, int] = {
     "convert": 6,
     "train": 7,
     "export": 8,
-    "eval": 9,
+    "dialogue": 9,
+    "gguf_export": 10,
+    "eval": 11,
+    "autorag_export": 12,
+    "rag_index": 13,
 }
 
 _STEP_OUTPUT_FILES: dict[str, str] = {
@@ -479,6 +487,33 @@ def _load_preceding_data(
             console.print("[red]오류:[/red] --from export를 사용하려면 checkpoints/adapter가 필요합니다")
             return None
 
+    elif from_step in ("dialogue", "eval"):
+        for candidate in ["qa_augmented.json", "qa_scored.json", "qa_alpaca.json"]:
+            qa_file = output_dir / candidate
+            if qa_file.is_file():
+                pairs = pipeline._load_pairs(qa_file)
+                break
+        if not pairs:
+            console.print(f"[red]오류:[/red] --from {from_step}을 사용하려면 QA 데이터 파일이 필요합니다")
+            return None
+
+    elif from_step == "gguf_export":
+        merged = output_dir / "merged_model"
+        if not merged.is_dir():
+            console.print("[red]오류:[/red] --from gguf_export를 사용하려면 merged_model이 필요합니다")
+            return None
+
+    elif from_step in ("autorag_export", "rag_index"):
+        parsed = output_dir / "parsed_documents.json"
+        if parsed.is_file():
+            raw = json.loads(parsed.read_text(encoding="utf-8"))
+            docs = [ParsedDocument(**item) for item in raw]
+        for candidate in ["qa_augmented.json", "qa_scored.json", "qa_alpaca.json"]:
+            qa_file = output_dir / candidate
+            if qa_file.is_file():
+                pairs = pipeline._load_pairs(qa_file)
+                break
+
     return docs, pairs, training_data_path
 
 
@@ -499,6 +534,7 @@ def _run_until_step(
     training_data_path: Path | None = None
     adapter_path: Path | None = None
     model_dir: Path | None = None
+    corpus_path: Path | None = None
     kg: KnowledgeGraph | None = None
     start_idx = 0
 
@@ -601,6 +637,26 @@ def _run_until_step(
             model_dir = pipeline.step_export(adapter_path)
             console.print(f"  [green]✓[/green] 모델 내보내기 완료: {model_dir}")
 
+        elif step == "dialogue":
+            if pairs:
+                dialogues = pipeline.step_dialogue(pairs)
+                if dialogues:
+                    console.print(f"  [green]✓[/green] 멀티턴 대화 생성: {len(dialogues)}개")
+                else:
+                    console.print("  [dim]⏭[/dim] dialogue 건너뜀 (비활성화)")
+            else:
+                console.print("  [dim]⏭[/dim] dialogue 건너뜀 (QA 데이터 없음)")
+
+        elif step == "gguf_export":
+            if model_dir:
+                gguf_path = pipeline.step_gguf_export(model_dir)
+                if gguf_path != model_dir:
+                    console.print(f"  [green]✓[/green] GGUF 변환 완료: {gguf_path}")
+                else:
+                    console.print("  [dim]⏭[/dim] gguf_export 건너뜀 (비활성화)")
+            else:
+                console.print("  [dim]⏭[/dim] gguf_export 건너뜀 (모델 디렉토리 없음)")
+
         elif step == "eval":
             ollama_cfg = pipeline.config.export.ollama
             if ollama_cfg.enabled and ollama_cfg.model_name and pairs:
@@ -609,7 +665,86 @@ def _run_until_step(
             else:
                 console.print("  [dim]⏭[/dim] eval 건너뜀 (Ollama 모델 미설정 또는 QA 쌍 없음)")
 
+        elif step == "autorag_export":
+            if docs is not None and pairs:
+                from dataclasses import asdict as _asdict
+
+                doc_dicts = [_asdict(d) for d in docs]
+                pair_dicts = [_asdict(p) for p in pairs]
+                corpus_path, _qa_path = pipeline.step_autorag_export(
+                    doc_dicts, pair_dicts,
+                )
+                if corpus_path.name:
+                    console.print(f"  [green]✓[/green] RAG 데이터 내보내기 완료: {corpus_path}")
+                else:
+                    console.print("  [dim]⏭[/dim] autorag_export 건너뜀 (비활성화)")
+            else:
+                output_dir = Path(pipeline.config.paths.output)
+                candidate = (
+                    output_dir
+                    / pipeline.config.autorag_export.output_dir
+                    / "corpus.parquet"
+                )
+                if candidate.is_file():
+                    corpus_path = candidate
+                    console.print(f"  [dim]⏭[/dim] autorag_export 건너뜀 (이전 결과 사용: {candidate.name})")
+                else:
+                    console.print("  [dim]⏭[/dim] autorag_export 건너뜀 (문서 또는 QA 데이터 없음)")
+
+        elif step == "rag_index":
+            if corpus_path is None:
+                output_dir = Path(pipeline.config.paths.output)
+                candidate = (
+                    output_dir
+                    / pipeline.config.autorag_export.output_dir
+                    / "corpus.parquet"
+                )
+                if candidate.is_file():
+                    corpus_path = candidate
+            if corpus_path and corpus_path.is_file():
+                db_path = pipeline.step_rag_index(corpus_path)
+                if db_path.name:
+                    console.print(f"  [green]✓[/green] RAG 인덱싱 완료: {db_path}")
+                    console.print(
+                        f"  [dim]RAG 서버 실행: slm-factory tool rag-serve --config project.yaml[/dim]"
+                    )
+                else:
+                    console.print("  [dim]⏭[/dim] rag_index 건너뜀 (RAG 의존성 미설치)")
+            else:
+                console.print("  [dim]⏭[/dim] rag_index 건너뜀 (corpus.parquet 없음)")
+
     return model_dir
+
+
+def _start_rag_server(config) -> None:
+    db_path = Path(config.paths.output) / config.rag.vector_db_path
+    if not db_path.is_dir():
+        console.print(
+            "\n[yellow]RAG 서버를 시작할 수 없습니다[/yellow] — "
+            "ChromaDB가 없습니다. rag_index 단계를 먼저 실행하세요.\n"
+        )
+        return
+
+    try:
+        from .rag.server import run_server
+    except ImportError:
+        console.print(
+            "\n[yellow]RAG 서버 의존성 미설치[/yellow] — "
+            "pip install slm-factory[rag,validation]\n"
+        )
+        return
+
+    ollama_model = config.rag.ollama_model or config.export.ollama.model_name
+    console.print(
+        f"\n[bold]RAG API 서버 시작[/bold]\n"
+        f"  모델:   [cyan]{ollama_model}[/cyan]\n"
+        f"  벡터DB: [cyan]{db_path}[/cyan]\n"
+        f"  주소:   [cyan]http://{config.rag.server_host}:{config.rag.server_port}[/cyan]\n\n"
+        f"[dim]API 테스트: curl -X POST http://localhost:{config.rag.server_port}/v1/query "
+        f'-H "Content-Type: application/json" '
+        f"-d '{{\"query\": \"질문\"}}'[/dim]\n"
+    )
+    run_server(config)
 
 
 @app.command(rich_help_panel="⚙️ 파이프라인")
@@ -624,13 +759,17 @@ def run(
     from_step: Optional[PipelineStep] = typer.Option(
         None, "--from", help="지정된 단계부터 실행 (이전 단계의 출력 파일 필요)"
     ),
+    serve: bool = typer.Option(
+        False, "--serve", "-s",
+        help="파이프라인 완료 후 RAG API 서버를 자동으로 시작합니다",
+    ),
 ) -> None:
-    """파이프라인을 실행합니다. --until로 단계를 지정하면 해당 단계까지만 실행합니다."""
+    """파이프라인을 실행합니다. --serve로 RAG 서버까지 한번에 구동합니다."""
     try:
         pipeline = _load_pipeline(config)
         pipeline.config.paths.ensure_dirs()
 
-        target_step = until.value if until is not None else "export"
+        target_step = until.value if until is not None else "rag_index"
         label = f"{target_step} 단계까지 실행 중..." if until else "전체 파이프라인 시작 중..."
         if from_step:
             label = f"{from_step.value} 단계부터 " + label
@@ -646,6 +785,9 @@ def run(
             console.print(
                 f"\n[bold green]파이프라인 완료![/bold green] 모델 저장 위치: [cyan]{model_dir}[/cyan]\n"
             )
+
+        if serve:
+            _start_rag_server(pipeline.config)
 
     except FileNotFoundError as e:
         _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
@@ -1369,7 +1511,7 @@ def wizard(
         console.print("  [yellow]⚠ 디바이스 감지 실패 (PyTorch 미설치?)[/yellow]")
 
     # ── Step 1: 설정 파일 ─────────────────────────────────────────
-    console.print("\n[bold]━━━ [1/12] 설정 파일 ━━━[/bold]")
+    console.print("\n[bold]━━━ [1/14] 설정 파일 ━━━[/bold]")
     resolved = _find_config(config)
     if not Path(resolved).is_file():
         resolved = Prompt.ask("  설정 파일 경로를 입력하세요", default="project.yaml")
@@ -1410,7 +1552,7 @@ def wizard(
             console.print(f"  [blue]ℹ[/blue] 이전 결과를 감지하여 재개합니다")
 
     # ── Step 2: 문서 선택 ─────────────────────────────────────────
-    console.print("\n[bold]━━━ [2/12] 문서 선택 (필수) ━━━[/bold]")
+    console.print("\n[bold]━━━ [2/14] 문서 선택 (필수) ━━━[/bold]")
     selected_files: list[Path] | None = None
     if skip_to_step > 2:
         console.print("  [yellow]⏭ 건너뜀 (이전 결과 사용)[/yellow]")
@@ -1475,7 +1617,7 @@ def wizard(
             console.print(f"  [green]✓[/green] {len(selected_files)}개 문서 선택됨")
 
     # ── Step 3: 파싱 ──────────────────────────────────────────────
-    console.print("\n[bold]━━━ [3/12] 문서 파싱 (필수) ━━━[/bold]")
+    console.print("\n[bold]━━━ [3/14] 문서 파싱 (필수) ━━━[/bold]")
     if skip_to_step > 3:
         console.print("  [yellow]⏭ 건너뜀 (이전 결과 사용)[/yellow]")
     else:
@@ -1489,7 +1631,7 @@ def wizard(
     # ── Step 3b: 청킹 설정 (선택) ────────────────────────────────────
     if skip_to_step <= 3:
         chunk_default = pipeline.config.chunking.enabled
-        console.print("\n[bold]━━━ [3b/12] 문서 청킹 (선택) ━━━[/bold]")
+        console.print("\n[bold]━━━ [3b/14] 문서 청킹 (선택) ━━━[/bold]")
         console.print(
             "  [dim]긴 문서를 청크로 분할하여 각 청크마다 QA를 생성합니다.\n"
             "  활성화하면 문서의 전체 내용에서 QA가 생성되어 품질이 향상됩니다.[/dim]"
@@ -1514,7 +1656,7 @@ def wizard(
     kg = None
     if skip_to_step <= 3:
         onto_default = pipeline.config.ontology.enabled
-        console.print("\n[bold]━━━ [3a/12] 온톨로지 추출 (선택) ━━━[/bold]")
+        console.print("\n[bold]━━━ [3a/14] 온톨로지 추출 (선택) ━━━[/bold]")
         console.print("  [dim]문서에서 엔티티와 관계를 추출하여 지식 그래프를 구성합니다. Ollama 실행 필요.[/dim]")
         console.print(
             f"  [dim]설정: ontology.enabled = {str(onto_default).lower()}[/dim]"
@@ -1535,7 +1677,7 @@ def wizard(
             console.print("  [yellow]⏭ 건너뜀[/yellow]")
 
     # ── Step 4: QA 생성 ───────────────────────────────────────────
-    console.print("\n[bold]━━━ [4/12] QA 쌍 생성 (필수) ━━━[/bold]")
+    console.print("\n[bold]━━━ [4/14] QA 쌍 생성 (필수) ━━━[/bold]")
     if skip_to_step > 4:
         console.print("  [yellow]⏭ 건너뜀 (이전 결과 사용)[/yellow]")
     else:
@@ -1582,7 +1724,7 @@ def wizard(
             raise typer.Exit(code=1)
 
     # ── Step 5: 검증 ──────────────────────────────────────────────
-    console.print("\n[bold]━━━ [5/12] QA 검증 (필수) ━━━[/bold]")
+    console.print("\n[bold]━━━ [5/14] QA 검증 (필수) ━━━[/bold]")
     if skip_to_step > 5:
         console.print("  [yellow]⏭ 건너뜀 (이전 결과 사용)[/yellow]")
     else:
@@ -1601,7 +1743,7 @@ def wizard(
             raise typer.Exit(code=1)
 
     # ── Step 6: 품질 평가 ─────────────────────────────────────────
-    console.print("\n[bold]━━━ [6/12] 품질 점수 평가 (선택) ━━━[/bold]")
+    console.print("\n[bold]━━━ [6/14] 품질 점수 평가 (선택) ━━━[/bold]")
     if skip_to_step > 6:
         console.print("  [yellow]⏭ 건너뜀 (이전 결과 사용)[/yellow]")
     else:
@@ -1632,7 +1774,7 @@ def wizard(
             console.print("  [yellow]⏭ 건너뜀[/yellow]")
 
     # ── Step 7: 데이터 증강 ───────────────────────────────────────
-    console.print("\n[bold]━━━ [7/12] 데이터 증강 (선택) ━━━[/bold]")
+    console.print("\n[bold]━━━ [7/14] 데이터 증강 (선택) ━━━[/bold]")
     if skip_to_step > 7:
         console.print("  [yellow]⏭ 건너뜀 (이전 결과 사용)[/yellow]")
     else:
@@ -1663,7 +1805,7 @@ def wizard(
         pipeline.step_analyze(pairs)
 
     # ── Step 8: 학습 ──────────────────────────────────────────────
-    console.print("\n[bold]━━━ [8/12] 모델 학습 (필수) ━━━[/bold]")
+    console.print("\n[bold]━━━ [8/14] 모델 학습 (필수) ━━━[/bold]")
     console.print(f"  Student: {pipeline.config.student.model}")
     if _wizard_device is not None:
         _dev_label = {"cuda": "NVIDIA GPU (CUDA)", "mps": "Apple Silicon GPU (MPS)", "cpu": "CPU"}
@@ -1699,7 +1841,7 @@ def wizard(
         raise typer.Exit(code=1)
 
     # ── Step 9: 내보내기 ──────────────────────────────────────────
-    console.print("\n[bold]━━━ [9/12] 모델 내보내기 (필수) ━━━[/bold]")
+    console.print("\n[bold]━━━ [9/14] 모델 내보내기 (필수) ━━━[/bold]")
     console.print("  [dim]LoRA 어댑터를 기본 모델에 병합하고 Ollama 모델로 등록합니다.[/dim]")
     if not Confirm.ask("  모델을 내보내시겠습니까?", default=True):
         console.print("  [yellow]⏭ 건너뜀[/yellow]")
@@ -1723,37 +1865,25 @@ def wizard(
         _print_error("내보내기 실패", e, hints=_get_error_hints(e), resume_cmd=_resume_cmd)
         raise typer.Exit(code=1)
 
-    # ── Step 10: 멀티턴 대화 생성 (선택) ────────────────────────────
-    console.print("\n[bold]━━━ [10/12] 멀티턴 대화 생성 (선택) ━━━[/bold]")
+    # ── Step 10: 멀티턴 대화 생성 ───────────────────────────────────
+    console.print("\n[bold]━━━ [10/14] 멀티턴 대화 생성 ━━━[/bold]")
     console.print("  [dim]QA 쌍을 멀티턴 대화 형식으로 확장합니다. Ollama 실행 필요.[/dim]")
-    if Confirm.ask("  멀티턴 대화를 생성하시겠습니까?", default=False):
+    if Confirm.ask("  멀티턴 대화를 생성하시겠습니까?", default=pipeline.config.dialogue.enabled):
         try:
-            from .utils import run_async
-
-            from .teacher import create_teacher
-            from .teacher.dialogue_generator import DialogueGenerator
-
-            teacher = create_teacher(pipeline.config.teacher)
-            gen = DialogueGenerator(teacher, pipeline.config.dialogue, pipeline.config.teacher)
-            dialogues = run_async(gen.generate_all(pairs))
-            dialogue_path = pipeline.output_dir / "dialogues.json"
-            gen.save_dialogues(dialogues, dialogue_path)
-            console.print(f"  [green]✓[/green] {len(dialogues)}개 대화 생성 → [cyan]{dialogue_path}[/cyan]")
+            dialogues = pipeline.step_dialogue(pairs)
+            console.print(f"  [green]✓[/green] {len(dialogues)}개 대화 생성 완료")
         except Exception as e:
             _print_error("대화 생성 실패", e, hints=_get_error_hints(e))
             console.print("  [yellow]⏭ 건너뛰고 계속합니다[/yellow]")
     else:
         console.print("  [yellow]⏭ 건너뜀[/yellow]")
 
-    # ── Step 11: GGUF 변환 (선택) ─────────────────────────────────
-    console.print("\n[bold]━━━ [11/12] GGUF 변환 (선택) ━━━[/bold]")
+    # ── Step 11: GGUF 변환 ────────────────────────────────────────
+    console.print("\n[bold]━━━ [11/14] GGUF 변환 ━━━[/bold]")
     console.print(f"  [dim]모델을 GGUF 양자화 형식으로 변환합니다 (llama.cpp). 양자화: {pipeline.config.gguf_export.quantization_type}[/dim]")
-    if Confirm.ask("  GGUF 변환을 하시겠습니까?", default=False):
+    if Confirm.ask("  GGUF 변환을 하시겠습니까?", default=pipeline.config.gguf_export.enabled):
         try:
-            from .exporter.gguf_export import GGUFExporter
-
-            exporter = GGUFExporter(pipeline.config)
-            gguf_path = exporter.export(model_dir)
+            gguf_path = pipeline.step_gguf_export(model_dir)
             console.print(f"  [green]✓[/green] GGUF 변환 완료 → [cyan]{gguf_path}[/cyan]")
         except Exception as e:
             _print_error("GGUF 변환 실패", e, hints=_get_error_hints(e))
@@ -1761,31 +1891,66 @@ def wizard(
     else:
         console.print("  [yellow]⏭ 건너뜀[/yellow]")
 
-    # ── Step 12: 모델 평가 (선택) ─────────────────────────────────
-    console.print("\n[bold]━━━ [12/12] 모델 평가 (선택) ━━━[/bold]")
-    console.print(f"  [dim]학습된 모델의 품질을 QA 데이터로 평가합니다 (BLEU/ROUGE). Ollama 실행 필요.[/dim]")
-    if Confirm.ask("  모델 평가를 하시겠습니까?", default=False):
+    # ── Step 12: 모델 평가 ────────────────────────────────────────
+    console.print("\n[bold]━━━ [12/14] 모델 평가 ━━━[/bold]")
+    console.print("  [dim]학습된 모델의 품질을 QA 데이터로 평가합니다 (BLEU/ROUGE). Ollama 실행 필요.[/dim]")
+    if Confirm.ask("  모델 평가를 하시겠습니까?", default=pipeline.config.eval.enabled):
         eval_model_name = Prompt.ask(
             "  평가할 모델 이름",
             default=pipeline.config.export.ollama.model_name,
         )
         try:
-            from .evaluator import ModelEvaluator
-
-            evaluator = ModelEvaluator(pipeline.config)
-            results = evaluator.evaluate(pairs, eval_model_name)
-            eval_path = pipeline.output_dir / pipeline.config.eval.output_file
-            evaluator.save_results(results, eval_path)
-            evaluator.print_summary(results)
-            console.print(f"  [green]✓[/green] 평가 완료 ({len(results)}건) → [cyan]{eval_path}[/cyan]")
+            eval_results = pipeline.step_eval(pairs, eval_model_name)
+            console.print(f"  [green]✓[/green] 평가 완료 ({len(eval_results)}건)")
         except Exception as e:
             _print_error("평가 실패", e, hints=_get_error_hints(e))
             console.print("  [yellow]⏭ 건너뛰고 계속합니다[/yellow]")
     else:
         console.print("  [yellow]⏭ 건너뜀[/yellow]")
 
+    # ── Step 13: RAG 데이터 내보내기 (필수) ───────────────────────
+    console.print("\n[bold]━━━ [13/14] RAG 데이터 내보내기 (필수) ━━━[/bold]")
+    console.print("  [dim]파싱된 문서를 corpus.parquet으로 변환합니다 (RAG 인덱싱용).[/dim]")
+    _wizard_corpus_path: Path | None = None
+    try:
+        from dataclasses import asdict as _asdict
+
+        if docs is not None and pairs:
+            doc_dicts = [_asdict(d) for d in docs]
+            pair_dicts = [_asdict(p) for p in pairs]
+            _wizard_corpus_path, _wizard_qa_path = pipeline.step_autorag_export(
+                doc_dicts, pair_dicts,
+            )
+            if _wizard_corpus_path.name:
+                console.print(f"  [green]✓[/green] RAG 데이터 내보내기 완료: [cyan]{_wizard_corpus_path}[/cyan]")
+            else:
+                console.print("  [dim]⏭[/dim] autorag_export 비활성화")
+        else:
+            console.print("  [yellow]⏭ 건너뜀 (문서 또는 QA 데이터 없음)[/yellow]")
+    except Exception as e:
+        _print_error("RAG 데이터 내보내기 실패", e, hints=_get_error_hints(e))
+        console.print("  [yellow]⏭ 건너뛰고 계속합니다[/yellow]")
+
+    # ── Step 14: RAG 벡터 인덱싱 (필수) ──────────────────────────
+    console.print("\n[bold]━━━ [14/14] RAG 벡터 인덱싱 (필수) ━━━[/bold]")
+    console.print("  [dim]corpus.parquet을 ChromaDB에 임베딩하여 RAG 검색을 준비합니다.[/dim]")
+    _wizard_db_path: Path | None = None
+    if _wizard_corpus_path and _wizard_corpus_path.is_file():
+        try:
+            _wizard_db_path = pipeline.step_rag_index(_wizard_corpus_path)
+            if _wizard_db_path.name:
+                console.print(f"  [green]✓[/green] 인덱싱 완료: [cyan]{_wizard_db_path}[/cyan]")
+            else:
+                console.print("  [yellow]⏭ RAG 의존성 미설치 (pip install slm-factory[rag,validation])[/yellow]")
+        except Exception as e:
+            _print_error("RAG 인덱싱 실패", e, hints=_get_error_hints(e))
+            console.print("  [yellow]⏭ 건너뛰고 계속합니다[/yellow]")
+    else:
+        console.print("  [yellow]⏭ 건너뜀 (corpus.parquet 없음)[/yellow]")
+
     # ── 완료 ──────────────────────────────────────────────────────
     console.print()
+    _rag_ready = _wizard_db_path is not None and _wizard_db_path.name
     summary = (
         f"[bold green]파이프라인 완료![/bold green]\n\n"
         f"  총 QA 쌍: [cyan]{len(pairs)}[/cyan]개\n"
@@ -1795,6 +1960,18 @@ def wizard(
         f"  [cyan]ollama run {pipeline.config.export.ollama.model_name}[/cyan]"
     )
     console.print(Panel(summary, expand=False))
+
+    if _rag_ready:
+        console.print()
+        if Confirm.ask(
+            "  RAG API 서버를 바로 시작하시겠습니까?", default=True,
+        ):
+            _start_rag_server(pipeline.config)
+        else:
+            console.print(
+                f"\n[dim]나중에 실행: slm-factory tool rag-serve "
+                f"--config {resolved}[/dim]\n"
+            )
 
 
 @eval_app.command(name="run")
