@@ -1867,6 +1867,91 @@ def export_gguf(
         raise typer.Exit(code=1)
 
 
+@tool_app.command(name="export-autorag")
+def export_autorag(
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
+    qa_file: Optional[str] = typer.Option(
+        None,
+        "--qa-file",
+        help="QA 파일 경로 (기본값: 자동 감지 — scored > validated > alpaca 순)",
+    ),
+) -> None:
+    """파싱된 문서와 QA 쌍을 AutoRAG 평가용 parquet 파일로 변환합니다."""
+    try:
+        from .exporter.autorag_export import AutoRAGExporter
+
+        pipeline = _load_pipeline(config)
+        pipeline.config.paths.ensure_dirs()
+        output_dir = pipeline.config.paths.output
+
+        docs_path = output_dir / "parsed_documents.json"
+        if not docs_path.is_file():
+            _print_error(
+                "파싱 데이터 미발견",
+                f"파일을 찾을 수 없음: {docs_path}",
+                ["먼저 파이프라인을 실행하세요: slm-factory run --config project.yaml"],
+            )
+            raise typer.Exit(code=1)
+
+        parsed_docs = json.loads(docs_path.read_text(encoding="utf-8"))
+
+        if qa_file is not None:
+            qa_path = Path(qa_file)
+        else:
+            for candidate in [
+                "qa_scored.json",
+                "qa_validated.json",
+                "qa_alpaca.json",
+            ]:
+                qa_path = output_dir / candidate
+                if qa_path.is_file():
+                    break
+            else:
+                _print_error(
+                    "QA 데이터 미발견",
+                    f"QA 파일을 찾을 수 없음: {output_dir}",
+                    [
+                        "먼저 파이프라인을 실행하세요: slm-factory run --config project.yaml",
+                        "또는 --qa-file 옵션으로 QA 파일 경로를 직접 지정하세요",
+                    ],
+                )
+                raise typer.Exit(code=1)
+
+        if not qa_path.is_file():
+            _print_error(
+                "QA 파일 미발견",
+                f"파일을 찾을 수 없음: {qa_path}",
+            )
+            raise typer.Exit(code=1)
+
+        qa_pairs = json.loads(qa_path.read_text(encoding="utf-8"))
+
+        console.print(
+            f"\n[bold]AutoRAG 데이터 내보내기[/bold]\n"
+            f"  문서: [cyan]{docs_path.name}[/cyan] ({len(parsed_docs)}건)\n"
+            f"  QA:   [cyan]{qa_path.name}[/cyan] ({len(qa_pairs)}건)\n"
+        )
+
+        exporter = AutoRAGExporter(pipeline.config)
+        corpus_path, qa_parquet_path = exporter.export(parsed_docs, qa_pairs)
+
+        console.print(
+            f"\n[bold green]AutoRAG 내보내기 완료![/bold green]\n"
+            f"  corpus: [cyan]{corpus_path}[/cyan]\n"
+            f"  qa:     [cyan]{qa_parquet_path}[/cyan]\n\n"
+            f"[dim]다음 단계: autorag evaluate "
+            f"--qa_data {qa_parquet_path} "
+            f"--corpus {corpus_path}[/dim]\n"
+        )
+
+    except FileNotFoundError as e:
+        _print_error("파일 오류", e, hints=_get_error_hints(e))
+        raise typer.Exit(code=1)
+    except Exception as e:
+        _print_error("AutoRAG 내보내기 실패", e, hints=_get_error_hints(e))
+        raise typer.Exit(code=1)
+
+
 @tool_app.command(name="evolve")
 def evolve(
     config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),

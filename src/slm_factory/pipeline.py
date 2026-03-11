@@ -813,6 +813,43 @@ class Pipeline:
         return gguf_path
 
     # ------------------------------------------------------------------
+    # AutoRAG 데이터 내보내기
+    # ------------------------------------------------------------------
+
+    def step_autorag_export(
+        self,
+        parsed_docs: list[dict],
+        qa_pairs: list[dict],
+    ) -> tuple[Path, Path]:
+        """파싱된 문서와 QA 쌍을 AutoRAG 평가용 parquet으로 변환합니다.
+
+        매개변수
+        ----------
+        parsed_docs:
+            :meth:`step_parse` 결과의 딕셔너리 리스트입니다.
+        qa_pairs:
+            QA 쌍 딕셔너리 리스트입니다.
+
+        반환값
+        -------
+        tuple[Path, Path]
+            ``(corpus.parquet 경로, qa.parquet 경로)``
+        """
+        from .exporter.autorag_export import AutoRAGExporter
+
+        if not self.config.autorag_export.enabled:
+            logger.info("AutoRAG export disabled — skipping")
+            return Path(), Path()
+
+        logger.info("Exporting data for AutoRAG evaluation...")
+
+        exporter = AutoRAGExporter(self.config)
+        corpus_path, qa_path = exporter.export(parsed_docs, qa_pairs)
+
+        logger.info("AutoRAG export complete: %s, %s", corpus_path, qa_path)
+        return corpus_path, qa_path
+
+    # ------------------------------------------------------------------
     # 단계 9: 멀티턴 대화 생성
     # ------------------------------------------------------------------
 
