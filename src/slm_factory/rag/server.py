@@ -4,8 +4,8 @@ ChromaDB에 적재된 벡터 DB를 검색하고, Ollama SLM에 컨텍스트와 �
 질문을 전달하여 문서 기반 답변을 생성하는 REST API 서버입니다.
 """
 
-from __future__ import annotations
-
+import time
+from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -21,7 +21,7 @@ _RAG_SYSTEM_PROMPT = (
 )
 
 
-def create_app(config: SLMConfig):
+def create_app(config: "SLMConfig"):
     """RAG API 서버를 위한 FastAPI 애플리케이션을 생성합니다.
 
     매개변수
@@ -34,10 +34,14 @@ def create_app(config: SLMConfig):
     FastAPI
         구성 완료된 FastAPI 애플리케이션 인스턴스.
     """
+    import uuid
     from pathlib import Path
 
     try:
-        from fastapi import FastAPI
+        from fastapi import FastAPI, Request
+        from fastapi.middleware.cors import CORSMiddleware
+        from fastapi.middleware.gzip import GZipMiddleware
+        from fastapi.responses import JSONResponse
     except ImportError:
         raise RuntimeError(
             "fastapi가 설치되지 않았습니다. "
@@ -60,6 +64,7 @@ def create_app(config: SLMConfig):
             "pip install sentence-transformers 로 설치하세요."
         )
 
+    import httpx
     from pydantic import BaseModel
 
     # ------------------------------------------------------------------
@@ -87,49 +92,115 @@ def create_app(config: SLMConfig):
         query: str
 
     # ------------------------------------------------------------------
-    # 리소스 초기화
+    # 설정값 추출
     # ------------------------------------------------------------------
 
     db_path = Path(config.paths.output) / config.rag.vector_db_path
-    client = chromadb.PersistentClient(path=str(db_path))
-    collection = client.get_collection(name=config.rag.collection_name)
-    logger.info(
-        "ChromaDB 컬렉션 로드 완료: %s (%d개 문서)",
-        config.rag.collection_name,
-        collection.count(),
-    )
-
-    embedding_model = SentenceTransformer(config.rag.embedding_model)
-    logger.info("임베딩 모델 로드 완료: %s", config.rag.embedding_model)
-
-    # Ollama 모델 결정
     ollama_model = config.rag.ollama_model or config.export.ollama.model_name
     api_base = config.teacher.api_base
-    logger.info("Ollama 모델: %s, API: %s", ollama_model, api_base)
+
+    # ------------------------------------------------------------------
+    # 라이프사이클 관리
+    # ------------------------------------------------------------------
+
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI):
+        chroma_client = chromadb.PersistentClient(path=str(db_path))
+        collection = chroma_client.get_collection(
+            name=config.rag.collection_name,
+        )
+        logger.info(
+            "ChromaDB 컬렉션 로드 완료: %s (%d개 문서)",
+            config.rag.collection_name,
+            collection.count(),
+        )
+
+        embedding_model = SentenceTransformer(config.rag.embedding_model)
+        logger.info("임베딩 모델 로드 완료: %s", config.rag.embedding_model)
+
+        http_client = httpx.AsyncClient(
+            timeout=httpx.Timeout(config.rag.request_timeout),
+        )
+        logger.info("Ollama 모델: %s, API: %s", ollama_model, api_base)
+
+        _app.state.collection = collection
+        _app.state.chroma_client = chroma_client
+        _app.state.embedding_model = embedding_model
+        _app.state.http_client = http_client
+
+        yield
+
+        await http_client.aclose()
+        logger.info("RAG 서버 리소스 정리 완료")
 
     # ------------------------------------------------------------------
     # FastAPI 앱 생성
     # ------------------------------------------------------------------
 
-    app = FastAPI(title="slm-factory RAG 서비스", version="0.1.0")
+    app = FastAPI(
+        title="slm-factory RAG 서비스",
+        version="0.1.0",
+        lifespan=lifespan,
+    )
+
+    app.add_middleware(GZipMiddleware, minimum_size=1000)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=config.rag.cors_origins,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    @app.middleware("http")
+    async def request_tracking(request: Request, call_next):
+        request_id = uuid.uuid4().hex
+        request.state.request_id = request_id
+        start = time.monotonic()
+        response = await call_next(request)
+        elapsed = time.monotonic() - start
+        response.headers["X-Request-ID"] = request_id
+        logger.info(
+            "%s %s — %.3fs [%s]",
+            request.method,
+            request.url.path,
+            elapsed,
+            request_id,
+        )
+        return response
+
+    @app.exception_handler(Exception)
+    async def global_exception_handler(request: Request, exc: Exception):
+        request_id = getattr(request.state, "request_id", "unknown")
+        logger.exception("처리되지 않은 예외 [%s]: %s", request_id, exc)
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": "internal_server_error",
+                "message": str(exc),
+                "request_id": request_id,
+            },
+        )
+
+    # ------------------------------------------------------------------
+    # 엔드포인트
+    # ------------------------------------------------------------------
 
     @app.post("/v1/query", response_model=QueryResponse)
-    async def query_rag(request: QueryRequest) -> QueryResponse:
+    async def query_rag(body: QueryRequest) -> QueryResponse:
         """문서 검색 후 Ollama SLM으로 답변을 생성합니다."""
-        import httpx
+        collection = app.state.collection
+        embedding_model = app.state.embedding_model
+        http_client = app.state.http_client
 
-        top_k = request.top_k or config.rag.top_k
+        top_k = body.top_k or config.rag.top_k
 
-        # 질의 임베딩
-        query_embedding = embedding_model.encode(request.query).tolist()
+        query_embedding = embedding_model.encode(body.query).tolist()
 
-        # ChromaDB 검색
         results = collection.query(
             query_embeddings=[query_embedding],
             n_results=top_k,
         )
 
-        # 소스 구성
         sources: list[Source] = []
         context_parts: list[str] = []
 
@@ -138,30 +209,26 @@ def create_app(config: SLMConfig):
         distances = results.get("distances", [[]])[0]
 
         for doc, doc_id, distance in zip(documents, ids, distances):
-            score = 1.0 - distance
+            score = max(0.0, min(1.0, 1.0 - distance))
             sources.append(Source(content=doc, doc_id=doc_id, score=score))
             context_parts.append(doc)
 
-        # 컨텍스트 조합
         context = "\n\n---\n\n".join(context_parts)
         prompt = (
             f"{_RAG_SYSTEM_PROMPT}\n\n{context}\n\n"
-            f"질문: {request.query}\n답변:"
+            f"질문: {body.query}\n답변:"
         )
 
-        # Ollama 호출
-        async with httpx.AsyncClient() as http_client:
-            response = await http_client.post(
-                f"{api_base}/api/generate",
-                json={
-                    "model": ollama_model,
-                    "prompt": prompt,
-                    "stream": False,
-                },
-                timeout=config.teacher.timeout,
-            )
-            response.raise_for_status()
-            answer = response.json().get("response", "")
+        response = await http_client.post(
+            f"{api_base}/api/generate",
+            json={
+                "model": ollama_model,
+                "prompt": prompt,
+                "stream": False,
+            },
+        )
+        response.raise_for_status()
+        answer = response.json().get("response", "")
 
         logger.info(
             "RAG 질의 처리 완료 — 검색 %d건, 모델: %s",
@@ -172,13 +239,19 @@ def create_app(config: SLMConfig):
         return QueryResponse(
             answer=answer,
             sources=sources,
-            query=request.query,
+            query=body.query,
         )
 
-    @app.get("/health")
-    async def health_check() -> dict:
-        """ChromaDB 및 Ollama 연결 상태를 확인합니다."""
-        import httpx
+    @app.get("/health/live")
+    async def health_live() -> dict:
+        """활성 상태 프로브 — 서버가 실행 중이면 항상 200."""
+        return {"status": "ok"}
+
+    @app.get("/health/ready")
+    async def health_ready() -> dict:
+        """준비 상태 프로브 — ChromaDB 및 Ollama 연결을 확인합니다."""
+        collection = app.state.collection
+        http_client = app.state.http_client
 
         status: dict = {
             "status": "ok",
@@ -186,32 +259,34 @@ def create_app(config: SLMConfig):
             "ollama": {"model": ollama_model, "status": "unknown"},
         }
 
-        # ChromaDB 상태
         try:
             status["chromadb"]["count"] = collection.count()
         except Exception:
             status["status"] = "degraded"
             status["chromadb"]["status"] = "error"
 
-        # Ollama 상태
         try:
-            async with httpx.AsyncClient() as http_client:
-                resp = await http_client.get(
-                    f"{api_base}/api/tags",
-                    timeout=5.0,
-                )
-                resp.raise_for_status()
-                status["ollama"]["status"] = "connected"
+            resp = await http_client.get(
+                f"{api_base}/api/tags",
+                timeout=5.0,
+            )
+            resp.raise_for_status()
+            status["ollama"]["status"] = "connected"
         except Exception:
             status["status"] = "degraded"
             status["ollama"]["status"] = "disconnected"
 
         return status
 
+    @app.get("/health")
+    async def health_check() -> dict:
+        """하위 호환성을 위한 /health/ready 별칭."""
+        return await health_ready()
+
     return app
 
 
-def run_server(config: SLMConfig) -> None:
+def run_server(config: "SLMConfig") -> None:
     """RAG API 서버를 실행합니다.
 
     매개변수
@@ -224,8 +299,16 @@ def run_server(config: SLMConfig) -> None:
 
     app = create_app(config)
     logger.info(
-        "RAG 서버 시작: %s:%d",
+        "RAG 서버 시작: %s:%d (workers=%d, log_level=%s)",
         config.rag.server_host,
         config.rag.server_port,
+        config.rag.workers,
+        config.rag.log_level,
     )
-    uvicorn.run(app, host=config.rag.server_host, port=config.rag.server_port)
+    uvicorn.run(
+        app,
+        host=config.rag.server_host,
+        port=config.rag.server_port,
+        workers=config.rag.workers,
+        log_level=config.rag.log_level,
+    )

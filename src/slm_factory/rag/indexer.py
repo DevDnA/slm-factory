@@ -98,8 +98,7 @@ class RAGIndexer:
         contents = df["contents"].tolist()
         metadatas_raw = df["metadata"].tolist() if "metadata" in df.columns else [{}] * len(df)
 
-        # 배치 단위 임베딩 및 upsert
-        batch_size = 64
+        batch_size = self.config.rag.batch_size
         total = len(contents)
 
         for start in range(0, total, batch_size):

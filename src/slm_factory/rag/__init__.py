@@ -10,7 +10,11 @@ def __getattr__(name: str):
         from .server import create_app
 
         return create_app
+    if name == "run_server":
+        from .server import run_server
+
+        return run_server
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
-__all__ = ["RAGIndexer", "create_app"]
+__all__ = ["RAGIndexer", "create_app", "run_server"]
