@@ -23,7 +23,9 @@ flowchart TB
 
     subgraph FACTORY ["slm-factory — 자동화 파이프라인"]
         direction LR
-        P["Parse<br>문서 파싱"] --> G["Generate<br>QA 생성"] --> V["Validate<br>품질 검증"] --> T["Train<br>LoRA 학습"] --> E["Export<br>Ollama 배포"]
+        P["Parse<br>문서 파싱"] --> G["Generate<br>QA 생성"] --> V["Validate<br>품질 검증"]
+        V --> S["Score · Augment<br>평가 · 증강"] --> T["Train<br>LoRA 학습"]
+        T --> E["Export<br>Ollama 배포"] --> R["RAG Index<br>벡터 인덱싱"]
     end
 
     SLM["🤖 도메인 특화 SLM<br>Ollama 로컬 서빙"]
@@ -32,7 +34,7 @@ flowchart TB
     DOC --> P
     E --> SLM
     SLM --> RAG
-    DOC -.->|"벡터 임베딩 · AutoRAG"| RAG
+    R --> RAG
 
     style DOC fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
     style SLM fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
@@ -67,9 +69,12 @@ ollama pull qwen3:8b        # Teacher 모델 (8GB VRAM) 또는 qwen3.5:9b (24GB+
 slm-factory init my-project
 cp /path/to/documents/*.pdf my-project/documents/
 slm-factory tool wizard --config my-project/project.yaml
+
+# 또는 원클릭 파이프라인 + RAG 서버 자동 시작
+slm-factory run --serve --config my-project/project.yaml
 ```
 
-> wizard가 문서 선택부터 파싱, QA 생성, 검증, 학습, Ollama 배포까지 단계별로 안내합니다.
+> wizard가 문서 선택부터 파싱, QA 생성, 검증, 학습, Ollama 배포, 모델 평가, RAG 인덱싱까지 14단계를 안내합니다.
 
 ## 주요 기능
 
@@ -77,9 +82,9 @@ slm-factory tool wizard --config my-project/project.yaml
 - **Teacher-Student 증류** — Ollama(로컬) 또는 OpenAI 호환 API로 QA 자동 생성
 - **QA 검증 + 품질 평가** — 규칙/임베딩 필터링, LLM 1~5점 평가
 - **데이터 증강** — 질문 패러프레이즈로 학습 데이터 확장
-- **온톨로지 추출** — 엔티티·관계 자동 추출 → QA 생성 품질 향상
 - **LoRA 파인튜닝** — 효율적 학습 + 조기 종료
 - **Ollama 원클릭 배포** — Modelfile 자동 생성, 즉시 서빙
+- **RAG 서비스** — `--serve` 플래그로 파이프라인 완료 후 RAG API 서버 자동 시작
 - **자동 진화** — `tool evolve` 한 번으로 증분→학습→품질게이트→배포
 - **TUI** — QA 리뷰, 파이프라인 대시보드
 
@@ -90,7 +95,7 @@ slm-factory tool wizard --config my-project/project.yaml
 | 문서 | 내용 |
 |------|------|
 | [사용 가이드](https://devdna.github.io/slm-factory/guide.html) | 설치, 튜토리얼, 트러블슈팅 |
-| [기술 확장 가이드](https://devdna.github.io/slm-factory/integration-guide.html) | RAG·온톨로지 기술 조합 전략, 연동 방법 |
+| [기술 확장 가이드](https://devdna.github.io/slm-factory/integration-guide.html) | RAG 기술 조합 전략, 연동 방법 |
 | [빠른 참조](https://devdna.github.io/slm-factory/quick-reference.html) | 명령어 치트시트 |
 | [CLI 레퍼런스](https://devdna.github.io/slm-factory/cli-reference.html) | 전체 명령어 옵션 |
 | [설정 레퍼런스](https://devdna.github.io/slm-factory/configuration.html) | project.yaml 전체 설정 |
