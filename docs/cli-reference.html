@@ -564,6 +564,13 @@ uv run slm-factory init policy-assistant --path /workspace/projects</code></pre>
                     <td>파이프라인 완료 후 RAG API 서버를 자동으로 시작합니다. 서버는 foreground로 실행되며, <code>Ctrl+C</code>로 종료합니다.</td>
                   </tr>
                   <tr>
+                    <td><code>--from</code></td>
+                    <td></td>
+                    <td><code>ENUM</code></td>
+                    <td><code>None</code></td>
+                    <td>지정된 단계부터 실행을 재개합니다. 이전 단계의 출력 파일이 필요합니다.</td>
+                  </tr>
+                  <tr>
                     <td><code>--until</code></td>
                     <td></td>
                     <td><code>ENUM</code></td>
@@ -623,11 +630,59 @@ uv run slm-factory init policy-assistant --path /workspace/projects</code></pre>
                     <td>카테고리 분포, 길이 통계 등 데이터 분석 보고서를 생성합니다</td>
                     <td><code>output/data_analysis.json</code></td>
                   </tr>
+                  <tr>
+                    <td><code>convert</code></td>
+                    <td><span class="tag tag-required">필수</span></td>
+                    <td>채팅 템플릿 적용 JSONL 변환</td>
+                    <td><code>output/training_data.jsonl</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>train</code></td>
+                    <td><span class="tag tag-required">필수</span></td>
+                    <td>LoRA 파인튜닝</td>
+                    <td><code>output/checkpoints/adapter/</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>export</code></td>
+                    <td><span class="tag tag-required">필수</span></td>
+                    <td>모델 병합 + Ollama Modelfile 생성</td>
+                    <td><code>output/merged_model/</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>dialogue</code></td>
+                    <td><span class="tag tag-optional">기본 활성</span></td>
+                    <td>멀티턴 대화 생성</td>
+                    <td><code>output/dialogues.json</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>gguf_export</code></td>
+                    <td><span class="tag tag-optional">기본 활성</span></td>
+                    <td>GGUF 양자화 변환</td>
+                    <td><code>output/*.gguf</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>eval</code></td>
+                    <td><span class="tag tag-optional">기본 활성</span></td>
+                    <td>BLEU/ROUGE 평가</td>
+                    <td><code>output/eval_results.json</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>autorag_export</code></td>
+                    <td><span class="tag tag-optional">기본 활성</span></td>
+                    <td>RAG 인덱싱 데이터 내보내기</td>
+                    <td><code>output/autorag/</code></td>
+                  </tr>
+                  <tr>
+                    <td><code>rag_index</code></td>
+                    <td><span class="tag tag-optional">기본 활성</span></td>
+                    <td>ChromaDB 벡터 인덱싱</td>
+                    <td><code>output/chroma_db/</code></td>
+                  </tr>
                 </tbody>
               </table>
             </div>
 
-            <p><code>--until</code>을 생략하면 위 6단계에 이어 <code>convert</code>, <code>train</code>, <code>export</code>까지 전체 파이프라인을 실행합니다.</p>
+            <p><code>--until</code>을 생략하면 위 전체 14단계를 순서대로 실행합니다. 각 단계는 해당 설정의 <code>enabled</code> 값에 따라 실행 여부가 결정됩니다.</p>
             <h4><code>--resume</code> 동작 방식</h4>
             <p>출력 디렉토리에서 가장 최근 중간 저장 파일을 탐색하여 해당 단계부터 재개합니다.</p>
             <div class="table-wrapper">
@@ -654,6 +709,22 @@ uv run slm-factory init policy-assistant --path /workspace/projects</code></pre>
                   <tr>
                     <td><code>parsed_documents.json</code></td>
                     <td><code>generate</code>부터</td>
+                  </tr>
+                  <tr>
+                    <td><code>training_data.jsonl</code></td>
+                    <td><code>train</code>부터</td>
+                  </tr>
+                  <tr>
+                    <td><code>checkpoints/adapter/</code></td>
+                    <td><code>export</code>부터</td>
+                  </tr>
+                  <tr>
+                    <td><code>dialogues.json</code></td>
+                    <td><code>gguf_export</code>부터</td>
+                  </tr>
+                  <tr>
+                    <td><code>eval_results.json</code></td>
+                    <td><code>autorag_export</code>부터</td>
                   </tr>
                   <tr>
                     <td>없음</td>
