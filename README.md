@@ -17,17 +17,8 @@
 
 <br>
 
-```mermaid
-flowchart LR
-    DOC["도메인 문서\nPDF · HWPX · HTML\nDOCX · TXT"]
-    SLM_FACTORY["slm-factory run --serve\n14단계 자동화 파이프라인"]
-    RAG["RAG API 서빙\nhttp://localhost:8000"]
-
-    DOC -->|문서 투입| SLM_FACTORY -->|자동 완료| RAG
-
-    style DOC fill:#e3f2fd,stroke:#1565c0,color:#0d47a1
-    style SLM_FACTORY fill:#e8f5e9,stroke:#2e7d32,color:#1b5e20
-    style RAG fill:#fff8e1,stroke:#f57f17,color:#e65100
+```
+도메인 문서 (PDF·HWPX·HTML·DOCX·TXT)  →  slm-factory run --serve  →  RAG API 서빙 (localhost:8000)
 ```
 
 ## 빠른 시작
