@@ -351,11 +351,18 @@ uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
                    <td><strong>parse</strong></td>
                    <td><span class="tag tag-required">필수</span></td>
                    <td>PDF/HWPX/HTML/TXT/DOCX 파싱</td>
-                   <td><code>output/parsed_documents.json</code></td>
-                 </tr>
-                 <tr>
-                   <td>2</td>
-                   <td><strong>generate</strong></td>
+                    <td><code>output/parsed_documents.json</code></td>
+                  </tr>
+                  <tr>
+                    <td>1b</td>
+                    <td><strong>chunking</strong></td>
+                    <td><span class="tag tag-optional">선택</span></td>
+                    <td>긴 문서를 청크로 분할하여 QA 생성 범위 확장 (<code>chunking.enabled: true</code>)</td>
+                    <td><code>(파싱 결과에 통합)</code></td>
+                  </tr>
+                  <tr>
+                    <td>2</td>
+                    <td><strong>generate</strong></td>
                   <td><span class="tag tag-required">필수</span></td>
                   <td>Teacher LLM으로 QA 쌍 생성</td>
                   <td><code>output/qa_alpaca.json</code></td>
@@ -406,18 +413,53 @@ uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
                   <td>9</td>
                   <td><strong>export</strong></td>
                   <td><span class="tag tag-required">필수</span></td>
-                  <td>모델 병합 + Ollama Modelfile 생성</td>
-                  <td><code>output/merged_model/</code></td>
-                </tr>
+                   <td>모델 병합 + Ollama Modelfile 생성</td>
+                   <td><code>output/merged_model/</code></td>
+                 </tr>
+                 <tr>
+                   <td>10</td>
+                   <td><strong>dialogue</strong></td>
+                   <td><span class="tag tag-optional">선택</span></td>
+                   <td>QA 쌍을 멀티턴 대화로 확장 (<code>dialogue.enabled: true</code>)</td>
+                   <td><code>output/dialogues.json</code></td>
+                 </tr>
+                 <tr>
+                   <td>11</td>
+                   <td><strong>gguf_export</strong></td>
+                   <td><span class="tag tag-optional">선택</span></td>
+                   <td>GGUF 양자화 변환 (<code>gguf_export.enabled: true</code>)</td>
+                   <td><code>output/*.gguf</code></td>
+                 </tr>
+                 <tr>
+                   <td>12</td>
+                   <td><strong>eval</strong></td>
+                   <td><span class="tag tag-optional">선택</span></td>
+                   <td>BLEU/ROUGE 평가 (<code>eval.enabled: true</code>)</td>
+                   <td><code>output/eval_results.json</code></td>
+                 </tr>
+                 <tr>
+                   <td>13</td>
+                   <td><strong>autorag_export</strong></td>
+                   <td><span class="tag tag-optional">선택</span></td>
+                   <td>RAG 인덱싱 데이터 내보내기 (<code>autorag_export.enabled: true</code>)</td>
+                   <td><code>output/autorag/*.parquet</code></td>
+                 </tr>
+                 <tr>
+                   <td>14</td>
+                   <td><strong>rag_index</strong></td>
+                   <td><span class="tag tag-optional">선택</span></td>
+                   <td>ChromaDB 벡터 인덱싱 (<code>rag_index.enabled: true</code>)</td>
+                   <td><code>output/chroma_db/</code></td>
+                 </tr>
               </tbody>
             </table>
           </div>
 
           <!-- SVG Diagram: Pipeline Steps Flow -->
           <div class="diagram">
-            <svg role="img" aria-labelledby="diagram-pipeline-flow-title diagram-pipeline-flow-desc" viewBox="0 0 640 510" xmlns="http://www.w3.org/2000/svg">
+            <svg role="img" aria-labelledby="diagram-pipeline-flow-title diagram-pipeline-flow-desc" viewBox="0 0 640 830" xmlns="http://www.w3.org/2000/svg">
               <title id="diagram-pipeline-flow-title">파이프라인 단계 흐름도</title>
-              <desc id="diagram-pipeline-flow-desc">slm-factory의 9단계 파이프라인 흐름. parse, generate, validate 필수 단계 후 score, augment, analyze 선택 단계를 거쳐 convert, train, export 필수 단계로 완료됩니다. 각 단계의 출력 파일이 오른쪽에 표시됩니다.</desc>
+              <desc id="diagram-pipeline-flow-desc">slm-factory의 14단계 파이프라인 흐름. parse, chunking(선택), generate, validate 필수 그룹 후 score, augment, analyze 선택 그룹을 거쳐 convert, train, export 필수 그룹, 마지막으로 dialogue, gguf_export, eval, autorag_export, rag_index 선택 그룹으로 완료됩니다. 각 단계의 출력 파일이 오른쪽에 표시됩니다.</desc>
               <defs>
                 <marker id="pf-arrow" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto">
                   <polyline points="0 0, 5 2, 0 4" fill="none" stroke="#2C5282" stroke-width="1" stroke-linejoin="round"/>
@@ -428,21 +470,25 @@ uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
               </defs>
 
               <!-- Background -->
-              <rect x="10" y="5" width="620" height="495" rx="10" fill="#F7F8FA" stroke="#CBD5E0" stroke-width="1"/>
+              <rect x="10" y="5" width="620" height="815" rx="10" fill="#F7F8FA" stroke="#CBD5E0" stroke-width="1"/>
 
               <!-- Group separators -->
-              <line x1="70" y1="164" x2="600" y2="164" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="6,4"/>
-              <line x1="70" y1="324" x2="600" y2="324" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="6,4"/>
+              <line x1="70" y1="212" x2="600" y2="212" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="6,4"/>
+              <line x1="70" y1="372" x2="600" y2="372" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="6,4"/>
+              <line x1="70" y1="532" x2="600" y2="532" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="6,4"/>
 
               <!-- Group labels -->
-              <text x="35" y="83" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#1B3A5C">필수</text>
-              <text x="35" y="97" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#1B3A5C">단계</text>
+              <text x="35" y="104" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#1B3A5C">필수</text>
+              <text x="35" y="118" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#1B3A5C">단계</text>
 
-              <text x="35" y="241" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#ED8936">선택</text>
-              <text x="35" y="255" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#ED8936">단계</text>
+              <text x="35" y="288" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#ED8936">선택</text>
+              <text x="35" y="302" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#ED8936">단계</text>
 
-              <text x="35" y="401" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#1B3A5C">필수</text>
-              <text x="35" y="415" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#1B3A5C">단계</text>
+              <text x="35" y="448" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#1B3A5C">필수</text>
+              <text x="35" y="462" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#1B3A5C">단계</text>
+
+              <text x="35" y="656" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#ED8936">선택</text>
+              <text x="35" y="670" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#ED8936">단계</text>
 
               <!-- ── Stage 1: parse (필수) ── -->
               <rect x="100" y="20" width="180" height="38" rx="6" fill="#1B3A5C"/>
@@ -452,93 +498,149 @@ uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
               <line x1="280" y1="39" x2="320" y2="39" stroke="#CBD5E0" stroke-width="1"/>
               <rect x="325" y="28" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
               <text x="335" y="43" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">parsed_documents.json</text>
-              <!-- Arrow to next -->
-              <line x1="190" y1="58" x2="190" y2="68" stroke="#2C5282" stroke-width="2" marker-end="url(#pf-arrow)"/>
+              <!-- Arrow to 1b (dashed, optional target) -->
+              <line x1="190" y1="58" x2="190" y2="68" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
 
-              <!-- ── Stage 2: generate (필수) ── -->
-              <rect x="100" y="68" width="180" height="38" rx="6" fill="#1B3A5C"/>
-              <text x="190" y="83" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">generate</text>
-              <text x="190" y="97" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">QA 생성</text>
+              <!-- ── Stage 1b: chunking (선택) ── -->
+              <rect x="100" y="68" width="180" height="38" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
+              <text x="190" y="83" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">chunking</text>
+              <text x="190" y="97" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">문서 청킹</text>
               <line x1="280" y1="87" x2="320" y2="87" stroke="#CBD5E0" stroke-width="1"/>
               <rect x="325" y="76" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
-              <text x="335" y="91" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">qa_alpaca.json</text>
-              <line x1="190" y1="106" x2="190" y2="116" stroke="#2C5282" stroke-width="2" marker-end="url(#pf-arrow)"/>
+              <text x="335" y="91" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">(파싱 결과에 통합)</text>
+              <!-- Arrow to generate (dashed, from optional) -->
+              <line x1="190" y1="106" x2="190" y2="116" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
 
-              <!-- ── Stage 3: validate (필수) ── -->
+              <!-- ── Stage 2: generate (필수) ── -->
               <rect x="100" y="116" width="180" height="38" rx="6" fill="#1B3A5C"/>
-              <text x="190" y="131" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">validate</text>
-              <text x="190" y="145" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">QA 검증</text>
+              <text x="190" y="131" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">generate</text>
+              <text x="190" y="145" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">QA 생성</text>
               <line x1="280" y1="135" x2="320" y2="135" stroke="#CBD5E0" stroke-width="1"/>
               <rect x="325" y="124" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
-              <text x="335" y="139" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">qa_alpaca.json (갱신)</text>
+              <text x="335" y="139" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">qa_alpaca.json</text>
+              <line x1="190" y1="154" x2="190" y2="164" stroke="#2C5282" stroke-width="2" marker-end="url(#pf-arrow)"/>
+
+              <!-- ── Stage 3: validate (필수) ── -->
+              <rect x="100" y="164" width="180" height="38" rx="6" fill="#1B3A5C"/>
+              <text x="190" y="179" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">validate</text>
+              <text x="190" y="193" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">QA 검증</text>
+              <line x1="280" y1="183" x2="320" y2="183" stroke="#CBD5E0" stroke-width="1"/>
+              <rect x="325" y="172" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
+              <text x="335" y="187" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">qa_alpaca.json (갱신)</text>
               <!-- Dashed arrow to optional group -->
-              <line x1="190" y1="154" x2="190" y2="180" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
+              <line x1="190" y1="202" x2="190" y2="228" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
 
               <!-- ── Stage 4: score (선택) ── -->
-              <rect x="100" y="180" width="180" height="38" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
-              <text x="190" y="195" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">score</text>
-              <text x="190" y="209" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">품질 평가</text>
-              <line x1="280" y1="199" x2="320" y2="199" stroke="#CBD5E0" stroke-width="1"/>
-              <rect x="325" y="188" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
-              <text x="335" y="203" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">qa_scored.json</text>
-              <line x1="190" y1="218" x2="190" y2="228" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
-
-              <!-- ── Stage 5: augment (선택) ── -->
               <rect x="100" y="228" width="180" height="38" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
-              <text x="190" y="243" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">augment</text>
-              <text x="190" y="257" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">데이터 증강</text>
+              <text x="190" y="243" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">score</text>
+              <text x="190" y="257" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">품질 평가</text>
               <line x1="280" y1="247" x2="320" y2="247" stroke="#CBD5E0" stroke-width="1"/>
               <rect x="325" y="236" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
-              <text x="335" y="251" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">qa_augmented.json</text>
+              <text x="335" y="251" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">qa_scored.json</text>
               <line x1="190" y1="266" x2="190" y2="276" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
 
-              <!-- ── Stage 6: analyze (선택) ── -->
+              <!-- ── Stage 5: augment (선택) ── -->
               <rect x="100" y="276" width="180" height="38" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
-              <text x="190" y="291" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">analyze</text>
-              <text x="190" y="305" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">통계 분석</text>
+              <text x="190" y="291" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">augment</text>
+              <text x="190" y="305" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">데이터 증강</text>
               <line x1="280" y1="295" x2="320" y2="295" stroke="#CBD5E0" stroke-width="1"/>
               <rect x="325" y="284" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
-              <text x="335" y="299" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">data_analysis.json</text>
+              <text x="335" y="299" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">qa_augmented.json</text>
+              <line x1="190" y1="314" x2="190" y2="324" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
+
+              <!-- ── Stage 6: analyze (선택) ── -->
+              <rect x="100" y="324" width="180" height="38" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
+              <text x="190" y="339" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">analyze</text>
+              <text x="190" y="353" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">통계 분석</text>
+              <line x1="280" y1="343" x2="320" y2="343" stroke="#CBD5E0" stroke-width="1"/>
+              <rect x="325" y="332" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
+              <text x="335" y="347" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">data_analysis.json</text>
               <!-- Dashed arrow to required group -->
-              <line x1="190" y1="314" x2="190" y2="340" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
+              <line x1="190" y1="362" x2="190" y2="388" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
 
               <!-- ── Stage 7: convert (필수) ── -->
-              <rect x="100" y="340" width="180" height="38" rx="6" fill="#1B3A5C"/>
-              <text x="190" y="355" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">convert</text>
-              <text x="190" y="369" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">데이터 변환</text>
-              <line x1="280" y1="359" x2="320" y2="359" stroke="#CBD5E0" stroke-width="1"/>
-              <rect x="325" y="348" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
-              <text x="335" y="363" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">training_data.jsonl</text>
-              <line x1="190" y1="378" x2="190" y2="388" stroke="#2C5282" stroke-width="2" marker-end="url(#pf-arrow)"/>
-
-              <!-- ── Stage 8: train (필수) ── -->
               <rect x="100" y="388" width="180" height="38" rx="6" fill="#1B3A5C"/>
-              <text x="190" y="403" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">train</text>
-              <text x="190" y="417" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">LoRA 학습</text>
+              <text x="190" y="403" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">convert</text>
+              <text x="190" y="417" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">데이터 변환</text>
               <line x1="280" y1="407" x2="320" y2="407" stroke="#CBD5E0" stroke-width="1"/>
               <rect x="325" y="396" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
-              <text x="335" y="411" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">checkpoints/adapter/</text>
+              <text x="335" y="411" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">training_data.jsonl</text>
               <line x1="190" y1="426" x2="190" y2="436" stroke="#2C5282" stroke-width="2" marker-end="url(#pf-arrow)"/>
 
-              <!-- ── Stage 9: export (필수) ── -->
+              <!-- ── Stage 8: train (필수) ── -->
               <rect x="100" y="436" width="180" height="38" rx="6" fill="#1B3A5C"/>
-              <text x="190" y="451" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">export</text>
-              <text x="190" y="465" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">모델 배포</text>
+              <text x="190" y="451" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">train</text>
+              <text x="190" y="465" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">LoRA 학습</text>
               <line x1="280" y1="455" x2="320" y2="455" stroke="#CBD5E0" stroke-width="1"/>
               <rect x="325" y="444" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
-              <text x="335" y="459" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">merged_model/</text>
+              <text x="335" y="459" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">checkpoints/adapter/</text>
+              <line x1="190" y1="474" x2="190" y2="484" stroke="#2C5282" stroke-width="2" marker-end="url(#pf-arrow)"/>
+
+              <!-- ── Stage 9: export (필수) ── -->
+              <rect x="100" y="484" width="180" height="38" rx="6" fill="#1B3A5C"/>
+              <text x="190" y="499" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">export</text>
+              <text x="190" y="513" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">모델 배포</text>
+              <line x1="280" y1="503" x2="320" y2="503" stroke="#CBD5E0" stroke-width="1"/>
+              <rect x="325" y="492" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
+              <text x="335" y="507" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">merged_model/</text>
+              <!-- Dashed arrow to optional group -->
+              <line x1="190" y1="522" x2="190" y2="548" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
+
+              <!-- ── Stage 10: dialogue (선택) ── -->
+              <rect x="100" y="548" width="180" height="38" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
+              <text x="190" y="563" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">dialogue</text>
+              <text x="190" y="577" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">멀티턴 대화</text>
+              <line x1="280" y1="567" x2="320" y2="567" stroke="#CBD5E0" stroke-width="1"/>
+              <rect x="325" y="556" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
+              <text x="335" y="571" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">dialogues.json</text>
+              <line x1="190" y1="586" x2="190" y2="596" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
+
+              <!-- ── Stage 11: gguf_export (선택) ── -->
+              <rect x="100" y="596" width="180" height="38" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
+              <text x="190" y="611" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">gguf_export</text>
+              <text x="190" y="625" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">GGUF 변환</text>
+              <line x1="280" y1="615" x2="320" y2="615" stroke="#CBD5E0" stroke-width="1"/>
+              <rect x="325" y="604" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
+              <text x="335" y="619" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">*.gguf</text>
+              <line x1="190" y1="634" x2="190" y2="644" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
+
+              <!-- ── Stage 12: eval (선택) ── -->
+              <rect x="100" y="644" width="180" height="38" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
+              <text x="190" y="659" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">eval</text>
+              <text x="190" y="673" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">모델 평가</text>
+              <line x1="280" y1="663" x2="320" y2="663" stroke="#CBD5E0" stroke-width="1"/>
+              <rect x="325" y="652" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
+              <text x="335" y="667" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">eval_results.json</text>
+              <line x1="190" y1="682" x2="190" y2="692" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
+
+              <!-- ── Stage 13: autorag_export (선택) ── -->
+              <rect x="100" y="692" width="180" height="38" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
+              <text x="190" y="707" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">autorag_export</text>
+              <text x="190" y="721" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">코퍼스 내보내기</text>
+              <line x1="280" y1="711" x2="320" y2="711" stroke="#CBD5E0" stroke-width="1"/>
+              <rect x="325" y="700" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
+              <text x="335" y="715" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">autorag/*.parquet</text>
+              <line x1="190" y1="730" x2="190" y2="740" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pf-arrow-gray)"/>
+
+              <!-- ── Stage 14: rag_index (선택) ── -->
+              <rect x="100" y="740" width="180" height="38" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
+              <text x="190" y="755" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">rag_index</text>
+              <text x="190" y="769" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">벡터 인덱싱</text>
+              <line x1="280" y1="759" x2="320" y2="759" stroke="#CBD5E0" stroke-width="1"/>
+              <rect x="325" y="748" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
+              <text x="335" y="763" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">chroma_db/</text>
 
               <!-- Legend -->
-              <rect x="100" y="488" width="16" height="10" rx="3" fill="#1B3A5C"/>
-              <text x="122" y="497" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568">필수 단계</text>
+              <rect x="100" y="800" width="16" height="10" rx="3" fill="#1B3A5C"/>
+              <text x="122" y="809" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568">필수 단계</text>
 
-              <rect x="210" y="488" width="16" height="10" rx="3" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="3,2"/>
-              <text x="232" y="497" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568">선택 단계</text>
+              <rect x="210" y="800" width="16" height="10" rx="3" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="3,2"/>
+              <text x="232" y="809" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568">선택 단계</text>
 
-              <rect x="320" y="488" width="16" height="10" rx="3" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
-              <text x="342" y="497" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568">출력 파일</text>
+              <rect x="320" y="800" width="16" height="10" rx="3" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
+              <text x="342" y="809" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568">출력 파일</text>
             </svg>
-            <p class="diagram-caption">그림 1. slm-factory 파이프라인 단계 흐름 - 필수 단계(navy)와 선택 단계(orange dashed), 각 단계의 출력 파일</p>
+            <p class="diagram-caption">그림 1. slm-factory 14단계(+1b) 파이프라인 흐름 - 필수 단계(navy)와 선택 단계(orange dashed), 각 단계의 출력 파일</p>
           </div>
         </section>
 
