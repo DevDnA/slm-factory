@@ -422,6 +422,7 @@ SLMConfig (root)
 │   ├── test_split: float = 0.1
 │   ├── metrics: list[str] = ["bleu", "rouge"]
 │   ├── max_samples: int = 50
+│   ├── max_tokens: int = 512
 │   └── output_file: str = "eval_results.json"
 │
 ├── gguf_export: GGUFExportConfig
@@ -452,6 +453,7 @@ SLMConfig (root)
 │   ├── finetuned_model: str = ""
 │   ├── metrics: list[str] = ["bleu", "rouge"]
 │   ├── max_samples: int = 20
+│   ├── max_tokens: int = 512
 │   └── output_file: str = "compare_results.json"
 │
 ├── evolve: EvolveConfig

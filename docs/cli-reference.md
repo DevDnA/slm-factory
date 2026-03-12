@@ -1005,9 +1005,15 @@ slm-factory tool rag-serve --config my-project/project.yaml --port 9000
 **API 호출 예시**
 
 ```bash
+# 일반 응답
 curl -X POST http://localhost:8000/v1/query \
   -H "Content-Type: application/json" \
   -d '{"query": "도메인 질문", "top_k": 5}'
+
+# SSE 스트리밍 응답 (토큰 단위 실시간 전송)
+curl -N -X POST http://localhost:8000/v1/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "도메인 질문", "stream": true}'
 ```
 
 **응답 형식**
@@ -1020,6 +1026,15 @@ curl -X POST http://localhost:8000/v1/query \
   ],
   "query": "도메인 질문"
 }
+```
+
+**SSE 스트리밍 응답 형식** (`"stream": true` 요청 시)
+
+```
+data: {"token": "문서"}
+data: {"token": " 기반"}
+data: {"token": " 답변..."}
+data: {"sources": [...], "query": "도메인 질문", "done": true}
 ```
 
 **참고**

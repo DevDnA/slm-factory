@@ -873,6 +873,7 @@ If the document does not contain relevant information, say "The document does no
               <tr><td><code>test_split</code></td><td><code>float</code></td><td><code>0.1</code></td><td>평가에 사용할 데이터 비율 (0.0~1.0)</td></tr>
               <tr><td><code>metrics</code></td><td><code>list[str]</code></td><td><code>["bleu", "rouge"]</code></td><td>평가 메트릭 목록</td></tr>
               <tr><td><code>max_samples</code></td><td><code>int</code></td><td><code>50</code></td><td>평가에 사용할 최대 샘플 수</td></tr>
+              <tr><td><code>max_tokens</code></td><td><code>int</code></td><td><code>512</code></td><td>Ollama 생성 최대 토큰 수. 평가 시 무한 생성을 방지합니다</td></tr>
               <tr><td><code>output_file</code></td><td><code>str</code></td><td><code>"eval_results.json"</code></td><td>평가 결과 JSON 파일명. <code>paths.output</code> 디렉토리에 저장됩니다</td></tr>
             </tbody>
           </table>
@@ -890,6 +891,7 @@ If the document does not contain relevant information, say "The document does no
   test_split: 0.1
   metrics: ["bleu", "rouge"]
   max_samples: 50
+  max_tokens: 512
   output_file: "eval_results.json"</code></pre>
 
         <div class="callout callout-warning">
@@ -920,6 +922,7 @@ If the document does not contain relevant information, say "The document does no
               <tr><td><code>finetuned_model</code></td><td><code>str</code></td><td><code>""</code></td><td>파인튜닝된 모델 이름 (Ollama)</td></tr>
               <tr><td><code>metrics</code></td><td><code>list[str]</code></td><td><code>["bleu", "rouge"]</code></td><td>비교 메트릭 목록</td></tr>
               <tr><td><code>max_samples</code></td><td><code>int</code></td><td><code>20</code></td><td>비교에 사용할 최대 샘플 수</td></tr>
+              <tr><td><code>max_tokens</code></td><td><code>int</code></td><td><code>512</code></td><td>Ollama 생성 최대 토큰 수. 비교 시 무한 생성을 방지합니다</td></tr>
               <tr><td><code>output_file</code></td><td><code>str</code></td><td><code>"compare_results.json"</code></td><td>비교 결과 JSON 파일명. <code>paths.output</code> 디렉토리에 저장됩니다</td></tr>
             </tbody>
           </table>
@@ -941,6 +944,7 @@ If the document does not contain relevant information, say "The document does no
   finetuned_model: "my-project-model"
   metrics: ["bleu", "rouge"]
   max_samples: 20
+  max_tokens: 512
   output_file: "compare_results.json"</code></pre>
 
         <div class="callout callout-warning">
@@ -1083,6 +1087,7 @@ If the document does not contain relevant information, say "The document does no
               <tr><td><code>server_host</code></td><td><code>str</code></td><td><code>"0.0.0.0"</code></td><td>RAG API 서버 바인드 호스트</td></tr>
               <tr><td><code>server_port</code></td><td><code>int</code></td><td><code>8000</code></td><td>RAG API 서버 포트 (1~65535)</td></tr>
               <tr><td><code>ollama_model</code></td><td><code>str</code></td><td><code>""</code></td><td>Ollama 모델명. 빈 문자열이면 <code>export.ollama.model_name</code>을 사용합니다</td></tr>
+              <tr><td><code>max_tokens</code></td><td><code>int</code></td><td><code>512</code></td><td>응답 최대 토큰 수. SLM의 반복 생성을 방지합니다</td></tr>
             </tbody>
           </table>
         </div>
@@ -1094,7 +1099,8 @@ If the document does not contain relevant information, say "The document does no
   top_k: 5
   server_host: "0.0.0.0"
   server_port: 8000
-  ollama_model: ""</code></pre>
+  ollama_model: ""
+  max_tokens: 512</code></pre>
 
         <h4>참고</h4>
         <ul>

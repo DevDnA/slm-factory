@@ -233,12 +233,18 @@ slm-factory tool rag-serve --config project.yaml
           <pre data-lang="bash"><code># API 호출 테스트
 curl -X POST http://localhost:8000/v1/query \
   -H "Content-Type: application/json" \
-  -d '{"query": "도메인 특화 질문", "top_k": 5}'</code></pre>
+  -d '{"query": "도메인 특화 질문", "top_k": 5}'
+
+# SSE 스트리밍 (토큰 단위 실시간 전송)
+curl -N -X POST http://localhost:8000/v1/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "도메인 특화 질문", "stream": true}'</code></pre>
 
           <p><strong>동작 방식:</strong></p>
           <ul>
             <li><code>rag-index</code>: <code>corpus.parquet</code> 문서를 <code>BAAI/bge-m3</code>로 임베딩 &rarr; ChromaDB에 적재</li>
             <li><code>rag-serve</code>: 질의 임베딩 &rarr; ChromaDB 유사도 검색 &rarr; Ollama SLM 생성 &rarr; JSON 응답</li>
+            <li><code>stream: true</code> 요청 시 SSE(Server-Sent Events)로 토큰을 실시간 전송</li>
           </ul>
 
           <p><strong>질의 &rarr; 응답 흐름:</strong></p>

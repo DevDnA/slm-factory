@@ -1571,9 +1571,15 @@ slm-factory tool rag-index --config my-project/project.yaml</code></pre>
             </div>
 
             <h4>API 호출 예시</h4>
-            <pre data-lang="bash"><code>curl -X POST http://localhost:8000/v1/query \
+            <pre data-lang="bash"><code># 일반 응답
+curl -X POST http://localhost:8000/v1/query \
   -H "Content-Type: application/json" \
-  -d '{"query": "도메인 질문", "top_k": 5}'</code></pre>
+  -d '{"query": "도메인 질문", "top_k": 5}'
+
+# SSE 스트리밍 응답 (토큰 단위 실시간 전송)
+curl -N -X POST http://localhost:8000/v1/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "도메인 질문", "stream": true}'</code></pre>
 
             <h4>참고</h4>
             <ul>
