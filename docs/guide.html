@@ -457,9 +457,9 @@ cp /path/to/docs/*.pdf /path/to/docs/*.txt my-first-project/documents/</code></p
 
           <!-- SVG Diagram: Pipeline Overview -->
           <div class="diagram">
-            <svg role="img" aria-labelledby="diagram-pipeline-title diagram-pipeline-desc" viewBox="0 0 820 440" xmlns="http://www.w3.org/2000/svg">
-              <title id="diagram-pipeline-title">slm-factory 파이프라인 개요</title>
-              <desc id="diagram-pipeline-desc">slm-factory의 전체 파이프라인 흐름도. 문서 입력에서 시작하여 Parse, Generate, Validate 필수 단계를 거친 후, Score, Augment, Analyze 선택 단계를 선택적으로 수행하고, Convert, Train, Export 필수 단계를 거쳐 도메인 특화 SLM이 완성됩니다.</desc>
+            <svg role="img" aria-labelledby="diagram-pipeline-title diagram-pipeline-desc" viewBox="0 0 420 875" xmlns="http://www.w3.org/2000/svg">
+              <title id="diagram-pipeline-title">slm-factory 14단계(+1b) 파이프라인 개요</title>
+              <desc id="diagram-pipeline-desc">slm-factory의 14단계(+1b) 파이프라인 흐름도. parse, chunking(선택), generate, validate 필수 그룹 후 score, augment, analyze 선택 그룹을 거쳐 convert, train, export 필수 그룹, 마지막으로 dialogue, gguf_export, eval, autorag_export, rag_index 선택 그룹을 완료하면 RAG API 서빙이 가능합니다.</desc>
               <defs>
                 <marker id="pl-arrowhead" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto">
                   <polyline points="0 0, 5 2, 0 4" fill="none" stroke="#2C5282" stroke-width="1" stroke-linejoin="round"/>
@@ -467,129 +467,155 @@ cp /path/to/docs/*.pdf /path/to/docs/*.txt my-first-project/documents/</code></p
                 <marker id="pl-arrowhead-gray" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto">
                   <polyline points="0 0, 5 2, 0 4" fill="none" stroke="#A0AEC0" stroke-width="1" stroke-linejoin="round"/>
                 </marker>
-                <marker id="pl-arrowhead-orange" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto">
-                  <polyline points="0 0, 5 2, 0 4" fill="none" stroke="#ED8936" stroke-width="1" stroke-linejoin="round"/>
-                </marker>
               </defs>
 
-              <!-- Row labels -->
-              <text x="20" y="75" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#1B3A5C" text-anchor="start">필수 단계</text>
-              <text x="20" y="225" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#ED8936" text-anchor="start">선택 단계</text>
-              <text x="20" y="365" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#1B3A5C" text-anchor="start">필수 단계</text>
+              <!-- Background -->
+              <rect x="10" y="5" width="400" height="862" rx="10" fill="#F7F8FA" stroke="#CBD5E0" stroke-width="1"/>
 
-              <!-- ── Row 1: Required stages ── -->
-              <!-- Input: Documents -->
-              <rect x="80" y="30" width="130" height="54" rx="8" fill="#EBF8FF" stroke="#2C5282" stroke-width="2"/>
-              <text x="145" y="52" font-family="Pretendard, sans-serif" font-size="11" fill="#4A5568" text-anchor="middle">문서</text>
-              <text x="145" y="70" font-family="Pretendard, sans-serif" font-size="10" fill="#718096" text-anchor="middle">PDF/HWPX/HTML/TXT/DOCX</text>
+              <!-- Group separators -->
+              <line x1="60" y1="220" x2="380" y2="220" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="6,4"/>
+              <line x1="60" y1="380" x2="380" y2="380" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="6,4"/>
+              <line x1="60" y1="540" x2="380" y2="540" stroke="#E2E8F0" stroke-width="1" stroke-dasharray="6,4"/>
 
-              <!-- Arrow: Input → Parse -->
-              <line x1="210" y1="57" x2="240" y2="57" stroke="#2C5282" stroke-width="2" marker-end="url(#pl-arrowhead)"/>
+              <!-- Group labels -->
+              <text x="35" y="110" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#1B3A5C">필수</text>
+              <text x="35" y="124" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#1B3A5C">단계</text>
 
-              <!-- Parse -->
-              <rect x="250" y="35" width="120" height="44" rx="6" fill="#1B3A5C"/>
-              <text x="310" y="55" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">Parse</text>
-              <text x="310" y="70" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">문서 파싱</text>
+              <text x="35" y="295" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#ED8936">선택</text>
+              <text x="35" y="309" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#ED8936">단계</text>
 
-              <!-- Arrow: Parse → Generate -->
-              <line x1="370" y1="57" x2="400" y2="57" stroke="#2C5282" stroke-width="2" marker-end="url(#pl-arrowhead)"/>
+              <text x="35" y="455" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#1B3A5C">필수</text>
+              <text x="35" y="469" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#1B3A5C">단계</text>
 
-              <!-- Generate -->
-              <rect x="410" y="35" width="120" height="44" rx="6" fill="#1B3A5C"/>
-              <text x="470" y="55" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">Generate</text>
-              <text x="470" y="70" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">QA 생성</text>
+              <text x="35" y="665" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#ED8936">선택</text>
+              <text x="35" y="679" font-family="Pretendard, sans-serif" font-size="11" font-weight="700" fill="#ED8936">단계</text>
 
-              <!-- Arrow: Generate → Validate -->
-              <line x1="530" y1="57" x2="560" y2="57" stroke="#2C5282" stroke-width="2" marker-end="url(#pl-arrowhead)"/>
+              <!-- ── Group 1: 필수 단계 ── -->
 
-              <!-- Validate -->
-              <rect x="570" y="35" width="120" height="44" rx="6" fill="#1B3A5C"/>
-              <text x="630" y="55" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">Validate</text>
-              <text x="630" y="70" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">QA 검증</text>
+              <!-- Stage 1: parse (필수) -->
+              <rect x="110" y="20" width="200" height="40" rx="6" fill="#1B3A5C"/>
+              <text x="210" y="36" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">parse</text>
+              <text x="210" y="51" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">문서 파싱</text>
+              <!-- Arrow: parse → chunking (dashed, to 선택) -->
+              <line x1="210" y1="60" x2="210" y2="70" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pl-arrowhead-gray)"/>
 
-              <!-- Arrow: Validate → down to optional row -->
-              <line x1="630" y1="79" x2="630" y2="120" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3"/>
-              <line x1="630" y1="120" x2="460" y2="120" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3"/>
+              <!-- Stage 1b: chunking (선택) -->
+              <rect x="110" y="70" width="200" height="40" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
+              <text x="210" y="86" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">chunking</text>
+              <text x="210" y="101" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">문서 청킹</text>
+              <!-- Arrow: chunking → generate (dashed, from 선택) -->
+              <line x1="210" y1="110" x2="210" y2="120" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pl-arrowhead-gray)"/>
 
-              <!-- ── Row 2: Optional stages ── -->
-              <!-- Vertical connector down -->
-              <line x1="460" y1="120" x2="460" y2="155" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3"/>
+              <!-- Stage 2: generate (필수) -->
+              <rect x="110" y="120" width="200" height="40" rx="6" fill="#1B3A5C"/>
+              <text x="210" y="136" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">generate</text>
+              <text x="210" y="151" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">QA 생성</text>
+              <!-- Arrow: generate → validate (solid) -->
+              <line x1="210" y1="160" x2="210" y2="170" stroke="#2C5282" stroke-width="2" marker-end="url(#pl-arrowhead)"/>
 
-              <!-- Arrow split to 3 -->
-              <line x1="460" y1="155" x2="180" y2="155" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3"/>
-              <line x1="460" y1="155" x2="740" y2="155" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3"/>
+              <!-- Stage 3: validate (필수) -->
+              <rect x="110" y="170" width="200" height="40" rx="6" fill="#1B3A5C"/>
+              <text x="210" y="186" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">validate</text>
+              <text x="210" y="201" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">QA 검증</text>
+              <!-- Arrow: validate → score (dashed, cross-group to 선택) -->
+              <line x1="210" y1="210" x2="210" y2="230" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pl-arrowhead-gray)"/>
 
-              <!-- down to Score -->
-              <line x1="180" y1="155" x2="180" y2="195" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pl-arrowhead-gray)"/>
-              <!-- down to Augment -->
-              <line x1="460" y1="155" x2="460" y2="195" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pl-arrowhead-gray)"/>
-              <!-- down to Analyze -->
-              <line x1="740" y1="155" x2="740" y2="195" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pl-arrowhead-gray)"/>
+              <!-- ── Group 2: 선택 단계 ── -->
 
-              <!-- Score -->
-              <rect x="110" y="200" width="140" height="50" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
-              <text x="180" y="222" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">Score</text>
-              <text x="180" y="238" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">품질 평가</text>
+              <!-- Stage 4: score (선택) -->
+              <rect x="110" y="230" width="200" height="40" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
+              <text x="210" y="246" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">score</text>
+              <text x="210" y="261" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">품질 평가</text>
+              <!-- Arrow: score → augment (dashed) -->
+              <line x1="210" y1="270" x2="210" y2="280" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pl-arrowhead-gray)"/>
 
-              <!-- Augment -->
-              <rect x="390" y="200" width="140" height="50" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
-              <text x="460" y="222" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">Augment</text>
-              <text x="460" y="238" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">데이터 증강</text>
+              <!-- Stage 5: augment (선택) -->
+              <rect x="110" y="280" width="200" height="40" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
+              <text x="210" y="296" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">augment</text>
+              <text x="210" y="311" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">데이터 증강</text>
+              <!-- Arrow: augment → analyze (dashed) -->
+              <line x1="210" y1="320" x2="210" y2="330" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pl-arrowhead-gray)"/>
 
-              <!-- Analyze -->
-              <rect x="670" y="200" width="140" height="50" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
-              <text x="740" y="222" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">Analyze</text>
-              <text x="740" y="238" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">통계 분석</text>
+              <!-- Stage 6: analyze (선택) -->
+              <rect x="110" y="330" width="200" height="40" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
+              <text x="210" y="346" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">analyze</text>
+              <text x="210" y="361" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">통계 분석</text>
+              <!-- Arrow: analyze → convert (dashed, cross-group to 필수) -->
+              <line x1="210" y1="370" x2="210" y2="390" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pl-arrowhead-gray)"/>
 
-              <!-- Arrows from optional → converge to row 3 -->
-              <line x1="180" y1="250" x2="180" y2="280" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3"/>
-              <line x1="460" y1="250" x2="460" y2="280" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3"/>
+              <!-- ── Group 3: 필수 단계 ── -->
 
-              <!-- Converge lines -->
-              <line x1="180" y1="280" x2="460" y2="280" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3"/>
-              <line x1="460" y1="280" x2="460" y2="310" stroke="#2C5282" stroke-width="2"/>
+              <!-- Stage 7: convert (필수) -->
+              <rect x="110" y="390" width="200" height="40" rx="6" fill="#1B3A5C"/>
+              <text x="210" y="406" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">convert</text>
+              <text x="210" y="421" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">데이터 변환</text>
+              <!-- Arrow: convert → train (solid) -->
+              <line x1="210" y1="430" x2="210" y2="440" stroke="#2C5282" stroke-width="2" marker-end="url(#pl-arrowhead)"/>
 
-              <!-- Down arrow to Convert -->
-              <line x1="460" y1="310" x2="180" y2="310" stroke="#2C5282" stroke-width="2"/>
-              <line x1="180" y1="310" x2="180" y2="335" stroke="#2C5282" stroke-width="2" marker-end="url(#pl-arrowhead)"/>
+              <!-- Stage 8: train (필수) -->
+              <rect x="110" y="440" width="200" height="40" rx="6" fill="#1B3A5C"/>
+              <text x="210" y="456" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">train</text>
+              <text x="210" y="471" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">LoRA 학습</text>
+              <!-- Arrow: train → export (solid) -->
+              <line x1="210" y1="480" x2="210" y2="490" stroke="#2C5282" stroke-width="2" marker-end="url(#pl-arrowhead)"/>
 
-              <!-- ── Row 3: Required stages ── -->
-              <!-- Convert -->
-              <rect x="110" y="340" width="140" height="44" rx="6" fill="#1B3A5C"/>
-              <text x="180" y="360" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">Convert</text>
-              <text x="180" y="375" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">데이터 변환</text>
+              <!-- Stage 9: export (필수) -->
+              <rect x="110" y="490" width="200" height="40" rx="6" fill="#1B3A5C"/>
+              <text x="210" y="506" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">export</text>
+              <text x="210" y="521" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">모델 배포</text>
+              <!-- Arrow: export → dialogue (dashed, cross-group to 선택) -->
+              <line x1="210" y1="530" x2="210" y2="550" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pl-arrowhead-gray)"/>
 
-              <!-- Arrow: Convert → Train -->
-              <line x1="250" y1="362" x2="370" y2="362" stroke="#2C5282" stroke-width="2" marker-end="url(#pl-arrowhead)"/>
+              <!-- ── Group 4: 선택 단계 ── -->
 
-              <!-- Train -->
-              <rect x="380" y="340" width="140" height="44" rx="6" fill="#1B3A5C"/>
-              <text x="450" y="360" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">Train</text>
-              <text x="450" y="375" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">LoRA 학습</text>
+              <!-- Stage 10: dialogue (선택) -->
+              <rect x="110" y="550" width="200" height="40" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
+              <text x="210" y="566" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">dialogue</text>
+              <text x="210" y="581" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">멀티턴 대화</text>
+              <!-- Arrow: dialogue → gguf_export (dashed) -->
+              <line x1="210" y1="590" x2="210" y2="600" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pl-arrowhead-gray)"/>
 
-              <!-- Arrow: Train → Export -->
-              <line x1="520" y1="362" x2="570" y2="362" stroke="#2C5282" stroke-width="2" marker-end="url(#pl-arrowhead)"/>
+              <!-- Stage 11: gguf_export (선택) -->
+              <rect x="110" y="600" width="200" height="40" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
+              <text x="210" y="616" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">gguf_export</text>
+              <text x="210" y="631" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">GGUF 변환</text>
+              <!-- Arrow: gguf_export → eval (dashed) -->
+              <line x1="210" y1="640" x2="210" y2="650" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pl-arrowhead-gray)"/>
 
-              <!-- Export -->
-              <rect x="580" y="340" width="140" height="44" rx="6" fill="#1B3A5C"/>
-              <text x="650" y="360" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">Export</text>
-              <text x="650" y="375" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">모델 배포</text>
+              <!-- Stage 12: eval (선택) -->
+              <rect x="110" y="650" width="200" height="40" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
+              <text x="210" y="666" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">eval</text>
+              <text x="210" y="681" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">모델 평가</text>
+              <!-- Arrow: eval → autorag_export (dashed) -->
+              <line x1="210" y1="690" x2="210" y2="700" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pl-arrowhead-gray)"/>
 
-              <!-- Arrow: Export → SLM -->
-              <line x1="720" y1="362" x2="740" y2="362" stroke="#2C5282" stroke-width="2"/>
+              <!-- Stage 13: autorag_export (선택) -->
+              <rect x="110" y="700" width="200" height="40" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
+              <text x="210" y="716" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">autorag_export</text>
+              <text x="210" y="731" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">코퍼스 내보내기</text>
+              <!-- Arrow: autorag_export → rag_index (dashed) -->
+              <line x1="210" y1="740" x2="210" y2="750" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="6,3" marker-end="url(#pl-arrowhead-gray)"/>
 
-              <!-- Final output: SLM -->
-              <rect x="745" y="340" width="55" height="44" rx="22" fill="#3182CE"/>
-              <text x="773" y="366" font-family="Pretendard, sans-serif" font-size="12" font-weight="700" fill="#FFFFFF" text-anchor="middle">SLM</text>
+              <!-- Stage 14: rag_index (선택) -->
+              <rect x="110" y="750" width="200" height="40" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
+              <text x="210" y="766" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">rag_index</text>
+              <text x="210" y="781" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">벡터 인덱싱</text>
+
+              <!-- Arrow: rag_index → RAG API -->
+              <line x1="210" y1="790" x2="210" y2="803" stroke="#2C5282" stroke-width="2"/>
+
+              <!-- Final output: RAG API -->
+              <rect x="165" y="805" width="90" height="36" rx="18" fill="#3182CE"/>
+              <text x="210" y="828" font-family="Pretendard, sans-serif" font-size="12" font-weight="700" fill="#FFFFFF" text-anchor="middle">RAG API</text>
 
               <!-- Legend -->
-              <rect x="85" y="408" width="16" height="10" rx="3" fill="#1B3A5C"/>
-              <text x="108" y="418" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568">필수 단계</text>
+              <rect x="130" y="853" width="16" height="10" rx="3" fill="#1B3A5C"/>
+              <text x="152" y="862" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568">필수 단계</text>
 
-              <rect x="200" y="408" width="16" height="10" rx="3" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="3,2"/>
-              <text x="223" y="418" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568">선택 단계</text>
+              <rect x="240" y="853" width="16" height="10" rx="3" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="3,2"/>
+              <text x="262" y="862" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568">선택 단계</text>
             </svg>
-            <p class="diagram-caption">그림 2. slm-factory 파이프라인 개요 - 필수 단계(navy)와 선택 단계(orange dashed)의 흐름</p>
+            <p class="diagram-caption">그림 2. slm-factory 14단계(+1b) 파이프라인 개요 — 필수 단계(navy)와 선택 단계(orange dashed)의 흐름</p>
           </div>
 
           <hr>
