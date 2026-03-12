@@ -128,12 +128,12 @@
 
         <!-- ===== SVG: Config Model Hierarchy Diagram ===== -->
         <h3 id="config-hierarchy">설정 모델 계층 구조</h3>
-        <p>아래 다이어그램은 <code>SLMConfig</code> 루트 모델에서 20개 하위 설정 모델로 분기되는 전체 구조를 보여줍니다. 각 설정 섹션의 상세 내용은 이 문서의 해당 섹션을 참조하십시오.</p>
+        <p>아래 다이어그램은 <code>SLMConfig</code> 루트 모델에서 23개 하위 설정 모델로 분기되는 전체 구조를 보여줍니다. 각 설정 섹션의 상세 내용은 이 문서의 해당 섹션을 참조하십시오.</p>
 
         <div class="diagram">
           <svg role="img" aria-labelledby="config-tree-title config-tree-desc" viewBox="0 0 960 340" xmlns="http://www.w3.org/2000/svg">
             <title id="config-tree-title">SLMConfig 설정 모델 계층 구조</title>
-            <desc id="config-tree-desc">SLMConfig 루트에서 20개 하위 설정 모델로 분기되는 트리 다이어그램. Core, Data Pipeline, Training, Export, Features 5개 그룹으로 구성됩니다.</desc>
+            <desc id="config-tree-desc">SLMConfig 루트에서 23개 하위 설정 모델로 분기되는 트리 다이어그램. Core, Data Pipeline, Training, Export, Features 5개 그룹으로 구성됩니다.</desc>
             <defs>
               <marker id="arrowhead" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto">
                 <polyline points="0 0, 5 2, 0 4" fill="none" stroke="#2C5282" stroke-width="1" stroke-linejoin="round"/>
@@ -243,7 +243,7 @@
             <rect x="780" y="298" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="840" y="314" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">dashboard</text>
           </svg>
-          <p class="diagram-caption">그림 1. SLMConfig 설정 모델 계층 구조 &mdash; 20개 하위 설정이 5개 그룹으로 구성됩니다</p>
+          <p class="diagram-caption">그림 1. SLMConfig 설정 모델 계층 구조 &mdash; 23개 하위 설정이 5개 그룹으로 구성됩니다</p>
         </div>
       </section>
 
@@ -889,7 +889,7 @@ If the document does not contain relevant information, say "The document does no
               <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>모델 평가 기능 활성화 여부</td></tr>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>true</code></td><td>모델 평가 기능 활성화 여부</td></tr>
               <tr><td><code>test_split</code></td><td><code>float</code></td><td><code>0.1</code></td><td>평가에 사용할 데이터 비율 (0.0~1.0)</td></tr>
               <tr><td><code>metrics</code></td><td><code>list[str]</code></td><td><code>["bleu", "rouge"]</code></td><td>평가 메트릭 목록</td></tr>
               <tr><td><code>max_samples</code></td><td><code>int</code></td><td><code>50</code></td><td>평가에 사용할 최대 샘플 수</td></tr>
@@ -1040,7 +1040,7 @@ If the document does not contain relevant information, say "The document does no
               <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>GGUF 변환 기능 활성화 여부</td></tr>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>true</code></td><td>GGUF 변환 기능 활성화 여부</td></tr>
               <tr><td><code>quantization_type</code></td><td><code>str</code></td><td><code>"q4_k_m"</code></td><td>양자화 타입. <code>q4_0</code>, <code>q4_1</code>, <code>q4_k_m</code>, <code>q4_k_s</code>, <code>q5_0</code>, <code>q5_1</code>, <code>q5_k_m</code>, <code>q5_k_s</code>, <code>q8_0</code>, <code>f16</code>, <code>f32</code> 중 선택</td></tr>
               <tr><td><code>llama_cpp_path</code></td><td><code>str</code></td><td><code>""</code></td><td>llama.cpp 경로. 빈 문자열이면 시스템 PATH에서 탐색합니다</td></tr>
             </tbody>
@@ -1068,7 +1068,7 @@ If the document does not contain relevant information, say "The document does no
               <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>RAG 데이터 내보내기 기능 활성화 여부</td></tr>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>true</code></td><td>RAG 데이터 내보내기 기능 활성화 여부</td></tr>
               <tr><td><code>output_dir</code></td><td><code>str</code></td><td><code>"autorag"</code></td><td>출력 디렉토리명. <code>paths.output</code> 하위에 생성됩니다</td></tr>
               <tr><td><code>chunk_size</code></td><td><code>int</code></td><td><code>512</code></td><td>코퍼스 청크 크기 (문자 수). 100 이상이어야 합니다</td></tr>
               <tr><td><code>overlap_chars</code></td><td><code>int</code></td><td><code>64</code></td><td>청크 간 중첩 문자 수. <code>chunk_size</code>보다 작아야 합니다</td></tr>
@@ -1114,6 +1114,11 @@ If the document does not contain relevant information, say "The document does no
               <tr><td><code>server_port</code></td><td><code>int</code></td><td><code>8000</code></td><td>RAG API 서버 포트 (1~65535)</td></tr>
               <tr><td><code>ollama_model</code></td><td><code>str</code></td><td><code>""</code></td><td>Ollama 모델명. 빈 문자열이면 <code>export.ollama.model_name</code>을 사용합니다</td></tr>
               <tr><td><code>max_tokens</code></td><td><code>int</code></td><td><code>512</code></td><td>응답 최대 토큰 수. SLM의 반복 생성을 방지합니다</td></tr>
+              <tr><td><code>batch_size</code></td><td><code>int</code></td><td><code>64</code></td><td>임베딩 벡터 생성 시 배치 크기</td></tr>
+              <tr><td><code>workers</code></td><td><code>int</code></td><td><code>1</code></td><td>uvicorn 워커 수</td></tr>
+              <tr><td><code>log_level</code></td><td><code>str</code></td><td><code>"info"</code></td><td>uvicorn 로그 레벨</td></tr>
+              <tr><td><code>cors_origins</code></td><td><code>list[str]</code></td><td><code>["*"]</code></td><td>CORS 허용 출처 목록</td></tr>
+              <tr><td><code>request_timeout</code></td><td><code>float</code></td><td><code>120.0</code></td><td>Ollama 요청 타임아웃 (초)</td></tr>
             </tbody>
           </table>
         </div>
@@ -1148,7 +1153,7 @@ If the document does not contain relevant information, say "The document does no
               <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>증분 학습 기능 활성화 여부</td></tr>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>true</code></td><td>증분 학습 기능 활성화 여부</td></tr>
               <tr><td><code>hash_file</code></td><td><code>str</code></td><td><code>"document_hashes.json"</code></td><td>문서 해시를 저장할 파일명. <code>paths.output</code> 디렉토리에 저장됩니다</td></tr>
               <tr><td><code>merge_strategy</code></td><td><code>"append" | "replace"</code></td><td><code>"append"</code></td><td>기존 QA와 새 QA의 병합 전략. <code>"append"</code>는 추가, <code>"replace"</code>는 교체</td></tr>
               <tr><td><code>resume_adapter</code></td><td><code>str</code></td><td><code>""</code></td><td>이전 학습의 어댑터 경로. 빈 문자열이면 새로 학습합니다</td></tr>
@@ -1178,7 +1183,7 @@ If the document does not contain relevant information, say "The document does no
               <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>멀티턴 대화 생성 기능 활성화 여부</td></tr>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>true</code></td><td>멀티턴 대화 생성 기능 활성화 여부</td></tr>
               <tr><td><code>min_turns</code></td><td><code>int</code></td><td><code>2</code></td><td>최소 대화 턴 수 (2 이상)</td></tr>
               <tr><td><code>max_turns</code></td><td><code>int</code></td><td><code>5</code></td><td>최대 대화 턴 수</td></tr>
               <tr><td><code>include_single_qa</code></td><td><code>bool</code></td><td><code>true</code></td><td>단일 QA 쌍도 대화 데이터에 포함할지 여부</td></tr>
@@ -1215,7 +1220,7 @@ If the document does not contain relevant information, say "The document does no
               <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>QA 수동 리뷰 기능 활성화 여부</td></tr>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>true</code></td><td>QA 수동 리뷰 기능 활성화 여부</td></tr>
               <tr><td><code>auto_open</code></td><td><code>bool</code></td><td><code>true</code></td><td>리뷰 완료 후 결과 파일을 자동으로 열지 여부</td></tr>
               <tr><td><code>output_file</code></td><td><code>str</code></td><td><code>"qa_reviewed.json"</code></td><td>리뷰 결과 JSON 파일명. <code>paths.output</code> 디렉토리에 저장됩니다</td></tr>
             </tbody>
@@ -1243,7 +1248,7 @@ If the document does not contain relevant information, say "The document does no
               <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>대시보드 기능 활성화 여부</td></tr>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>true</code></td><td>대시보드 기능 활성화 여부</td></tr>
               <tr><td><code>refresh_interval</code></td><td><code>float</code></td><td><code>2.0</code></td><td>대시보드 새로고침 간격 (초)</td></tr>
               <tr><td><code>theme</code></td><td><code>str</code></td><td><code>"dark"</code></td><td>대시보드 테마. <code>"dark"</code> 또는 <code>"light"</code></td></tr>
             </tbody>
@@ -1254,6 +1259,22 @@ If the document does not contain relevant information, say "The document does no
   enabled: true
   refresh_interval: 2.0
   theme: "dark"</code></pre>
+      </section>
+
+      <!-- ============================================================
+           Section: chunking
+           ============================================================ -->
+      <section id="chunking" class="doc-section">
+        <h3>chunking &mdash; 문서 청킹</h3>
+        <p>긴 문서를 청크로 분할하여 각 청크별로 QA를 생성합니다.</p>
+        <table class="config-table">
+          <thead><tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr></thead>
+          <tbody>
+            <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>true</code></td><td>문서 청킹 활성화 여부</td></tr>
+            <tr><td><code>chunk_size</code></td><td><code>int</code></td><td><code>10000</code></td><td>청크 당 최대 문자 수</td></tr>
+            <tr><td><code>overlap_chars</code></td><td><code>int</code></td><td><code>500</code></td><td>인접 청크 간 겹침 문자 수</td></tr>
+          </tbody>
+        </table>
       </section>
 
       <hr>

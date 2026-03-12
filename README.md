@@ -18,7 +18,7 @@
 <br>
 
 ```
-도메인 문서 (PDF·HWPX·HTML·DOCX·TXT)  →  slm-factory run --serve  →  RAG API 서빙 (localhost:8000)
+도메인 문서 (PDF·HWPX·HTML·TXT·MD·DOCX·HWP)  →  slm-factory run --serve  →  RAG API 서빙 (localhost:8000)
 ```
 
 ## 빠른 시작

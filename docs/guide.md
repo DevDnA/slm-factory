@@ -150,7 +150,7 @@ my-first-project/
 
 ### 문서 준비
 
-`documents/` 디렉토리에 학습할 문서를 복사합니다. PDF, HWPX, HTML, TXT, MD, DOCX 형식을 지원합니다.
+`documents/` 디렉토리에 학습할 문서를 복사합니다. PDF, HWPX, HTML, TXT, MD, DOCX, HWP 형식을 지원합니다.
 
 ```bash
 # PDF 문서 복사
@@ -368,9 +368,6 @@ uv run slm-factory run --resume --config project.yaml
 3. `qa_alpaca.json` 존재 시 → validate 단계부터
 4. `parsed_documents.json` 존재 시 → generate 단계부터
 5. 없으면 처음부터 실행
-6. `eval_results.json` 존재 시 → autorag_export 단계부터
-7. `dialogues.json` 존재 시 → gguf_export 단계부터
-8. `training_data.jsonl` 존재 시 → train 단계부터
 
 모든 명령어 옵션은 [CLI 레퍼런스](cli-reference.md)를 참조하십시오.
 

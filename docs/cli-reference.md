@@ -232,10 +232,6 @@ uv run slm-factory run [OPTIONS]
 | `qa_scored.json` | `augment`부터 |
 | `qa_alpaca.json` | `validate`부터 |
 | `parsed_documents.json` | `generate`부터 |
-| `training_data.jsonl` | `train`부터 |
-| `checkpoints/adapter/` | `export`부터 |
-| `dialogues.json` | `gguf_export`부터 |
-| `eval_results.json` | `autorag_export`부터 |
 | 없음 | 처음부터 |
 
 **예시**

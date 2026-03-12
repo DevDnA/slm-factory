@@ -352,7 +352,7 @@ uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
                    <td>1</td>
                    <td><strong>parse</strong></td>
                    <td><span class="tag tag-required">필수</span></td>
-                   <td>PDF/HWPX/HTML/TXT/DOCX 파싱</td>
+                    <td>PDF/HWPX/HTML/TXT/MD/DOCX/HWP 파싱</td>
                     <td><code>output/parsed_documents.json</code></td>
                   </tr>
                   <tr>
@@ -724,7 +724,7 @@ export:
                 <tr>
                   <td><code>Failed to parse HWPX file - section0.xml not found</code></td>
                   <td>HWPX 파일 손상 또는 <code>.hwp</code> 형식</td>
-                  <td>한글에서 <code>.hwpx</code>로 다시 저장 (<code>.hwp</code> 미지원)</td>
+                   <td>한글에서 <code>.hwpx</code>로 다시 저장하거나 <code>.hwp</code> 형식으로 변환</td>
                 </tr>
                 <tr>
                   <td><code>Could not install packages due to an OSError</code> (pykospacing)</td>

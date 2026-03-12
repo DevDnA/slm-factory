@@ -198,7 +198,7 @@ results = await asyncio.gather(*tasks, return_exceptions=True)</code></pre>
               </tr>
             </thead>
             <tbody>
-              <tr><td>parse</td><td>파일 시스템 (PDF/HWPX/HTML/TXT/DOCX)</td><td><code>list[ParsedDocument]</code></td><td><code>parsed_documents.json</code></td></tr>
+              <tr><td>parse</td><td>파일 시스템 (PDF/HWPX/HTML/TXT/MD/DOCX/HWP)</td><td><code>list[ParsedDocument]</code></td><td><code>parsed_documents.json</code></td></tr>
               <tr><td>generate</td><td><code>list[ParsedDocument]</code></td><td><code>list[QAPair]</code></td><td><code>qa_alpaca.json</code></td></tr>
               <tr><td>validate</td><td><code>list[QAPair]</code></td><td><code>list[QAPair]</code> (필터링)</td><td>없음 (메모리 전달)</td></tr>
               <tr><td>score</td><td><code>list[QAPair]</code></td><td><code>list[QAPair]</code> (필터링)</td><td><code>qa_scored.json</code></td></tr>
@@ -249,7 +249,7 @@ parsed_documents.json   →  generate 단계부터 재개
         <div class="diagram">
           <svg role="img" aria-labelledby="svg4-title svg4-desc" viewBox="0 0 780 500" xmlns="http://www.w3.org/2000/svg">
             <title id="svg4-title">설정 모델 계층 구조 다이어그램</title>
-            <desc id="svg4-desc">SLMConfig 루트 모델에서 20개 하위 설정 모델(ProjectConfig, PathsConfig, ParsingConfig 등)로 이어지는 계층 구조를 Core, Pipeline, Advanced 세 그룹으로 나누어 보여주는 다이어그램</desc>
+            <desc id="svg4-desc">SLMConfig 루트 모델에서 23개 하위 설정 모델(ProjectConfig, PathsConfig, ParsingConfig 등)로 이어지는 계층 구조를 Core, Pipeline, Advanced 세 그룹으로 나누어 보여주는 다이어그램</desc>
             <defs>
               <marker id="s4-arrow" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto"><polyline points="0 0, 5 2, 0 4" fill="none" stroke="#2C5282" stroke-width="1" stroke-linejoin="round"/></marker>
             </defs>

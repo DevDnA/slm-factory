@@ -212,7 +212,7 @@ results = await asyncio.gather(*tasks, return_exceptions=True)
 
 | 단계 | 입력 타입 | 출력 타입 | 저장 파일 |
 |------|----------|----------|----------|
-| parse | 파일 시스템 (PDF/HWPX/HTML/TXT/DOCX) | `list[ParsedDocument]` | `parsed_documents.json` |
+| parse | 파일 시스템 (PDF/HWPX/HTML/TXT/MD/DOCX/HWP) | `list[ParsedDocument]` | `parsed_documents.json` |
 | generate | `list[ParsedDocument]` | `list[QAPair]` | `qa_alpaca.json` |
 | validate | `list[QAPair]` | `list[QAPair]` (필터링) | 없음 (메모리 전달) |
 | score | `list[QAPair]` | `list[QAPair]` (필터링) | `qa_scored.json` |
@@ -294,11 +294,6 @@ qa_scored.json 존재      →  augment 단계부터 재개
 qa_alpaca.json 존재      →  validate 단계부터 재개
 parsed_documents.json    →  generate 단계부터 재개
 없음                     →  처음부터 실행
-
-training_data.jsonl 존재   →  train 단계부터 재개
-checkpoints/adapter/ 존재  →  export 단계부터 재개
-dialogues.json 존재        →  gguf_export 단계부터 재개
-eval_results.json 존재     →  autorag_export 단계부터 재개
 ```
 
 `slm-factory status` 명령으로 각 중간 파일의 존재 여부와 항목 수를 확인할 수 있습니다.
