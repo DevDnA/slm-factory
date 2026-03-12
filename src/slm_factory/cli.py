@@ -373,9 +373,11 @@ def init(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     template = create_default_config()
+    # Ollama rejects model names containing '/' — use basename only
+    model_basename = Path(name).name
     config_content = template.replace('name: "my-project"', f'name: "{name}"')
     config_content = config_content.replace(
-        'model_name: "my-project-model"', f'model_name: "{name}-model"'
+        'model_name: "my-project-model"', f'model_name: "{model_basename}-model"'
     )
 
     config_path.write_text(config_content, encoding="utf-8")

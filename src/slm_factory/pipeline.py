@@ -34,6 +34,19 @@ class Pipeline:
     # 유틸리티 헬퍼
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _ollama_model_exists(model_name: str) -> bool:
+        import subprocess
+
+        try:
+            result = subprocess.run(
+                ["ollama", "show", model_name],
+                capture_output=True, text=True, timeout=10,
+            )
+            return result.returncode == 0
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            return False
+
     def _save_pairs(self, pairs: list[QAPair], path: Path) -> None:
         """QA 쌍을 JSON 파일로 저장합니다."""
         data = [asdict(p) for p in pairs]
@@ -895,7 +908,15 @@ class Pipeline:
             logger.info("━━━ [9/11] 모델 평가 ━━━")
             ollama_cfg = self.config.export.ollama
             if ollama_cfg.enabled and ollama_cfg.model_name and pairs:
-                self.step_eval(pairs, ollama_cfg.model_name)
+                if self._ollama_model_exists(ollama_cfg.model_name):
+                    self.step_eval(pairs, ollama_cfg.model_name)
+                else:
+                    logger.warning(
+                        "Ollama 모델 '%s'을(를) 찾을 수 없어 평가를 건너뜁니다. "
+                        "모델 등록 후 수동 평가: slm-factory eval model --model %s",
+                        ollama_cfg.model_name,
+                        ollama_cfg.model_name,
+                    )
 
             logger.info("━━━ [10/11] RAG 데이터 내보내기 ━━━")
             doc_dicts = [
