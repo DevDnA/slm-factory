@@ -100,7 +100,7 @@ uv run slm-factory tool wizard --config my-project/project.yaml
 
 ## 파이프라인 단계
 
-`slm-factory run` 실행 시 아래 순서로 진행됩니다.
+`slm-factory run` 실행 시 아래 순서로 진행됩니다. wizard(`tool wizard`)에서는 설정 로드와 문서 선택이 앞에 추가되어 번호가 다릅니다. 상세한 wizard 단계는 [사용 가이드](guide.md)를 참조하십시오.
 
 1. **parse** (필수) — PDF/HWPX/HTML/TXT/DOCX 파싱 → `output/parsed_documents.json`
 1b. **chunking** (선택) — 긴 문서를 청크로 분할하여 QA 생성 범위 확장
