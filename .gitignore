@@ -69,6 +69,7 @@ Modelfile
 
 # User project config (created by slm-factory init)
 /project.yaml
+*/project.yaml
 
 # E2E test projects
 e2e-test/
