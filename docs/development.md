@@ -830,22 +830,22 @@ tests/
 
 ```bash
 # 전체 테스트 실행
-pytest
+uv run pytest
 
 # 특정 모듈 테스트
-pytest tests/test_parsers_pdf.py
+uv run pytest tests/test_parsers_pdf.py
 
 # 특정 테스트 함수 실행
-pytest tests/test_validator_rules.py::test_validate_batch_rejects_empty
+uv run pytest tests/test_validator_rules.py::test_validate_batch_rejects_empty
 
 # 상세 출력
-pytest -v
+uv run pytest -v
 
 # 커버리지 측정
-pytest --cov=slm_factory --cov-report=html
+uv run pytest --cov=slm_factory --cov-report=html
 
 # 빠른 실행 (병렬)
-pytest -n auto
+uv run pytest -n auto
 ```
 
 ### 테스트 작성 가이드

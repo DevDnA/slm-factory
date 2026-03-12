@@ -337,7 +337,7 @@ Phase 3: rag-serve &rarr; RAG API 서비스 운영</code></pre>
                 <tr><td><strong>HTTPS/TLS</strong></td><td>API 통신 암호화</td><td>Nginx/Caddy 리버스 프록시로 TLS 종단. <code>certbot</code>으로 인증서 자동 발급</td></tr>
                 <tr><td><strong>인증/인가</strong></td><td>허가된 사용자만 접근</td><td>API 키 기반: Nginx <code>auth_request</code> 또는 FastAPI 미들웨어. 기업 환경: SSO/LDAP 연동</td></tr>
                 <tr><td><strong>입력 검증</strong></td><td>프롬프트 인젝션 방어</td><td>질의 길이 제한 (예: 2,000자), 금칙어 필터링, 시스템 프롬프트 고정</td></tr>
-                <tr><td><strong>헬스체크</strong></td><td>서비스 상태 모니터링</td><td>내장 <code>/health</code>(기본), <code>/health/ready</code>(Ollama+ChromaDB 연결), <code>/health/live</code>(라이브니스 체크, <code>{"status": "alive"}</code> 응답) 엔드포인트 제공. 프로덕션에서는 <code>/health/ready</code>를 로드밸런서 헬스체크에, <code>/health/live</code>를 Kubernetes 라이브니스 프로브에 사용</td></tr>
+                <tr><td><strong>헬스체크</strong></td><td>서비스 상태 모니터링</td><td>내장 <code>/health</code>(기본), <code>/health/ready</code>(Ollama+ChromaDB 연결), <code>/health/live</code>(라이브니스 체크, <code>{"status": "ok"}</code> 응답) 엔드포인트 제공. 프로덕션에서는 <code>/health/ready</code>를 로드밸런서 헬스체크에, <code>/health/live</code>를 Kubernetes 라이브니스 프로브에 사용</td></tr>
               </tbody>
             </table>
           </div>

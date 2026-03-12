@@ -213,7 +213,7 @@ slm-factory 내장 RAG 서버로 RAG 서비스를 즉시 운영할 수 있지만
 | **HTTPS/TLS** | API 통신 암호화 | Nginx/Caddy 리버스 프록시로 TLS 종단. `certbot`으로 인증서 자동 발급 |
 | **인증/인가** | 허가된 사용자만 접근 | API 키 기반: Nginx `auth_request` 또는 FastAPI 미들웨어. 기업 환경: SSO/LDAP 연동 |
 | **입력 검증** | 프롬프트 인젝션 방어 | 질의 길이 제한 (예: 2,000자), 금칙어 필터링, 시스템 프롬프트 고정 |
-| **헬스체크** | 서비스 상태 모니터링 | 내장 `/health`(기본), `/health/ready`(Ollama+ChromaDB 연결), `/health/live`(라이브니스 체크, `{"status": "alive"}` 응답) 엔드포인트 제공. 프로덕션에서는 `/health/ready`를 로드밸런서 헬스체크에, `/health/live`를 Kubernetes 라이브니스 프로브에 사용 |
+| **헬스체크** | 서비스 상태 모니터링 | 내장 `/health`(기본), `/health/ready`(Ollama+ChromaDB 연결), `/health/live`(라이브니스 체크, `{"status": "ok"}` 응답) 엔드포인트 제공. 프로덕션에서는 `/health/ready`를 로드밸런서 헬스체크에, `/health/live`를 Kubernetes 라이브니스 프로브에 사용 |
 
 #### 운영 안정화 (서비스 공개 후)
 
