@@ -93,8 +93,10 @@ class ModelComparator:
         base_model = self.compare_config.base_model
         finetuned_model = self.compare_config.finetuned_model
 
-        base_answer = await self._generate(client, base_model, pair.question)
-        finetuned_answer = await self._generate(client, finetuned_model, pair.question)
+        base_answer, finetuned_answer = await asyncio.gather(
+            self._generate(client, base_model, pair.question),
+            self._generate(client, finetuned_model, pair.question),
+        )
         scores = self._compute_scores(pair.answer, base_answer, finetuned_answer)
 
         return CompareResult(

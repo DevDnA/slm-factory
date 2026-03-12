@@ -122,6 +122,10 @@ def create_app(config: "SLMConfig"):
 
         http_client = httpx.AsyncClient(
             timeout=httpx.Timeout(config.rag.request_timeout),
+            limits=httpx.Limits(
+                max_connections=100,
+                max_keepalive_connections=20,
+            ),
         )
         logger.info("Ollama 모델: %s, API: %s", ollama_model, api_base)
 

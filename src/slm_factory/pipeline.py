@@ -41,7 +41,7 @@ class Pipeline:
         try:
             result = subprocess.run(
                 ["ollama", "show", model_name],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True, text=True, timeout=3,
             )
             return result.returncode == 0
         except (FileNotFoundError, subprocess.TimeoutExpired):
