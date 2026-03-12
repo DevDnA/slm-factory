@@ -56,7 +56,7 @@ cp /path/to/documents/*.pdf my-project/documents/
 uv run slm-factory run --serve --config my-project/project.yaml
 ```
 
-> 14단계 파이프라인(파싱 → QA 생성 → 검증 → 학습 → Ollama 배포 → RAG 인덱싱)이 자동으로 실행되고, 완료 후 RAG API 서버가 자동으로 시작됩니다.
+> 14단계 파이프라인(파싱 → QA 생성 → 검증 → 학습 → Ollama 배포 → RAG 인덱싱)이 자동으로 실행되고, 완료 후 RAG API 서버가 시작됩니다. 서버는 foreground로 실행되며, `Ctrl+C`로 종료할 수 있습니다.
 
 ### 4. 확인 — API로 즉시 질의
 

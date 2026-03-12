@@ -194,7 +194,7 @@ uv run slm-factory run [OPTIONS]
 |--------|--------|------|--------|------|
 | `--config` | | `TEXT` | `project.yaml` | 프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다. |
 | `--resume` | `-r` | `FLAG` | `False` | 중간 저장 파일에서 재개합니다. |
-| `--serve` | `-s` | `FLAG` | `False` | 파이프라인 완료 후 RAG API 서버를 자동으로 시작합니다. |
+| `--serve` | `-s` | `FLAG` | `False` | 파이프라인 완료 후 RAG API 서버를 자동으로 시작합니다. 서버는 foreground로 실행되며, `Ctrl+C`로 종료합니다. |
 | `--from` | | `ENUM` | `None` | 지정된 단계부터 실행을 재개합니다. 이전 단계의 출력 파일이 필요합니다. |
 | `--until` | | `ENUM` | `None` | 지정된 단계까지만 실행합니다. 생략하면 전체 파이프라인을 실행합니다. |
 
@@ -968,6 +968,8 @@ ChromaDB가 `output/chroma_db/`에 생성됩니다. 임베딩 모델과 벡터DB
 ### `tool rag-serve`
 
 ChromaDB 벡터 검색과 Ollama SLM 생성을 결합한 RAG API 서버를 실행합니다. `tool rag-index`로 구축한 벡터 DB에서 관련 문서를 검색하고, SLM이 문서 기반 답변을 생성합니다.
+
+> 서버는 foreground로 실행됩니다. `Ctrl+C`로 종료할 수 있습니다.
 
 **사용법**
 

@@ -303,6 +303,8 @@ uv run slm-factory run --config project.yaml
 uv run slm-factory run --serve --config project.yaml
 ```
 
+> 서버는 foreground로 실행됩니다. `Ctrl+C`로 종료할 수 있습니다.
+
 ---
 
 ### 단계별 실행

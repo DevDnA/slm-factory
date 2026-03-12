@@ -729,7 +729,8 @@ def _start_rag_server(config) -> None:
         f"  주소:   [cyan]http://{config.rag.server_host}:{config.rag.server_port}[/cyan]\n\n"
         f"[dim]API 테스트: curl -X POST http://localhost:{config.rag.server_port}/v1/query "
         f'-H "Content-Type: application/json" '
-        f"-d '{{\"query\": \"질문\"}}'[/dim]\n"
+        f"-d '{{\"query\": \"질문\"}}'[/dim]\n\n"
+        f"[dim]종료: Ctrl+C[/dim]\n"
     )
     run_server(config)
 
@@ -2185,7 +2186,8 @@ def rag_serve(
             f"  주소:   [cyan]http://{pipeline.config.rag.server_host}:{pipeline.config.rag.server_port}[/cyan]\n\n"
             f"[dim]API 테스트: curl -X POST http://localhost:{pipeline.config.rag.server_port}/v1/query "
             f'-H "Content-Type: application/json" '
-            f"-d '{{\"query\": \"질문\"}}'[/dim]\n"
+            f"-d '{{\"query\": \"질문\"}}'[/dim]\n\n"
+            f"[dim]종료: Ctrl+C[/dim]\n"
         )
 
         run_server(pipeline.config)

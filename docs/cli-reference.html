@@ -557,6 +557,13 @@ uv run slm-factory init policy-assistant --path /workspace/projects</code></pre>
                     <td>중간 저장 파일에서 재개합니다.</td>
                   </tr>
                   <tr>
+                    <td><code>--serve</code></td>
+                    <td><code>-s</code></td>
+                    <td><code>FLAG</code></td>
+                    <td><code>False</code></td>
+                    <td>파이프라인 완료 후 RAG API 서버를 자동으로 시작합니다. 서버는 foreground로 실행되며, <code>Ctrl+C</code>로 종료합니다.</td>
+                  </tr>
+                  <tr>
                     <td><code>--until</code></td>
                     <td></td>
                     <td><code>ENUM</code></td>
@@ -1543,6 +1550,7 @@ uv run slm-factory tool rag-index --config my-project/project.yaml</code></pre>
           <article id="tool-rag-serve">
             <h3><code>tool rag-serve</code></h3>
             <p>ChromaDB 벡터 검색과 Ollama SLM 생성을 결합한 RAG API 서버를 실행합니다.</p>
+            <p class="note">서버는 foreground로 실행됩니다. <code>Ctrl+C</code>로 종료할 수 있습니다.</p>
 
             <h4>사용법</h4>
             <pre data-lang="bash"><code>uv run slm-factory tool rag-serve [OPTIONS]</code></pre>

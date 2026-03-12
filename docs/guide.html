@@ -634,12 +634,17 @@ export:
 
           <hr>
 
-          <h3 id="full-pipeline">전체 파이프라인</h3>
-          <p>설정 파일 하나로 문서 파싱부터 모델 배포까지 전체 파이프라인을 한 번에 실행합니다.</p>
+           <h3 id="full-pipeline">전체 파이프라인</h3>
+           <p>설정 파일 하나로 문서 파싱부터 모델 배포까지 전체 파이프라인을 한 번에 실행합니다.</p>
 
-          <pre data-lang="bash"><code>uv run slm-factory run --config project.yaml</code></pre>
+           <pre data-lang="bash"><code>uv run slm-factory run --config project.yaml
 
-          <hr>
+# 전체 파이프라인 + RAG 서버 자동 시작
+uv run slm-factory run --serve --config project.yaml</code></pre>
+
+           <p class="note">서버는 foreground로 실행됩니다. <code>Ctrl+C</code>로 종료할 수 있습니다.</p>
+
+           <hr>
 
           <h3 id="step-by-step">단계별 실행</h3>
           <p><code>--until</code> 옵션으로 특정 단계까지만 실행하고 중단할 수 있습니다. 결과를 확인하며 단계적으로 진행할 때 유용합니다.</p>

@@ -131,7 +131,7 @@ uv run slm-factory tool rag-serve --config project.yaml
 # → GET  http://localhost:8000/health/live     라이브니스 체크
 ```
 
-> **팁**: `uv run slm-factory run --serve --config project.yaml` 명령으로 전체 파이프라인 실행 후 RAG 서버까지 한 번에 시작할 수 있습니다.
+> **팁**: `uv run slm-factory run --serve --config project.yaml` 명령으로 전체 파이프라인 실행 후 RAG 서버까지 한 번에 시작할 수 있습니다. 서버는 foreground로 실행되며, `Ctrl+C`로 종료합니다.
 
 ```bash
 # API 호출 테스트
