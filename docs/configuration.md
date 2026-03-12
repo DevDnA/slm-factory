@@ -648,11 +648,12 @@ autorag_export:
 | `server_host` | `str` | `"0.0.0.0"` | RAG API 서버 바인드 호스트 |
 | `server_port` | `int` | `8000` | RAG API 서버 포트 (1~65535) |
 | `ollama_model` | `str` | `""` | Ollama 모델명. 빈 문자열이면 `export.ollama.model_name`을 사용합니다 |
-| `workers` | `int` | `2` | uvicorn 워커 수 |
+| `workers` | `int` | `1` | uvicorn 워커 수 |
 | `log_level` | `str` | `"info"` | 서버 로그 레벨 |
 | `cors_origins` | `list[str]` | `["*"]` | CORS 허용 오리진 |
 | `batch_size` | `int` | `64` | 인덱싱 배치 크기 |
-| `request_timeout` | `int` | `60` | Ollama 요청 타임아웃 (초) |
+| `request_timeout` | `float` | `120.0` | Ollama 요청 타임아웃 (초) |
+| `max_tokens` | `int` | `512` | 응답 최대 토큰 수. SLM의 반복 생성을 방지합니다 |
 
 ```yaml
 rag:
@@ -663,11 +664,12 @@ rag:
   server_host: "0.0.0.0"
   server_port: 8000
   ollama_model: ""
-  workers: 2
+  workers: 1
   log_level: "info"
   cors_origins: ["*"]
   batch_size: 64
-  request_timeout: 60
+  request_timeout: 120.0
+  max_tokens: 512
 ```
 
 **참고**

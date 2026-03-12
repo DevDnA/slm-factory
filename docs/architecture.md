@@ -486,11 +486,12 @@ SLMConfig (root)
     ├── server_host: str = "0.0.0.0"
     ├── server_port: int = 8000
     ├── ollama_model: str = ""
-    ├── workers: int = 2
+    ├── workers: int = 1
     ├── log_level: str = "info"
     ├── cors_origins: list[str] = ["*"]
     ├── batch_size: int = 64
-    └── request_timeout: int = 60
+    ├── request_timeout: float = 120.0
+    └── max_tokens: int = 512
 ```
 
 → 각 필드의 상세 설명은 [설정 레퍼런스](configuration.md) 참조
