@@ -343,6 +343,12 @@ cp /path/to/docs/*.pdf /path/to/docs/*.txt my-first-project/documents/</code></p
                   <td>선택한 문서에서 텍스트와 표를 자동 추출합니다</td>
                 </tr>
                 <tr>
+                  <td>3b</td>
+                  <td>문서 청킹</td>
+                  <td><span class="tag tag-optional">선택</span></td>
+                  <td>긴 문서를 청크로 분할하여 전체 내용에서 QA를 생성합니다 (<code>chunking.enabled</code> 설정 반영)</td>
+                </tr>
+                <tr>
                   <td>4</td>
                   <td>QA 쌍 생성</td>
                   <td><span class="tag tag-required">필수</span></td>
@@ -395,6 +401,18 @@ cp /path/to/docs/*.pdf /path/to/docs/*.txt my-first-project/documents/</code></p
                   <td>모델 평가</td>
                   <td><span class="tag tag-optional">선택</span></td>
                   <td>BLEU/ROUGE 메트릭으로 학습 결과를 자동 평가합니다</td>
+                </tr>
+                <tr>
+                  <td>13</td>
+                  <td>AutoRAG 내보내기</td>
+                  <td><span class="tag tag-optional">선택</span></td>
+                  <td>QA·문서를 AutoRAG 평가용 parquet으로 내보냅니다 (<code>autorag_export.enabled</code> 설정 반영)</td>
+                </tr>
+                <tr>
+                  <td>14</td>
+                  <td>RAG 인덱싱</td>
+                  <td><span class="tag tag-optional">선택</span></td>
+                  <td>corpus.parquet을 ChromaDB에 임베딩하여 적재합니다 (<code>rag</code> 설정 반영)</td>
                 </tr>
               </tbody>
             </table>
@@ -907,6 +925,47 @@ slm-factory train --config my-project/project.yaml</code></pre>
              ============================================================ -->
         <section id="section-5">
           <h2>5. 데이터 품질 관리</h2>
+
+          <h3 id="chunking">문서 청킹 (chunking)</h3>
+          <p>긴 문서를 청크(조각)로 분할하여 각 청크마다 QA를 생성합니다. <code>teacher.max_context_chars</code>(기본 12,000자)보다 긴 문서는 앞부분만 잘려서 QA가 생성되는데, 청킹을 활성화하면 문서 전체에서 QA가 생성되어 뒷부분 내용의 누락을 방지합니다.</p>
+
+          <h4>설정:</h4>
+
+          <pre data-lang="yaml"><code>chunking:
+  enabled: true
+  chunk_size: 10000       # 각 청크의 최대 문자 수
+  overlap_chars: 500      # 연속된 청크 간 중첩 문자 수</code></pre>
+
+          <p><strong>동작</strong>: 문단 경계(빈 줄)를 기준으로 청크를 분할하여 문장이 중간에 잘리지 않습니다. 각 청크에 대해 질문별로 QA를 생성하므로 문서가 길수록 더 많은 QA 쌍이 생성됩니다.</p>
+
+          <p><strong>설정 변경 전후 비교</strong>: <code>tool compare-data</code> 명령으로 청킹 적용 전후의 QA 품질을 수치로 비교할 수 있습니다.</p>
+
+          <pre data-lang="bash"><code># 청킹 전 QA 생성
+slm-factory run --until generate --config project.yaml
+cp output/qa_alpaca.json output/qa_before_chunking.json
+
+# chunking.enabled: true 변경 후 재생성
+slm-factory run --until generate --config project.yaml
+
+# 비교
+slm-factory tool compare-data -b output/qa_before_chunking.json -t output/qa_alpaca.json</code></pre>
+
+          <hr>
+
+          <h3 id="regenerate">저품질 QA 재생성 (scoring.regenerate)</h3>
+          <p>품질 점수 평가에서 <code>threshold</code> 미만으로 평가된 QA 쌍을 바로 폐기하지 않고, 이전 점수와 실패 이유를 프롬프트에 주입하여 개선된 답변을 비동기 배치로 재생성합니다.</p>
+
+          <h4>설정:</h4>
+
+          <pre data-lang="yaml"><code>scoring:
+  enabled: true
+  threshold: 3.5
+  regenerate: true            # 저품질 QA 재생성 활성화
+  max_regenerate_rounds: 2    # 최대 재생성 반복 횟수</code></pre>
+
+          <p><strong>동작</strong>: 각 라운드에서 <code>threshold</code> 미만인 QA를 모아 Teacher LLM에 &ldquo;이전 점수: X, 이유: Y&rdquo; 피드백과 함께 재생성을 요청합니다. 재생성된 QA는 다시 점수 평가를 받으며, 최대 <code>max_regenerate_rounds</code>만큼 반복됩니다.</p>
+
+          <hr>
 
           <h3 id="scoring">품질 점수 평가 (scoring)</h3>
           <p>Teacher LLM이 생성된 각 QA 쌍을 1~5점으로 평가하여 저품질 데이터를 자동으로 필터링합니다. 점수가 <code>threshold</code> 미만인 QA는 학습 데이터에서 제외됩니다.</p>

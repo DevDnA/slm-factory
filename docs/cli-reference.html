@@ -1565,7 +1565,9 @@ slm-factory tool rag-index --config my-project/project.yaml</code></pre>
                 <thead><tr><th>메서드</th><th>경로</th><th>설명</th></tr></thead>
                 <tbody>
                   <tr><td><code>POST</code></td><td><code>/v1/query</code></td><td>질의 &rarr; 문서 검색 &rarr; SLM 답변 생성</td></tr>
-                  <tr><td><code>GET</code></td><td><code>/health</code></td><td>ChromaDB 및 Ollama 연결 상태 확인</td></tr>
+                  <tr><td><code>GET</code></td><td><code>/health</code></td><td>기본 헬스체크 (서버 상태)</td></tr>
+                  <tr><td><code>GET</code></td><td><code>/health/ready</code></td><td>ChromaDB 및 Ollama 연결 상태 확인</td></tr>
+                  <tr><td><code>GET</code></td><td><code>/health/live</code></td><td>라이브니스 체크</td></tr>
                 </tbody>
               </table>
             </div>
@@ -1908,6 +1910,13 @@ slm-factory tool update --config my-project/project.yaml</code></pre>
                     <td><code>FLAG</code></td>
                     <td><code>False</code></td>
                     <td>출력 디렉토리의 모든 파일을 삭제합니다.</td>
+                  </tr>
+                  <tr>
+                    <td><code>--yes</code></td>
+                    <td><code>-y</code></td>
+                    <td><code>bool</code></td>
+                    <td><code>false</code></td>
+                    <td>확인 없이 삭제합니다</td>
                   </tr>
                 </tbody>
               </table>

@@ -227,8 +227,10 @@ slm-factory tool rag-index --config project.yaml
 
 # 3. RAG API 서버 실행
 slm-factory tool rag-serve --config project.yaml
-# &rarr; POST http://localhost:8000/v1/query  질의 엔드포인트
-# &rarr; GET  http://localhost:8000/health     헬스체크</code></pre>
+# &rarr; POST http://localhost:8000/v1/query       질의 엔드포인트
+# &rarr; GET  http://localhost:8000/health          기본 헬스체크
+# &rarr; GET  http://localhost:8000/health/ready    Ollama+ChromaDB 연결 확인
+# &rarr; GET  http://localhost:8000/health/live     라이브니스 체크</code></pre>
 
           <pre data-lang="bash"><code># API 호출 테스트
 curl -X POST http://localhost:8000/v1/query \
@@ -382,11 +384,6 @@ docker run -p 8000:8000 \
   autoraghq/autorag:api-latest \
   run_api --trial_dir /app/benchmark/0</code></pre>
 
-          <pre data-lang="bash"><code># API 호출 테스트
-curl -X POST http://localhost:8000/v1/run \
-  -H "Content-Type: application/json" \
-  -d '{"query": "도메인 특화 질문", "result_column": "generated_texts"}'</code></pre>
-
           <p><strong>이 시점에서 무엇이 동작하는가:</strong></p>
           <ul>
             <li>사용자 질문을 받으면 벡터 검색 &rarr; 리랭킹 &rarr; SLM 생성까지 자동 실행</li>
@@ -516,7 +513,7 @@ Phase 3: RAG 서비스 운영
                 <tr><td><strong>HTTPS/TLS</strong></td><td>API 통신 암호화</td><td>Nginx/Caddy 리버스 프록시로 TLS 종단. <code>certbot</code>으로 인증서 자동 발급</td></tr>
                 <tr><td><strong>인증/인가</strong></td><td>허가된 사용자만 접근</td><td>API 키 기반: Nginx <code>auth_request</code> 또는 FastAPI 미들웨어. 기업 환경: SSO/LDAP 연동</td></tr>
                 <tr><td><strong>입력 검증</strong></td><td>프롬프트 인젝션 방어</td><td>질의 길이 제한 (예: 2,000자), 금칙어 필터링, 시스템 프롬프트 고정</td></tr>
-                <tr><td><strong>헬스체크</strong></td><td>서비스 상태 모니터링</td><td><code>/health</code> 엔드포인트 추가. Ollama 연결 + 벡터 DB 상태를 포함</td></tr>
+                <tr><td><strong>헬스체크</strong></td><td>서비스 상태 모니터링</td><td>내장 <code>/health</code>(기본), <code>/health/ready</code>(Ollama+ChromaDB 연결), <code>/health/live</code>(라이브니스 체크, <code>{"status": "alive"}</code> 응답) 엔드포인트 제공. 프로덕션에서는 <code>/health/ready</code>를 로드밸런서 헬스체크에, <code>/health/live</code>를 Kubernetes 라이브니스 프로브에 사용</td></tr>
               </tbody>
             </table>
           </div>

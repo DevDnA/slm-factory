@@ -60,7 +60,7 @@ slm-factory tool wizard --config my-project/project.yaml
 
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|-----------|
-| `slm-factory run` | 전체 파이프라인 실행 | `--config`, `--until <단계>`, `--resume` / `-r`, `--serve` / `-s` |
+| `slm-factory run` | 전체 파이프라인 실행 | `--config`, `--until <단계>`, `--from <단계>`, `--resume` / `-r`, `--serve` / `-s` |
 | `slm-factory train` | LoRA 학습 실행 | `--config`, `--data <jsonl>`, `--resume` / `-r` |
 | `slm-factory export` | 모델 내보내기 (LoRA 병합 + Modelfile) | `--config`, `--adapter <경로>` |
 
@@ -93,7 +93,7 @@ slm-factory tool wizard --config my-project/project.yaml
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|-----------|
 | `slm-factory status` | 파이프라인 진행 상태 확인 | `--config` |
-| `slm-factory clean` | 중간 파일 정리 | `--config`, `--all` |
+| `slm-factory clean` | 중간 파일 정리 | `--config`, `--all`, `--yes` / `-y` |
 | `slm-factory version` | 버전 정보 출력 | |
 
 > 각 명령어의 전체 옵션은 [CLI 레퍼런스](cli-reference.md)를 참조하십시오.

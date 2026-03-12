@@ -378,18 +378,19 @@ parsed_documents.json   →  generate 단계부터 재개
 │   ├── deduplicate: bool = True
 │   ├── reject_patterns: list[str] = [...]
 │   └── groundedness: GroundednessConfig
-│       ├── enabled: bool = False
+│       ├── enabled: bool = True
 │       ├── model: str = "all-MiniLM-L6-v2"
 │       └── threshold: float = 0.3
 │
 ├── scoring: ScoringConfig
-│   ├── enabled: bool = False
+│   ├── enabled: bool = True
 │   ├── threshold: float = 3.0
 │   └── max_concurrency: int = 4
 │
 ├── augment: AugmentConfig
-│   ├── enabled: bool = False
+│   ├── enabled: bool = True
 │   ├── num_variants: int = 2
+│   ├── min_similarity: float = 0.3
 │   └── max_concurrency: int = 4
 │
 ├── analyzer: AnalyzerConfig
@@ -411,6 +412,7 @@ parsed_documents.json   →  generate 단계부터 재개
 │   ├── bf16: bool = True
 │   ├── train_split: float = 0.9
 │   ├── save_strategy: str = "epoch"
+│   ├── neftune_noise_alpha: float | None = None
 │   ├── lora: LoraConfig
 │   │   ├── r: int = 16
 │   │   ├── alpha: int = 32
@@ -422,7 +424,7 @@ parsed_documents.json   →  generate 단계부터 재개
 │   │   ├── patience: int = 3
 │   │   └── threshold: float = 0.01
 │   └── quantization: QuantizationConfig
-│       ├── enabled: bool = False
+│       ├── enabled: bool = True
 │       └── bits: int = 4
 │
 ├── export: ExportConfig
@@ -435,32 +437,34 @@ parsed_documents.json   →  generate 단계부터 재개
 │       └── parameters: dict = {temperature: 0.7, top_p: 0.9, num_ctx: 4096}
 │
 ├── eval: EvalConfig
-│   ├── enabled: bool = False
+│   ├── enabled: bool = True
 │   ├── test_split: float = 0.1
 │   ├── metrics: list[str] = ["bleu", "rouge"]
 │   ├── max_samples: int = 50
 │   ├── max_tokens: int = 512
+│   ├── quality_gate: bool = True
+│   ├── quality_thresholds: dict
 │   └── output_file: str = "eval_results.json"
 │
 ├── gguf_export: GGUFExportConfig
-│   ├── enabled: bool = False
+│   ├── enabled: bool = True
 │   ├── quantization_type: str = "q4_k_m"
 │   └── llama_cpp_path: str = ""
 │
 ├── incremental: IncrementalConfig
-│   ├── enabled: bool = False
+│   ├── enabled: bool = True
 │   ├── hash_file: str = "document_hashes.json"
 │   ├── merge_strategy: Literal["append", "replace"] = "append"
 │   └── resume_adapter: str = ""
 │
 ├── dialogue: DialogueConfig
-│   ├── enabled: bool = False
+│   ├── enabled: bool = True
 │   ├── min_turns: int = 2
 │   ├── max_turns: int = 5
 │   └── include_single_qa: bool = True
 │
 ├── review: ReviewConfig
-│   ├── enabled: bool = False
+│   ├── enabled: bool = True
 │   ├── auto_open: bool = True
 │   └── output_file: str = "qa_reviewed.json"
 │
@@ -482,7 +486,7 @@ parsed_documents.json   →  generate 단계부터 재개
 │   └── keep_previous_versions: int = 3
 │
 ├── dashboard: DashboardConfig
-│   ├── enabled: bool = False
+│   ├── enabled: bool = True
 │   ├── refresh_interval: float = 2.0
 │   └── theme: str = "dark"
 </code></pre>

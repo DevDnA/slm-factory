@@ -367,20 +367,21 @@ SLMConfig (root)
 │   ├── enabled: bool = True
 │   ├── threshold: float = 3.0
 │   ├── max_concurrency: int = 4
-│   ├── regenerate: bool = False
+│   ├── regenerate: bool = True
 │   └── max_regenerate_rounds: int = 2
 │
 ├── augment: AugmentConfig
 │   ├── enabled: bool = True
 │   ├── num_variants: int = 2
-│   └── max_concurrency: int = 4
+│   ├── max_concurrency: int = 4
+│   └── min_similarity: float = 0.3
 │
 ├── analyzer: AnalyzerConfig
 │   ├── enabled: bool = True
 │   └── output_file: str = "data_analysis.json"
 │
 ├── student: StudentConfig
-│   ├── model: str = "Qwen/Qwen3.5-2B"
+│   ├── model: str = "Qwen/Qwen2.5-1.5B"
 │   └── max_seq_length: int = 4096
 │
 ├── training: TrainingConfig
@@ -404,9 +405,10 @@ SLMConfig (root)
 │   │   ├── enabled: bool = True
 │   │   ├── patience: int = 3
 │   │   └── threshold: float = 0.01
-│   └── quantization: QuantizationConfig
-│       ├── enabled: bool = False
-│       └── bits: int = 4
+│   ├── quantization: QuantizationConfig
+│   │   ├── enabled: bool = True
+│   │   └── bits: int = 4
+│   └── neftune_noise_alpha: float | None = None
 │
 ├── export: ExportConfig
 │   ├── merge_lora: bool = True
@@ -423,7 +425,9 @@ SLMConfig (root)
 │   ├── metrics: list[str] = ["bleu", "rouge"]
 │   ├── max_samples: int = 50
 │   ├── max_tokens: int = 512
-│   └── output_file: str = "eval_results.json"
+│   ├── output_file: str = "eval_results.json"
+│   ├── quality_gate: bool = True
+│   └── quality_thresholds: dict = {"bleu": 0.1, "rougeL": 0.2}
 │
 ├── gguf_export: GGUFExportConfig
 │   ├── enabled: bool = True
@@ -468,11 +472,6 @@ SLMConfig (root)
 │   ├── enabled: bool = True
 │   ├── refresh_interval: float = 2.0
 │   └── theme: str = "dark"
-│
-├── chunking: ChunkingConfig
-│   ├── enabled: bool = True
-│   ├── chunk_size: int = 10000
-│   └── overlap_chars: int = 500
 │
 ├── autorag_export: AutoRAGExportConfig
 │   ├── enabled: bool = True

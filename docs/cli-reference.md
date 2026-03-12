@@ -1000,7 +1000,7 @@ slm-factory tool rag-serve --config my-project/project.yaml --port 9000
 | `POST` | `/v1/query` | 질의 → 문서 검색 → SLM 답변 생성 |
 | `GET` | `/health` | 기본 헬스체크 (서버 상태) |
 | `GET` | `/health/ready` | ChromaDB 및 Ollama 연결 상태 확인 |
-| `GET` | `/v1/collections` | ChromaDB 컬렉션 목록 조회 |
+| `GET` | `/health/live` | 라이브니스 체크 |
 
 **API 호출 예시**
 
@@ -1161,6 +1161,7 @@ slm-factory clean [OPTIONS]
 |--------|--------|------|--------|------|
 | `--config` | | `TEXT` | `project.yaml` | 프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다. |
 | `--all` | | `FLAG` | `False` | 출력 디렉토리의 모든 파일을 삭제합니다. |
+| `--yes` | `-y` | `bool` | `false` | 확인 없이 삭제합니다 |
 
 **기본 동작 vs `--all` 동작**
 

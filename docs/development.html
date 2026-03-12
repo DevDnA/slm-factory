@@ -300,9 +300,10 @@ def compute_file_hash(path: str | Path, algorithm: str = "sha256") -&gt; str: ..
     # 파일의 해시값을 계산합니다.
 async def run_bounded(semaphore, coro, progress, task_id) -&gt; T: ...
     # 세마포어 제한 하에 코루틴을 실행하고 진행률을 갱신합니다.
-async def ollama_generate(client, api_base, model_name, question, timeout, *, max_retries=3) -&gt; str: ...
+async def ollama_generate(client, api_base, model_name, question, timeout, *, max_tokens=512, max_retries=3) -&gt; str: ...
     # Ollama /api/generate 엔드포인트로 답변을 생성합니다.
-    # 일시적 오류(HTTP 5xx, 타임아웃, 연결 오류)에 대해 지수 백오프로 재시도합니다.</code></pre>
+    # 일시적 오류(HTTP 5xx, 타임아웃, 연결 오류)에 대해 지수 백오프로 재시도합니다.
+    # max_tokens로 응답 길이를 제한하여 무한 생성을 방지합니다.</code></pre>
         </section>
 
 

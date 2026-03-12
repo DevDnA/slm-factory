@@ -533,7 +533,7 @@ If the document does not contain relevant information, say "The document does no
               <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>의미적 검증 활성화 여부. <code>pip install slm-factory[validation]</code>이 필요합니다</td></tr>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>true</code></td><td>의미적 검증 활성화 여부. <code>pip install slm-factory[validation]</code>이 필요합니다</td></tr>
               <tr><td><code>model</code></td><td><code>str</code></td><td><code>"all-MiniLM-L6-v2"</code></td><td>사용할 sentence-transformers 모델</td></tr>
               <tr><td><code>threshold</code></td><td><code>float</code></td><td><code>0.3</code></td><td>코사인 유사도 임계값 (0.0~1.0). 높을수록 엄격하게 검증합니다</td></tr>
             </tbody>
@@ -578,9 +578,11 @@ If the document does not contain relevant information, say "The document does no
               <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>품질 점수 평가 기능 활성화 여부</td></tr>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>true</code></td><td>품질 점수 평가 기능 활성화 여부</td></tr>
               <tr><td><code>threshold</code></td><td><code>float</code></td><td><code>3.0</code></td><td>QA 쌍 최소 합격 점수 (1.0~5.0). 이 점수 미만의 QA 쌍은 데이터셋에서 제거됩니다</td></tr>
               <tr><td><code>max_concurrency</code></td><td><code>int</code></td><td><code>4</code></td><td>비동기 점수 평가 시 최대 동시 요청 수</td></tr>
+              <tr><td><code>regenerate</code></td><td><code>bool</code></td><td><code>true</code></td><td>저품질 QA 쌍을 피드백 기반으로 재생성하여 복구</td></tr>
+              <tr><td><code>max_regenerate_rounds</code></td><td><code>int</code></td><td><code>2</code></td><td>재생성 최대 반복 횟수 (1 이상)</td></tr>
             </tbody>
           </table>
         </div>
@@ -588,9 +590,11 @@ If the document does not contain relevant information, say "The document does no
         <pre data-lang="yaml"><code>scoring:
   enabled: true
   threshold: 3.5
-  max_concurrency: 4</code></pre>
+  max_concurrency: 4
+  regenerate: true
+  max_regenerate_rounds: 2</code></pre>
 
-        <p>Teacher LLM이 질문의 명확성, 답변의 정확성, 문서와의 관련성을 종합하여 1~5점으로 평가합니다. <code>threshold</code> 미만의 QA 쌍은 데이터셋에서 제거됩니다. 품질은 높아지지만 데이터셋 크기는 줄어들 수 있습니다.</p>
+        <p>Teacher LLM이 질문의 명확성, 답변의 정확성, 문서와의 관련성을 종합하여 1~5점으로 평가합니다. <code>threshold</code> 미만의 QA 쌍은 데이터셋에서 제거됩니다. <code>regenerate: true</code>로 설정하면 제거 대신 이전 점수와 실패 이유를 프롬프트에 주입하여 개선된 답변을 비동기 배치로 재생성합니다.</p>
       </section>
 
       <hr>
@@ -608,9 +612,10 @@ If the document does not contain relevant information, say "The document does no
               <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>데이터 증강 기능 활성화 여부</td></tr>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>true</code></td><td>데이터 증강 기능 활성화 여부</td></tr>
               <tr><td><code>num_variants</code></td><td><code>int</code></td><td><code>2</code></td><td>각 QA 쌍당 생성할 패러프레이즈 변형 수. 원본 포함 총 <code>num_variants + 1</code>개의 QA 쌍이 생성됩니다</td></tr>
               <tr><td><code>max_concurrency</code></td><td><code>int</code></td><td><code>4</code></td><td>비동기 증강 시 최대 동시 요청 수</td></tr>
+              <tr><td><code>min_similarity</code></td><td><code>float</code></td><td><code>0.3</code></td><td>패러프레이즈된 질문과 원본 질문 간 최소 토큰 겹침 비율. 이 값 미만이면 의미가 변질된 것으로 간주하여 제거합니다 (0.0~1.0)</td></tr>
             </tbody>
           </table>
         </div>
@@ -618,7 +623,8 @@ If the document does not contain relevant information, say "The document does no
         <pre data-lang="yaml"><code>augment:
   enabled: true
   num_variants: 3
-  max_concurrency: 4</code></pre>
+  max_concurrency: 4
+  min_similarity: 0.3</code></pre>
 
         <p><code>num_variants: 3</code>으로 설정하면 100개의 QA 쌍이 400개로 확장됩니다. 데이터가 부족할 때 유용하지만, Teacher LLM 호출 비용이 증가합니다.</p>
       </section>
@@ -666,14 +672,14 @@ If the document does not contain relevant information, say "The document does no
               <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>model</code></td><td><code>str</code></td><td><code>"Qwen/Qwen3.5-2B"</code></td><td>HuggingFace 모델 ID. causal LM이어야 합니다 (예: Qwen, Gemma, Llama) (빈 값 불가)</td></tr>
+              <tr><td><code>model</code></td><td><code>str</code></td><td><code>"Qwen/Qwen2.5-1.5B"</code></td><td>HuggingFace 모델 ID. causal LM이어야 합니다 (예: Qwen, Gemma, Llama) (빈 값 불가)</td></tr>
               <tr><td><code>max_seq_length</code></td><td><code>int</code></td><td><code>4096</code></td><td>학습 데이터의 최대 토큰 길이. 이보다 긴 시퀀스는 잘립니다</td></tr>
             </tbody>
           </table>
         </div>
 
         <pre data-lang="yaml"><code>student:
-  model: "Qwen/Qwen3.5-2B"
+  model: "Qwen/Qwen2.5-1.5B"
   max_seq_length: 4096</code></pre>
 
         <p>권장 모델:</p>
@@ -722,6 +728,7 @@ If the document does not contain relevant information, say "The document does no
               <tr><td><code>lora</code></td><td><code>LoraConfig</code></td><td>(하위 참조)</td><td>LoRA 어댑터 설정</td></tr>
               <tr><td><code>early_stopping</code></td><td><code>EarlyStoppingConfig</code></td><td>(하위 참조)</td><td>조기 종료 설정</td></tr>
               <tr><td><code>quantization</code></td><td><code>QuantizationConfig</code></td><td>(하위 참조)</td><td>양자화 설정</td></tr>
+              <tr><td><code>neftune_noise_alpha</code></td><td><code>float | None</code></td><td><code>None</code></td><td>NEFTune 임베딩 노이즈 강도. 설정 시 학습 중 임베딩에 노이즈를 주입하여 일반화 성능을 향상시킵니다. 권장값: <code>5.0</code> (2B 이하), <code>10.0</code> (4B 이상)</td></tr>
             </tbody>
           </table>
         </div>
@@ -770,7 +777,7 @@ If the document does not contain relevant information, say "The document does no
               <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>4비트 양자화 활성화 여부. VRAM 사용량을 약 50~60% 줄입니다</td></tr>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>true</code></td><td>4비트 양자화 활성화 여부. VRAM 사용량을 약 50~60% 줄입니다</td></tr>
               <tr><td><code>bits</code></td><td><code>int</code></td><td><code>4</code></td><td>양자화 비트 수. 현재는 4비트만 지원합니다</td></tr>
             </tbody>
           </table>
@@ -875,6 +882,8 @@ If the document does not contain relevant information, say "The document does no
               <tr><td><code>max_samples</code></td><td><code>int</code></td><td><code>50</code></td><td>평가에 사용할 최대 샘플 수</td></tr>
               <tr><td><code>max_tokens</code></td><td><code>int</code></td><td><code>512</code></td><td>Ollama 생성 최대 토큰 수. 평가 시 무한 생성을 방지합니다</td></tr>
               <tr><td><code>output_file</code></td><td><code>str</code></td><td><code>"eval_results.json"</code></td><td>평가 결과 JSON 파일명. <code>paths.output</code> 디렉토리에 저장됩니다</td></tr>
+              <tr><td><code>quality_gate</code></td><td><code>bool</code></td><td><code>true</code></td><td>품질 게이트 활성화 여부. <code>true</code>이면 평가 결과가 임계값 미달 시 경고합니다</td></tr>
+              <tr><td><code>quality_thresholds</code></td><td><code>dict</code></td><td><code>{"bleu": 0.1, "rougeL": 0.2}</code></td><td>메트릭별 최소 통과 임계값. 평균 점수가 이 값 미만이면 품질 게이트 실패입니다</td></tr>
             </tbody>
           </table>
         </div>
@@ -892,7 +901,11 @@ If the document does not contain relevant information, say "The document does no
   metrics: ["bleu", "rouge"]
   max_samples: 50
   max_tokens: 512
-  output_file: "eval_results.json"</code></pre>
+  output_file: "eval_results.json"
+  quality_gate: true
+  quality_thresholds:
+    bleu: 0.1
+    rougeL: 0.2</code></pre>
 
         <div class="callout callout-warning">
           <div class="callout-content">
