@@ -215,6 +215,7 @@ rag:
   log_level: "info"                     # uvicorn 로그 레벨
   cors_origins: ["*"]                   # CORS 허용 오리진
   request_timeout: 120.0                # RAG 질의 타임아웃 (초)
+  max_tokens: 512                       # 응답 최대 토큰 수. SLM의 반복 생성을 방지합니다
   ollama_model: ""                      # Ollama 모델명 (빈 값이면 export.ollama.model_name 사용)
 
 # -- 증분 학습(Incremental Learning) ----------------------------------------

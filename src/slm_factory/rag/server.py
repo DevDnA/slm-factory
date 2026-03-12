@@ -225,6 +225,9 @@ def create_app(config: "SLMConfig"):
                 "model": ollama_model,
                 "prompt": prompt,
                 "stream": False,
+                "options": {
+                    "num_predict": config.rag.max_tokens,
+                },
             },
         )
         response.raise_for_status()
