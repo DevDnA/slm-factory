@@ -524,10 +524,10 @@ def create_teacher(config: TeacherConfig) -&gt; BaseTeacher:
           <h3 id="groundedness-checker">GroundednessChecker</h3>
 
           <pre data-lang="python"><code>class GroundednessChecker:
-    def __init__(self, config: GroundednessConfig) -&gt; None:
-        # sentence-transformers 필요: pip install slm-factory[validation]
-        # config.model (기본값: "all-MiniLM-L6-v2"), config.threshold (기본값: 0.3)
-        ...
+     def __init__(self, config: GroundednessConfig) -&gt; None:
+         # sentence-transformers 필요: uv sync --extra validation
+         # config.model (기본값: "all-MiniLM-L6-v2"), config.threshold (기본값: 0.3)
+         ...
 
     def score(self, answer: str, source_text: str) -&gt; float:
         """답변과 원본 문서 청크 간의 최대 코사인 유사도를 반환합니다.
@@ -759,7 +759,7 @@ class DataAnalyzer:
           <h2>9. TUI 모듈 (tui/)</h2>
 
           <h3 id="qa-reviewer-app">QAReviewerApp (reviewer.py)</h3>
-          <p>Textual 기반 QA 수동 리뷰 앱입니다. <code>slm-factory tool review</code> 명령으로 실행됩니다.</p>
+          <p>Textual 기반 QA 수동 리뷰 앱입니다. <code>uv run slm-factory tool review</code> 명령으로 실행됩니다.</p>
 
           <pre data-lang="python"><code>class QAReviewerApp(App[None]):
     """QA 쌍을 하나씩 확인하며 승인/거부/편집하는 TUI 앱입니다.
@@ -770,7 +770,7 @@ class DataAnalyzer:
           <hr>
 
           <h3 id="pipeline-dashboard">PipelineDashboard (dashboard.py)</h3>
-          <p>Textual 기반 파이프라인 모니터링 앱입니다. <code>slm-factory tool dashboard</code> 명령으로 실행됩니다.</p>
+          <p>Textual 기반 파이프라인 모니터링 앱입니다. <code>uv run slm-factory tool dashboard</code> 명령으로 실행됩니다.</p>
 
           <pre data-lang="python"><code>class PipelineDashboard(App[None]):
     """파이프라인 진행 상태를 실시간으로 모니터링하는 TUI 앱입니다.

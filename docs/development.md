@@ -413,10 +413,10 @@ class RuleValidator:
 
 ```python
 class GroundednessChecker:
-    def __init__(self, config: GroundednessConfig) -> None:
-        # sentence-transformers 필요: pip install slm-factory[validation]
-        # config.model (기본값: "all-MiniLM-L6-v2"), config.threshold (기본값: 0.3)
-        ...
+     def __init__(self, config: GroundednessConfig) -> None:
+         # sentence-transformers 필요: uv sync --extra validation
+         # config.model (기본값: "all-MiniLM-L6-v2"), config.threshold (기본값: 0.3)
+         ...
 
     def score(self, answer: str, source_text: str) -> float:
         """답변과 원본 문서 청크 간의 최대 코사인 유사도를 반환합니다.
@@ -611,7 +611,7 @@ class ModelComparator:
 
 ### QAReviewerApp (reviewer.py)
 
-Textual 기반 QA 수동 리뷰 앱입니다. `slm-factory tool review` 명령으로 실행됩니다.
+Textual 기반 QA 수동 리뷰 앱입니다. `uv run slm-factory tool review` 명령으로 실행됩니다.
 
 ```python
 class QAReviewerApp(App[None]):
@@ -623,7 +623,7 @@ class QAReviewerApp(App[None]):
 
 ### PipelineDashboard (dashboard.py)
 
-Textual 기반 파이프라인 모니터링 앱입니다. `slm-factory tool dashboard` 명령으로 실행됩니다.
+Textual 기반 파이프라인 모니터링 앱입니다. `uv run slm-factory tool dashboard` 명령으로 실행됩니다.
 
 ```python
 class PipelineDashboard(App[None]):

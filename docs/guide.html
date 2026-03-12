@@ -139,6 +139,10 @@
           <h3 id="ollama-setup">Ollama 설치 및 설정</h3>
           <p>slm-factory는 Teacher LLM으로 Ollama를 기본 사용합니다. 파이프라인 실행 전에 Ollama를 준비해야 합니다.</p>
 
+          <blockquote>
+            <p><strong>참고</strong>: <code>./setup.sh</code>를 사용하면 2단계(서버 실행 확인)와 3단계(모델 다운로드)를 자동 처리합니다.</p>
+          </blockquote>
+
           <h4>1단계: Ollama 설치</h4>
           <p><a href="https://ollama.com">ollama.com</a>에서 운영체제에 맞는 설치 파일을 다운로드합니다.</p>
 
@@ -177,21 +181,17 @@ ollama pull exaone3.5:7.8b</code></pre>
 git clone https://github.com/DevDnA/slm-factory.git
 cd slm-factory
 
-# 2. 가상환경 생성 및 활성화
-python3 -m venv .venv
-source .venv/bin/activate      # Windows: .venv\Scripts\activate
+# 2. 설치 (uv, 의존성, Ollama 모델 준비를 한 번에 처리)
+./setup.sh
 
-# 3. 전체 의존성 설치
-pip install -e ".[all]"
-
-# 4. 설치 확인
-slm-factory version</code></pre>
+# 3. 설치 확인
+uv run slm-factory version</code></pre>
 
           <blockquote>
-            <p><strong>주의</strong>: 가상환경 활성화는 필수입니다. 시스템 Python에 직접 설치하면 <code>externally-managed-environment</code> 오류가 발생합니다 (PEP 668).</p>
+            <p><strong>참고</strong>: <code>./setup.sh</code>는 <a href="https://docs.astral.sh/uv/">uv</a> 설치, 가상환경 생성, 의존성 설치, Ollama 모델 준비를 한 번에 처리합니다.</p>
           </blockquote>
 
-          <p><code>pip install -e ".[all]"</code> 명령은 PDF/HTML/TXT/HWPX/DOCX 파싱, 한국어 띄어쓰기 교정, 한국어 형태소 분석(kiwipiepy), 임베딩 기반 검증, 테스트 도구, Shell 자동완성을 포함한 모든 기능을 설치합니다. 한국어 기능만 별도로 설치하려면 <code>pip install slm-factory[korean]</code>을 사용하세요 (pykospacing, kiwipiepy 포함). PyTorch, CUDA 런타임 등 대용량 패키지가 포함되어 있어 <strong>초회 설치 시 10~20분 이상</strong> 소요될 수 있습니다.</p>
+          <p><code>./setup.sh</code>는 PDF/HTML/TXT/HWPX/DOCX 파싱, 한국어 띄어쓰기 교정, 한국어 형태소 분석(kiwipiepy), 임베딩 기반 검증, 테스트 도구, Shell 자동완성을 포함한 모든 기능을 설치합니다. 한국어 기능만 별도로 설치하려면 <code>uv sync --extra korean</code>을 사용하세요 (pykospacing, kiwipiepy 포함). PyTorch, CUDA 런타임 등 대용량 패키지가 포함되어 있어 <strong>초회 설치 시 10~20분 이상</strong> 소요될 수 있습니다.</p>
 
           <hr>
 
@@ -199,7 +199,7 @@ slm-factory version</code></pre>
           <p>Tab 키로 명령어와 옵션을 자동완성할 수 있습니다.</p>
 
           <pre data-lang="bash"><code># 자동완성 설치 (bash/zsh/fish/PowerShell 자동 감지)
-slm-factory --install-completion
+uv run slm-factory --install-completion
 
 # 셸 재시작 후 적용됩니다. 즉시 적용하려면:
 source ~/.bashrc    # bash
@@ -207,7 +207,7 @@ source ~/.zshrc     # zsh</code></pre>
 
           <p>자동완성이 작동하지 않으면 현재 셸의 스크립트를 직접 확인합니다.</p>
 
-          <pre data-lang="bash"><code>slm-factory --show-completion</code></pre>
+          <pre data-lang="bash"><code>uv run slm-factory --show-completion</code></pre>
         </section>
 
 
@@ -220,7 +220,7 @@ source ~/.zshrc     # zsh</code></pre>
           <h3 id="project-create">프로젝트 생성</h3>
           <p><code>init</code> 명령으로 프로젝트 디렉토리와 기본 설정 파일을 생성합니다.</p>
 
-          <pre data-lang="bash"><code>slm-factory init my-first-project</code></pre>
+          <pre data-lang="bash"><code>uv run slm-factory init my-first-project</code></pre>
 
           <p>다음 구조가 생성됩니다.</p>
 
@@ -292,7 +292,7 @@ cp /path/to/docs/*.pdf /path/to/docs/*.txt my-first-project/documents/</code></p
           <h3 id="env-check">환경 점검</h3>
           <p>wizard 실행 전에 <code>check</code> 명령으로 설정과 환경을 사전 점검합니다.</p>
 
-          <pre data-lang="bash"><code>slm-factory check --config my-first-project/project.yaml</code></pre>
+          <pre data-lang="bash"><code>uv run slm-factory check --config my-first-project/project.yaml</code></pre>
 
           <p>점검 항목은 다음과 같습니다.</p>
           <ul>
@@ -309,7 +309,7 @@ cp /path/to/docs/*.pdf /path/to/docs/*.txt my-first-project/documents/</code></p
           <h3 id="wizard">Wizard 실행</h3>
           <p><code>tool wizard</code>는 처음 사용자에게 권장하는 대화형 파이프라인입니다. 각 단계를 확인하며 진행하고, 선택 단계는 건너뛸 수 있습니다.</p>
 
-          <pre data-lang="bash"><code>slm-factory tool wizard --config my-first-project/project.yaml</code></pre>
+          <pre data-lang="bash"><code>uv run slm-factory tool wizard --config my-first-project/project.yaml</code></pre>
 
           <p>wizard는 다음 12단계를 순서대로 안내합니다 (Step 3a는 선택적 하위 단계).</p>
 
@@ -562,7 +562,7 @@ cp /path/to/docs/*.pdf /path/to/docs/*.txt my-first-project/documents/</code></p
           <h3 id="check-results">결과 확인</h3>
           <p>wizard 완료 후 <code>status</code> 명령으로 각 단계의 결과물을 확인합니다.</p>
 
-          <pre data-lang="bash"><code>slm-factory status --config my-first-project/project.yaml</code></pre>
+          <pre data-lang="bash"><code>uv run slm-factory status --config my-first-project/project.yaml</code></pre>
 
           <p>출력 예시:</p>
 
@@ -637,7 +637,7 @@ export:
           <h3 id="full-pipeline">전체 파이프라인</h3>
           <p>설정 파일 하나로 문서 파싱부터 모델 배포까지 전체 파이프라인을 한 번에 실행합니다.</p>
 
-          <pre data-lang="bash"><code>slm-factory run --config project.yaml</code></pre>
+          <pre data-lang="bash"><code>uv run slm-factory run --config project.yaml</code></pre>
 
           <hr>
 
@@ -645,32 +645,32 @@ export:
           <p><code>--until</code> 옵션으로 특정 단계까지만 실행하고 중단할 수 있습니다. 결과를 확인하며 단계적으로 진행할 때 유용합니다.</p>
 
           <pre data-lang="bash"><code># 문서 파싱만 실행
-slm-factory run --until parse --config project.yaml
+uv run slm-factory run --until parse --config project.yaml
 
 # 파싱 + QA 생성
-slm-factory run --until generate --config project.yaml
+uv run slm-factory run --until generate --config project.yaml
 
 # + QA 검증
-slm-factory run --until validate --config project.yaml
+uv run slm-factory run --until validate --config project.yaml
 
 # + 품질 점수 평가 (scoring.enabled: true 필요)
-slm-factory run --until score --config project.yaml
+uv run slm-factory run --until score --config project.yaml
 
 # + 데이터 증강 (augment.enabled: true 필요)
-slm-factory run --until augment --config project.yaml
+uv run slm-factory run --until augment --config project.yaml
 
 # 학습만 실행 (QA 데이터가 이미 있을 때)
-slm-factory train --config project.yaml
+uv run slm-factory train --config project.yaml
 
 # 내보내기만 실행 (학습이 완료된 후)
-slm-factory export --config project.yaml</code></pre>
+uv run slm-factory export --config project.yaml</code></pre>
 
           <hr>
 
           <h3 id="resume">파이프라인 재개</h3>
           <p>중간에 중단된 파이프라인은 <code>--resume</code> 옵션으로 이어서 실행합니다. 중간 저장 파일을 자동으로 감지하여 가장 최근 완료 단계부터 재개합니다.</p>
 
-          <pre data-lang="bash"><code>slm-factory run --resume --config project.yaml</code></pre>
+          <pre data-lang="bash"><code>uv run slm-factory run --resume --config project.yaml</code></pre>
 
           <p>재개 지점은 다음 순서로 탐색합니다.</p>
           <ol>
@@ -773,10 +773,10 @@ export:
             <h4>실행:</h4>
 
             <pre data-lang="bash"><code># 환경 점검
-slm-factory check --config policy-project/project.yaml
+uv run slm-factory check --config policy-project/project.yaml
 
 # 전체 파이프라인 실행
-slm-factory run --config policy-project/project.yaml
+uv run slm-factory run --config policy-project/project.yaml
 
 # 모델 배포 및 테스트
 cd policy-project/output/merged_model
@@ -873,10 +873,10 @@ export:
             <h4>실행:</h4>
 
             <pre data-lang="bash"><code># 환경 점검
-slm-factory check --config tech-docs/project.yaml
+uv run slm-factory check --config tech-docs/project.yaml
 
 # 전체 파이프라인 실행
-slm-factory run --config tech-docs/project.yaml
+uv run slm-factory run --config tech-docs/project.yaml
 
 # 모델 배포
 cd tech-docs/output/merged_model
@@ -898,7 +898,7 @@ ollama run api-assistant</code></pre>
 
             <h4>실행:</h4>
 
-            <pre data-lang="bash"><code>slm-factory train --config project.yaml --data ./custom_qa.jsonl</code></pre>
+            <pre data-lang="bash"><code>uv run slm-factory train --config project.yaml --data ./custom_qa.jsonl</code></pre>
           </article>
 
           <hr>
@@ -912,10 +912,10 @@ ollama run api-assistant</code></pre>
 cp /path/to/new-documents/*.pdf my-project/documents/
 
 # 변경된 문서만 처리하여 QA 업데이트
-slm-factory tool update --config my-project/project.yaml
+uv run slm-factory tool update --config my-project/project.yaml
 
 # 업데이트된 데이터로 재학습
-slm-factory train --config my-project/project.yaml</code></pre>
+uv run slm-factory train --config my-project/project.yaml</code></pre>
           </article>
         </section>
 
@@ -941,14 +941,14 @@ slm-factory train --config my-project/project.yaml</code></pre>
           <p><strong>설정 변경 전후 비교</strong>: <code>tool compare-data</code> 명령으로 청킹 적용 전후의 QA 품질을 수치로 비교할 수 있습니다.</p>
 
           <pre data-lang="bash"><code># 청킹 전 QA 생성
-slm-factory run --until generate --config project.yaml
+uv run slm-factory run --until generate --config project.yaml
 cp output/qa_alpaca.json output/qa_before_chunking.json
 
 # chunking.enabled: true 변경 후 재생성
-slm-factory run --until generate --config project.yaml
+uv run slm-factory run --until generate --config project.yaml
 
 # 비교
-slm-factory tool compare-data -b output/qa_before_chunking.json -t output/qa_alpaca.json</code></pre>
+uv run slm-factory tool compare-data -b output/qa_before_chunking.json -t output/qa_alpaca.json</code></pre>
 
           <hr>
 
@@ -1023,7 +1023,7 @@ slm-factory tool compare-data -b output/qa_before_chunking.json -t output/qa_alp
           <h3 id="review">QA 수동 리뷰 (tool review)</h3>
           <p>자동 검증을 통과한 QA 쌍을 TUI에서 직접 확인하고 승인/거부/편집할 수 있습니다. 중요한 도메인 모델을 만들 때 최종 품질을 보장하는 데 유용합니다.</p>
 
-          <pre data-lang="bash"><code>slm-factory tool review --config project.yaml</code></pre>
+          <pre data-lang="bash"><code>uv run slm-factory tool review --config project.yaml</code></pre>
 
           <p>TUI에서 각 QA 카드를 확인하며 다음 작업을 수행합니다.</p>
           <ul>
@@ -1064,10 +1064,10 @@ slm-factory tool compare-data -b output/qa_before_chunking.json -t output/qa_alp
           </ul>
 
           <blockquote>
-            <p><strong>한국어 프로젝트 참고</strong>: <code>project.language</code>가 <code>"ko"</code>이고 <code>kiwipiepy</code>가 설치되어 있으면, 형태소 단위로 BLEU/ROUGE를 계산합니다. 한국어의 교착어 특성을 반영하여 더 정확한 점수를 얻을 수 있습니다. <code>pip install slm-factory[korean]</code>으로 설치하세요.</p>
+            <p><strong>한국어 프로젝트 참고</strong>: <code>project.language</code>가 <code>"ko"</code>이고 <code>kiwipiepy</code>가 설치되어 있으면, 형태소 단위로 BLEU/ROUGE를 계산합니다. 한국어의 교착어 특성을 반영하여 더 정확한 점수를 얻을 수 있습니다. <code>uv sync --extra korean</code>으로 설치하세요.</p>
           </blockquote>
 
-          <pre data-lang="bash"><code>slm-factory eval run --model my-project-model --config project.yaml</code></pre>
+          <pre data-lang="bash"><code>uv run slm-factory eval run --model my-project-model --config project.yaml</code></pre>
 
           <p>결과는 <code>output/eval_results.json</code>에 저장됩니다.</p>
 
@@ -1078,7 +1078,7 @@ slm-factory tool compare-data -b output/qa_before_chunking.json -t output/qa_alp
           <h3 id="eval-compare">모델 비교 (eval compare)</h3>
           <p>파인튜닝 전후 모델의 답변을 나란히 비교하여 학습 효과를 확인합니다.</p>
 
-          <pre data-lang="bash"><code>slm-factory eval compare \
+          <pre data-lang="bash"><code>uv run slm-factory eval compare \
   --base-model gemma:2b \
   --ft my-project-model \
   --config project.yaml</code></pre>
@@ -1090,7 +1090,7 @@ slm-factory tool compare-data -b output/qa_before_chunking.json -t output/qa_alp
           <h3 id="gguf">GGUF 변환 (tool gguf)</h3>
           <p>병합된 모델을 llama.cpp 호환 GGUF 양자화 형식으로 변환합니다. GGUF 형식은 CPU에서도 빠르게 실행되며, 다양한 llama.cpp 기반 도구와 호환됩니다.</p>
 
-          <pre data-lang="bash"><code>slm-factory tool gguf --config project.yaml</code></pre>
+          <pre data-lang="bash"><code>uv run slm-factory tool gguf --config project.yaml</code></pre>
 
           <p>변환에는 llama.cpp의 convert 스크립트가 사용됩니다. 변환된 GGUF 파일은 <code>output/merged_model/</code> 디렉토리에 저장됩니다.</p>
 
@@ -1238,7 +1238,7 @@ RuntimeError: MPS backend out of memory</code></pre>
           <pre data-lang="bash"><code>git --version</code></pre>
 
           <p>방법 3: 수동 설치 시도</p>
-          <pre data-lang="bash"><code>pip install git+https://github.com/haven-jeon/PyKoSpacing.git</code></pre>
+          <pre data-lang="bash"><code>uv pip install git+https://github.com/haven-jeon/PyKoSpacing.git</code></pre>
 
           <p>방법 4: 한국어 띄어쓰기 교정 비활성화</p>
           <pre data-lang="yaml"><code>parsing:
@@ -1369,8 +1369,7 @@ sudo apt update &amp;&amp; sudo apt install python3.11
 brew install python@3.11</code></pre>
 
           <p>여러 Python 버전이 설치된 경우 명시적으로 지정합니다.</p>
-          <pre data-lang="bash"><code>python3.11 -m venv .venv
-python3.11 -m pip install -e ".[all]"</code></pre>
+          <pre data-lang="bash"><code>uv sync --extra all</code></pre>
 
           <hr>
 
@@ -1388,10 +1387,10 @@ python3.11 -m pip install -e ".[all]"</code></pre>
           <p>체크포인트가 자동 저장되어 있으므로 <code>--resume</code> 옵션으로 이어서 실행합니다.</p>
 
           <pre data-lang="bash"><code># wizard로 재개 (자동으로 중단 지점 감지)
-slm-factory tool wizard --resume --config project.yaml
+uv run slm-factory tool wizard --resume --config project.yaml
 
 # 또는 학습 데이터가 있으면 학습만 재실행
-slm-factory train --config project.yaml --data output/training_data.jsonl</code></pre>
+uv run slm-factory train --config project.yaml --data output/training_data.jsonl</code></pre>
 
           <p>체크포인트 위치를 직접 확인하려면:</p>
           <pre data-lang="bash"><code>ls output/checkpoints/

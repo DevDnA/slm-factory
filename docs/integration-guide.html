@@ -179,10 +179,10 @@
           <h3 id="section-4-1">4.1 데이터 준비</h3>
 
           <pre data-lang="bash"><code># 1. slm-factory 파이프라인 실행 (파싱 + QA 생성)
-slm-factory run --config project.yaml
+uv run slm-factory run --config project.yaml
 
 # 2. AutoRAG 평가용 데이터 내보내기
-slm-factory tool export-autorag --config project.yaml
+uv run slm-factory tool export-autorag --config project.yaml
 
 # 결과물:
 #   output/autorag/corpus.parquet  &mdash; 문서 청크 (검색 대상)
@@ -220,13 +220,13 @@ slm-factory tool export-autorag --config project.yaml
           <p>slm-factory에 내장된 <strong>ChromaDB 인덱싱 + FastAPI 서빙</strong>으로, AutoRAG 없이도 즉시 RAG 서비스를 구동할 수 있습니다.</p>
 
           <pre data-lang="bash"><code># 1. corpus.parquet 생성 (4.1의 export-autorag 실행 후)
-slm-factory tool export-autorag --config project.yaml
+uv run slm-factory tool export-autorag --config project.yaml
 
 # 2. ChromaDB에 벡터 임베딩 적재
-slm-factory tool rag-index --config project.yaml
+uv run slm-factory tool rag-index --config project.yaml
 
 # 3. RAG API 서버 실행
-slm-factory tool rag-serve --config project.yaml
+uv run slm-factory tool rag-serve --config project.yaml
 # &rarr; POST http://localhost:8000/v1/query       질의 엔드포인트
 # &rarr; GET  http://localhost:8000/health          기본 헬스체크
 # &rarr; GET  http://localhost:8000/health/ready    Ollama+ChromaDB 연결 확인
@@ -308,7 +308,7 @@ curl -N -X POST http://localhost:8000/v1/query \
 
           <p>내장 RAG로 충분하지만, 검색 품질 최적화가 필요하면 AutoRAG로 최적 조합을 탐색할 수 있습니다.</p>
 
-          <pre data-lang="bash"><code>pip install autorag
+          <pre data-lang="bash"><code>uv pip install autorag
 
 # 최적화 실행 (검색·리랭킹·생성 조합 자동 탐색)
 autorag evaluate \
@@ -495,7 +495,7 @@ Phase 3: RAG 서비스 운영
 
           <div class="callout callout-info">
             <div class="callout-content">
-              <p><strong>Phase 3 시점에서 실체적인 RAG 서비스가 동작합니다.</strong> 경로 A라면 <code>slm-factory tool rag-serve</code> 한 줄로, 경로 B라면 <code>autorag run_api</code> 한 줄로 REST API를 제공하는 도메인 AI 서비스가 완성됩니다.</p>
+              <p><strong>Phase 3 시점에서 실체적인 RAG 서비스가 동작합니다.</strong> 경로 A라면 <code>uv run slm-factory tool rag-serve</code> 한 줄로, 경로 B라면 <code>autorag run_api</code> 한 줄로 REST API를 제공하는 도메인 AI 서비스가 완성됩니다.</p>
             </div>
           </div>
 

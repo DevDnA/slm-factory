@@ -115,7 +115,7 @@
 
         <h3 id="config-create">설정 파일 생성</h3>
         <p>새 프로젝트를 시작할 때는 다음 명령으로 기본 템플릿을 생성합니다:</p>
-        <pre data-lang="bash"><code>slm-factory init my-project</code></pre>
+        <pre data-lang="bash"><code>uv run slm-factory init my-project</code></pre>
         <p>이 명령은 <code>my-project/project.yaml</code> 파일을 생성하며, 모든 기본값이 주석과 함께 포함되어 있습니다.</p>
 
         <h3 id="file-location">파일 위치</h3>
@@ -337,7 +337,7 @@
               <tr><td><code>html</code></td><td><code>.html</code>, <code>.htm</code></td><td><code>beautifulsoup4</code> (기본 포함)</td></tr>
               <tr><td><code>txt</code></td><td><code>.txt</code></td><td>없음</td></tr>
               <tr><td><code>md</code></td><td><code>.md</code></td><td>없음</td></tr>
-              <tr><td><code>docx</code></td><td><code>.docx</code></td><td><code>python-docx</code> (<code>pip install slm-factory[docx]</code>)</td></tr>
+              <tr><td><code>docx</code></td><td><code>.docx</code></td><td><code>python-docx</code> (<code>uv sync --extra docx</code>)</td></tr>
             </tbody>
           </table>
         </div>
@@ -361,7 +361,7 @@
               <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>apply_spacing</code></td><td><code>bool</code></td><td><code>true</code></td><td>한국어 띄어쓰기 교정을 적용합니다. <code>pykospacing</code> 패키지가 필요합니다. <code>pip install slm-factory[korean]</code>으로 설치하면 띄어쓰기 교정(<code>pykospacing</code>)과 형태소 분석(<code>kiwipiepy</code>) 기능이 함께 설치됩니다</td></tr>
+              <tr><td><code>apply_spacing</code></td><td><code>bool</code></td><td><code>true</code></td><td>한국어 띄어쓰기 교정을 적용합니다. <code>pykospacing</code> 패키지가 필요합니다. <code>uv sync --extra korean</code>으로 설치하면 띄어쓰기 교정(<code>pykospacing</code>)과 형태소 분석(<code>kiwipiepy</code>) 기능이 함께 설치됩니다</td></tr>
             </tbody>
           </table>
         </div>
@@ -533,7 +533,7 @@ If the document does not contain relevant information, say "The document does no
               <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>true</code></td><td>의미적 검증 활성화 여부. <code>pip install slm-factory[validation]</code>이 필요합니다</td></tr>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>true</code></td><td>의미적 검증 활성화 여부. <code>uv sync --extra validation</code>이 필요합니다</td></tr>
               <tr><td><code>model</code></td><td><code>str</code></td><td><code>"all-MiniLM-L6-v2"</code></td><td>사용할 sentence-transformers 모델</td></tr>
               <tr><td><code>threshold</code></td><td><code>float</code></td><td><code>0.3</code></td><td>코사인 유사도 임계값 (0.0~1.0). 높을수록 엄격하게 검증합니다</td></tr>
             </tbody>
@@ -910,7 +910,7 @@ If the document does not contain relevant information, say "The document does no
         <div class="callout callout-warning">
           <div class="callout-content">
             <div class="callout-title">한국어 형태소 분석</div>
-            <p><code>project.language</code>가 <code>"ko"</code>인 경우, kiwipiepy 형태소 분석기를 사용하여 형태소 단위로 BLEU/ROUGE를 계산합니다. <code>pip install slm-factory[korean]</code>으로 설치하면 자동으로 적용됩니다.</p>
+            <p><code>project.language</code>가 <code>"ko"</code>인 경우, kiwipiepy 형태소 분석기를 사용하여 형태소 단위로 BLEU/ROUGE를 계산합니다. <code>uv sync --extra korean</code>으로 설치하면 자동으로 적용됩니다.</p>
           </div>
         </div>
       </section>
@@ -963,7 +963,7 @@ If the document does not contain relevant information, say "The document does no
         <div class="callout callout-warning">
           <div class="callout-content">
             <div class="callout-title">한국어 형태소 분석</div>
-            <p><code>project.language</code>가 <code>"ko"</code>인 경우, kiwipiepy 형태소 분석기를 사용하여 형태소 단위로 BLEU/ROUGE를 계산합니다. <code>pip install slm-factory[korean]</code>으로 설치하면 자동으로 적용됩니다.</p>
+            <p><code>project.language</code>가 <code>"ko"</code>인 경우, kiwipiepy 형태소 분석기를 사용하여 형태소 단위로 BLEU/ROUGE를 계산합니다. <code>uv sync --extra korean</code>으로 설치하면 자동으로 적용됩니다.</p>
           </div>
         </div>
       </section>
@@ -1118,7 +1118,7 @@ If the document does not contain relevant information, say "The document does no
         <h4>참고</h4>
         <ul>
           <li><code>tool rag-index</code>로 인덱싱, <code>tool rag-serve</code>로 서버를 실행합니다. CLI 사용법은 <a href="cli-reference.html">CLI 레퍼런스</a>를 참조하십시오.</li>
-          <li><code>pip install slm-factory[rag,validation]</code>으로 의존성을 설치하세요.</li>
+          <li><code>uv sync --extra rag --extra validation</code>으로 의존성을 설치하세요.</li>
           <li>임베딩 모델은 sentence-transformers 호환 모델이면 모두 사용 가능합니다. 한국어 문서에는 <code>BAAI/bge-m3</code>가 권장됩니다.</li>
         </ul>
       </section>
@@ -1258,12 +1258,11 @@ If the document does not contain relevant information, say "The document does no
         <article class="card">
           <h3 class="card-title">빠른 시작 &mdash; 기본값으로 바로 실행</h3>
           <p class="card-desc"><strong>상황</strong>: 처음 slm-factory를 사용하며 기본 설정으로 빠르게 테스트하고 싶을 때.</p>
-          <p><code>project.yaml</code>을 수정할 필요가 없습니다. <code>slm-factory init my-project</code>로 생성된 기본 템플릿을 그대로 사용하면 됩니다.</p>
+          <p><code>project.yaml</code>을 수정할 필요가 없습니다. <code>uv run slm-factory init my-project</code>로 생성된 기본 템플릿을 그대로 사용하면 됩니다.</p>
           <p>사전 준비:</p>
-          <pre data-lang="bash"><code>ollama serve
-ollama pull qwen3:8b
+          <pre data-lang="bash"><code># ./setup.sh가 Ollama 설치·모델 다운로드를 자동 처리합니다
 # documents/ 디렉토리에 PDF 또는 TXT 파일 추가
-slm-factory tool wizard --config my-project/project.yaml</code></pre>
+uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
           <p>기본 설정은 영어 문서, Ollama 백엔드, Gemma 3 1B 모델을 사용합니다.</p>
         </article>
 
@@ -1364,7 +1363,7 @@ parsing:
   pdf:
     extract_tables: true
   hwpx:
-    apply_spacing: true  # 한국어 띄어쓰기 교정 (pip install slm-factory[korean] 필요)
+    apply_spacing: true  # 한국어 띄어쓰기 교정 (uv sync --extra korean 필요)
 
 # 로컬 Ollama 서버 사용
 teacher:
@@ -1531,7 +1530,7 @@ dashboard:
         <h2>26. 설정 검증 (slm-factory check)</h2>
 
         <p>설정 파일이 올바른지 확인하려면 <code>check</code> 명령을 사용합니다:</p>
-        <pre data-lang="bash"><code>slm-factory check --config project.yaml</code></pre>
+        <pre data-lang="bash"><code>uv run slm-factory check --config project.yaml</code></pre>
         <p><code>--config</code>를 생략하면 현재 디렉토리와 상위 디렉토리(2단계)에서 <code>project.yaml</code>을 자동으로 검색합니다.</p>
 
         <h3 id="check-items">검증 항목</h3>
@@ -1550,7 +1549,7 @@ dashboard:
         </div>
 
         <h3 id="check-output">예시 출력</h3>
-        <pre data-lang="bash"><code>$ slm-factory check --config project.yaml
+        <pre data-lang="bash"><code>$ uv run slm-factory check --config project.yaml
 &#10003; Config file: Valid
 &#10003; Documents directory: Found (5 files)
 &#10003; Output directory: Writable
@@ -1559,7 +1558,7 @@ dashboard:
 모든 점검 통과!</code></pre>
 
         <p>모든 항목이 통과하면 종료 코드 0, 실패하면 1을 반환합니다. 설정 파일에 오류가 있으면 (YAML 구문 오류, 잘못된 타입, 알 수 없는 필드 등) Pydantic 검증 단계에서 상세한 에러 메시지를 출력합니다.</p>
-        <p>설정 문제를 진단할 때는 <code>slm-factory -v check</code> 명령으로 상세 로그를 확인할 수 있습니다.</p>
+        <p>설정 문제를 진단할 때는 <code>uv run slm-factory -v check</code> 명령으로 상세 로그를 확인할 수 있습니다.</p>
       </section>
 
       <hr>

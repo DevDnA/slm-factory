@@ -85,10 +85,10 @@ export-autorag → corpus.parquet → rag-index → ChromaDB → rag-serve → R
 
 ```bash
 # 1. slm-factory 파이프라인 실행 (파싱 + QA 생성)
-slm-factory run --config project.yaml
+uv run slm-factory run --config project.yaml
 
 # 2. AutoRAG 평가용 데이터 내보내기
-slm-factory tool export-autorag --config project.yaml
+uv run slm-factory tool export-autorag --config project.yaml
 
 # 결과물:
 #   output/autorag/corpus.parquet  — 문서 청크 (검색 대상)
@@ -118,20 +118,20 @@ slm-factory에 내장된 **ChromaDB 인덱싱 + FastAPI 서빙**으로, AutoRAG 
 
 ```bash
 # 1. corpus.parquet 생성 (4.1의 export-autorag 실행 후)
-slm-factory tool export-autorag --config project.yaml
+uv run slm-factory tool export-autorag --config project.yaml
 
 # 2. ChromaDB에 벡터 임베딩 적재
-slm-factory tool rag-index --config project.yaml
+uv run slm-factory tool rag-index --config project.yaml
 
 # 3. RAG API 서버 실행
-slm-factory tool rag-serve --config project.yaml
+uv run slm-factory tool rag-serve --config project.yaml
 # → POST http://localhost:8000/v1/query       질의 엔드포인트
 # → GET  http://localhost:8000/health          기본 헬스체크
 # → GET  http://localhost:8000/health/ready    Ollama+ChromaDB 연결 확인
 # → GET  http://localhost:8000/health/live     라이브니스 체크
 ```
 
-> **팁**: `slm-factory run --serve --config project.yaml` 명령으로 전체 파이프라인 실행 후 RAG 서버까지 한 번에 시작할 수 있습니다.
+> **팁**: `uv run slm-factory run --serve --config project.yaml` 명령으로 전체 파이프라인 실행 후 RAG 서버까지 한 번에 시작할 수 있습니다.
 
 ```bash
 # API 호출 테스트
@@ -193,7 +193,7 @@ curl -N -X POST http://localhost:8000/v1/query \
 내장 RAG로 충분하지만, 검색 품질 최적화가 필요하면 AutoRAG로 최적 조합을 탐색할 수 있습니다.
 
 ```bash
-pip install autorag
+uv pip install autorag
 
 # 최적화 실행 (검색·리랭킹·생성 조합 자동 탐색)
 autorag evaluate \
@@ -340,7 +340,7 @@ Phase 3: RAG 서비스 운영
 | Phase 2 | 1주 | RAG 파이프라인 최적화 | Retrieval MRR ≥ 0.7 |
 | Phase 3 | 1-2주 | RAG 서비스 배포 | API 응답 품질 + 지연 시간 |
 
-> **Phase 3 시점에서 실체적인 RAG 서비스가 동작합니다.** 경로 A라면 `slm-factory tool rag-serve` 한 줄로, 경로 B라면 `autorag run_api` 한 줄로 REST API를 제공하는 도메인 AI 서비스가 완성됩니다.
+> **Phase 3 시점에서 실체적인 RAG 서비스가 동작합니다.** 경로 A라면 `uv run slm-factory tool rag-serve` 한 줄로, 경로 B라면 `autorag run_api` 한 줄로 REST API를 제공하는 도메인 AI 서비스가 완성됩니다.
 
 ### 4.6 프로덕션 보완 체크리스트
 

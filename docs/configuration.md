@@ -19,7 +19,7 @@
 새 프로젝트를 시작할 때는 다음 명령으로 기본 템플릿을 생성합니다:
 
 ```bash
-slm-factory init my-project
+uv run slm-factory init my-project
 ```
 
 이 명령은 `my-project/project.yaml` 파일을 생성하며, 모든 기본값이 주석과 함께 포함되어 있습니다.
@@ -96,7 +96,7 @@ paths:
 | `html` | `.html`, `.htm` | `beautifulsoup4` (기본 포함) |
 | `txt` | `.txt` | 없음 |
 | `md` | `.md` | 없음 |
-| `docx` | `.docx` | `python-docx` (`pip install slm-factory[docx]`) |
+| `docx` | `.docx` | `python-docx` (`uv sync --extra docx`) |
 
 ### pdf 옵션
 
@@ -108,7 +108,7 @@ paths:
 
 | 필드 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
-| `apply_spacing` | `bool` | `true` | 한국어 띄어쓰기 교정을 적용합니다. `pykospacing` 패키지가 필요합니다. `pip install slm-factory[korean]`으로 설치하면 띄어쓰기 교정(`pykospacing`)과 형태소 분석(`kiwipiepy`) 기능이 함께 설치됩니다 |
+| `apply_spacing` | `bool` | `true` | 한국어 띄어쓰기 교정을 적용합니다. `pykospacing` 패키지가 필요합니다. `uv sync --extra korean`으로 설치하면 띄어쓰기 교정(`pykospacing`)과 형태소 분석(`kiwipiepy`) 기능이 함께 설치됩니다 |
 
 ```yaml
 parsing:
@@ -266,7 +266,7 @@ questions:
 
 | 필드 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
-| `enabled` | `bool` | `true` | 의미적 검증 활성화 여부. `pip install slm-factory[validation]`이 필요합니다 |
+| `enabled` | `bool` | `true` | 의미적 검증 활성화 여부. `uv sync --extra validation`이 필요합니다 |
 | `model` | `str` | `"all-MiniLM-L6-v2"` | 사용할 sentence-transformers 모델 |
 | `threshold` | `float` | `0.3` | 코사인 유사도 임계값 (0.0~1.0). 높을수록 엄격하게 검증합니다 |
 
@@ -536,7 +536,7 @@ eval:
     rougeL: 0.2
 ```
 
-> `project.language`가 `"ko"`인 경우, kiwipiepy 형태소 분석기를 사용하여 형태소 단위로 BLEU/ROUGE를 계산합니다. `pip install slm-factory[korean]`으로 설치하면 자동으로 적용됩니다.
+> `project.language`가 `"ko"`인 경우, kiwipiepy 형태소 분석기를 사용하여 형태소 단위로 BLEU/ROUGE를 계산합니다. `uv sync --extra korean`으로 설치하면 자동으로 적용됩니다.
 
 ---
 
@@ -569,7 +569,7 @@ compare:
   output_file: "compare_results.json"
 ```
 
-> `project.language`가 `"ko"`인 경우, kiwipiepy 형태소 분석기를 사용하여 형태소 단위로 BLEU/ROUGE를 계산합니다. `pip install slm-factory[korean]`으로 설치하면 자동으로 적용됩니다.
+> `project.language`가 `"ko"`인 경우, kiwipiepy 형태소 분석기를 사용하여 형태소 단위로 BLEU/ROUGE를 계산합니다. `uv sync --extra korean`으로 설치하면 자동으로 적용됩니다.
 
 ---
 
@@ -688,7 +688,7 @@ rag:
 **참고**
 
 - `tool rag-index`로 인덱싱, `tool rag-serve`로 서버를 실행합니다. CLI 사용법은 [CLI 레퍼런스](cli-reference.md)를 참조하십시오.
-- `pip install slm-factory[rag,validation]`으로 의존성을 설치하세요.
+- `uv sync --extra rag --extra validation`으로 의존성을 설치하세요.
 - 임베딩 모델은 sentence-transformers 호환 모델이면 모두 사용 가능합니다. 한국어 문서에는 `BAAI/bge-m3`가 권장됩니다.
 
 ---
@@ -785,15 +785,14 @@ dashboard:
 
 **상황**: 처음 slm-factory를 사용하며 기본 설정으로 빠르게 테스트하고 싶을 때.
 
-`project.yaml`을 수정할 필요가 없습니다. `slm-factory init my-project`로 생성된 기본 템플릿을 그대로 사용하면 됩니다.
+`project.yaml`을 수정할 필요가 없습니다. `uv run slm-factory init my-project`로 생성된 기본 템플릿을 그대로 사용하면 됩니다.
 
 사전 준비:
 
 ```bash
-ollama serve
-ollama pull qwen3:8b
+# ./setup.sh가 Ollama 설치·모델 다운로드를 자동 처리합니다
 # documents/ 디렉토리에 PDF 또는 TXT 파일 추가
-slm-factory tool wizard --config my-project/project.yaml
+uv run slm-factory tool wizard --config my-project/project.yaml
 ```
 
 기본 설정은 영어 문서, Ollama 백엔드, Gemma 3 1B 모델을 사용합니다.
@@ -908,7 +907,7 @@ parsing:
   pdf:
     extract_tables: true
   hwpx:
-    apply_spacing: true  # 한국어 띄어쓰기 교정 (pip install slm-factory[korean] 필요)
+    apply_spacing: true  # 한국어 띄어쓰기 교정 (uv sync --extra korean 필요)
 
 # 로컬 Ollama 서버 사용
 teacher:
@@ -1061,7 +1060,7 @@ dashboard:
 설정 파일이 올바른지 확인하려면 `check` 명령을 사용합니다:
 
 ```bash
-slm-factory check --config project.yaml
+uv run slm-factory check --config project.yaml
 ```
 
 `--config`를 생략하면 현재 디렉토리와 상위 디렉토리(2단계)에서 `project.yaml`을 자동으로 검색합니다.
@@ -1078,7 +1077,7 @@ slm-factory check --config project.yaml
 ### 예시 출력
 
 ```bash
-$ slm-factory check --config project.yaml
+$ uv run slm-factory check --config project.yaml
 ✓ Config file: Valid
 ✓ Documents directory: Found (5 files)
 ✓ Output directory: Writable
@@ -1089,7 +1088,7 @@ $ slm-factory check --config project.yaml
 
 모든 항목이 통과하면 종료 코드 0, 실패하면 1을 반환합니다. 설정 파일에 오류가 있으면 (YAML 구문 오류, 잘못된 타입, 알 수 없는 필드 등) Pydantic 검증 단계에서 상세한 에러 메시지를 출력합니다.
 
-설정 문제를 진단할 때는 `slm-factory -v check` 명령으로 상세 로그를 확인할 수 있습니다.
+설정 문제를 진단할 때는 `uv run slm-factory -v check` 명령으로 상세 로그를 확인할 수 있습니다.
 
 ---
 

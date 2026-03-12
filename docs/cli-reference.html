@@ -121,7 +121,7 @@
         <section id="global-options">
           <h2>전역 옵션</h2>
           <p>모든 명령어 앞에 사용할 수 있는 옵션입니다.</p>
-          <pre data-lang="bash"><code>slm-factory [전역 옵션] &lt;명령어&gt; [옵션]</code></pre>
+          <pre data-lang="bash"><code>uv run slm-factory [전역 옵션] &lt;명령어&gt; [옵션]</code></pre>
 
           <div class="table-wrapper">
             <table>
@@ -316,7 +316,7 @@
             <p>새로운 slm-factory 프로젝트를 초기화합니다. 프로젝트 디렉토리, <code>documents/</code>, <code>output/</code> 하위 디렉토리, 기본 <code>project.yaml</code> 설정 파일을 생성합니다.</p>
 
             <h4>사용법</h4>
-            <pre data-lang="bash"><code>slm-factory init &lt;name&gt; [OPTIONS]</code></pre>
+            <pre data-lang="bash"><code>uv run slm-factory init &lt;name&gt; [OPTIONS]</code></pre>
 
             <h4>인수</h4>
             <div class="table-wrapper">
@@ -364,10 +364,10 @@
 
             <h4>예시</h4>
             <pre data-lang="bash"><code># 현재 디렉토리에 my-project 생성
-slm-factory init my-project
+uv run slm-factory init my-project
 
 # 특정 경로에 생성
-slm-factory init policy-assistant --path /workspace/projects</code></pre>
+uv run slm-factory init policy-assistant --path /workspace/projects</code></pre>
 
             <h4>출력</h4>
             <pre><code>&check; 프로젝트 'my-project'가 생성되었습니다: ./my-project
@@ -380,8 +380,8 @@ slm-factory init policy-assistant --path /workspace/projects</code></pre>
 
 사전 준비:
   1. ./my-project/documents 디렉토리에 학습할 문서(PDF, TXT 등)를 추가하세요
-  2. 별도 터미널에서 Ollama를 실행하세요: ollama serve
-  3. Teacher 모델을 다운로드하세요: ollama pull qwen3:8b
+  2. Ollama를 실행하세요: ollama serve  ← ./setup.sh가 자동 처리
+  3. Teacher 모델을 다운로드하세요: ollama pull qwen3:8b  ← ./setup.sh가 자동 처리
 
 실행:
   4. 환경 점검: slm-factory check --config ./my-project/project.yaml
@@ -407,7 +407,7 @@ slm-factory init policy-assistant --path /workspace/projects</code></pre>
             <p>프로젝트 설정과 실행 환경을 사전 점검합니다. 파이프라인 실행 전에 실행하여 문제를 미리 확인하십시오.</p>
 
             <h4>사용법</h4>
-            <pre data-lang="bash"><code>slm-factory check [OPTIONS]</code></pre>
+            <pre data-lang="bash"><code>uv run slm-factory check [OPTIONS]</code></pre>
 
             <h4>옵션</h4>
             <div class="table-wrapper">
@@ -490,7 +490,7 @@ slm-factory init policy-assistant --path /workspace/projects</code></pre>
             </div>
 
             <h4>예시</h4>
-            <pre data-lang="bash"><code>slm-factory check --config my-project/project.yaml</code></pre>
+            <pre data-lang="bash"><code>uv run slm-factory check --config my-project/project.yaml</code></pre>
 
             <h4>출력 예시 (전체 통과)</h4>
             <div class="terminal-output">
@@ -527,7 +527,7 @@ slm-factory init policy-assistant --path /workspace/projects</code></pre>
             <p>문서 파싱부터 모델 배포까지 전체 파이프라인을 실행합니다. <code>--until</code> 옵션으로 특정 단계까지만 실행하고 중단할 수 있습니다.</p>
 
             <h4>사용법</h4>
-            <pre data-lang="bash"><code>slm-factory run [OPTIONS]</code></pre>
+            <pre data-lang="bash"><code>uv run slm-factory run [OPTIONS]</code></pre>
 
             <h4>옵션</h4>
             <div class="table-wrapper">
@@ -658,25 +658,25 @@ slm-factory init policy-assistant --path /workspace/projects</code></pre>
 
             <h4>예시</h4>
             <pre data-lang="bash"><code># 전체 파이프라인 실행
-slm-factory run --config my-project/project.yaml
+uv run slm-factory run --config my-project/project.yaml
 
 # 문서 파싱만 실행
-slm-factory run --until parse --config my-project/project.yaml
+uv run slm-factory run --until parse --config my-project/project.yaml
 
 # QA 생성까지 실행
-slm-factory run --until generate --config my-project/project.yaml
+uv run slm-factory run --until generate --config my-project/project.yaml
 
 # 검증까지 실행
-slm-factory run --until validate --config my-project/project.yaml
+uv run slm-factory run --until validate --config my-project/project.yaml
 
 # 품질 평가까지 실행
-slm-factory run --until score --config my-project/project.yaml
+uv run slm-factory run --until score --config my-project/project.yaml
 
 # 중단된 지점에서 재개
-slm-factory run --resume --config my-project/project.yaml
+uv run slm-factory run --resume --config my-project/project.yaml
 
 # 특정 단계까지 재개하며 실행
-slm-factory run --until augment --resume --config my-project/project.yaml</code></pre>
+uv run slm-factory run --until augment --resume --config my-project/project.yaml</code></pre>
 
             <h4>출력 예시 (전체 파이프라인)</h4>
             <pre><code>slm-factory &mdash; 전체 파이프라인 시작 중...
@@ -699,7 +699,7 @@ slm-factory run --until augment --resume --config my-project/project.yaml</code>
             <p>LoRA 파인튜닝을 실행합니다. <code>--data</code>로 기존 학습 데이터를 직접 지정하거나, 생략하면 파싱부터 변환까지 전체 전처리를 자동으로 실행합니다.</p>
 
             <h4>사용법</h4>
-            <pre data-lang="bash"><code>slm-factory train [OPTIONS]</code></pre>
+            <pre data-lang="bash"><code>uv run slm-factory train [OPTIONS]</code></pre>
 
             <h4>옵션</h4>
             <div class="table-wrapper">
@@ -748,16 +748,16 @@ slm-factory run --until augment --resume --config my-project/project.yaml</code>
 
             <h4>예시</h4>
             <pre data-lang="bash"><code># 전체 전처리 후 학습
-slm-factory train --config my-project/project.yaml
+uv run slm-factory train --config my-project/project.yaml
 
 # 기존 학습 데이터로 학습만 실행
-slm-factory train --config my-project/project.yaml --data ./my-project/output/training_data.jsonl
+uv run slm-factory train --config my-project/project.yaml --data ./my-project/output/training_data.jsonl
 
 # 외부에서 준비한 데이터로 학습
-slm-factory train --config my-project/project.yaml --data ./custom_data.jsonl
+uv run slm-factory train --config my-project/project.yaml --data ./custom_data.jsonl
 
 # 중단된 전처리부터 재개하여 학습
-slm-factory train --resume --config my-project/project.yaml</code></pre>
+uv run slm-factory train --resume --config my-project/project.yaml</code></pre>
 
             <h4>출력</h4>
             <pre><code>훈련 완료! 어댑터 저장 위치: ./my-project/output/checkpoints/adapter</code></pre>
@@ -781,7 +781,7 @@ slm-factory train --resume --config my-project/project.yaml</code></pre>
             <p>훈련된 LoRA 어댑터를 기본 모델에 병합하고 Ollama Modelfile을 생성합니다. 파이프라인 전체를 재실행하지 않고 내보내기만 단독으로 수행합니다.</p>
 
             <h4>사용법</h4>
-            <pre data-lang="bash"><code>slm-factory export [OPTIONS]</code></pre>
+            <pre data-lang="bash"><code>uv run slm-factory export [OPTIONS]</code></pre>
 
             <h4>옵션</h4>
             <div class="table-wrapper">
@@ -816,10 +816,10 @@ slm-factory train --resume --config my-project/project.yaml</code></pre>
 
             <h4>예시</h4>
             <pre data-lang="bash"><code># 기본 어댑터 경로로 내보내기
-slm-factory export --config my-project/project.yaml
+uv run slm-factory export --config my-project/project.yaml
 
 # 특정 어댑터 경로 지정
-slm-factory export --config my-project/project.yaml --adapter ./my-project/output/checkpoints/adapter</code></pre>
+uv run slm-factory export --config my-project/project.yaml --adapter ./my-project/output/checkpoints/adapter</code></pre>
 
             <h4>출력</h4>
             <pre><code>내보내기 완료! 모델 저장 위치: ./my-project/output/merged_model</code></pre>
@@ -853,7 +853,7 @@ slm-factory export --config my-project/project.yaml --adapter ./my-project/outpu
             <p>학습된 모델을 QA 데이터로 평가합니다. BLEU와 ROUGE 메트릭을 계산하여 결과를 저장합니다.</p>
 
             <h4>사용법</h4>
-            <pre data-lang="bash"><code>slm-factory eval run [OPTIONS]</code></pre>
+            <pre data-lang="bash"><code>uv run slm-factory eval run [OPTIONS]</code></pre>
 
             <h4>옵션</h4>
             <div class="table-wrapper">
@@ -897,10 +897,10 @@ slm-factory export --config my-project/project.yaml --adapter ./my-project/outpu
 
             <h4>예시</h4>
             <pre data-lang="bash"><code># 기본 설정으로 평가
-slm-factory eval run --model my-project-model --config my-project/project.yaml
+uv run slm-factory eval run --model my-project-model --config my-project/project.yaml
 
 # 특정 QA 데이터로 평가
-slm-factory eval run --model my-project-model --config my-project/project.yaml --data ./my-project/output/qa_alpaca.json</code></pre>
+uv run slm-factory eval run --model my-project-model --config my-project/project.yaml --data ./my-project/output/qa_alpaca.json</code></pre>
 
             <h4>출력</h4>
             <p>터미널에 BLEU/ROUGE 점수 요약을 출력하고, <code>output/eval_results.json</code>에 상세 결과를 저장합니다.</p>
@@ -925,7 +925,7 @@ slm-factory eval run --model my-project-model --config my-project/project.yaml -
             <p>Base 모델과 Fine-tuned 모델의 답변을 동일한 질문으로 비교합니다. 파인튜닝 전후의 성능 차이를 확인할 때 사용합니다.</p>
 
             <h4>사용법</h4>
-            <pre data-lang="bash"><code>slm-factory eval compare [OPTIONS]</code></pre>
+            <pre data-lang="bash"><code>uv run slm-factory eval compare [OPTIONS]</code></pre>
 
             <h4>옵션</h4>
             <div class="table-wrapper">
@@ -976,13 +976,13 @@ slm-factory eval run --model my-project-model --config my-project/project.yaml -
 
             <h4>예시</h4>
             <pre data-lang="bash"><code># Base 모델과 파인튜닝 모델 비교
-slm-factory eval compare \
+uv run slm-factory eval compare \
   --base-model gemma:2b \
   --ft my-project-model \
   --config my-project/project.yaml
 
 # 특정 QA 데이터로 비교
-slm-factory eval compare \
+uv run slm-factory eval compare \
   --base-model gemma:2b \
   --ft my-project-model \
   --config my-project/project.yaml \
@@ -1008,7 +1008,7 @@ slm-factory eval compare \
             <p>전체 파이프라인을 단계별로 안내하는 대화형 인터페이스입니다. 각 단계에서 진행 여부를 확인하며, 선택 단계는 건너뛸 수 있습니다. 처음 사용자에게 권장합니다.</p>
 
             <h4>사용법</h4>
-            <pre data-lang="bash"><code>slm-factory tool wizard [OPTIONS]</code></pre>
+            <pre data-lang="bash"><code>uv run slm-factory tool wizard [OPTIONS]</code></pre>
 
             <h4>옵션</h4>
             <div class="table-wrapper">
@@ -1139,10 +1139,10 @@ slm-factory eval compare \
 
             <h4>예시</h4>
             <pre data-lang="bash"><code># 처음 실행
-slm-factory tool wizard --config my-project/project.yaml
+uv run slm-factory tool wizard --config my-project/project.yaml
 
 # 이전 실행에서 재개
-slm-factory tool wizard --resume --config my-project/project.yaml</code></pre>
+uv run slm-factory tool wizard --resume --config my-project/project.yaml</code></pre>
 
             <h4>참고</h4>
             <div class="callout callout-info">
@@ -1163,7 +1163,7 @@ slm-factory tool wizard --resume --config my-project/project.yaml</code></pre>
             <p>생성된 QA 쌍을 TUI(텍스트 기반 UI)에서 하나씩 확인하며 승인, 거부, 편집합니다. 데이터 품질을 수동으로 관리할 때 사용합니다.</p>
 
             <h4>사용법</h4>
-            <pre data-lang="bash"><code>slm-factory tool review [OPTIONS]</code></pre>
+            <pre data-lang="bash"><code>uv run slm-factory tool review [OPTIONS]</code></pre>
 
             <h4>옵션</h4>
             <div class="table-wrapper">
@@ -1200,10 +1200,10 @@ slm-factory tool wizard --resume --config my-project/project.yaml</code></pre>
 
             <h4>예시</h4>
             <pre data-lang="bash"><code># 자동 감지된 QA 데이터로 리뷰 시작
-slm-factory tool review --config my-project/project.yaml
+uv run slm-factory tool review --config my-project/project.yaml
 
 # 특정 파일로 리뷰 시작
-slm-factory tool review --config my-project/project.yaml --data ./my-project/output/qa_alpaca.json</code></pre>
+uv run slm-factory tool review --config my-project/project.yaml --data ./my-project/output/qa_alpaca.json</code></pre>
 
             <h4>출력</h4>
             <p>TUI 종료 후 리뷰 결과를 출력합니다.</p>
@@ -1220,7 +1220,7 @@ slm-factory tool review --config my-project/project.yaml --data ./my-project/out
             <p>파이프라인 각 단계의 진행 상태를 실시간으로 모니터링하는 TUI 대시보드를 실행합니다.</p>
 
             <h4>사용법</h4>
-            <pre data-lang="bash"><code>slm-factory tool dashboard [OPTIONS]</code></pre>
+            <pre data-lang="bash"><code>uv run slm-factory tool dashboard [OPTIONS]</code></pre>
 
             <h4>옵션</h4>
             <div class="table-wrapper">
@@ -1247,7 +1247,7 @@ slm-factory tool review --config my-project/project.yaml --data ./my-project/out
             </div>
 
             <h4>예시</h4>
-            <pre data-lang="bash"><code>slm-factory tool dashboard --config my-project/project.yaml</code></pre>
+            <pre data-lang="bash"><code>uv run slm-factory tool dashboard --config my-project/project.yaml</code></pre>
 
             <p>대시보드는 각 단계의 출력 파일 존재 여부, 항목 수, 최근 수정 시각을 표시하며 설정된 주기(<code>dashboard.refresh_interval</code>)로 자동 갱신합니다.</p>
           </article>
@@ -1260,7 +1260,7 @@ slm-factory tool review --config my-project/project.yaml --data ./my-project/out
             <p>QA 데이터를 Student 모델의 채팅 템플릿이 적용된 훈련용 JSONL 형식으로 변환합니다. 파이프라인 전체를 재실행하지 않고 변환만 단독으로 수행합니다.</p>
 
             <h4>사용법</h4>
-            <pre data-lang="bash"><code>slm-factory tool convert [OPTIONS]</code></pre>
+            <pre data-lang="bash"><code>uv run slm-factory tool convert [OPTIONS]</code></pre>
 
             <h4>옵션</h4>
             <div class="table-wrapper">
@@ -1303,10 +1303,10 @@ slm-factory tool review --config my-project/project.yaml --data ./my-project/out
 
             <h4>예시</h4>
             <pre data-lang="bash"><code># 자동 감지된 QA 데이터로 변환
-slm-factory tool convert --config my-project/project.yaml
+uv run slm-factory tool convert --config my-project/project.yaml
 
 # 특정 파일로 변환
-slm-factory tool convert --config my-project/project.yaml --data ./my-project/output/qa_augmented.json</code></pre>
+uv run slm-factory tool convert --config my-project/project.yaml --data ./my-project/output/qa_augmented.json</code></pre>
 
             <h4>출력</h4>
             <pre><code>변환 완료! 훈련 데이터: ./my-project/output/training_data.jsonl (360개 쌍)</code></pre>
@@ -1322,7 +1322,7 @@ slm-factory tool convert --config my-project/project.yaml --data ./my-project/ou
             <p>QA 쌍을 멀티턴 대화 형식으로 확장합니다. Teacher LLM이 단일 질문-답변을 자연스러운 다중 턴 대화로 변환합니다.</p>
 
             <h4>사용법</h4>
-            <pre data-lang="bash"><code>slm-factory tool dialogue [OPTIONS]</code></pre>
+            <pre data-lang="bash"><code>uv run slm-factory tool dialogue [OPTIONS]</code></pre>
 
             <h4>옵션</h4>
             <div class="table-wrapper">
@@ -1359,10 +1359,10 @@ slm-factory tool convert --config my-project/project.yaml --data ./my-project/ou
 
             <h4>예시</h4>
             <pre data-lang="bash"><code># 자동 감지된 QA 데이터로 대화 생성
-slm-factory tool dialogue --config my-project/project.yaml
+uv run slm-factory tool dialogue --config my-project/project.yaml
 
 # 특정 파일로 대화 생성
-slm-factory tool dialogue --config my-project/project.yaml --data ./my-project/output/qa_alpaca.json</code></pre>
+uv run slm-factory tool dialogue --config my-project/project.yaml --data ./my-project/output/qa_alpaca.json</code></pre>
 
             <h4>출력</h4>
             <pre><code>대화 생성 완료! 120개 대화 생성됨 &rarr; ./my-project/output/dialogues.json</code></pre>
@@ -1388,7 +1388,7 @@ slm-factory tool dialogue --config my-project/project.yaml --data ./my-project/o
             <p>병합된 모델을 llama.cpp 호환 GGUF 양자화 형식으로 변환합니다. llama.cpp의 변환 스크립트를 내부적으로 사용합니다.</p>
 
             <h4>사용법</h4>
-            <pre data-lang="bash"><code>slm-factory tool gguf [OPTIONS]</code></pre>
+            <pre data-lang="bash"><code>uv run slm-factory tool gguf [OPTIONS]</code></pre>
 
             <h4>옵션</h4>
             <div class="table-wrapper">
@@ -1423,10 +1423,10 @@ slm-factory tool dialogue --config my-project/project.yaml --data ./my-project/o
 
             <h4>예시</h4>
             <pre data-lang="bash"><code># 기본 경로의 모델을 GGUF로 변환
-slm-factory tool gguf --config my-project/project.yaml
+uv run slm-factory tool gguf --config my-project/project.yaml
 
 # 특정 모델 디렉토리 지정
-slm-factory tool gguf --config my-project/project.yaml --model-dir ./my-project/output/merged_model</code></pre>
+uv run slm-factory tool gguf --config my-project/project.yaml --model-dir ./my-project/output/merged_model</code></pre>
 
             <h4>출력</h4>
             <pre><code>GGUF 변환 완료! 파일: ./my-project/output/merged_model.gguf</code></pre>
@@ -1451,7 +1451,7 @@ slm-factory tool gguf --config my-project/project.yaml --model-dir ./my-project/
             <p>slm-factory의 파싱·QA 데이터를 AutoRAG 평가용 parquet 형식으로 내보냅니다. <code>parsed_documents.json</code>에서 문서 청크를 생성하고, QA 파일에서 평가 데이터를 추출하여 AutoRAG가 요구하는 <code>corpus.parquet</code>과 <code>qa.parquet</code>을 생성합니다.</p>
 
             <h4>사용법</h4>
-            <pre data-lang="bash"><code>slm-factory tool export-autorag [OPTIONS]</code></pre>
+            <pre data-lang="bash"><code>uv run slm-factory tool export-autorag [OPTIONS]</code></pre>
 
             <h4>옵션</h4>
             <div class="table-wrapper">
@@ -1483,10 +1483,10 @@ slm-factory tool gguf --config my-project/project.yaml --model-dir ./my-project/
 
             <h4>예시</h4>
             <pre data-lang="bash"><code># 기본 실행 (QA 파일 자동 탐색)
-slm-factory tool export-autorag --config my-project/project.yaml
+uv run slm-factory tool export-autorag --config my-project/project.yaml
 
 # QA 파일 직접 지정
-slm-factory tool export-autorag --config my-project/project.yaml \
+uv run slm-factory tool export-autorag --config my-project/project.yaml \
   --qa-file ./output/qa_scored.json</code></pre>
 
             <h4>출력</h4>
@@ -1511,7 +1511,7 @@ slm-factory tool export-autorag --config my-project/project.yaml \
             <p><code>corpus.parquet</code>을 sentence-transformers 모델로 임베딩한 뒤 ChromaDB에 적재합니다. <code>tool export-autorag</code>로 생성한 코퍼스 데이터를 벡터 검색이 가능한 형태로 변환합니다.</p>
 
             <h4>사용법</h4>
-            <pre data-lang="bash"><code>slm-factory tool rag-index [OPTIONS]</code></pre>
+            <pre data-lang="bash"><code>uv run slm-factory tool rag-index [OPTIONS]</code></pre>
 
             <h4>옵션</h4>
             <div class="table-wrapper">
@@ -1526,13 +1526,13 @@ slm-factory tool export-autorag --config my-project/project.yaml \
 
             <h4>예시</h4>
             <pre data-lang="bash"><code># 기본 실행
-slm-factory tool rag-index --config my-project/project.yaml</code></pre>
+uv run slm-factory tool rag-index --config my-project/project.yaml</code></pre>
 
             <h4>참고</h4>
             <ul>
               <li>사전 조건: <code>tool export-autorag</code>로 <code>corpus.parquet</code>을 먼저 생성해야 합니다.</li>
               <li>임베딩 모델 기본값은 <code>BAAI/bge-m3</code>입니다. 한국어 문서에 우수한 성능을 보입니다.</li>
-              <li><code>pip install slm-factory[rag,validation]</code>으로 의존성을 설치하세요.</li>
+              <li><code>uv sync --extra rag --extra validation</code>으로 의존성을 설치하세요.</li>
               <li>기존 컬렉션에 재실행하면 upsert(갱신/추가)됩니다.</li>
             </ul>
           </article>
@@ -1545,7 +1545,7 @@ slm-factory tool rag-index --config my-project/project.yaml</code></pre>
             <p>ChromaDB 벡터 검색과 Ollama SLM 생성을 결합한 RAG API 서버를 실행합니다.</p>
 
             <h4>사용법</h4>
-            <pre data-lang="bash"><code>slm-factory tool rag-serve [OPTIONS]</code></pre>
+            <pre data-lang="bash"><code>uv run slm-factory tool rag-serve [OPTIONS]</code></pre>
 
             <h4>옵션</h4>
             <div class="table-wrapper">
@@ -1588,7 +1588,7 @@ curl -N -X POST http://localhost:8000/v1/query \
               <li>사전 조건: <code>tool rag-index</code>로 ChromaDB를 먼저 구축해야 합니다.</li>
               <li>Ollama가 실행 중이어야 합니다 (<code>ollama serve</code>).</li>
               <li>SLM 모델은 <code>rag.ollama_model</code> 또는 <code>export.ollama.model_name</code>에서 결정됩니다.</li>
-              <li><code>pip install slm-factory[rag,validation]</code>으로 의존성을 설치하세요.</li>
+              <li><code>uv sync --extra rag --extra validation</code>으로 의존성을 설치하세요.</li>
             </ul>
           </article>
 
@@ -1600,7 +1600,7 @@ curl -N -X POST http://localhost:8000/v1/query \
             <p>문서 변경을 감지하고 증분 처리한 뒤, 자동으로 재학습 및 배포하는 통합 명령어입니다. 품질 게이트를 통과한 경우에만 새 모델을 배포하며, 진화 히스토리를 기록합니다.</p>
 
             <h4>사용법</h4>
-            <pre data-lang="bash"><code>slm-factory tool evolve [OPTIONS]</code></pre>
+            <pre data-lang="bash"><code>uv run slm-factory tool evolve [OPTIONS]</code></pre>
 
             <h4>옵션</h4>
             <div class="table-wrapper">
@@ -1682,16 +1682,16 @@ curl -N -X POST http://localhost:8000/v1/query \
 
             <h4>예시</h4>
             <pre data-lang="bash"><code># 기본 진화 (변경 감지 + 품질 게이트 적용)
-slm-factory tool evolve --config my-project/project.yaml
+uv run slm-factory tool evolve --config my-project/project.yaml
 
 # 모든 문서 재처리 (변경 감지 건너뜀)
-slm-factory tool evolve --config my-project/project.yaml --force-update
+uv run slm-factory tool evolve --config my-project/project.yaml --force-update
 
 # 품질 게이트 건너뜀 (무조건 배포)
-slm-factory tool evolve --config my-project/project.yaml --skip-gate
+uv run slm-factory tool evolve --config my-project/project.yaml --skip-gate
 
 # 모든 옵션 적용
-slm-factory tool evolve --config my-project/project.yaml --force-update --skip-gate</code></pre>
+uv run slm-factory tool evolve --config my-project/project.yaml --force-update --skip-gate</code></pre>
 
             <h4>출력 예시 (성공)</h4>
             <pre><code>진화 시작: my-project
@@ -1753,7 +1753,7 @@ slm-factory tool evolve --config my-project/project.yaml --force-update --skip-g
             <p>문서 디렉토리를 스캔하여 변경된 파일만 감지하고, 새 QA를 생성하여 기존 QA와 병합합니다. 문서를 추가하거나 수정했을 때 전체 파이프라인을 재실행하지 않고 증분 처리할 수 있습니다.</p>
 
             <h4>사용법</h4>
-            <pre data-lang="bash"><code>slm-factory tool update [OPTIONS]</code></pre>
+            <pre data-lang="bash"><code>uv run slm-factory tool update [OPTIONS]</code></pre>
 
             <h4>옵션</h4>
             <div class="table-wrapper">
@@ -1789,7 +1789,7 @@ slm-factory tool evolve --config my-project/project.yaml --force-update --skip-g
 
             <h4>예시</h4>
             <pre data-lang="bash"><code># 변경된 문서만 증분 처리
-slm-factory tool update --config my-project/project.yaml</code></pre>
+uv run slm-factory tool update --config my-project/project.yaml</code></pre>
 
             <h4>출력</h4>
             <pre><code>증분 업데이트: 2개 변경 문서 감지
@@ -1821,7 +1821,7 @@ slm-factory tool update --config my-project/project.yaml</code></pre>
             <p>파이프라인 각 단계의 진행 상태를 확인합니다. 출력 디렉토리의 파일 존재 여부와 항목 수를 테이블로 표시합니다.</p>
 
             <h4>사용법</h4>
-            <pre data-lang="bash"><code>slm-factory status [OPTIONS]</code></pre>
+            <pre data-lang="bash"><code>uv run slm-factory status [OPTIONS]</code></pre>
 
             <h4>옵션</h4>
             <div class="table-wrapper">
@@ -1848,7 +1848,7 @@ slm-factory tool update --config my-project/project.yaml</code></pre>
             </div>
 
             <h4>예시</h4>
-            <pre data-lang="bash"><code>slm-factory status --config my-project/project.yaml</code></pre>
+            <pre data-lang="bash"><code>uv run slm-factory status --config my-project/project.yaml</code></pre>
 
             <h4>출력 예시</h4>
             <div class="terminal-output">
@@ -1882,7 +1882,7 @@ slm-factory tool update --config my-project/project.yaml</code></pre>
             <p>출력 디렉토리의 중간 생성 파일을 정리합니다. 삭제 전 확인 프롬프트가 표시됩니다.</p>
 
             <h4>사용법</h4>
-            <pre data-lang="bash"><code>slm-factory clean [OPTIONS]</code></pre>
+            <pre data-lang="bash"><code>uv run slm-factory clean [OPTIONS]</code></pre>
 
             <h4>옵션</h4>
             <div class="table-wrapper">
@@ -1946,10 +1946,10 @@ slm-factory tool update --config my-project/project.yaml</code></pre>
 
             <h4>예시</h4>
             <pre data-lang="bash"><code># 중간 파일만 정리
-slm-factory clean --config my-project/project.yaml
+uv run slm-factory clean --config my-project/project.yaml
 
 # 모든 출력 파일 정리 (학습 결과 포함)
-slm-factory clean --all --config my-project/project.yaml</code></pre>
+uv run slm-factory clean --all --config my-project/project.yaml</code></pre>
 
             <h4>출력</h4>
             <pre><code>삭제 대상:
@@ -1983,7 +1983,7 @@ slm-factory clean --all --config my-project/project.yaml</code></pre>
             <p>slm-factory의 현재 버전을 출력합니다.</p>
 
             <h4>사용법</h4>
-            <pre data-lang="bash"><code>slm-factory version</code></pre>
+            <pre data-lang="bash"><code>uv run slm-factory version</code></pre>
 
             <h4>출력</h4>
             <pre><code>slm-factory 0.1.0</code></pre>

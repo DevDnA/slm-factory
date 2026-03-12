@@ -35,30 +35,30 @@ flowchart LR
 ### 1. 준비
 
 ```bash
-# 설치
 git clone https://github.com/DevDnA/slm-factory.git
 cd slm-factory
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e ".[all]"
+./setup.sh
+```
 
-# Ollama 준비 (별도 터미널)
-ollama serve
-ollama pull qwen3:8b
+> `setup.sh`가 [uv](https://docs.astral.sh/uv/) 설치, 의존성, Ollama 모델 준비를 한 번에 처리합니다.
+> Ollama가 설치되어 있지 않다면 먼저 [ollama.com](https://ollama.com)에서 설치하세요.
 
-# 프로젝트 생성 + 문서 추가
-slm-factory init my-project
+### 2. 프로젝트 생성 + 문서 추가
+
+```bash
+uv run slm-factory init my-project
 cp /path/to/documents/*.pdf my-project/documents/
 ```
 
-### 2. 실행 — 명령어 하나로 전체 파이프라인 + RAG 서버
+### 3. 실행 — 명령어 하나로 전체 파이프라인 + RAG 서버
 
 ```bash
-slm-factory run --serve --config my-project/project.yaml
+uv run slm-factory run --serve --config my-project/project.yaml
 ```
 
 > 14단계 파이프라인(파싱 → QA 생성 → 검증 → 학습 → Ollama 배포 → RAG 인덱싱)이 자동으로 실행되고, 완료 후 RAG API 서버가 자동으로 시작됩니다.
 
-### 3. 확인 — API로 즉시 질의
+### 4. 확인 — API로 즉시 질의
 
 ```bash
 curl -X POST http://localhost:8000/v1/query \
@@ -76,7 +76,7 @@ curl -X POST http://localhost:8000/v1/query \
 }
 ```
 
-> 대화형 설정이 필요하면 `slm-factory tool wizard --config project.yaml`을 사용할 수 있습니다.
+> 대화형 설정이 필요하면 `uv run slm-factory tool wizard --config project.yaml`을 사용할 수 있습니다.
 
 ## 무엇을 해결하는가
 

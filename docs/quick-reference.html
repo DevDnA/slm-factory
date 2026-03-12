@@ -90,9 +90,7 @@
 
           <pre data-lang="bash"><code>git clone https://github.com/DevDnA/slm-factory.git
 cd slm-factory
-python3 -m venv .venv &amp;&amp; source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -e ".[all]"       # PyTorch/CUDA 포함, 초회 10~20분 소요
-slm-factory --install-completion</code></pre>
+./setup.sh                    # uv 설치, 의존성, Ollama 모델 준비를 한 번에 처리</code></pre>
         </section>
 
 
@@ -102,7 +100,7 @@ slm-factory --install-completion</code></pre>
         <section id="prerequisites">
           <h2>사전 준비</h2>
 
-          <p>Ollama를 Teacher LLM으로 사용하는 경우, wizard 실행 전 아래 두 명령을 먼저 실행합니다.</p>
+          <p><code>./setup.sh</code>가 Ollama 모델 다운로드를 자동 처리합니다. 수동으로 실행하려면 아래 명령을 사용하세요.</p>
 
           <pre data-lang="bash"><code>ollama serve           # 별도 터미널에서 실행 (백그라운드 유지)
 ollama pull qwen3:8b   # Teacher 모델 다운로드 (최초 1회)</code></pre>
@@ -116,16 +114,16 @@ ollama pull qwen3:8b   # Teacher 모델 다운로드 (최초 1회)</code></pre>
           <h2>프로젝트 시작</h2>
 
           <pre data-lang="bash"><code># 1. 프로젝트 초기화
-slm-factory init my-project
+uv run slm-factory init my-project
 
 # 2. 학습할 문서 복사
 cp /path/to/documents/*.pdf my-project/documents/
 
 # 3. 환경 점검 (선택 권장)
-slm-factory check --config my-project/project.yaml
+uv run slm-factory check --config my-project/project.yaml
 
 # 4. 대화형 파이프라인 실행
-slm-factory tool wizard --config my-project/project.yaml</code></pre>
+uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
         </section>
 
 
@@ -555,7 +553,7 @@ slm-factory tool wizard --config my-project/project.yaml</code></pre>
 
           <p>처음 사용자에게 권장합니다. 각 단계를 확인하며 대화형으로 진행합니다.</p>
 
-          <pre data-lang="bash"><code>slm-factory tool wizard --config my-project/project.yaml</code></pre>
+          <pre data-lang="bash"><code>uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
 
           <hr>
 
@@ -563,7 +561,7 @@ slm-factory tool wizard --config my-project/project.yaml</code></pre>
 
           <p>설정을 직접 제어하고 싶을 때 사용합니다.</p>
 
-          <pre data-lang="bash"><code>slm-factory run --config my-project/project.yaml</code></pre>
+          <pre data-lang="bash"><code>uv run slm-factory run --config my-project/project.yaml</code></pre>
 
           <hr>
 
@@ -571,13 +569,13 @@ slm-factory tool wizard --config my-project/project.yaml</code></pre>
 
           <p>특정 단계까지만 실행하고 결과를 확인한 후 다음 단계로 진행합니다.</p>
 
-          <pre data-lang="bash"><code>slm-factory run --until parse    --config my-project/project.yaml
-slm-factory run --until generate --config my-project/project.yaml
-slm-factory run --until validate --config my-project/project.yaml
-slm-factory run --until score    --config my-project/project.yaml
-slm-factory run --until augment  --config my-project/project.yaml
-slm-factory train                --config my-project/project.yaml
-slm-factory export               --config my-project/project.yaml</code></pre>
+          <pre data-lang="bash"><code>uv run slm-factory run --until parse    --config my-project/project.yaml
+uv run slm-factory run --until generate --config my-project/project.yaml
+uv run slm-factory run --until validate --config my-project/project.yaml
+uv run slm-factory run --until score    --config my-project/project.yaml
+uv run slm-factory run --until augment  --config my-project/project.yaml
+uv run slm-factory train                --config my-project/project.yaml
+uv run slm-factory export               --config my-project/project.yaml</code></pre>
 
           <hr>
 
@@ -585,7 +583,7 @@ slm-factory export               --config my-project/project.yaml</code></pre>
 
           <p>이미 준비된 <code>training_data.jsonl</code>이 있거나 하이퍼파라미터를 반복 실험할 때 사용합니다.</p>
 
-          <pre data-lang="bash"><code>slm-factory train --config my-project/project.yaml --data ./output/training_data.jsonl</code></pre>
+          <pre data-lang="bash"><code>uv run slm-factory train --config my-project/project.yaml --data ./output/training_data.jsonl</code></pre>
 
           <hr>
 
@@ -593,9 +591,9 @@ slm-factory export               --config my-project/project.yaml</code></pre>
 
           <p>파이프라인이 중간에 중단된 경우, 중간 저장 파일에서 자동으로 재개합니다.</p>
 
-          <pre data-lang="bash"><code>slm-factory run   --config my-project/project.yaml --resume
-slm-factory train --config my-project/project.yaml --resume
-slm-factory tool wizard --config my-project/project.yaml --resume</code></pre>
+          <pre data-lang="bash"><code>uv run slm-factory run   --config my-project/project.yaml --resume
+uv run slm-factory train --config my-project/project.yaml --resume
+uv run slm-factory tool wizard --config my-project/project.yaml --resume</code></pre>
 
           <hr>
 
@@ -604,10 +602,10 @@ slm-factory tool wizard --config my-project/project.yaml --resume</code></pre>
           <p>학습 완료 후 모델 성능을 측정하고 Base 모델과 비교합니다.</p>
 
           <pre data-lang="bash"><code># BLEU/ROUGE 평가
-slm-factory eval run --model my-project-model --config my-project/project.yaml
+uv run slm-factory eval run --model my-project-model --config my-project/project.yaml
 
 # Base vs Fine-tuned 비교
-slm-factory eval compare \
+uv run slm-factory eval compare \
   --base-model gemma:2b \
   --ft my-project-model \
   --config my-project/project.yaml</code></pre>
@@ -735,8 +733,8 @@ export:
                 </tr>
                 <tr>
                   <td><code>externally-managed-environment</code> (pip)</td>
-                  <td>가상환경 미활성화</td>
-                  <td><code>source .venv/bin/activate</code> 후 재설치</td>
+                  <td>환경 미설정</td>
+                  <td><code>./setup.sh</code> 실행 후 재시도</td>
                 </tr>
               </tbody>
             </table>
