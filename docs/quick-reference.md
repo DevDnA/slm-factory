@@ -82,7 +82,7 @@ uv run slm-factory tool wizard --config my-project/project.yaml
 | `slm-factory tool gguf` | GGUF 양자화 변환 | `--config`, `--model-dir` |
 | `slm-factory tool update` | 증분 업데이트 (변경 문서만) | `--config` |
 | `slm-factory tool compare-data` | 두 QA 데이터셋 품질 비교 | `--baseline` / `-b`, `--target` / `-t` |
-| `slm-factory tool export-autorag` | AutoRAG 평가용 데이터 내보내기 | `--config`, `--qa-file` |
+| `slm-factory tool export-autorag` | RAG 인덱싱용 데이터 내보내기 | `--config`, `--qa-file` |
 | `slm-factory tool rag-index` | ChromaDB에 임베딩 적재 | `--config`, `--corpus-dir` |
 | `slm-factory tool rag-serve` | RAG API 서버 시작 | `--config`, `--host`, `--port` |
 
@@ -115,7 +115,7 @@ uv run slm-factory tool wizard --config my-project/project.yaml
 10. **dialogue** (선택) — QA 쌍을 멀티턴 대화로 확장 → `output/dialogues.json`
 11. **gguf_export** (선택) — GGUF 양자화 변환 → `output/*.gguf`
 12. **eval** (선택) — BLEU/ROUGE 평가 → `output/eval_results.json`
-13. **autorag_export** (선택) — AutoRAG parquet 내보내기 → `output/autorag/`
+13. **autorag_export** (선택) — RAG 인덱싱 데이터 내보내기 → `output/autorag/`
 14. **rag_index** (선택) — ChromaDB 벡터 인덱싱 → `output/chroma_db/`
 
 > 모든 선택 단계는 기본으로 활성화됩니다. 개별 비활성화는 `project.yaml`에서 `enabled: false`로 설정합니다.
@@ -221,7 +221,7 @@ output/
 │       ├── adapter_config.json
 │       └── adapter_model.safetensors
 ├── *.gguf                      # GGUF 양자화 변환 결과 (선택)
-├── autorag/                    # AutoRAG 평가용 데이터 (corpus.parquet, qa.parquet)
+├── autorag/                    # RAG 인덱싱용 데이터 (corpus.parquet, qa.parquet)
 ├── chroma_db/                  # RAG 벡터 인덱스 (ChromaDB)
 └── merged_model/               # 병합된 최종 모델 (HuggingFace 형식)
     ├── config.json

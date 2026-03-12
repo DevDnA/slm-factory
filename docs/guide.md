@@ -209,7 +209,7 @@ wizard는 다음 14단계를 순서대로 안내합니다 (Step 3a는 선택적 
 | 10 | 멀티턴 대화 생성 | 선택 | QA 쌍을 멀티턴 대화 형식으로 확장합니다 |
 | 11 | GGUF 변환 | 선택 | llama.cpp 호환 GGUF 양자화 형식으로 변환합니다 |
 | 12 | 모델 평가 | 선택 | BLEU/ROUGE 메트릭으로 학습 결과를 자동 평가합니다 |
-| 13 | AutoRAG 내보내기 | 선택 | QA·문서를 AutoRAG 평가용 parquet으로 내보냅니다 (`autorag_export.enabled` 설정 반영) |
+| 13 | 코퍼스 내보내기 | 선택 | QA·문서를 RAG 인덱싱용 parquet으로 내보냅니다 (`autorag_export.enabled` 설정 반영) |
 | 14 | RAG 인덱싱 | 선택 | corpus.parquet을 ChromaDB에 임베딩하여 적재합니다 (`rag` 설정 반영) |
 
 선택 단계를 건너뛰면 나중에 개별 실행할 수 있는 CLI 명령어를 안내합니다.

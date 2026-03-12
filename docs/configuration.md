@@ -620,13 +620,13 @@ gguf_export:
 
 ---
 
-## 19. autorag_export — AutoRAG 데이터 내보내기 설정
+## 19. autorag_export — RAG 데이터 내보내기 설정
 
-> slm-factory의 파싱·QA 데이터를 AutoRAG 평가용 parquet 형식으로 내보냅니다.
+> slm-factory의 파싱·QA 데이터를 RAG 인덱싱용 parquet 형식으로 내보냅니다.
 
 | 필드 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
-| `enabled` | `bool` | `true` | AutoRAG 내보내기 기능 활성화 여부 |
+| `enabled` | `bool` | `true` | RAG 데이터 내보내기 기능 활성화 여부 |
 | `output_dir` | `str` | `"autorag"` | 출력 디렉토리명. `paths.output` 하위에 생성됩니다 |
 | `chunk_size` | `int` | `512` | 코퍼스 청크 크기 (문자 수). 100 이상이어야 합니다 |
 | `overlap_chars` | `int` | `64` | 청크 간 중첩 문자 수. `chunk_size`보다 작아야 합니다 |

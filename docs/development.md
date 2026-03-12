@@ -214,7 +214,7 @@ class Pipeline:
         """Base 모델과 Fine-tuned 모델의 답변을 비교합니다."""
 
     def step_autorag_export(self, docs: list[ParsedDocument], pairs: list[QAPair]) -> Path:
-        """파싱·QA 데이터를 AutoRAG 평가용 parquet으로 내보냅니다."""
+        """파싱·QA 데이터를 RAG 인덱싱용 parquet으로 내보냅니다."""
 
     def step_rag_index(self, corpus_dir: Path | None = None) -> Path:
         """corpus.parquet을 ChromaDB에 임베딩하여 적재합니다."""

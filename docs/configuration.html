@@ -27,7 +27,7 @@
         <li class="nav-section">시작하기</li>
         <li><a href="index.html">문서 홈</a></li>
         <li><a href="guide.html">사용 가이드</a></li>
-<li><a href="integration-guide.html">기술 확장 가이드</a></li>
+<li><a href="integration-guide.html">RAG 서비스 가이드</a></li>
         <li><a href="quick-reference.html">빠른 참조</a></li>
         <li class="nav-section">레퍼런스</li>
         <li><a href="cli-reference.html">CLI 레퍼런스</a></li>
@@ -88,7 +88,7 @@
           <li><a href="#compare">15. compare &mdash; 모델 비교 설정</a></li>
           <li><a href="#evolve">16. evolve &mdash; 자동 진화 설정</a></li>
           <li><a href="#gguf-export">17. gguf_export &mdash; GGUF 변환 설정</a></li>
-          <li><a href="#autorag-export">18. autorag_export &mdash; AutoRAG 데이터 내보내기 설정</a></li>
+          <li><a href="#autorag-export">18. autorag_export &mdash; RAG 데이터 내보내기 설정</a></li>
           <li><a href="#rag">19. rag &mdash; RAG 서비스 설정</a></li>
           <li><a href="#incremental">20. incremental &mdash; 증분 학습 설정</a></li>
           <li><a href="#dialogue">21. dialogue &mdash; 멀티턴 대화 설정</a></li>
@@ -1046,8 +1046,8 @@ If the document does not contain relevant information, say "The document does no
            Section 18: autorag_export
            ============================================================ -->
       <section id="autorag-export">
-        <h2>18. autorag_export &mdash; AutoRAG 데이터 내보내기 설정</h2>
-        <blockquote><p>slm-factory의 파싱·QA 데이터를 AutoRAG 평가용 parquet 형식으로 내보냅니다.</p></blockquote>
+        <h2>18. autorag_export &mdash; RAG 데이터 내보내기 설정</h2>
+        <blockquote><p>slm-factory의 파싱·QA 데이터를 RAG 인덱싱용 parquet 형식으로 내보냅니다.</p></blockquote>
 
         <div class="table-wrapper">
           <table>
@@ -1055,7 +1055,7 @@ If the document does not contain relevant information, say "The document does no
               <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
             </thead>
             <tbody>
-              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>AutoRAG 내보내기 기능 활성화 여부</td></tr>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>RAG 데이터 내보내기 기능 활성화 여부</td></tr>
               <tr><td><code>output_dir</code></td><td><code>str</code></td><td><code>"autorag"</code></td><td>출력 디렉토리명. <code>paths.output</code> 하위에 생성됩니다</td></tr>
               <tr><td><code>chunk_size</code></td><td><code>int</code></td><td><code>512</code></td><td>코퍼스 청크 크기 (문자 수). 100 이상이어야 합니다</td></tr>
               <tr><td><code>overlap_chars</code></td><td><code>int</code></td><td><code>64</code></td><td>청크 간 중첩 문자 수. <code>chunk_size</code>보다 작아야 합니다</td></tr>

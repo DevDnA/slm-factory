@@ -27,7 +27,7 @@
         <li class="nav-section">시작하기</li>
         <li><a href="index.html">문서 홈</a></li>
         <li><a href="guide.html">사용 가이드</a></li>
-<li><a href="integration-guide.html">기술 확장 가이드</a></li>
+<li><a href="integration-guide.html">RAG 서비스 가이드</a></li>
         <li><a href="quick-reference.html">빠른 참조</a></li>
         <li class="nav-section">레퍼런스</li>
         <li><a href="cli-reference.html" class="active">CLI 레퍼런스</a></li>
@@ -270,7 +270,7 @@
                 <tr>
                   <td><code>tool export-autorag</code></td>
                   <td>🔧 도구</td>
-                  <td>AutoRAG 평가용 데이터 내보내기</td>
+                  <td>RAG 인덱싱용 데이터 내보내기</td>
                 </tr>
                 <tr>
                   <td><code>tool rag-index</code></td>
@@ -1455,7 +1455,7 @@ uv run slm-factory tool gguf --config my-project/project.yaml --model-dir ./my-p
           <!-- tool export-autorag -->
           <article id="tool-export-autorag">
             <h3><code>tool export-autorag</code></h3>
-            <p>slm-factory의 파싱·QA 데이터를 AutoRAG 평가용 parquet 형식으로 내보냅니다. <code>parsed_documents.json</code>에서 문서 청크를 생성하고, QA 파일에서 평가 데이터를 추출하여 AutoRAG가 요구하는 <code>corpus.parquet</code>과 <code>qa.parquet</code>을 생성합니다.</p>
+            <p>slm-factory의 파싱·QA 데이터를 RAG 인덱싱용 parquet 형식으로 내보냅니다. <code>parsed_documents.json</code>에서 문서 청크를 생성하고, QA 파일에서 평가 데이터를 추출하여 <code>corpus.parquet</code>과 <code>qa.parquet</code>을 생성합니다.</p>
 
             <h4>사용법</h4>
             <pre data-lang="bash"><code>uv run slm-factory tool export-autorag [OPTIONS]</code></pre>
@@ -1504,8 +1504,7 @@ uv run slm-factory tool export-autorag --config my-project/project.yaml \
             <h4>참고</h4>
             <ul>
               <li><code>corpus.parquet</code>은 <code>parsed_documents.json</code>의 텍스트를 <code>autorag_export.chunk_size</code> 단위로 분할하여 생성합니다. 청크 간 중첩은 <code>autorag_export.overlap_chars</code>로 설정합니다.</li>
-              <li><code>qa.parquet</code>은 QA 쌍의 질문·답변·컨텍스트를 AutoRAG 평가 형식으로 변환합니다.</li>
-              <li>AutoRAG 최적화 실행: <code>autorag evaluate --qa_data_path output/autorag/qa.parquet --corpus_data_path output/autorag/corpus.parquet --config autorag_config.yaml</code></li>
+              <li><code>qa.parquet</code>은 QA 쌍의 질문·답변·컨텍스트를 parquet 형식으로 변환합니다.</li>
               <li>상세 설정은 <a href="configuration.html">설정 레퍼런스</a>의 <code>autorag_export</code> 섹션을 참조하십시오.</li>
             </ul>
           </article>
@@ -2108,7 +2107,7 @@ uv run slm-factory clean --all --config my-project/project.yaml</code></pre>
                 <tr>
                   <td><code>autorag/</code></td>
                   <td><code>tool export-autorag</code></td>
-                  <td>AutoRAG 평가용 parquet 데이터. <code>corpus.parquet</code>(문서 청크)과 <code>qa.parquet</code>(QA 평가 데이터)을 포함합니다.</td>
+                  <td>RAG 인덱싱용 parquet 데이터. <code>corpus.parquet</code>(문서 청크)과 <code>qa.parquet</code>(QA 평가 데이터)을 포함합니다.</td>
                 </tr>
                 <tr>
                   <td><code>merged_model/</code></td>

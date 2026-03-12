@@ -29,7 +29,7 @@
         <li class="nav-section">시작하기</li>
         <li><a href="index.html">문서 홈</a></li>
         <li><a href="guide.html">사용 가이드</a></li>
-<li><a href="integration-guide.html">기술 확장 가이드</a></li>
+<li><a href="integration-guide.html">RAG 서비스 가이드</a></li>
         <li><a href="quick-reference.html" class="active">빠른 참조</a></li>
         <li class="nav-section">레퍼런스</li>
         <li><a href="cli-reference.html">CLI 레퍼런스</a></li>
@@ -272,7 +272,7 @@ uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
                 </tr>
                 <tr>
                   <td><code>slm-factory tool export-autorag</code></td>
-                  <td>AutoRAG 평가용 데이터 내보내기</td>
+                  <td>RAG 인덱싱용 데이터 내보내기</td>
                   <td><code>--config</code>, <code>--qa-file</code></td>
                 </tr>
                 <tr>
@@ -642,7 +642,7 @@ uv run slm-factory eval compare \
 │       ├── adapter_config.json
 │       └── adapter_model.safetensors
 ├── *.gguf                      # GGUF 양자화 변환 결과 (선택)
-├── autorag/                    # AutoRAG 평가용 데이터 (corpus.parquet, qa.parquet)
+├── autorag/                    # RAG 인덱싱용 데이터 (corpus.parquet, qa.parquet)
 └── merged_model/               # 병합된 최종 모델 (HuggingFace 형식)
     ├── config.json
     ├── model.safetensors

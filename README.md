@@ -11,7 +11,7 @@
 
 <br>
 
-[사용 가이드](https://devdna.github.io/slm-factory/guide.html) · [CLI 레퍼런스](https://devdna.github.io/slm-factory/cli-reference.html) · [기술 확장 가이드](https://devdna.github.io/slm-factory/integration-guide.html)
+[사용 가이드](https://devdna.github.io/slm-factory/guide.html) · [CLI 레퍼런스](https://devdna.github.io/slm-factory/cli-reference.html) · [RAG 서비스 가이드](https://devdna.github.io/slm-factory/integration-guide.html)
 
 </div>
 
@@ -94,7 +94,7 @@ curl -X POST http://localhost:8000/v1/query \
 | 문서 | 내용 |
 |------|------|
 | [사용 가이드](https://devdna.github.io/slm-factory/guide.html) | 설치, 튜토리얼, 트러블슈팅 |
-| [기술 확장 가이드](https://devdna.github.io/slm-factory/integration-guide.html) | RAG 기술 조합 전략, 연동 방법 |
+| [RAG 서비스 가이드](https://devdna.github.io/slm-factory/integration-guide.html) | RAG 서비스 구축, 프로덕션 배포 가이드 |
 | [빠른 참조](https://devdna.github.io/slm-factory/quick-reference.html) | 명령어 치트시트 |
 | [CLI 레퍼런스](https://devdna.github.io/slm-factory/cli-reference.html) | 전체 명령어 옵션 |
 | [설정 레퍼런스](https://devdna.github.io/slm-factory/configuration.html) | project.yaml 전체 설정 |

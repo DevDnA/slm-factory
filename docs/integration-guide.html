@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="slm-factory SLM을 RAG로 확장하는 종합 가이드 - 기술 조합 분석, 장단점, 연동 방법">
-  <title>기술 확장 가이드 - slm-factory</title>
+  <meta name="description" content="slm-factory SLM + RAG로 도메인 AI 서비스를 구축하는 종합 가이드">
+  <title>RAG 서비스 가이드 - slm-factory</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
   <link rel="stylesheet" href="./assets/style.css">
 </head>
@@ -27,7 +27,7 @@
         <li class="nav-section">시작하기</li>
         <li><a href="index.html">문서 홈</a></li>
         <li><a href="guide.html">사용 가이드</a></li>
-        <li><a href="integration-guide.html" class="active">기술 확장 가이드</a></li>
+        <li><a href="integration-guide.html" class="active">RAG 서비스 가이드</a></li>
         <li><a href="quick-reference.html">빠른 참조</a></li>
         <li class="nav-section">레퍼런스</li>
         <li><a href="cli-reference.html">CLI 레퍼런스</a></li>
@@ -44,7 +44,7 @@
       <header class="page-header">
         <div class="content-container">
           <span class="badge">Integration</span>
-          <h1>기술 확장 가이드</h1>
+          <h1>RAG 서비스 가이드</h1>
           <p class="subtitle">SLM + RAG로 도메인 AI 서비스를 구축하는 종합 가이드</p>
         </div>
       </header>
@@ -54,7 +54,7 @@
         <nav class="breadcrumb" aria-label="경로">
           <a href="index.html">문서</a>
           <span class="separator">/</span>
-          <span>기술 확장 가이드</span>
+          <span>RAG 서비스 가이드</span>
         </nav>
 
         <nav class="toc" aria-label="목차">
@@ -82,11 +82,10 @@
             <li><strong>할루시네이션(Hallucination)</strong>: 학습 데이터에 포함되지 않은 질문에 대해 그럴듯하지만 부정확한 답변을 생성할 수 있습니다.</li>
             <li><strong>최신 정보 부재</strong>: 파인튜닝 시점 이후에 추가되거나 변경된 정보를 반영할 수 없습니다.</li>
             <li><strong>근거 제시 불가</strong>: 답변의 출처를 명시할 수 없습니다.</li>
+            <li><strong>문서 간 관계 누락</strong>: 각 문서를 개별 처리하므로, 서로 다른 문서에 걸친 개념의 연결을 파악하지 못합니다.</li>
           </ul>
 
-          <hr>
-
-          <h3 id="extension-techs">RAG가 보완하는 방법</h3>
+          <h3 id="rag-complement">RAG가 보완하는 방법</h3>
           <p><strong>RAG(Retrieval-Augmented Generation)</strong>는 사용자 질문에 관련 문서를 검색하여 컨텍스트로 제공합니다. 할루시네이션을 억제하고, 최신 정보를 반영하며, 출처를 명시할 수 있습니다.</p>
 
           <blockquote>
@@ -99,24 +98,22 @@
         <section id="section-2">
           <h2>2. 핵심 기술 소개</h2>
 
-          <h3 id="autorag-intro">AutoRAG란?</h3>
-          <p><a href="https://github.com/Marker-Inc-Korea/AutoRAG">AutoRAG</a>는 RAG 파이프라인의 각 단계별 최적 전략 조합을 자동으로 탐색하는 오픈소스 프레임워크입니다. 검색(Retrieval), 리랭킹(Reranking), 프롬프트(Prompt), 생성(Generation) 단계의 전략 조합을 벤치마킹하여 최적의 RAG 설정을 도출합니다.</p>
+          <h3 id="rag-stack">내장 RAG 스택</h3>
+          <p>slm-factory는 다음 기술 스택으로 RAG 서비스를 제공합니다.</p>
 
           <div class="table-wrapper">
             <table>
-              <thead><tr><th>항목</th><th>slm-factory</th><th>AutoRAG</th></tr></thead>
+              <thead><tr><th>구성 요소</th><th>기술</th><th>역할</th></tr></thead>
               <tbody>
-                <tr><td><strong>목적</strong></td><td>도메인 특화 SLM 생성</td><td>최적 RAG 파이프라인 탐색</td></tr>
-                <tr><td><strong>접근법</strong></td><td>Teacher-Student 지식 증류</td><td>RAG 전략 벤치마크</td></tr>
-                <tr><td><strong>입력</strong></td><td>도메인 문서</td><td>도메인 문서 + QA 데이터셋</td></tr>
-                <tr><td><strong>출력</strong></td><td>파인튜닝된 SLM (Ollama)</td><td>최적화된 RAG 파이프라인 + 즉시 배포 가능한 API 서버</td></tr>
-                <tr><td><strong>문서 활용</strong></td><td>QA 학습 데이터 생성</td><td>검색 코퍼스 (벡터 DB)</td></tr>
+                <tr><td><strong>벡터 DB</strong></td><td>ChromaDB</td><td>문서 청크 임베딩 저장 및 유사도 검색</td></tr>
+                <tr><td><strong>임베딩 모델</strong></td><td>BAAI/bge-m3</td><td>다국어(한국어 포함) 문서·질의 벡터 변환</td></tr>
+                <tr><td><strong>SLM 추론</strong></td><td>Ollama</td><td>도메인 특화 SLM 서빙 (파인튜닝된 모델)</td></tr>
+                <tr><td><strong>API 서버</strong></td><td>FastAPI</td><td>REST API 엔드포인트 제공, SSE 스트리밍 지원</td></tr>
               </tbody>
             </table>
           </div>
 
-          <p>요약하면, slm-factory는 <strong>"모델 자체를 도메인에 맞게 만드는 도구"</strong>이고, AutoRAG는 <strong>"모델이 참조할 문서 검색 시스템을 최적화하는 도구"</strong>입니다.</p>
-
+          <p>질의가 들어오면 bge-m3로 임베딩 &rarr; ChromaDB에서 유사 문서 검색 &rarr; Ollama SLM이 검색 결과를 컨텍스트로 답변을 생성합니다.</p>
         </section>
 
 
@@ -169,10 +166,9 @@
         <section id="section-4">
           <h2>4. RAG 서비스 가이드</h2>
 
-          <p>slm-factory는 AutoRAG 데이터 포맷을 활용하여 도메인 특화 RAG 서비스를 구축합니다. export-autorag로 데이터를 준비하고 내장 RAG로 즉시 서비스하거나, AutoRAG 최적화를 거쳐 프로덕션으로 확장합니다.</p>
+          <p>slm-factory는 문서 파싱 결과를 ChromaDB에 인덱싱하고, FastAPI 기반 RAG API 서버로 즉시 서비스합니다.</p>
 
-          <pre><code>export-autorag &rarr; corpus.parquet &rarr; rag-index &rarr; ChromaDB &rarr; rag-serve &rarr; REST API
-                                                            &uarr; (선택) AutoRAG 최적화</code></pre>
+          <pre><code>export-autorag &rarr; corpus.parquet &rarr; rag-index &rarr; ChromaDB &rarr; rag-serve &rarr; REST API</code></pre>
 
           <hr>
 
@@ -181,11 +177,11 @@
           <pre data-lang="bash"><code># 1. slm-factory 파이프라인 실행 (파싱 + QA 생성)
 uv run slm-factory run --config project.yaml
 
-# 2. AutoRAG 평가용 데이터 내보내기
+# 2. RAG 인덱싱용 코퍼스 내보내기
 uv run slm-factory tool export-autorag --config project.yaml
 
 # 결과물:
-#   output/autorag/corpus.parquet  &mdash; 문서 청크 (검색 대상)
+#   output/autorag/corpus.parquet  &mdash; 코퍼스 데이터 (검색 대상 문서 청크)
 #   output/autorag/qa.parquet      &mdash; QA 평가 데이터</code></pre>
 
           <p>코퍼스 데이터 (<code>corpus.parquet</code>):</p>
@@ -215,11 +211,11 @@ uv run slm-factory tool export-autorag --config project.yaml
 
           <hr>
 
-          <h3 id="section-4-2">4.2 내장 RAG 서빙 &mdash; 즉시 시작</h3>
+          <h3 id="section-4-2">4.2 RAG 서비스 구동</h3>
 
-          <p>slm-factory에 내장된 <strong>ChromaDB 인덱싱 + FastAPI 서빙</strong>으로, AutoRAG 없이도 즉시 RAG 서비스를 구동할 수 있습니다.</p>
+          <p>slm-factory에 내장된 <strong>ChromaDB 인덱싱 + FastAPI 서빙</strong>으로 즉시 RAG 서비스를 구동할 수 있습니다.</p>
 
-          <pre data-lang="bash"><code># 1. corpus.parquet 생성 (4.1의 export-autorag 실행 후)
+          <pre data-lang="bash"><code># 1. corpus.parquet 생성 (코퍼스 내보내기 완료 후)
 uv run slm-factory tool export-autorag --config project.yaml
 
 # 2. ChromaDB에 벡터 임베딩 적재
@@ -232,7 +228,9 @@ uv run slm-factory tool rag-serve --config project.yaml
 # &rarr; GET  http://localhost:8000/health/ready    Ollama+ChromaDB 연결 확인
 # &rarr; GET  http://localhost:8000/health/live     라이브니스 체크</code></pre>
 
-          <p><strong>팁</strong>: <code>uv run slm-factory run --serve --config project.yaml</code> 명령으로 전체 파이프라인 실행 후 RAG 서버까지 한 번에 시작할 수 있습니다. 서버는 foreground로 실행되며, <code>Ctrl+C</code>로 종료합니다.</p>
+          <blockquote>
+            <p><strong>팁</strong>: <code>uv run slm-factory run --serve --config project.yaml</code> 명령으로 전체 파이프라인 실행 후 RAG 서버까지 한 번에 시작할 수 있습니다. 서버는 foreground로 실행되며, <code>Ctrl+C</code>로 종료합니다.</p>
+          </blockquote>
 
           <pre data-lang="bash"><code># API 호출 테스트
 curl -X POST http://localhost:8000/v1/query \
@@ -248,7 +246,7 @@ curl -N -X POST http://localhost:8000/v1/query \
           <ul>
             <li><code>rag-index</code>: <code>corpus.parquet</code> 문서를 <code>BAAI/bge-m3</code>로 임베딩 &rarr; ChromaDB에 적재</li>
             <li><code>rag-serve</code>: 질의 임베딩 &rarr; ChromaDB 유사도 검색 &rarr; Ollama SLM 생성 &rarr; JSON 응답</li>
-            <li><code>stream: true</code> 요청 시 SSE(Server-Sent Events)로 토큰을 실시간 전송</li>
+            <li><code>stream: true</code> 요청 시 SSE(Server-Sent Events)로 토큰을 실시간 전송 (TTFT &lt; 0.5초)</li>
           </ul>
 
           <p><strong>질의 &rarr; 응답 흐름:</strong></p>
@@ -296,200 +294,24 @@ curl -N -X POST http://localhost:8000/v1/query \
             </svg>
           </div>
 
-          <p><strong>적합한 경우:</strong> PoC, 데모, 소규모 사내 서비스. AutoRAG 최적화 과정 없이 즉시 시작하고 싶을 때.</p>
-
-          <div class="callout callout-info">
-            <div class="callout-content">
-              <p><strong>팁</strong>: 검색 품질 최적화가 필요하면 4.3절(AutoRAG)으로 최적 검색·리랭킹·생성 조합을 탐색하십시오.</p>
-            </div>
-          </div>
+          <p><strong>적합한 경우:</strong> PoC, 데모, 소규모 사내 서비스. 즉시 시작하여 API 서비스를 제공하고 싶을 때.</p>
 
           <hr>
 
-          <h3 id="section-4-3">4.3 AutoRAG 최적화 (선택)</h3>
+          <h3 id="section-4-3">4.3 구축 단계 요약</h3>
 
-          <p>내장 RAG로 충분하지만, 검색 품질 최적화가 필요하면 AutoRAG로 최적 조합을 탐색할 수 있습니다.</p>
-
-          <pre data-lang="bash"><code>uv pip install autorag
-
-# 최적화 실행 (검색·리랭킹·생성 조합 자동 탐색)
-autorag evaluate \
-  --qa_data_path output/autorag/qa.parquet \
-  --corpus_data_path output/autorag/corpus.parquet \
-  --config autorag_config.yaml
-
-# 결과 확인
-autorag dashboard --trial_dir ./benchmark/0</code></pre>
-
-          <p><strong>한국어 최적화 권장 컴포넌트:</strong></p>
-          <div class="table-wrapper">
-            <table>
-              <thead><tr><th>단계</th><th>권장 모듈</th><th>설명</th></tr></thead>
-              <tbody>
-                <tr><td>Retrieval</td><td><code>bm25</code> + <code>vectordb</code></td><td>BM25(형태소)와 벡터 검색 하이브리드</td></tr>
-                <tr><td>Embedding</td><td><code>BAAI/bge-m3</code></td><td>다국어 임베딩 (한국어 성능 우수)</td></tr>
-                <tr><td>Reranking</td><td><code>Dongjin-kr/ko-reranker</code></td><td>한국어 특화 리랭커</td></tr>
-                <tr><td>Tokenizer</td><td><code>ko_kiwi</code></td><td>한국어 형태소 분석 (BM25 토크나이저)</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <p>AutoRAG YAML에서 slm-factory 모델을 연결할 때는 <code>export.ollama.model_name</code> 값을 그대로 사용합니다.</p>
-
-          <pre data-lang="yaml"><code># autorag-config.yaml
-node_lines:
-  - node_line_name: retrieve_node_line
-    nodes:
-      - node_type: semantic_retrieval
-        strategy:
-          metrics: [retrieval_f1, retrieval_recall, retrieval_precision]
-        top_k: 3
-        modules:
-          - module_type: vectordb
-            vectordb: domain_chroma
-
-  - node_line_name: post_retrieve_node_line
-    nodes:
-      - node_type: prompt_maker
-        strategy:
-          metrics: [meteor, rouge, bert_score]
-        modules:
-          - module_type: fstring
-            prompt: "다음 문서를 참고하여 질문에 답변하세요.\n\n질문: {query}\n\n참고 문서:\n{retrieved_contents}\n\n답변: "
-
-      - node_type: generator
-        strategy:
-          metrics: [bleu, rouge, bert_score]
-        modules:
-          - module_type: llama_index_llm
-            llm: ollama
-            model: my-domain-model    # slm-factory의 export.ollama.model_name과 동일
-            batch: 1
-            request_timeout: 100</code></pre>
-
-          <div class="callout callout-info">
-            <div class="callout-content">
-              <p><strong>핵심 연결 포인트</strong>: slm-factory의 <code>export.ollama.model_name: "my-domain-model"</code> 값이 AutoRAG YAML의 <code>model: my-domain-model</code>과 일치해야 합니다. Ollama가 두 시스템의 다리 역할을 합니다.</p>
-            </div>
-          </div>
-
-          <p>AutoRAG 최적화가 완료되면, 별도 개발 없이 <strong>즉시 RAG API 서비스를 배포</strong>할 수 있습니다. AutoRAG 내장 Quart 서버가 최적화 결과를 그대로 서빙합니다.</p>
-
-          <pre data-lang="bash"><code># 로컬 실행 — 이것만으로 RAG 서비스가 동작합니다
-autorag run_api \
-  --trial_dir ./benchmark/0 \
-  --host 0.0.0.0 --port 8000
-
-# Docker 실행 — 배포 환경에서도 동일하게 동작합니다
-docker run -p 8000:8000 \
-  -v $(pwd)/benchmark:/app/benchmark \
-  autoraghq/autorag:api-latest \
-  run_api --trial_dir /app/benchmark/0</code></pre>
-
-          <p><strong>이 시점에서 무엇이 동작하는가:</strong></p>
-          <ul>
-            <li>사용자 질문을 받으면 벡터 검색 &rarr; 리랭킹 &rarr; SLM 생성까지 자동 실행</li>
-            <li>최적화 과정에서 선택된 최적 검색·생성 전략이 그대로 적용됨</li>
-            <li>REST API를 통해 외부 시스템(웹앱, 챗봇, 내부 도구)에서 호출 가능</li>
-          </ul>
-
-          <p><strong>적합한 경우:</strong> 사내 도구, 소규모 팀 서비스, 부서 단위 AI 어시스턴트 (동시 사용자 ~10명)</p>
-
-          <hr>
-
-          <h3 id="section-4-4">4.4 FastAPI 프로덕션 서버 (선택)</h3>
-
-          <p>AutoRAG 최적화 결과를 분석하여 <strong>최적 조합을 직접 구현</strong>하는 방식입니다.</p>
-
-          <div class="diagram" style="text-align:center;">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 340" style="max-width:760px;width:100%;height:auto;font-family:'Segoe UI',system-ui,sans-serif;">
-              <defs>
-                <marker id="arrow-r" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-                  <path d="M0,0 L8,3 L0,6" fill="#868e96"/>
-                </marker>
-              </defs>
-              <rect x="20" y="10" width="720" height="310" rx="16" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1.5"/>
-              <text x="380" y="42" text-anchor="middle" font-size="15" font-weight="700" fill="#343a40">FastAPI Application</text>
-              <rect x="40" y="68" width="680" height="56" rx="10" fill="#e9ecef" stroke="#ced4da" stroke-width="1"/>
-              <rect x="48" y="78" width="110" height="40" rx="8" fill="#4263eb" stroke="#364fc7" stroke-width="1"/>
-              <text x="103" y="103" text-anchor="middle" font-size="13" font-weight="600" fill="#fff">/v1/query</text>
-              <line x1="162" y1="98" x2="196" y2="98" stroke="#868e96" stroke-width="2" marker-end="url(#arrow-r)"/>
-              <rect x="200" y="78" width="120" height="40" rx="8" fill="#fff" stroke="#4263eb" stroke-width="1.5"/>
-              <text x="260" y="103" text-anchor="middle" font-size="13" font-weight="600" fill="#4263eb">Retriever</text>
-              <line x1="324" y1="98" x2="386" y2="98" stroke="#868e96" stroke-width="2" marker-end="url(#arrow-r)"/>
-              <rect x="390" y="78" width="120" height="40" rx="8" fill="#fff" stroke="#e8590c" stroke-width="1.5"/>
-              <text x="450" y="103" text-anchor="middle" font-size="13" font-weight="600" fill="#e8590c">Reranker</text>
-              <line x1="514" y1="98" x2="576" y2="98" stroke="#868e96" stroke-width="2" marker-end="url(#arrow-r)"/>
-              <rect x="580" y="78" width="120" height="40" rx="8" fill="#fff" stroke="#2f9e44" stroke-width="1.5"/>
-              <text x="640" y="103" text-anchor="middle" font-size="13" font-weight="600" fill="#2f9e44">LLM</text>
-              <line x1="260" y1="118" x2="260" y2="168" stroke="#4263eb" stroke-width="1.5" stroke-dasharray="5,3"/>
-              <line x1="450" y1="118" x2="450" y2="168" stroke="#e8590c" stroke-width="1.5" stroke-dasharray="5,3"/>
-              <line x1="640" y1="118" x2="640" y2="168" stroke="#2f9e44" stroke-width="1.5" stroke-dasharray="5,3"/>
-              <rect x="180" y="168" width="160" height="60" rx="10" fill="#dbe4ff" stroke="#4263eb" stroke-width="1"/>
-              <text x="260" y="194" text-anchor="middle" font-size="13" font-weight="600" fill="#364fc7">ChromaDB</text>
-              <text x="260" y="214" text-anchor="middle" font-size="11" fill="#5c7cfa">bge-m3 임베딩</text>
-              <rect x="370" y="168" width="160" height="60" rx="10" fill="#fff4e6" stroke="#e8590c" stroke-width="1"/>
-              <text x="450" y="194" text-anchor="middle" font-size="13" font-weight="600" fill="#d9480f">ko-reranker</text>
-              <text x="450" y="214" text-anchor="middle" font-size="11" fill="#e8590c">한국어 특화 리랭커</text>
-              <rect x="560" y="168" width="160" height="60" rx="10" fill="#d3f9d8" stroke="#2f9e44" stroke-width="1"/>
-              <text x="640" y="194" text-anchor="middle" font-size="13" font-weight="600" fill="#1b7a2e">Ollama</text>
-              <text x="640" y="214" text-anchor="middle" font-size="11" fill="#2f9e44">도메인 특화 SLM</text>
-              <rect x="180" y="260" width="540" height="42" rx="10" fill="#f1f3f5" stroke="#adb5bd" stroke-width="1"/>
-              <text x="450" y="286" text-anchor="middle" font-size="12" fill="#495057">JSON Response: <tspan font-weight="600">answer</tspan> + <tspan font-weight="600">sources</tspan> (검색 근거 문서)</text>
-            </svg>
-          </div>
-
-          <p><strong>구현 단계:</strong></p>
-          <ol>
-            <li><strong>AutoRAG 최적화 결과 분석</strong> &mdash; <code>summary.csv</code>에서 최적 retriever/reranker/generator 조합 확인</li>
-            <li><strong>벡터 DB 구축</strong> &mdash; <code>corpus.parquet</code>의 청크를 <code>bge-m3</code>로 임베딩 &rarr; ChromaDB 적재</li>
-            <li><strong>FastAPI 서버 구현</strong> &mdash; 검색 &rarr; 리랭킹 &rarr; SLM 생성 파이프라인</li>
-            <li><strong>SLM 연동</strong> &mdash; slm-factory로 학습한 모델을 Ollama로 서빙, FastAPI에서 호출</li>
-          </ol>
-
-          <pre data-lang="python"><code># 최소 구조 예시
-from fastapi import FastAPI
-import chromadb
-import httpx  # Ollama 호출용
-
-app = FastAPI()
-chroma = chromadb.PersistentClient(path="./chroma_db")
-collection = chroma.get_collection("domain_docs")
-
-@app.post("/v1/query")
-async def query(request: QueryRequest):
-    # 1. 벡터 검색
-    results = collection.query(
-        query_texts=[request.query], n_results=10
-    )
-    # 2. 리랭킹 (ko-reranker)
-    reranked = rerank(request.query, results)
-    # 3. SLM 생성 (Ollama)
-    context = "\n".join(reranked[:3])
-    answer = await call_ollama(request.query, context)
-    return {"answer": answer, "sources": reranked[:3]}</code></pre>
-
-          <p><strong>적합한 경우:</strong> 프로덕션 배포, 커스텀 로직 필요, 높은 동시성 요구</p>
-
-          <hr>
-
-          <h3 id="section-4-5">4.5 구축 단계 요약</h3>
-
-          <pre><code>Phase 1: slm-factory (SLM 학습 + Ollama 배포)
+          <pre><code>Phase 1: slm-factory run (SLM 학습 + Ollama 배포)
     &darr;
-Phase 2: export-autorag &rarr; corpus.parquet 생성
+Phase 2: rag-index &rarr; ChromaDB 인덱싱
     &darr;
-Phase 3: RAG 서비스 운영
-    &#x251C;&#x2500; A: slm-factory 내장 RAG (즉시 시작)
-    &#x251C;&#x2500; B: AutoRAG 내장 서버 (최적화 탐색)
-    &lfloor;&#x2500; C: FastAPI 커스텀 서버 (대규모 확장)</code></pre>
+Phase 3: rag-serve &rarr; RAG API 서비스 운영</code></pre>
 
           <div class="table-wrapper">
             <table>
               <thead><tr><th>단계</th><th>기간</th><th>목표</th><th>판단 기준</th></tr></thead>
               <tbody>
                 <tr><td>Phase 1</td><td>1-2주</td><td>SLM 학습 완료</td><td>BLEU &ge; 0.3, ROUGE-L &ge; 0.4</td></tr>
-                <tr><td>Phase 2</td><td>1주</td><td>RAG 파이프라인 최적화</td><td>Retrieval MRR &ge; 0.7</td></tr>
+                <tr><td>Phase 2</td><td>1일</td><td>코퍼스 인덱싱 완료</td><td>ChromaDB 문서 적재 확인</td></tr>
                 <tr><td>Phase 3</td><td>1-2주</td><td>RAG 서비스 배포</td><td>API 응답 품질 + 지연 시간</td></tr>
               </tbody>
             </table>
@@ -497,15 +319,15 @@ Phase 3: RAG 서비스 운영
 
           <div class="callout callout-info">
             <div class="callout-content">
-              <p><strong>Phase 3 시점에서 실체적인 RAG 서비스가 동작합니다.</strong> 경로 A라면 <code>uv run slm-factory tool rag-serve</code> 한 줄로, 경로 B라면 <code>autorag run_api</code> 한 줄로 REST API를 제공하는 도메인 AI 서비스가 완성됩니다.</p>
+              <p><strong>Phase 3 시점에서 실체적인 RAG 서비스가 동작합니다.</strong> <code>uv run slm-factory tool rag-serve</code> 한 줄로 REST API를 제공하는 도메인 AI 서비스가 완성됩니다.</p>
             </div>
           </div>
 
           <hr>
 
-          <h3 id="section-4-6">4.6 프로덕션 보완 체크리스트</h3>
+          <h3 id="section-4-4">4.4 프로덕션 보완 체크리스트</h3>
 
-          <p>slm-factory 내장 RAG 또는 AutoRAG 서버로 RAG 서비스를 즉시 운영할 수 있지만, <strong>엔터프라이즈 프로덕션 환경</strong>에서는 다음 항목을 보완해야 합니다.</p>
+          <p>slm-factory 내장 RAG 서버로 RAG 서비스를 즉시 운영할 수 있지만, <strong>엔터프라이즈 프로덕션 환경</strong>에서는 다음 항목을 보완해야 합니다.</p>
 
           <h4>즉시 보완 (서비스 공개 전)</h4>
           <div class="table-wrapper">
@@ -529,7 +351,7 @@ Phase 3: RAG 서비스 운영
                 <tr><td><strong>로깅</strong></td><td>질의/응답 추적</td><td>구조화 로깅 (JSON). 질의, 검색된 문서 ID, 응답 시간, 에러를 기록</td></tr>
                 <tr><td><strong>모니터링</strong></td><td>성능·품질 추적</td><td>Prometheus + Grafana: 응답 지연(p50/p95/p99), 에러율, Ollama 추론 시간</td></tr>
                 <tr><td><strong>자동 재시작</strong></td><td>장애 복구</td><td>systemd <code>Restart=always</code> 또는 Docker <code>restart: unless-stopped</code></td></tr>
-                <tr><td><strong>백업</strong></td><td>데이터 보호</td><td>벡터 DB(ChromaDB) 정기 백업. AutoRAG trial 디렉토리 버전 관리</td></tr>
+                <tr><td><strong>백업</strong></td><td>데이터 보호</td><td>벡터 DB(ChromaDB) 정기 백업. ChromaDB 벡터 인덱스 버전 관리</td></tr>
               </tbody>
             </table>
           </div>
@@ -539,7 +361,7 @@ Phase 3: RAG 서비스 운영
             <table>
               <thead><tr><th>항목</th><th>설명</th><th>보완 방법</th></tr></thead>
               <tbody>
-                <tr><td><strong>로드 밸런서</strong></td><td>수평 확장</td><td>서버 인스턴스 다중 구동 + Nginx upstream. 또는 FastAPI 전환 (경로 C)</td></tr>
+                <tr><td><strong>로드 밸런서</strong></td><td>수평 확장</td><td>서버 인스턴스 다중 구동 + Nginx upstream으로 수평 확장</td></tr>
                 <tr><td><strong>GPU 추론 최적화</strong></td><td>높은 동시성</td><td>Ollama 대신 vLLM 또는 TGI(Text Generation Inference)로 전환. 배치 추론 지원</td></tr>
                 <tr><td><strong>응답 캐싱</strong></td><td>반복 질의 최적화</td><td>Redis 캐시. 동일 질의 재처리 방지 (TTL 기반)</td></tr>
                 <tr><td><strong>벡터 DB 확장</strong></td><td>대규모 코퍼스</td><td>ChromaDB &rarr; Milvus 또는 Weaviate. 분산 인덱싱, 수백만 문서 지원</td></tr>
@@ -548,31 +370,31 @@ Phase 3: RAG 서비스 운영
             </table>
           </div>
 
-          <h4>전환 판단 기준: 경로 A &rarr; B &rarr; C</h4>
+          <h4>프로덕션 확장 판단 기준</h4>
 
-          <p>slm-factory 내장 RAG(경로 A) 또는 AutoRAG 서버(경로 B)에서 FastAPI 커스텀 서버(경로 C)로 전환해야 하는 시점:</p>
+          <p>내장 RAG 서버에서 커스텀 확장이 필요한 시점:</p>
 
           <div class="table-wrapper">
             <table>
               <thead><tr><th>신호</th><th>의미</th></tr></thead>
               <tbody>
-                <tr><td>동시 사용자 10명 이상에서 응답 지연 증가</td><td>내장 서버의 동시성 한계</td></tr>
-                <tr><td>인증·권한 로직이 복잡해짐</td><td>내장 서버에 미들웨어 추가 어려움</td></tr>
+                <tr><td>동시 사용자 10명 이상에서 응답 지연 증가</td><td>서버 인스턴스 수평 확장 필요</td></tr>
+                <tr><td>인증·권한 로직이 복잡해짐</td><td>미들웨어 커스터마이징 필요</td></tr>
                 <tr><td>검색 결과 후처리 로직 필요</td><td>커스텀 비즈니스 로직 삽입 필요</td></tr>
                 <tr><td>멀티 모델 라우팅 필요</td><td>질문 유형별 다른 SLM 호출</td></tr>
               </tbody>
             </table>
           </div>
 
-          <p>경로 A에서 시작하여, 검색 품질 최적화가 필요하면 경로 B(AutoRAG)로, 위 신호가 나타나면 경로 C(FastAPI)로 전환하십시오. AutoRAG 최적화 결과(<code>summary.csv</code>)의 최적 조합 정보를 그대로 FastAPI 구현에 반영하면 됩니다.</p>
+          <p>내장 RAG 서버로 시작하여, 위 신호가 나타나면 Nginx 로드밸런서 추가, GPU 추론 최적화(vLLM/TGI), 벡터 DB 확장(Milvus/Weaviate) 등을 단계적으로 적용하십시오.</p>
 
           <hr>
 
-          <h3 id="section-4-7">4.7 운영 팁</h3>
+          <h3 id="section-4-5">4.5 운영 팁</h3>
           <ul>
             <li><strong>문서 분리 전략</strong>: 핵심 도메인 지식은 SLM 학습에, 세부 참조 자료는 RAG 검색 코퍼스에 활용합니다.</li>
-            <li><strong>모델 크기</strong>: RAG와 함께 사용하면 1B~3B 소형 모델로도 충분합니다. SLM이 모든 지식을 기억할 필요 없이 "검색된 문서 이해"에 집중하면 됩니다.</li>
-            <li><strong>시스템 프롬프트 통일</strong>: slm-factory 학습 시 사용한 시스템 프롬프트와 AutoRAG 생성 시 프롬프트를 일관되게 유지하십시오.</li>
+            <li><strong>모델 크기</strong>: RAG와 함께 사용하면 1B~3B 소형 모델로도 충분합니다. SLM이 모든 지식을 기억할 필요 없이 &ldquo;검색된 문서 이해&rdquo;에 집중하면 됩니다.</li>
+            <li><strong>시스템 프롬프트 통일</strong>: slm-factory 학습 시 사용한 시스템 프롬프트와 RAG 서빙 시 프롬프트를 일관되게 유지하십시오.</li>
             <li><strong>업데이트</strong>: slm-factory의 <code>tool evolve</code>로 SLM을 진화시키고, RAG 코퍼스에 새 문서를 추가하여 양쪽을 동시에 갱신합니다.</li>
           </ul>
         </section>
@@ -615,7 +437,6 @@ Phase 3: RAG 서비스 운영
                 <tr><td><a href="cli-reference.html">CLI 레퍼런스</a></td><td><code>tool rag-index</code>, <code>tool rag-serve</code>, <code>tool wizard</code> 명령어 상세</td></tr>
                 <tr><td><a href="architecture.html">아키텍처 가이드</a></td><td>모듈 내부 구조와 설계 원칙</td></tr>
                 <tr><td><a href="development.html">개발 가이드</a></td><td>모듈 확장 방법</td></tr>
-                <tr><td><a href="https://github.com/Marker-Inc-Korea/AutoRAG" target="_blank" rel="noopener">AutoRAG GitHub</a></td><td>AutoRAG 공식 저장소</td></tr>
               </tbody>
             </table>
           </div>
