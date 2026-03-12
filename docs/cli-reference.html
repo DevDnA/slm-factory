@@ -1048,7 +1048,33 @@ uv run slm-factory eval compare \
               </table>
             </div>
 
-            <h4>16단계 진행 순서 <small>(Step 3b는 선택적 하위 단계)</small></h4>
+            <h4>준비 단계 <small>(wizard 전용)</small></h4>
+
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>단계</th>
+                    <th>유형</th>
+                    <th>설명</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>설정 파일 로드</td>
+                    <td><span class="tag tag-required">필수</span></td>
+                    <td><code>project.yaml</code>을 자동 탐색하거나 경로를 직접 입력합니다</td>
+                  </tr>
+                  <tr>
+                    <td>문서 선택</td>
+                    <td><span class="tag tag-required">필수</span></td>
+                    <td><code>documents/</code> 디렉토리의 파일 목록을 표시하고 전체 또는 개별 선택합니다</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <h4>파이프라인 단계 <small>(1-14)</small></h4>
 
             <blockquote>
               <p><strong>단계 유형 안내</strong>: <strong>필수</strong> &mdash; 항상 실행, 건너뛸 수 없음 &middot; <strong>선택</strong> &mdash; 사용자 확인 후 건너뛸 수 있음 (<code>enabled</code> 설정 반영) &middot; <strong>자동</strong> &mdash; 사용자 확인 없이 자동 실행</p>
@@ -1067,102 +1093,90 @@ uv run slm-factory eval compare \
                 <tbody>
                   <tr>
                     <td>1</td>
-                    <td>설정 파일 로드</td>
-                    <td><span class="tag tag-required">필수</span></td>
-                    <td><code>project.yaml</code>을 자동 탐색하거나 경로를 직접 입력합니다</td>
-                  </tr>
-                  <tr>
-                    <td>2</td>
-                    <td>문서 선택</td>
-                    <td><span class="tag tag-required">필수</span></td>
-                    <td><code>documents/</code> 디렉토리의 파일 목록을 표시하고 전체 또는 개별 선택합니다</td>
-                  </tr>
-                  <tr>
-                    <td>3</td>
                     <td>문서 파싱</td>
                     <td><span class="tag tag-required">필수</span></td>
                     <td>선택한 문서를 자동으로 파싱합니다</td>
                   </tr>
                   <tr>
-                    <td>3b</td>
+                    <td>1b</td>
                     <td>문서 청킹</td>
                     <td><span class="tag tag-optional">선택</span></td>
                     <td>긴 문서를 청크로 분할하여 QA 생성 범위를 확장합니다 (<code>chunking.enabled</code> 설정 반영)</td>
                   </tr>
                   <tr>
-                    <td>4</td>
+                    <td>2</td>
                     <td>QA 쌍 생성</td>
                     <td><span class="tag tag-required">필수</span></td>
                     <td>Teacher LLM으로 질문-답변 쌍을 생성합니다. 확인 후 진행합니다.</td>
                   </tr>
                   <tr>
-                    <td>5</td>
+                    <td>3</td>
                     <td>QA 검증</td>
                     <td><span class="tag tag-required">필수</span></td>
                     <td>규칙 기반 및 임베딩 기반 검증을 자동으로 실행합니다</td>
                   </tr>
                   <tr>
-                    <td>6</td>
+                    <td>4</td>
                     <td>품질 점수 평가</td>
                     <td><span class="tag tag-optional">선택</span></td>
                     <td>Teacher LLM이 QA 쌍을 1~5점으로 평가합니다. 저품질 QA 재생성 옵션을 포함합니다. 건너뛸 수 있습니다. (<code>scoring.enabled</code> 설정 반영)</td>
                   </tr>
                   <tr>
-                    <td>7</td>
+                    <td>5</td>
                     <td>데이터 증강</td>
                     <td><span class="tag tag-optional">선택</span></td>
                     <td>질문을 다양한 표현으로 변형하여 데이터를 늘립니다. 건너뛸 수 있습니다. (<code>augment.enabled</code> 설정 반영)</td>
                   </tr>
                   <tr>
-                    <td>8</td>
+                    <td>6</td>
                     <td>통계 분석</td>
                     <td><span class="tag tag-optional">자동</span></td>
                     <td>카테고리별 QA 분포, 길이 통계 등 분석 보고서를 생성합니다 (<code>analyzer.enabled</code> 설정 반영)</td>
                   </tr>
                   <tr>
-                    <td>9</td>
+                    <td>7</td>
                     <td>데이터 변환</td>
                     <td><span class="tag tag-optional">자동</span></td>
                     <td>QA 데이터를 채팅 템플릿 적용 JSONL 형식으로 변환합니다</td>
                   </tr>
                   <tr>
-                    <td>10</td>
-                    <td>모델 학습</td>
+                    <td>8</td>
+                    <td>LoRA 학습</td>
                     <td><span class="tag tag-required">필수</span></td>
                     <td>Student 모델에 LoRA 어댑터를 적용하여 파인튜닝합니다. 확인 후 진행합니다.</td>
                   </tr>
                   <tr>
-                    <td>11</td>
+                    <td>9</td>
                     <td>모델 내보내기</td>
                     <td><span class="tag tag-required">필수</span></td>
                     <td>LoRA 어댑터를 병합하고 Ollama Modelfile을 생성합니다. 확인 후 진행합니다.</td>
                   </tr>
                   <tr>
-                    <td>12</td>
+                    <td>10</td>
                     <td>멀티턴 대화 생성</td>
                     <td><span class="tag tag-optional">선택</span></td>
                     <td>QA 쌍을 멀티턴 대화 형식으로 확장합니다. 건너뛸 수 있습니다.</td>
                   </tr>
                   <tr>
-                    <td>13</td>
+                    <td>11</td>
                     <td>GGUF 변환</td>
                     <td><span class="tag tag-optional">선택</span></td>
                     <td>모델을 llama.cpp 호환 GGUF 형식으로 변환합니다. 건너뛸 수 있습니다. (<code>gguf_export.enabled</code> 설정 반영)</td>
                   </tr>
                   <tr>
-                    <td>14</td>
+                    <td>12</td>
                     <td>모델 평가</td>
                     <td><span class="tag tag-optional">선택</span></td>
                     <td>BLEU/ROUGE 메트릭으로 학습된 모델을 평가합니다. 건너뛸 수 있습니다.</td>
                   </tr>
                   <tr>
-                    <td>15</td>
+                    <td>13</td>
                     <td>코퍼스 내보내기</td>
                     <td><span class="tag tag-optional">선택</span></td>
                     <td>QA·문서를 RAG 인덱싱용 parquet으로 내보냅니다. 건너뛸 수 있습니다. (<code>autorag_export.enabled</code> 설정 반영)</td>
                   </tr>
                   <tr>
-                    <td>16</td>
+                    <td>14</td>
                     <td>RAG 인덱싱</td>
                     <td><span class="tag tag-optional">선택</span></td>
                     <td>corpus.parquet을 ChromaDB에 임베딩하여 적재합니다. 건너뛸 수 있습니다.</td>
