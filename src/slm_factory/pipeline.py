@@ -878,34 +878,40 @@ class Pipeline:
 
             self.config.paths.ensure_dirs()
 
-            logger.info("━━━ [1/11] 문서 파싱 ━━━")
+            logger.info("━━━ [1/14] 문서 파싱 ━━━")
             docs = self.step_parse()
 
-            logger.info("━━━ [2/11] QA 쌍 생성 ━━━")
+            logger.info("━━━ [2/14] QA 쌍 생성 ━━━")
             pairs = self.step_generate(docs)
 
-            logger.info("━━━ [3/11] 검증 및 품질 관리 ━━━")
+            logger.info("━━━ [3/14] QA 검증 ━━━")
             pairs = self.step_validate(pairs, docs=docs)
+
+            logger.info("━━━ [4/14] 품질 점수 평가 ━━━")
             pairs = self.step_score(pairs, docs=docs)
+
+            logger.info("━━━ [5/14] 데이터 증강 ━━━")
             pairs = self.step_augment(pairs)
+
+            logger.info("━━━ [6/14] 데이터 분석 ━━━")
             self.step_analyze(pairs)
 
-            logger.info("━━━ [4/11] 훈련 데이터 변환 ━━━")
+            logger.info("━━━ [7/14] 훈련 데이터 변환 ━━━")
             training_data_path = self.step_convert(pairs)
 
-            logger.info("━━━ [5/11] LoRA 학습 ━━━")
+            logger.info("━━━ [8/14] LoRA 학습 ━━━")
             adapter_path = self.step_train(training_data_path)
 
-            logger.info("━━━ [6/11] 모델 내보내기 ━━━")
+            logger.info("━━━ [9/14] 모델 내보내기 ━━━")
             model_dir = self.step_export(adapter_path)
 
-            logger.info("━━━ [7/11] 멀티턴 대화 생성 ━━━")
+            logger.info("━━━ [10/14] 멀티턴 대화 생성 ━━━")
             self.step_dialogue(pairs)
 
-            logger.info("━━━ [8/11] GGUF 변환 ━━━")
+            logger.info("━━━ [11/14] GGUF 변환 ━━━")
             self.step_gguf_export(model_dir)
 
-            logger.info("━━━ [9/11] 모델 평가 ━━━")
+            logger.info("━━━ [12/14] 모델 평가 ━━━")
             ollama_cfg = self.config.export.ollama
             if ollama_cfg.enabled and ollama_cfg.model_name and pairs:
                 if self._ollama_model_exists(ollama_cfg.model_name):
@@ -918,7 +924,7 @@ class Pipeline:
                         ollama_cfg.model_name,
                     )
 
-            logger.info("━━━ [10/11] RAG 데이터 내보내기 ━━━")
+            logger.info("━━━ [13/14] RAG 데이터 내보내기 ━━━")
             doc_dicts = [
                 asdict(d) if dataclasses.is_dataclass(d) else d
                 for d in docs
@@ -931,7 +937,7 @@ class Pipeline:
                 doc_dicts, pair_dicts,
             )
 
-            logger.info("━━━ [11/11] RAG 벡터 인덱싱 ━━━")
+            logger.info("━━━ [14/14] RAG 벡터 인덱싱 ━━━")
             self.step_rag_index(corpus_path)
 
             elapsed = time.time() - start

@@ -387,7 +387,9 @@ parsed_documents.json   →  generate 단계부터 재개
 ├── scoring: ScoringConfig
 │   ├── enabled: bool = True
 │   ├── threshold: float = 3.0
-│   └── max_concurrency: int = 4
+│   ├── max_concurrency: int = 4
+│   ├── regenerate: bool = True
+│   └── max_regenerate_rounds: int = 2
 │
 ├── augment: AugmentConfig
 │   ├── enabled: bool = True
@@ -400,7 +402,7 @@ parsed_documents.json   →  generate 단계부터 재개
 │   └── output_file: str = "data_analysis.json"
 │
 ├── student: StudentConfig
-│   ├── model: str = "Qwen/Qwen3.5-2B"
+│   ├── model: str = "Qwen/Qwen2.5-1.5B"
 │   └── max_seq_length: int = 4096
 │
 ├── training: TrainingConfig

@@ -967,7 +967,7 @@ uv run slm-factory tool compare-data -b output/qa_before_chunking.json -t output
 
           <pre data-lang="yaml"><code>scoring:
   enabled: true
-  threshold: 3.5        # 3.5점 이상만 통과 (기본값)
+  threshold: 3.5        # 3.5점 이상만 통과 (기본값: 3.0)
   max_concurrency: 4    # 동시 평가 요청 수</code></pre>
 
           <p><strong>동작</strong>: Teacher LLM이 각 QA 쌍에 대해 "이 답변이 질문에 얼마나 정확하고 유용한가?"를 1~5점으로 평가합니다. 결과는 <code>output/qa_scored.json</code>에 저장됩니다.</p>
