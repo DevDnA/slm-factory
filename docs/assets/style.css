@@ -407,6 +407,7 @@ code {
   padding: 0.15em 0.4em;
   border-radius: var(--radius-sm);
   font-weight: 500;
+  white-space: nowrap;
 }
 
 pre {
@@ -429,6 +430,7 @@ pre code {
   border-radius: 0;
   font-size: inherit;
   font-weight: 400;
+  white-space: pre;
 }
 
 /* Code block language label */
