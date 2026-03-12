@@ -33,7 +33,10 @@ class ModelComparator:
         self.max_concurrency = config.teacher.max_concurrency
 
     async def _generate(self, client: httpx.AsyncClient, model_name: str, question: str) -> str:
-        return await ollama_generate(client, self.api_base, model_name, question, self.timeout)
+        return await ollama_generate(
+            client, self.api_base, model_name, question, self.timeout,
+            max_tokens=self.compare_config.max_tokens,
+        )
 
     def _compute_scores(self, reference: str, base_answer: str, finetuned_answer: str) -> dict[str, float]:
         """Base 모델과 Fine-tuned 모델 답변의 점수를 계산합니다.

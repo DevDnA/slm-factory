@@ -73,6 +73,7 @@ async def ollama_generate(
     question: str,
     timeout: float,
     *,
+    max_tokens: int = 512,
     max_retries: int = 3,
 ) -> str:
     """Ollama /api/generate 엔드포인트로 답변을 생성합니다.
@@ -82,12 +83,19 @@ async def ollama_generate(
     """
     import asyncio as _asyncio
 
+    body: dict = {
+        "model": model_name,
+        "prompt": question,
+        "stream": False,
+        "options": {"num_predict": max_tokens},
+    }
+
     last_exc: Exception | None = None
     for attempt in range(max_retries):
         try:
             resp = await client.post(
                 f"{api_base}/api/generate",
-                json={"model": model_name, "prompt": question, "stream": False},
+                json=body,
                 timeout=timeout,
             )
             resp.raise_for_status()

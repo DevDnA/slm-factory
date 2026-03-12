@@ -512,6 +512,7 @@ export:
 | `test_split` | `float` | `0.1` | 평가에 사용할 데이터 비율 (0.0~1.0) |
 | `metrics` | `list[str]` | `["bleu", "rouge"]` | 평가 메트릭 목록 |
 | `max_samples` | `int` | `50` | 평가에 사용할 최대 샘플 수 |
+| `max_tokens` | `int` | `512` | Ollama 생성 최대 토큰 수. 평가 시 무한 생성을 방지합니다 |
 | `output_file` | `str` | `"eval_results.json"` | 평가 결과 JSON 파일명. `paths.output` 디렉토리에 저장됩니다 |
 
 **제약조건**: `max_samples`는 1 이상이어야 합니다. 0 이하로 설정하면 설정 로드 시 오류가 발생합니다.
@@ -522,6 +523,7 @@ eval:
   test_split: 0.1
   metrics: ["bleu", "rouge"]
   max_samples: 50
+  max_tokens: 512
   output_file: "eval_results.json"
 ```
 
@@ -540,6 +542,7 @@ eval:
 | `finetuned_model` | `str` | `""` | 파인튜닝된 모델 이름 (Ollama) |
 | `metrics` | `list[str]` | `["bleu", "rouge"]` | 비교 메트릭 목록 |
 | `max_samples` | `int` | `20` | 비교에 사용할 최대 샘플 수 |
+| `max_tokens` | `int` | `512` | Ollama 생성 최대 토큰 수. 비교 시 무한 생성을 방지합니다 |
 | `output_file` | `str` | `"compare_results.json"` | 비교 결과 JSON 파일명. `paths.output` 디렉토리에 저장됩니다 |
 
 **제약조건**:
@@ -553,6 +556,7 @@ compare:
   finetuned_model: "my-project-model"
   metrics: ["bleu", "rouge"]
   max_samples: 20
+  max_tokens: 512
   output_file: "compare_results.json"
 ```
 

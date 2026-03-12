@@ -179,6 +179,7 @@ eval:
                                         # 한국어(language: "ko") + kiwipiepy 설치 시 형태소 단위 평가 자동 적용
                                         # → pip install slm-factory[korean]
   max_samples: 50                       # 최대 평가 샘플 수
+  max_tokens: 512                       # 평가 시 응답 최대 토큰 수. SLM의 무한 생성을 방지합니다
   output_file: "eval_results.json"      # 평가 결과 저장 파일
   quality_gate: true                    # 평가 점수가 임계값 미달 시 경고를 출력합니다
   quality_thresholds:                   # 메트릭별 최소 통과 임계값
@@ -245,6 +246,7 @@ compare:
   finetuned_model: ""                   # 파인튜닝된 모델 (Ollama 모델명)
   metrics: ["bleu", "rouge"]            # 비교에 사용할 메트릭
   max_samples: 20                       # 비교할 최대 질문 수
+  max_tokens: 512                       # 비교 시 응답 최대 토큰 수
   output_file: "compare_results.json"   # 비교 결과 저장 파일
   # 주의: enabled: true 시 base_model과 finetuned_model은 필수입니다
 

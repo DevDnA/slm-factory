@@ -340,6 +340,8 @@ class EvalConfig(BaseModel):
     test_split: float = 0.1
     metrics: list[str] = Field(default_factory=lambda: ["bleu", "rouge"])
     max_samples: int = 50
+    max_tokens: int = 512
+    """Ollama 생성 최대 토큰 수. 평가 시 응답 길이를 제한하여 무한 생성을 방지합니다."""
     output_file: str = "eval_results.json"
     quality_gate: bool = True
     """품질 게이트 활성화 여부입니다. True이면 평가 결과가 임계값 미달 시 경고합니다."""
@@ -523,6 +525,8 @@ class CompareConfig(BaseModel):
     finetuned_model: str = ""
     metrics: list[str] = Field(default_factory=lambda: ["bleu", "rouge"])
     max_samples: int = 20
+    max_tokens: int = 512
+    """Ollama 생성 최대 토큰 수. 비교 시 응답 길이를 제한하여 무한 생성을 방지합니다."""
     output_file: str = "compare_results.json"
 
     @model_validator(mode="after")

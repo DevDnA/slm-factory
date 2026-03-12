@@ -109,7 +109,10 @@ class ModelEvaluator:
         self.max_concurrency = config.teacher.max_concurrency
 
     async def _generate(self, client: httpx.AsyncClient, model_name: str, question: str) -> str:
-        return await ollama_generate(client, self.api_base, model_name, question, self.timeout)
+        return await ollama_generate(
+            client, self.api_base, model_name, question, self.timeout,
+            max_tokens=self.eval_config.max_tokens,
+        )
 
     def _compute_scores(self, reference: str, generated: str) -> dict[str, float]:
         """설정된 메트릭으로 점수를 계산합니다.
