@@ -137,6 +137,8 @@ uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
 
           <h3 id="cli-start">시작하기</h3>
 
+          <blockquote><p>모든 명령어는 <code>uv run</code> 접두사를 붙여 실행합니다. (예: <code>uv run slm-factory run</code>)</p></blockquote>
+
           <div class="table-wrapper">
             <table>
               <thead>
@@ -579,7 +581,7 @@ uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
               <!-- ── Stage 9: export (필수) ── -->
               <rect x="100" y="452" width="180" height="38" rx="6" fill="#1B3A5C"/>
               <text x="190" y="467" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#FFFFFF" text-anchor="middle">export</text>
-              <text x="190" y="481" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">모델 배포</text>
+              <text x="190" y="481" font-family="Pretendard, sans-serif" font-size="10" fill="rgba(255,255,255,0.7)" text-anchor="middle">모델 내보내기</text>
               <line x1="280" y1="471" x2="320" y2="471" stroke="#CBD5E0" stroke-width="1"/>
               <rect x="325" y="460" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
               <text x="335" y="475" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">merged_model/</text>
@@ -589,7 +591,7 @@ uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
               <!-- ── Stage 10: dialogue (선택) ── -->
               <rect x="100" y="500" width="180" height="38" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
               <text x="190" y="515" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">dialogue</text>
-              <text x="190" y="529" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">멀티턴 대화</text>
+              <text x="190" y="529" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">멀티턴 대화 생성</text>
               <line x1="280" y1="519" x2="320" y2="519" stroke="#CBD5E0" stroke-width="1"/>
               <rect x="325" y="508" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
               <text x="335" y="523" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">dialogues.json</text>
@@ -625,7 +627,7 @@ uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
               <!-- ── Stage 14: rag_index (선택) ── -->
               <rect x="100" y="692" width="180" height="38" rx="6" fill="#FFFAF0" stroke="#ED8936" stroke-width="1" stroke-dasharray="6,3"/>
               <text x="190" y="707" font-family="Pretendard, sans-serif" font-size="13" font-weight="600" fill="#C05621" text-anchor="middle">rag_index</text>
-              <text x="190" y="721" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">벡터 인덱싱</text>
+              <text x="190" y="721" font-family="Pretendard, sans-serif" font-size="10" fill="#4A5568" text-anchor="middle">RAG 인덱싱</text>
               <line x1="280" y1="711" x2="320" y2="711" stroke="#CBD5E0" stroke-width="1"/>
               <rect x="325" y="700" width="200" height="22" rx="4" fill="#EBF8FF" stroke="#E2E8F0" stroke-width="1"/>
               <text x="335" y="715" font-family="JetBrains Mono, Consolas, monospace" font-size="10.5" fill="#4A5568">chroma_db/</text>
@@ -776,7 +778,7 @@ teacher:
   temperature: 0.3
 
 student:
-  model: "Qwen/Qwen3.5-2B"
+  model: "Qwen/Qwen2.5-1.5B"
 
 export:
   ollama:

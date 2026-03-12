@@ -49,6 +49,8 @@ uv run slm-factory tool wizard --config my-project/project.yaml
 
 ### 🚀 시작하기
 
+> 모든 명령어는 `uv run` 접두사를 붙여 실행합니다. (예: `uv run slm-factory run`)
+
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|-----------|
 | `slm-factory init <name>` | 새 프로젝트 초기화 | `--path <디렉토리>` |
@@ -252,7 +254,7 @@ teacher:
   temperature: 0.3
 
 student:
-  model: "Qwen/Qwen3.5-2B"
+  model: "Qwen/Qwen2.5-1.5B"
 
 export:
   ollama:
