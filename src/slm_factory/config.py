@@ -309,6 +309,16 @@ class OllamaExportConfig(BaseModel):
         "num_ctx": 4096,
     })
 
+    @model_validator(mode="after")
+    def _sanitize_model_name(self) -> "OllamaExportConfig":
+        from pathlib import PurePosixPath
+
+        if "/" in self.model_name:
+            sanitized = PurePosixPath(self.model_name).name
+            if sanitized:
+                self.model_name = sanitized
+        return self
+
 
 class ExportConfig(BaseModel):
     """모델 내보내기 및 패키징 설정입니다."""
