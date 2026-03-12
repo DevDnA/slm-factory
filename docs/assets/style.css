@@ -662,6 +662,12 @@ blockquote p:last-child {
   border: 1px solid var(--color-border);
 }
 
+.tag-auto {
+  background: #e8f4fd;
+  color: #1565c0;
+  border: 1px solid #90caf9;
+}
+
 .tag-new {
   background: var(--color-success-bg);
   color: var(--color-success);
