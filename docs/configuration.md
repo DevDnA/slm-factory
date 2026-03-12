@@ -256,7 +256,16 @@ questions:
 | `reject_patterns` | `list[str]` | (하위 참조) | 답변에서 거부할 정규식 패턴 목록. 패턴이 매칭되면 해당 QA 쌍을 거부합니다 |
 | `groundedness` | `GroundednessConfig` | (하위 참조) | 의미적 근거성 검증 설정 |
 
-기본 거부 패턴 3개: `"(?i)i don't know"`, `"(?i)not (available|provided|mentioned|found)"`, `"(?i)the document does not contain"`. `(?i)` 플래그는 대소문자를 구분하지 않습니다.
+기본 거부 패턴 6개 (영어 3개 + 한국어 3개):
+
+- `"(?i)i don't know"`
+- `"(?i)not (available|provided|mentioned|found)"`
+- `"(?i)the document does not contain"`
+- `"(?:알|확인할|파악할|판단할) 수 없"`
+- `"정보.{0,8}(?:없|부족|찾을 수 없)"`
+- `"(?:문서|자료|내용)에서?.{0,12}(?:찾을 수 없|포함되어 있지 않|언급되지 않|다루고 있지 않)"`
+
+`(?i)` 플래그는 대소문자를 구분하지 않습니다.
 
 **제약조건**: `min_answer_length`는 반드시 `max_answer_length`보다 작아야 합니다. 그렇지 않으면 설정 로드 시 오류가 발생합니다.
 
@@ -270,6 +279,8 @@ questions:
 | `model` | `str` | `"all-MiniLM-L6-v2"` | 사용할 sentence-transformers 모델 |
 | `threshold` | `float` | `0.3` | 코사인 유사도 임계값 (0.0~1.0). 높을수록 엄격하게 검증합니다 |
 
+아래 예시는 한국어 문서에 권장하는 설정입니다. 기본 거부 패턴 대신 간결한 한국어 패턴을 추가하고, 다국어 임베딩 모델을 사용합니다.
+
 ```yaml
 validation:
   enabled: true
@@ -278,9 +289,11 @@ validation:
   remove_empty: true
   deduplicate: true
   reject_patterns:
+    # 영어 패턴 (기본값)
     - "(?i)i don't know"
     - "(?i)not (available|provided|mentioned|found)"
     - "(?i)the document does not contain"
+    # 한국어 패턴 (사용자 추가)
     - "(?i)알 수 없"
     - "(?i)정보가 없"
     - "(?i)언급되지 않"
@@ -288,8 +301,8 @@ validation:
     - "(?i)제공되지 않"
   groundedness:
     enabled: true
-    model: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-    threshold: 0.35
+    model: "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"  # 기본값: all-MiniLM-L6-v2
+    threshold: 0.35  # 기본값: 0.3
 ```
 
 한국어 문서에는 다국어 임베딩 모델 `paraphrase-multilingual-MiniLM-L12-v2`를 권장합니다.

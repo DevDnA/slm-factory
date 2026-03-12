@@ -673,10 +673,10 @@ QA 생성 건너뜀:
   → "나중에 실행: uv run slm-factory run --until generate --config {config_path}"
 
 학습 건너뜀:
-  → "나중에 실행: slm-factory train --config {config_path} --data {training_data_path}"
+  → "나중에 실행: uv run slm-factory train --config {config_path} --data {training_data_path}"
 
 내보내기 건너뜀:
-  → "나중에 실행: slm-factory export --config {config_path} --adapter {adapter_path}"
+  → "나중에 실행: uv run slm-factory export --config {config_path} --adapter {adapter_path}"
 ```
 
 중간 결과 파일은 보존되므로 `--resume` 옵션 또는 개별 명령어로 이어서 진행할 수 있습니다.
