@@ -102,7 +102,7 @@ def detect_device() -> DeviceInfo:
     if torch.cuda.is_available():
         gpu_count = torch.cuda.device_count()
         device_name = torch.cuda.get_device_name(0)
-        vram_gb = torch.cuda.get_device_properties(0).total_mem / (1024**3)
+        vram_gb = torch.cuda.get_device_properties(0).total_memory / (1024**3)
         cuda_version = torch.version.cuda or "unknown"
         bnb_available = _check_bitsandbytes()
 
@@ -223,7 +223,9 @@ def print_device_summary(device: DeviceInfo) -> None:
         "float16": "[green]float16[/green]",
         "float32": "[yellow]float32[/yellow]",
     }
-    table.add_row("학습 정밀도", dtype_display.get(device.dtype_name, device.dtype_name))
+    table.add_row(
+        "학습 정밀도", dtype_display.get(device.dtype_name, device.dtype_name)
+    )
 
     # 양자화
     if device.quantization_available:
@@ -231,7 +233,9 @@ def print_device_summary(device: DeviceInfo) -> None:
     elif device.type == "mps":
         table.add_row("4bit 양자화", "[dim]미지원[/dim] (Unified Memory로 대체)")
     else:
-        table.add_row("4bit 양자화", "[yellow]미설치[/yellow] (pip install bitsandbytes)")
+        table.add_row(
+            "4bit 양자화", "[yellow]미설치[/yellow] (pip install bitsandbytes)"
+        )
 
     # 옵티마이저
     table.add_row("옵티마이저", device.recommended_optimizer)
