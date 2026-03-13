@@ -14,8 +14,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .config import SLMConfig
-    from .models import CompareResult, EvalResult, MultiTurnDialogue, ParsedDocument, QAPair
-    from .scorer import QualityScorer
+    from .models import CompareResult, EvalResult, ParsedDocument, QAPair
     from .teacher.base import BaseTeacher
 
 from .utils import get_logger, run_async
@@ -41,7 +40,9 @@ class Pipeline:
         try:
             result = subprocess.run(
                 ["ollama", "show", model_name],
-                capture_output=True, text=True, timeout=3,
+                capture_output=True,
+                text=True,
+                timeout=3,
             )
             return result.returncode == 0
         except (FileNotFoundError, subprocess.TimeoutExpired):
@@ -70,13 +71,15 @@ class Pipeline:
                 filtered = {k: v for k, v in item.items() if k in valid_fields}
                 pairs.append(QAPair(**filtered))
             elif "instruction" in item:
-                pairs.append(QAPair(
-                    question=item.get("instruction", ""),
-                    answer=item.get("output", ""),
-                    instruction=item.get("instruction", ""),
-                    source_doc=item.get("source_doc", ""),
-                    category=item.get("category", ""),
-                ))
+                pairs.append(
+                    QAPair(
+                        question=item.get("instruction", ""),
+                        answer=item.get("output", ""),
+                        instruction=item.get("instruction", ""),
+                        source_doc=item.get("source_doc", ""),
+                        category=item.get("category", ""),
+                    )
+                )
         return pairs
 
     # ------------------------------------------------------------------
@@ -84,7 +87,8 @@ class Pipeline:
     # ------------------------------------------------------------------
 
     def step_parse(
-        self, files: list[Path] | None = None,
+        self,
+        files: list[Path] | None = None,
     ) -> list[ParsedDocument]:
         """설정된 디렉토리의 모든 문서를 파싱합니다.
 
@@ -118,7 +122,9 @@ class Pipeline:
         )
 
         docs = registry.parse_directory(
-            self.config.paths.documents, formats=extensions, files=files,
+            self.config.paths.documents,
+            formats=extensions,
+            files=files,
         )
 
         if not docs:
@@ -276,20 +282,22 @@ class Pipeline:
             scorer.score_all(pairs, source_texts=source_texts)
         )
 
-        if (
-            self.config.scoring.regenerate
-            and filtered
-            and docs
-        ):
+        if self.config.scoring.regenerate and filtered and docs:
             accepted = self._regenerate_low_quality(
-                accepted, filtered, docs, teacher, scorer,
+                accepted,
+                filtered,
+                docs,
+                teacher,
+                scorer,
             )
 
         scored_path = self.output_dir / "qa_scored.json"
         self._save_pairs(accepted, scored_path)
         logger.info(
             "Scoring complete: %d accepted, %d filtered — saved to %s",
-            len(accepted), len(filtered), scored_path,
+            len(accepted),
+            len(filtered),
+            scored_path,
         )
         return accepted
 
@@ -316,12 +324,16 @@ class Pipeline:
 
             logger.info(
                 "Regeneration round %d/%d: %d pairs to improve",
-                round_num, max_rounds, len(remaining),
+                round_num,
+                max_rounds,
+                len(remaining),
             )
 
             regen_pairs = run_async(
                 self._regenerate_round(
-                    remaining, doc_map, generator,
+                    remaining,
+                    doc_map,
+                    generator,
                 )
             )
 
@@ -334,7 +346,9 @@ class Pipeline:
 
             logger.info(
                 "Regeneration round %d: %d recovered, %d still below threshold",
-                round_num, len(new_accepted), len(new_filtered),
+                round_num,
+                len(new_accepted),
+                len(new_filtered),
             )
 
         return accepted
@@ -380,7 +394,8 @@ class Pipeline:
         results: list[QAPair] = []
         with progress:
             task_id = progress.add_task(
-                "저품질 QA 재생성 중...", total=len(items),
+                "저품질 QA 재생성 중...",
+                total=len(items),
             )
             tasks = [
                 run_bounded(
@@ -451,7 +466,8 @@ class Pipeline:
         except Exception as e:
             logger.error(
                 "Regeneration failed for '%s': %s",
-                pair.question[:40], e,
+                pair.question[:40],
+                e,
             )
         return None
 
@@ -489,7 +505,9 @@ class Pipeline:
         self._save_pairs(augmented, augmented_path)
         logger.info(
             "Augmentation complete: %d → %d pairs — saved to %s",
-            len(pairs), len(augmented), augmented_path,
+            len(pairs),
+            len(augmented),
+            augmented_path,
         )
         return augmented
 
@@ -617,7 +635,9 @@ class Pipeline:
             )
             logger.info(
                 "Ollama Modelfile: %s — 모델 등록 실패 시: ollama create %s -f %s",
-                modelfile_path, ollama_model, modelfile_path,
+                modelfile_path,
+                ollama_model,
+                modelfile_path,
             )
 
         logger.info("Export complete — model at %s", model_dir)
@@ -628,7 +648,9 @@ class Pipeline:
     # ------------------------------------------------------------------
 
     def step_eval(
-        self, pairs: list[QAPair], model_name: str,
+        self,
+        pairs: list[QAPair],
+        model_name: str,
     ) -> list[EvalResult]:
         """학습된 모델의 품질을 QA 쌍으로 자동 평가합니다.
 
@@ -662,7 +684,8 @@ class Pipeline:
 
         if self.config.eval.quality_gate and results:
             passed, averages = evaluator.check_quality_gate(
-                results, self.config.eval.quality_thresholds,
+                results,
+                self.config.eval.quality_thresholds,
             )
             if not passed:
                 logger.warning(
@@ -671,39 +694,10 @@ class Pipeline:
                     self.config.eval.quality_thresholds,
                 )
 
-        logger.info("Evaluation complete: %d results — saved to %s", len(results), eval_path)
+        logger.info(
+            "Evaluation complete: %d results — saved to %s", len(results), eval_path
+        )
         return results
-
-    # ------------------------------------------------------------------
-    # 단계 8: GGUF 변환
-    # ------------------------------------------------------------------
-
-    def step_gguf_export(self, model_dir: Path) -> Path:
-        """병합된 모델을 GGUF 양자화 형식으로 변환합니다.
-
-        매개변수
-        ----------
-        model_dir:
-            :meth:`step_export`에서 얻은 병합된 모델 디렉토리입니다.
-
-        반환값
-        -------
-        Path
-            생성된 GGUF 파일의 경로입니다.
-        """
-        from .exporter.gguf_export import GGUFExporter
-
-        if not self.config.gguf_export.enabled:
-            logger.info("GGUF export disabled — skipping")
-            return model_dir
-
-        logger.info("Converting model to GGUF format...")
-
-        exporter = GGUFExporter(self.config)
-        gguf_path = exporter.export(model_dir)
-
-        logger.info("GGUF export complete: %s", gguf_path)
-        return gguf_path
 
     # ------------------------------------------------------------------
     # RAG 벡터 인덱싱
@@ -782,44 +776,7 @@ class Pipeline:
         return corpus_path, qa_path
 
     # ------------------------------------------------------------------
-    # 단계 9: 멀티턴 대화 생성
-    # ------------------------------------------------------------------
-
-    def step_dialogue(self, pairs: list[QAPair]) -> list[MultiTurnDialogue]:
-        """QA 쌍에서 멀티턴 대화 데이터를 생성합니다.
-
-        매개변수
-        ----------
-        pairs:
-            대화 생성에 사용할 QA 쌍입니다.
-
-        반환값
-        -------
-        list[MultiTurnDialogue]
-            생성된 멀티턴 대화 목록입니다.
-        """
-        from .models import MultiTurnDialogue
-        from .teacher import create_teacher
-        from .teacher.dialogue_generator import DialogueGenerator
-
-        if not self.config.dialogue.enabled:
-            logger.info("Dialogue generation disabled — skipping")
-            return []
-
-        logger.info("Generating multi-turn dialogues from %d pairs...", len(pairs))
-
-        teacher = create_teacher(self.config.teacher)
-        generator = DialogueGenerator(teacher, self.config.dialogue, self.config.teacher)
-        dialogues = run_async(generator.generate_all(pairs))
-
-        dialogue_path = self.output_dir / "dialogues.json"
-        generator.save_dialogues(dialogues, dialogue_path)
-
-        logger.info("Dialogue generation complete: %d dialogues — saved to %s", len(dialogues), dialogue_path)
-        return dialogues
-
-    # ------------------------------------------------------------------
-    # 단계 10: 모델 비교
+    # 단계 9: 모델 비교
     # ------------------------------------------------------------------
 
     def step_compare(self, pairs: list[QAPair]) -> list[CompareResult]:
@@ -851,7 +808,9 @@ class Pipeline:
         comparator.save_results(results, compare_path)
         comparator.print_summary(results)
 
-        logger.info("Comparison complete: %d results — saved to %s", len(results), compare_path)
+        logger.info(
+            "Comparison complete: %d results — saved to %s", len(results), compare_path
+        )
         return results
 
     # ------------------------------------------------------------------
@@ -878,40 +837,34 @@ class Pipeline:
 
             self.config.paths.ensure_dirs()
 
-            logger.info("━━━ [1/14] 문서 파싱 ━━━")
+            logger.info("━━━ [1/12] 문서 파싱 ━━━")
             docs = self.step_parse()
 
-            logger.info("━━━ [2/14] QA 쌍 생성 ━━━")
+            logger.info("━━━ [2/12] QA 쌍 생성 ━━━")
             pairs = self.step_generate(docs)
 
-            logger.info("━━━ [3/14] QA 검증 ━━━")
+            logger.info("━━━ [3/12] QA 검증 ━━━")
             pairs = self.step_validate(pairs, docs=docs)
 
-            logger.info("━━━ [4/14] 품질 점수 평가 ━━━")
+            logger.info("━━━ [4/12] 품질 점수 평가 ━━━")
             pairs = self.step_score(pairs, docs=docs)
 
-            logger.info("━━━ [5/14] 데이터 증강 ━━━")
+            logger.info("━━━ [5/12] 데이터 증강 ━━━")
             pairs = self.step_augment(pairs)
 
-            logger.info("━━━ [6/14] 데이터 분석 ━━━")
+            logger.info("━━━ [6/12] 데이터 분석 ━━━")
             self.step_analyze(pairs)
 
-            logger.info("━━━ [7/14] 훈련 데이터 변환 ━━━")
+            logger.info("━━━ [7/12] 훈련 데이터 변환 ━━━")
             training_data_path = self.step_convert(pairs)
 
-            logger.info("━━━ [8/14] LoRA 학습 ━━━")
+            logger.info("━━━ [8/12] LoRA 학습 ━━━")
             adapter_path = self.step_train(training_data_path)
 
-            logger.info("━━━ [9/14] 모델 내보내기 ━━━")
+            logger.info("━━━ [9/12] 모델 내보내기 ━━━")
             model_dir = self.step_export(adapter_path)
 
-            logger.info("━━━ [10/14] 멀티턴 대화 생성 ━━━")
-            self.step_dialogue(pairs)
-
-            logger.info("━━━ [11/14] GGUF 변환 ━━━")
-            self.step_gguf_export(model_dir)
-
-            logger.info("━━━ [12/14] 모델 평가 ━━━")
+            logger.info("━━━ [10/12] 모델 평가 ━━━")
             ollama_cfg = self.config.export.ollama
             if ollama_cfg.enabled and ollama_cfg.model_name and pairs:
                 if self._ollama_model_exists(ollama_cfg.model_name):
@@ -924,20 +877,17 @@ class Pipeline:
                         ollama_cfg.model_name,
                     )
 
-            logger.info("━━━ [13/14] RAG 데이터 내보내기 ━━━")
-            doc_dicts = [
-                asdict(d) if dataclasses.is_dataclass(d) else d
-                for d in docs
-            ]
+            logger.info("━━━ [11/12] RAG 데이터 내보내기 ━━━")
+            doc_dicts = [asdict(d) if dataclasses.is_dataclass(d) else d for d in docs]
             pair_dicts = [
-                asdict(p) if dataclasses.is_dataclass(p) else p
-                for p in pairs
+                asdict(p) if dataclasses.is_dataclass(p) else p for p in pairs
             ]
             corpus_path, _qa_path = self.step_autorag_export(
-                doc_dicts, pair_dicts,
+                doc_dicts,
+                pair_dicts,
             )
 
-            logger.info("━━━ [14/14] RAG 벡터 인덱싱 ━━━")
+            logger.info("━━━ [12/12] RAG 벡터 인덱싱 ━━━")
             self.step_rag_index(corpus_path)
 
             elapsed = time.time() - start

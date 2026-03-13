@@ -56,8 +56,11 @@ class TestChunkingToQAChain:
 
         long_content = _long_content(paragraphs=8, chars_per_paragraph=1500)
         doc = ParsedDocument(
-            doc_id="long.pdf", title="긴 문서", content=long_content,
-            tables=[], metadata={},
+            doc_id="long.pdf",
+            title="긴 문서",
+            content=long_content,
+            tables=[],
+            metadata={},
         )
 
         generator = QAGenerator.__new__(QAGenerator)
@@ -83,8 +86,11 @@ class TestChunkingToQAChain:
         )
 
         doc = ParsedDocument(
-            doc_id="test.pdf", title="문서", content="짧은 내용",
-            tables=[], metadata={},
+            doc_id="test.pdf",
+            title="문서",
+            content="짧은 내용",
+            tables=[],
+            metadata={},
         )
 
         generator = QAGenerator.__new__(QAGenerator)
@@ -118,31 +124,45 @@ class TestChunkingToQAChain:
 
         assert "테스트 문서 (Part 2/5)" in prompt
 
-    def test_파이프라인_step_generate에서_청킹_동작(self, make_config, tmp_path, mocker):
+    def test_파이프라인_step_generate에서_청킹_동작(
+        self, make_config, tmp_path, mocker
+    ):
         """Pipeline.step_generate가 청킹 활성화 시 generate_all_async를 올바르게 호출하는지 확인합니다."""
         pipeline = _make_pipeline(
-            make_config, tmp_path,
+            make_config,
+            tmp_path,
             chunking={"enabled": True, "chunk_size": 5000, "overlap_chars": 300},
             questions={"categories": {"test": ["질문?"]}},
         )
 
         doc = ParsedDocument(
-            doc_id="test.pdf", title="문서", content=_long_content(5, 2000),
-            tables=[], metadata={},
+            doc_id="test.pdf",
+            title="문서",
+            content=_long_content(5, 2000),
+            tables=[],
+            metadata={},
         )
 
         mock_qa = QAPair(
-            question="질문?", answer="답변", instruction="질문?",
-            source_doc="test.pdf", category="",
+            question="질문?",
+            answer="답변",
+            instruction="질문?",
+            source_doc="test.pdf",
+            category="",
         )
 
-        mock_generator_cls = mocker.patch("slm_factory.teacher.qa_generator.QAGenerator")
+        mock_generator_cls = mocker.patch(
+            "slm_factory.teacher.qa_generator.QAGenerator"
+        )
         mock_generator = mock_generator_cls.return_value
         mock_generator.save_alpaca = MagicMock()
 
         mock_coro = AsyncMock(return_value=[mock_qa])
         mock_generator.generate_all_async = mock_coro
-        mocker.patch("slm_factory.pipeline.run_async", side_effect=lambda c: asyncio.run(c) if asyncio.iscoroutine(c) else c)
+        mocker.patch(
+            "slm_factory.pipeline.run_async",
+            side_effect=lambda c: asyncio.run(c) if asyncio.iscoroutine(c) else c,
+        )
         mocker.patch("slm_factory.pipeline.run_async", return_value=[mock_qa])
 
         pairs = pipeline.step_generate([doc])
@@ -159,22 +179,38 @@ class TestChunkingToQAChain:
 class TestScoreRegenerationLoop:
     """점수 평가 후 저품질 QA를 재생성하는 루프를 검증합니다."""
 
-    def test_재생성이_낮은_점수_QA를_복구(self, make_config, make_qa_pair, make_parsed_doc, tmp_path, mocker):
+    def test_재생성이_낮은_점수_QA를_복구(
+        self, make_config, make_qa_pair, make_parsed_doc, tmp_path, mocker
+    ):
         """재생성 활성화 시 낮은 점수 QA가 재생성되어 복구되는지 확인합니다."""
         pipeline = _make_pipeline(
-            make_config, tmp_path,
-            scoring={"enabled": True, "threshold": 3.0, "regenerate": True, "max_regenerate_rounds": 2},
+            make_config,
+            tmp_path,
+            scoring={
+                "enabled": True,
+                "threshold": 3.0,
+                "regenerate": True,
+                "max_regenerate_rounds": 2,
+            },
         )
 
-        good_pair = make_qa_pair(question="좋은 질문", answer="충분히 긴 좋은 답변입니다. 정확하고 상세한 내용을 포함합니다.")
-        bad_pair = make_qa_pair(question="나쁜 질문", answer="충분히 긴 나쁜 답변입니다. 부정확한 내용이 포함되어 있습니다.")
+        good_pair = make_qa_pair(
+            question="좋은 질문",
+            answer="충분히 긴 좋은 답변입니다. 정확하고 상세한 내용을 포함합니다.",
+        )
+        bad_pair = make_qa_pair(
+            question="나쁜 질문",
+            answer="충분히 긴 나쁜 답변입니다. 부정확한 내용이 포함되어 있습니다.",
+        )
         doc = make_parsed_doc(doc_id="test.pdf")
 
         mock_teacher = MagicMock()
-        regen_response = json.dumps({
-            "instruction": "나쁜 질문",
-            "output": "충분히 긴 재생성된 개선 답변입니다. 정확하고 상세한 내용을 포함합니다.",
-        })
+        regen_response = json.dumps(
+            {
+                "instruction": "나쁜 질문",
+                "output": "충분히 긴 재생성된 개선 답변입니다. 정확하고 상세한 내용을 포함합니다.",
+            }
+        )
 
         async def mock_agenerate(prompt, **kwargs):
             return regen_response
@@ -196,17 +232,27 @@ class TestScoreRegenerationLoop:
         mock_scorer = mock_scorer_cls.return_value
         mock_scorer.score_all = mock_score_all
 
-        mocker.patch("slm_factory.pipeline.run_async", side_effect=lambda c: asyncio.run(c))
+        mocker.patch(
+            "slm_factory.pipeline.run_async", side_effect=lambda c: asyncio.run(c)
+        )
 
         result = pipeline.step_score([good_pair, bad_pair], docs=[doc])
 
         assert len(result) >= 2
 
-    def test_재생성_프롬프트에_이전_점수_피드백_포함(self, make_config, make_qa_pair, make_parsed_doc, tmp_path, mocker):
+    def test_재생성_프롬프트에_이전_점수_피드백_포함(
+        self, make_config, make_qa_pair, make_parsed_doc, tmp_path, mocker
+    ):
         """재생성 프롬프트에 이전 점수와 이유가 포함되는지 확인합니다."""
         pipeline = _make_pipeline(
-            make_config, tmp_path,
-            scoring={"enabled": True, "threshold": 3.0, "regenerate": True, "max_regenerate_rounds": 1},
+            make_config,
+            tmp_path,
+            scoring={
+                "enabled": True,
+                "threshold": 3.0,
+                "regenerate": True,
+                "max_regenerate_rounds": 1,
+            },
         )
 
         bad_pair = make_qa_pair(question="질문", source_doc="test.pdf")
@@ -218,7 +264,12 @@ class TestScoreRegenerationLoop:
 
         async def capture_agenerate(prompt, **kwargs):
             captured_prompts.append(prompt)
-            return json.dumps({"instruction": "질문", "output": "개선된 답변입니다. 충분히 길고 정확합니다."})
+            return json.dumps(
+                {
+                    "instruction": "질문",
+                    "output": "개선된 답변입니다. 충분히 길고 정확합니다.",
+                }
+            )
 
         mock_teacher.agenerate = capture_agenerate
 
@@ -230,7 +281,9 @@ class TestScoreRegenerationLoop:
         mock_scorer_cls = mocker.patch("slm_factory.scorer.QualityScorer")
         mock_scorer_cls.return_value.score_all = mock_score_all
 
-        mocker.patch("slm_factory.pipeline.run_async", side_effect=lambda c: asyncio.run(c))
+        mocker.patch(
+            "slm_factory.pipeline.run_async", side_effect=lambda c: asyncio.run(c)
+        )
 
         pipeline.step_score([bad_pair], docs=[doc])
 
@@ -238,10 +291,13 @@ class TestScoreRegenerationLoop:
         assert "2/5점" in captured_prompts[0]
         assert "불완전한 답변" in captured_prompts[0]
 
-    def test_docs_없으면_재생성_건너뜀(self, make_config, make_qa_pair, tmp_path, mocker):
+    def test_docs_없으면_재생성_건너뜀(
+        self, make_config, make_qa_pair, tmp_path, mocker
+    ):
         """docs가 None이면 재생성을 건너뛰는지 확인합니다."""
         pipeline = _make_pipeline(
-            make_config, tmp_path,
+            make_config,
+            tmp_path,
             scoring={"enabled": True, "threshold": 3.0, "regenerate": True},
         )
 
@@ -271,7 +327,8 @@ class TestFullChainIntegration:
     def test_run_메서드에서_전체_체인_실행(self, make_config, tmp_path, mocker):
         """Pipeline.run()이 청킹+재생성을 포함해 전체 체인을 실행하는지 확인합니다."""
         pipeline = _make_pipeline(
-            make_config, tmp_path,
+            make_config,
+            tmp_path,
             chunking={"enabled": True, "chunk_size": 5000, "overlap_chars": 300},
             scoring={"enabled": True, "threshold": 3.0, "regenerate": True},
         )
@@ -291,10 +348,10 @@ class TestFullChainIntegration:
         mocker.patch.object(pipeline, "step_convert", return_value=mock_training_path)
         mocker.patch.object(pipeline, "step_train", return_value=mock_adapter)
         mocker.patch.object(pipeline, "step_export", return_value=mock_export)
-        mocker.patch.object(pipeline, "step_dialogue", return_value=[])
-        mocker.patch.object(pipeline, "step_gguf_export", return_value=mock_export)
         mocker.patch.object(pipeline, "step_eval", return_value=[])
-        mocker.patch.object(pipeline, "step_autorag_export", return_value=(Path(), Path()))
+        mocker.patch.object(
+            pipeline, "step_autorag_export", return_value=(Path(), Path())
+        )
         mocker.patch.object(pipeline, "step_rag_index", return_value=Path())
 
         pipeline.run()
@@ -331,20 +388,31 @@ class TestEdgeCases:
         result = chunk_document(single_paragraph, chunk_size=5000, overlap=300)
         assert len(result) > 1
 
-    def test_재생성_max_rounds_초과시_중단(self, make_config, make_qa_pair, make_parsed_doc, tmp_path, mocker):
+    def test_재생성_max_rounds_초과시_중단(
+        self, make_config, make_qa_pair, make_parsed_doc, tmp_path, mocker
+    ):
         """max_regenerate_rounds를 초과하면 재생성이 중단되는지 확인합니다."""
         pipeline = _make_pipeline(
-            make_config, tmp_path,
-            scoring={"enabled": True, "threshold": 3.0, "regenerate": True, "max_regenerate_rounds": 1},
+            make_config,
+            tmp_path,
+            scoring={
+                "enabled": True,
+                "threshold": 3.0,
+                "regenerate": True,
+                "max_regenerate_rounds": 1,
+            },
         )
 
         bad_pair = make_qa_pair(source_doc="test.pdf")
         doc = make_parsed_doc(doc_id="test.pdf")
 
         mock_teacher = MagicMock()
-        regen_response = json.dumps({
-            "instruction": "질문", "output": "여전히 부족한 답변입니다. 개선이 필요합니다.",
-        })
+        regen_response = json.dumps(
+            {
+                "instruction": "질문",
+                "output": "여전히 부족한 답변입니다. 개선이 필요합니다.",
+            }
+        )
 
         async def mock_agenerate(prompt, **kwargs):
             return regen_response
@@ -359,11 +427,10 @@ class TestEdgeCases:
         mock_scorer_cls = mocker.patch("slm_factory.scorer.QualityScorer")
         mock_scorer_cls.return_value.score_all = always_fail_score
 
-        mocker.patch("slm_factory.pipeline.run_async", side_effect=lambda c: asyncio.run(c))
+        mocker.patch(
+            "slm_factory.pipeline.run_async", side_effect=lambda c: asyncio.run(c)
+        )
 
         result = pipeline.step_score([bad_pair], docs=[doc])
 
         assert len(result) == 0
-
-
-

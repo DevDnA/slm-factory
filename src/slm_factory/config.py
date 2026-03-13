@@ -178,14 +178,16 @@ class ValidationConfig(BaseModel):
     max_answer_length: int = 2000
     remove_empty: bool = True
     deduplicate: bool = True
-    reject_patterns: list[str] = Field(default_factory=lambda: [
-        "(?i)i don't know",
-        "(?i)not (available|provided|mentioned|found)",
-        "(?i)the document does not contain",
-        "(?:알|확인할|파악할|판단할) 수 없",
-        "정보.{0,8}(?:없|부족|찾을 수 없)",
-        "(?:문서|자료|내용)에서?.{0,12}(?:찾을 수 없|포함되어 있지 않|언급되지 않|다루고 있지 않)",
-    ])
+    reject_patterns: list[str] = Field(
+        default_factory=lambda: [
+            "(?i)i don't know",
+            "(?i)not (available|provided|mentioned|found)",
+            "(?i)the document does not contain",
+            "(?:알|확인할|파악할|판단할) 수 없",
+            "정보.{0,8}(?:없|부족|찾을 수 없)",
+            "(?:문서|자료|내용)에서?.{0,12}(?:찾을 수 없|포함되어 있지 않|언급되지 않|다루고 있지 않)",
+        ]
+    )
     groundedness: GroundednessConfig = Field(default_factory=GroundednessConfig)
 
     @model_validator(mode="after")
@@ -201,6 +203,7 @@ class ValidationConfig(BaseModel):
 
 class ScoringConfig(BaseModel):
     """교사 LLM을 사용한 QA 쌍 품질 점수 설정입니다."""
+
     enabled: bool = True
     threshold: float = 3.0
     max_concurrency: int = 4
@@ -221,6 +224,7 @@ class ScoringConfig(BaseModel):
 
 class AugmentConfig(BaseModel):
     """QA 쌍 데이터 증강 설정입니다."""
+
     enabled: bool = True
     num_variants: int = 2
     max_concurrency: int = 4
@@ -231,6 +235,7 @@ class AugmentConfig(BaseModel):
 
 class AnalyzerConfig(BaseModel):
     """학습 데이터 통계 분석 설정입니다."""
+
     enabled: bool = True
     output_file: str = "data_analysis.json"
 
@@ -303,11 +308,13 @@ class OllamaExportConfig(BaseModel):
     enabled: bool = True
     model_name: str = Field("my-project-model", min_length=1)
     system_prompt: str = _EN_DEFAULT_OLLAMA_SYSTEM_PROMPT
-    parameters: dict[str, Any] = Field(default_factory=lambda: {
-        "temperature": 0.7,
-        "top_p": 0.9,
-        "num_ctx": 4096,
-    })
+    parameters: dict[str, Any] = Field(
+        default_factory=lambda: {
+            "temperature": 0.7,
+            "top_p": 0.9,
+            "num_ctx": 4096,
+        }
+    )
 
     @model_validator(mode="after")
     def _sanitize_model_name(self) -> "OllamaExportConfig":
@@ -354,33 +361,9 @@ class EvalConfig(BaseModel):
     def _check_eval_params(self) -> "EvalConfig":
         """평가 설정의 유효성을 검증합니다."""
         if not (0.0 < self.test_split < 1.0):
-            raise ValueError(
-                f"test_split({self.test_split})은 0과 1 사이여야 합니다"
-            )
+            raise ValueError(f"test_split({self.test_split})은 0과 1 사이여야 합니다")
         if self.max_samples < 1:
-            raise ValueError(
-                f"max_samples({self.max_samples})는 1 이상이어야 합니다"
-            )
-        return self
-
-
-class GGUFExportConfig(BaseModel):
-    """GGUF 양자화 변환 설정입니다."""
-
-    enabled: bool = True
-    quantization_type: str = "q4_k_m"
-    llama_cpp_path: str = ""
-
-    @model_validator(mode="after")
-    def _check_gguf_params(self) -> "GGUFExportConfig":
-        """GGUF 양자화 타입의 유효성을 검증합니다."""
-        valid_types = {"q4_0", "q4_1", "q4_k_m", "q4_k_s", "q5_0", "q5_1",
-                       "q5_k_m", "q5_k_s", "q8_0", "f16", "f32"}
-        if self.quantization_type.lower() not in valid_types:
-            raise ValueError(
-                f"quantization_type({self.quantization_type})이 올바르지 않습니다. "
-                f"지원: {', '.join(sorted(valid_types))}"
-            )
+            raise ValueError(f"max_samples({self.max_samples})는 1 이상이어야 합니다")
         return self
 
 
@@ -466,9 +449,7 @@ class AutoRAGExportConfig(BaseModel):
     def _check_autorag_export_params(self) -> "AutoRAGExportConfig":
         """AutoRAG 내보내기 설정의 유효성을 검증합니다."""
         if self.chunk_size < 100:
-            raise ValueError(
-                f"chunk_size({self.chunk_size})는 100 이상이어야 합니다"
-            )
+            raise ValueError(f"chunk_size({self.chunk_size})는 100 이상이어야 합니다")
         if self.overlap_chars >= self.chunk_size:
             raise ValueError(
                 f"overlap_chars({self.overlap_chars})는 "
@@ -484,29 +465,6 @@ class IncrementalConfig(BaseModel):
     hash_file: str = "document_hashes.json"
     merge_strategy: Literal["append", "replace"] = "append"
     resume_adapter: str = ""
-
-
-class DialogueConfig(BaseModel):
-    """멀티턴 대화 생성 설정입니다."""
-
-    enabled: bool = True
-    min_turns: int = 2
-    max_turns: int = 5
-    include_single_qa: bool = True
-
-    @model_validator(mode="after")
-    def _check_dialogue_params(self) -> "DialogueConfig":
-        """대화 턴 수 범위를 검증합니다."""
-        if self.min_turns < 2:
-            raise ValueError(
-                f"min_turns({self.min_turns})는 2 이상이어야 합니다"
-            )
-        if self.min_turns > self.max_turns:
-            raise ValueError(
-                f"min_turns({self.min_turns})는 "
-                f"max_turns({self.max_turns})보다 클 수 없습니다"
-            )
-        return self
 
 
 class ReviewConfig(BaseModel):
@@ -533,17 +491,11 @@ class CompareConfig(BaseModel):
     def _check_compare_params(self) -> "CompareConfig":
         """비교 설정의 유효성을 검증합니다."""
         if self.max_samples < 1:
-            raise ValueError(
-                f"max_samples({self.max_samples})는 1 이상이어야 합니다"
-            )
+            raise ValueError(f"max_samples({self.max_samples})는 1 이상이어야 합니다")
         if self.enabled and not self.base_model:
-            raise ValueError(
-                "compare.enabled가 true일 때 base_model은 필수입니다"
-            )
+            raise ValueError("compare.enabled가 true일 때 base_model은 필수입니다")
         if self.enabled and not self.finetuned_model:
-            raise ValueError(
-                "compare.enabled가 true일 때 finetuned_model은 필수입니다"
-            )
+            raise ValueError("compare.enabled가 true일 때 finetuned_model은 필수입니다")
         return self
 
 
@@ -616,9 +568,7 @@ class ChunkingConfig(BaseModel):
     def _check_chunking_params(self) -> "ChunkingConfig":
         """청킹 파라미터의 유효성을 검증합니다."""
         if self.chunk_size < 1000:
-            raise ValueError(
-                f"chunk_size({self.chunk_size})는 1000 이상이어야 합니다"
-            )
+            raise ValueError(f"chunk_size({self.chunk_size})는 1000 이상이어야 합니다")
         if self.overlap_chars < 0:
             raise ValueError(
                 f"overlap_chars({self.overlap_chars})는 0 이상이어야 합니다"
@@ -656,11 +606,9 @@ class SLMConfig(BaseModel):
     training: TrainingConfig = Field(default_factory=TrainingConfig)
     export: ExportConfig = Field(default_factory=ExportConfig)
     eval: EvalConfig = Field(default_factory=EvalConfig)
-    gguf_export: GGUFExportConfig = Field(default_factory=GGUFExportConfig)
     autorag_export: AutoRAGExportConfig = Field(default_factory=AutoRAGExportConfig)
     rag: RagConfig = Field(default_factory=RagConfig)
     incremental: IncrementalConfig = Field(default_factory=IncrementalConfig)
-    dialogue: DialogueConfig = Field(default_factory=DialogueConfig)
     review: ReviewConfig = Field(default_factory=ReviewConfig)
     compare: CompareConfig = Field(default_factory=CompareConfig)
     evolve: EvolveConfig = Field(default_factory=EvolveConfig)

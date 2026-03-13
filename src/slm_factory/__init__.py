@@ -13,17 +13,11 @@ __all__ = [
     "QAPair",
     "EvalResult",
     "CompareResult",
-    "MultiTurnDialogue",
-    "DialogueTurn",
     # 평가 / 비교
     "ModelEvaluator",
     "ModelComparator",
-    # 내보내기
-    "GGUFExporter",
     # 증분
     "IncrementalTracker",
-    # 대화 생성
-    "DialogueGenerator",
 ]
 
 
@@ -36,13 +30,9 @@ def __getattr__(name: str):
         "QAPair": (".models", "QAPair"),
         "EvalResult": (".models", "EvalResult"),
         "CompareResult": (".models", "CompareResult"),
-        "MultiTurnDialogue": (".models", "MultiTurnDialogue"),
-        "DialogueTurn": (".models", "DialogueTurn"),
         "ModelEvaluator": (".evaluator", "ModelEvaluator"),
         "ModelComparator": (".comparator", "ModelComparator"),
-        "GGUFExporter": (".exporter.gguf_export", "GGUFExporter"),
         "IncrementalTracker": (".incremental", "IncrementalTracker"),
-        "DialogueGenerator": (".teacher.dialogue_generator", "DialogueGenerator"),
     }
 
     if name in _imports:

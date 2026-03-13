@@ -22,9 +22,10 @@ from slm_factory.tui.dashboard import (
 
 
 class TestStageInfo:
-
     def test_defaults(self):
-        info = StageInfo(name="parse", display_name="문서 파싱", filename="parsed_documents.json")
+        info = StageInfo(
+            name="parse", display_name="문서 파싱", filename="parsed_documents.json"
+        )
         assert info.exists is False
         assert info.count == 0
         assert info.unit == "건"
@@ -49,7 +50,6 @@ class TestStageInfo:
 
 
 class TestPipelineSnapshot:
-
     def test_empty_snapshot(self):
         snap = PipelineSnapshot()
         assert snap.stages == []
@@ -58,7 +58,13 @@ class TestPipelineSnapshot:
 
     def test_snapshot_with_stages(self):
         stages = [
-            StageInfo(name="parse", display_name="문서 파싱", filename="parsed_documents.json", exists=True, count=5),
+            StageInfo(
+                name="parse",
+                display_name="문서 파싱",
+                filename="parsed_documents.json",
+                exists=True,
+                count=5,
+            ),
         ]
         snap = PipelineSnapshot(stages=stages)
         assert len(snap.stages) == 1
@@ -71,15 +77,16 @@ class TestPipelineSnapshot:
 
 
 class TestScanPipeline:
-
     def test_empty_directory(self, tmp_path: Path):
         snap = scan_pipeline(tmp_path)
-        assert len(snap.stages) == 11
+        assert len(snap.stages) == 10
         assert all(not s.exists for s in snap.stages)
 
     def test_parsed_documents(self, tmp_path: Path):
         docs = [{"doc_id": "a.pdf", "content": "hello"}]
-        (tmp_path / "parsed_documents.json").write_text(json.dumps(docs), encoding="utf-8")
+        (tmp_path / "parsed_documents.json").write_text(
+            json.dumps(docs), encoding="utf-8"
+        )
 
         snap = scan_pipeline(tmp_path)
         parse_stage = next(s for s in snap.stages if s.name == "parse")
@@ -132,7 +139,9 @@ class TestScanPipeline:
             {"question": "Q1", "scores": {"bleu": 0.8, "rouge": 0.6}},
             {"question": "Q2", "scores": {"bleu": 0.6, "rouge": 0.4}},
         ]
-        (tmp_path / "eval_results.json").write_text(json.dumps(results), encoding="utf-8")
+        (tmp_path / "eval_results.json").write_text(
+            json.dumps(results), encoding="utf-8"
+        )
 
         snap = scan_pipeline(tmp_path)
         assert snap.eval_summary["bleu"] == 0.7
@@ -140,7 +149,9 @@ class TestScanPipeline:
 
     def test_compare_results_populates_summary(self, tmp_path: Path):
         data = {"summary": {"win": 3, "lose": 1, "tie": 1}, "results": []}
-        (tmp_path / "compare_results.json").write_text(json.dumps(data), encoding="utf-8")
+        (tmp_path / "compare_results.json").write_text(
+            json.dumps(data), encoding="utf-8"
+        )
 
         snap = scan_pipeline(tmp_path)
         assert snap.compare_summary["win"] == 3
@@ -148,21 +159,14 @@ class TestScanPipeline:
 
     def test_data_analysis_json(self, tmp_path: Path):
         analysis = [{"metric": "avg_len", "value": 120}] * 7
-        (tmp_path / "data_analysis.json").write_text(json.dumps(analysis), encoding="utf-8")
+        (tmp_path / "data_analysis.json").write_text(
+            json.dumps(analysis), encoding="utf-8"
+        )
 
         snap = scan_pipeline(tmp_path)
         analyze_stage = next(s for s in snap.stages if s.name == "analyze")
         assert analyze_stage.exists is True
         assert analyze_stage.count == 7
-
-    def test_dialogues_json(self, tmp_path: Path):
-        dialogues = [{"turns": []}] * 4
-        (tmp_path / "dialogues.json").write_text(json.dumps(dialogues), encoding="utf-8")
-
-        snap = scan_pipeline(tmp_path)
-        dialogue_stage = next(s for s in snap.stages if s.name == "dialogue")
-        assert dialogue_stage.exists is True
-        assert dialogue_stage.count == 4
 
     def test_full_pipeline(self, tmp_path: Path):
         (tmp_path / "parsed_documents.json").write_text("[]", encoding="utf-8")
@@ -175,8 +179,6 @@ class TestScanPipeline:
         (tmp_path / "merged_model").mkdir()
         (tmp_path / "eval_results.json").write_text("[]", encoding="utf-8")
         (tmp_path / "compare_results.json").write_text("{}", encoding="utf-8")
-        (tmp_path / "dialogues.json").write_text("[]", encoding="utf-8")
-
         snap = scan_pipeline(tmp_path)
         assert all(s.exists for s in snap.stages)
 
@@ -190,7 +192,7 @@ class TestScanPipeline:
 
     def test_nonexistent_directory(self, tmp_path: Path):
         snap = scan_pipeline(tmp_path / "does_not_exist")
-        assert len(snap.stages) == 11
+        assert len(snap.stages) == 10
         assert all(not s.exists for s in snap.stages)
 
 
@@ -200,7 +202,6 @@ class TestScanPipeline:
 
 
 class TestMetricsExtraction:
-
     def test_eval_summary_average(self, tmp_path: Path):
         results = [
             {"scores": {"bleu": 0.5}},

@@ -62,7 +62,9 @@ class TestStepParse:
     def test_정상_문서_반환(self, make_config, make_parsed_doc, tmp_path, mocker):
         """parse_directory가 문서를 반환할 때 정상적으로 처리되는지 확인합니다."""
         pipeline = _make_pipeline(make_config, tmp_path)
-        mock_doc = make_parsed_doc(doc_id="test.pdf", title="테스트", content="내용입니다.")
+        mock_doc = make_parsed_doc(
+            doc_id="test.pdf", title="테스트", content="내용입니다."
+        )
 
         mocker.patch(
             "slm_factory.parsers.registry.parse_directory",
@@ -86,7 +88,9 @@ class TestStepParse:
         with pytest.raises(RuntimeError):
             pipeline.step_parse()
 
-    def test_parsed_documents_json_저장(self, make_config, make_parsed_doc, tmp_path, mocker):
+    def test_parsed_documents_json_저장(
+        self, make_config, make_parsed_doc, tmp_path, mocker
+    ):
         """파싱 결과가 parsed_documents.json 파일로 저장되는지 확인합니다."""
         pipeline = _make_pipeline(make_config, tmp_path)
         mock_doc = make_parsed_doc()
@@ -110,13 +114,17 @@ class TestStepParse:
 class TestStepGenerate:
     """Pipeline.step_generate 메서드의 테스트입니다."""
 
-    def test_QAPair_반환(self, make_config, make_parsed_doc, make_qa_pair, tmp_path, mocker):
+    def test_QAPair_반환(
+        self, make_config, make_parsed_doc, make_qa_pair, tmp_path, mocker
+    ):
         """QAGenerator를 mock하여 QAPair 리스트를 반환하는지 확인합니다."""
         pipeline = _make_pipeline(make_config, tmp_path)
         mock_doc = make_parsed_doc()
         expected_pair = make_qa_pair()
 
-        mock_generator_cls = mocker.patch("slm_factory.teacher.qa_generator.QAGenerator")
+        mock_generator_cls = mocker.patch(
+            "slm_factory.teacher.qa_generator.QAGenerator"
+        )
         mock_generator = mock_generator_cls.return_value
         mock_generator.generate_all_async = MagicMock(return_value=[expected_pair])
 
@@ -137,10 +145,15 @@ class TestStepGenerate:
 class TestStepValidate:
     """Pipeline.step_validate 메서드의 테스트입니다."""
 
-    def test_validation_비활성화시_모든_쌍_반환(self, make_config, make_qa_pair, tmp_path):
+    def test_validation_비활성화시_모든_쌍_반환(
+        self, make_config, make_qa_pair, tmp_path
+    ):
         """validation.enabled=False일 때 입력 쌍을 그대로 반환하는지 확인합니다."""
         config = make_config(
-            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            paths={
+                "output": str(tmp_path / "output"),
+                "documents": str(tmp_path / "docs"),
+            },
             validation={"enabled": False},
         )
         (tmp_path / "output").mkdir(parents=True, exist_ok=True)
@@ -152,7 +165,9 @@ class TestStepValidate:
 
         assert len(result) == len(pairs)
 
-    def test_validation_활성화시_RuleValidator_호출(self, make_config, make_qa_pair, tmp_path, mocker):
+    def test_validation_활성화시_RuleValidator_호출(
+        self, make_config, make_qa_pair, tmp_path, mocker
+    ):
         """validation.enabled=True일 때 RuleValidator.validate_batch가 호출되는지 확인합니다."""
         pipeline = _make_pipeline(make_config, tmp_path)
         pairs = [make_qa_pair()]
@@ -170,8 +185,14 @@ class TestStepValidate:
     ):
         """groundedness가 활성화되어 있고 docs가 제공되면 GroundednessChecker가 호출되는지 확인합니다."""
         config = make_config(
-            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
-            validation={"enabled": True, "groundedness": {"enabled": True, "threshold": 0.5}},
+            paths={
+                "output": str(tmp_path / "output"),
+                "documents": str(tmp_path / "docs"),
+            },
+            validation={
+                "enabled": True,
+                "groundedness": {"enabled": True, "threshold": 0.5},
+            },
         )
         (tmp_path / "output").mkdir(parents=True, exist_ok=True)
         (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
@@ -183,7 +204,9 @@ class TestStepValidate:
         mock_rule_cls = mocker.patch("slm_factory.validator.rules.RuleValidator")
         mock_rule_cls.return_value.validate_batch.return_value = (pairs, [])
 
-        mock_ground_cls = mocker.patch("slm_factory.validator.similarity.GroundednessChecker")
+        mock_ground_cls = mocker.patch(
+            "slm_factory.validator.similarity.GroundednessChecker"
+        )
         mock_ground = mock_ground_cls.return_value
         mock_ground.check_batch.return_value = (pairs, [])
 
@@ -280,7 +303,10 @@ class TestStepScoreDisabled:
         """scoring.enabled=False이면 입력 쌍을 그대로 반환하는지 확인합니다."""
         config = make_config(
             scoring={"enabled": False},
-            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            paths={
+                "output": str(tmp_path / "output"),
+                "documents": str(tmp_path / "docs"),
+            },
         )
         (tmp_path / "output").mkdir(parents=True, exist_ok=True)
         (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
@@ -304,7 +330,10 @@ class TestStepAugmentDisabled:
         """augment.enabled=False이면 입력 쌍을 그대로 반환하는지 확인합니다."""
         config = make_config(
             augment={"enabled": False},
-            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            paths={
+                "output": str(tmp_path / "output"),
+                "documents": str(tmp_path / "docs"),
+            },
         )
         (tmp_path / "output").mkdir(parents=True, exist_ok=True)
         (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
@@ -328,7 +357,10 @@ class TestStepAnalyzeDisabled:
         """analyzer.enabled=False이면 None을 반환하는지 확인합니다."""
         config = make_config(
             analyzer={"enabled": False},
-            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            paths={
+                "output": str(tmp_path / "output"),
+                "documents": str(tmp_path / "docs"),
+            },
         )
         (tmp_path / "output").mkdir(parents=True, exist_ok=True)
         (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
@@ -368,10 +400,10 @@ class TestPipelineRun:
         mocker.patch.object(pipeline, "step_convert", return_value=mock_training_path)
         mocker.patch.object(pipeline, "step_train", return_value=mock_adapter_path)
         mocker.patch.object(pipeline, "step_export", return_value=mock_export_path)
-        mocker.patch.object(pipeline, "step_dialogue", return_value=[])
-        mocker.patch.object(pipeline, "step_gguf_export", return_value=mock_export_path)
         mocker.patch.object(pipeline, "step_eval", return_value=[])
-        mocker.patch.object(pipeline, "step_autorag_export", return_value=(Path(), Path()))
+        mocker.patch.object(
+            pipeline, "step_autorag_export", return_value=(Path(), Path())
+        )
         mocker.patch.object(pipeline, "step_rag_index", return_value=Path())
 
         result = pipeline.run()
@@ -382,8 +414,6 @@ class TestPipelineRun:
         pipeline.step_convert.assert_called_once_with(mock_validated)
         pipeline.step_train.assert_called_once_with(mock_training_path)
         pipeline.step_export.assert_called_once_with(mock_adapter_path)
-        pipeline.step_dialogue.assert_called_once_with(mock_validated)
-        pipeline.step_gguf_export.assert_called_once_with(mock_export_path)
         pipeline.step_autorag_export.assert_called_once()
         pipeline.step_rag_index.assert_called_once()
         assert result == mock_export_path
@@ -400,7 +430,10 @@ class TestStepEval:
     def test_비활성화시_빈_리스트_반환(self, make_config, make_qa_pair, tmp_path):
         """eval.enabled=False일 때 빈 리스트를 반환하는지 확인합니다."""
         config = make_config(
-            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            paths={
+                "output": str(tmp_path / "output"),
+                "documents": str(tmp_path / "docs"),
+            },
             eval={"enabled": False},
         )
         (tmp_path / "output").mkdir(parents=True, exist_ok=True)
@@ -415,7 +448,10 @@ class TestStepEval:
     def test_정상_평가_실행(self, make_config, make_qa_pair, tmp_path, mocker):
         """ModelEvaluator를 mock하여 평가 결과를 반환하는지 확인합니다."""
         config = make_config(
-            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            paths={
+                "output": str(tmp_path / "output"),
+                "documents": str(tmp_path / "docs"),
+            },
             eval={"enabled": True},
         )
         (tmp_path / "output").mkdir(parents=True, exist_ok=True)
@@ -430,7 +466,9 @@ class TestStepEval:
         mock_evaluator.evaluate.return_value = mock_results
         mock_evaluator.save_results = MagicMock()
         mock_evaluator.print_summary = MagicMock()
-        mock_evaluator.check_quality_gate = MagicMock(return_value=(True, {"bleu": 0.5}))
+        mock_evaluator.check_quality_gate = MagicMock(
+            return_value=(True, {"bleu": 0.5})
+        )
 
         result = pipeline.step_eval(pairs, "test-model")
 
@@ -440,7 +478,10 @@ class TestStepEval:
     def test_결과_파일_저장_호출(self, make_config, make_qa_pair, tmp_path, mocker):
         """evaluator.save_results가 올바른 경로로 호출되는지 확인합니다."""
         config = make_config(
-            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            paths={
+                "output": str(tmp_path / "output"),
+                "documents": str(tmp_path / "docs"),
+            },
             eval={"enabled": True},
         )
         (tmp_path / "output").mkdir(parents=True, exist_ok=True)
@@ -454,153 +495,15 @@ class TestStepEval:
         mock_evaluator = mock_evaluator_cls.return_value
         mock_evaluator.evaluate.return_value = mock_results
         mock_evaluator.save_results = MagicMock()
-        mock_evaluator.check_quality_gate = MagicMock(return_value=(True, {"bleu": 0.5}))
+        mock_evaluator.check_quality_gate = MagicMock(
+            return_value=(True, {"bleu": 0.5})
+        )
         mock_evaluator.print_summary = MagicMock()
 
         pipeline.step_eval(pairs, "test-model")
 
         expected_path = pipeline.output_dir / config.eval.output_file
         mock_evaluator.save_results.assert_called_once_with(mock_results, expected_path)
-
-
-# ---------------------------------------------------------------------------
-# step_gguf_export
-# ---------------------------------------------------------------------------
-
-
-class TestStepGgufExport:
-    """Pipeline.step_gguf_export 메서드의 테스트입니다."""
-
-    def test_비활성화시_model_dir_반환(self, make_config, tmp_path):
-        """gguf_export.enabled=False일 때 model_dir을 그대로 반환하는지 확인합니다."""
-        config = make_config(
-            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
-            gguf_export={"enabled": False},
-        )
-        (tmp_path / "output").mkdir(parents=True, exist_ok=True)
-        (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
-        pipeline = Pipeline(config)
-
-        model_dir = tmp_path / "model"
-        result = pipeline.step_gguf_export(model_dir)
-
-        assert result == model_dir
-
-    def test_정상_변환_실행(self, make_config, tmp_path, mocker):
-        """GGUFExporter를 mock하여 GGUF 경로를 반환하는지 확인합니다."""
-        config = make_config(
-            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
-            gguf_export={"enabled": True},
-        )
-        (tmp_path / "output").mkdir(parents=True, exist_ok=True)
-        (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
-        pipeline = Pipeline(config)
-
-        model_dir = tmp_path / "model"
-        expected_gguf = tmp_path / "model.gguf"
-
-        mock_exporter_cls = mocker.patch("slm_factory.exporter.gguf_export.GGUFExporter")
-        mock_exporter = mock_exporter_cls.return_value
-        mock_exporter.export.return_value = expected_gguf
-
-        result = pipeline.step_gguf_export(model_dir)
-
-        assert result == expected_gguf
-
-    def test_exporter_export_호출(self, make_config, tmp_path, mocker):
-        """exporter.export가 model_dir로 호출되는지 확인합니다."""
-        config = make_config(
-            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
-            gguf_export={"enabled": True},
-        )
-        (tmp_path / "output").mkdir(parents=True, exist_ok=True)
-        (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
-        pipeline = Pipeline(config)
-
-        model_dir = tmp_path / "model"
-
-        mock_exporter_cls = mocker.patch("slm_factory.exporter.gguf_export.GGUFExporter")
-        mock_exporter = mock_exporter_cls.return_value
-        mock_exporter.export.return_value = tmp_path / "model.gguf"
-
-        pipeline.step_gguf_export(model_dir)
-
-        mock_exporter.export.assert_called_once_with(model_dir)
-
-
-# ---------------------------------------------------------------------------
-# step_dialogue
-# ---------------------------------------------------------------------------
-
-
-class TestStepDialogue:
-    """Pipeline.step_dialogue 메서드의 테스트입니다."""
-
-    def test_비활성화시_빈_리스트_반환(self, make_config, make_qa_pair, tmp_path):
-        """dialogue.enabled=False일 때 빈 리스트를 반환하는지 확인합니다."""
-        config = make_config(
-            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
-            dialogue={"enabled": False},
-        )
-        (tmp_path / "output").mkdir(parents=True, exist_ok=True)
-        (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
-        pipeline = Pipeline(config)
-
-        pairs = [make_qa_pair()]
-        result = pipeline.step_dialogue(pairs)
-
-        assert result == []
-
-    def test_정상_대화_생성(self, make_config, make_qa_pair, tmp_path, mocker):
-        """DialogueGenerator를 mock하여 대화 목록을 반환하는지 확인합니다."""
-        config = make_config(
-            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
-            dialogue={"enabled": True},
-        )
-        (tmp_path / "output").mkdir(parents=True, exist_ok=True)
-        (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
-        pipeline = Pipeline(config)
-
-        pairs = [make_qa_pair()]
-        mock_dialogues = [MagicMock()]
-
-        mocker.patch("slm_factory.teacher.create_teacher", return_value=MagicMock())
-        mock_generator_cls = mocker.patch(
-            "slm_factory.teacher.dialogue_generator.DialogueGenerator"
-        )
-        mock_generator = mock_generator_cls.return_value
-        mocker.patch("slm_factory.pipeline.run_async", return_value=mock_dialogues)
-        mock_generator.save_dialogues = MagicMock()
-
-        result = pipeline.step_dialogue(pairs)
-
-        assert result == mock_dialogues
-
-    def test_대화_파일_저장(self, make_config, make_qa_pair, tmp_path, mocker):
-        """generator.save_dialogues가 올바른 경로로 호출되는지 확인합니다."""
-        config = make_config(
-            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
-            dialogue={"enabled": True},
-        )
-        (tmp_path / "output").mkdir(parents=True, exist_ok=True)
-        (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
-        pipeline = Pipeline(config)
-
-        pairs = [make_qa_pair()]
-        mock_dialogues = [MagicMock()]
-
-        mocker.patch("slm_factory.teacher.create_teacher", return_value=MagicMock())
-        mock_generator_cls = mocker.patch(
-            "slm_factory.teacher.dialogue_generator.DialogueGenerator"
-        )
-        mock_generator = mock_generator_cls.return_value
-        mocker.patch("slm_factory.pipeline.run_async", return_value=mock_dialogues)
-        mock_generator.save_dialogues = MagicMock()
-
-        pipeline.step_dialogue(pairs)
-
-        expected_path = pipeline.output_dir / "dialogues.json"
-        mock_generator.save_dialogues.assert_called_once_with(mock_dialogues, expected_path)
 
 
 # ---------------------------------------------------------------------------
@@ -614,7 +517,10 @@ class TestStepCompare:
     def test_비활성화시_빈_리스트_반환(self, make_config, make_qa_pair, tmp_path):
         """compare.enabled=False일 때 빈 리스트를 반환하는지 확인합니다."""
         config = make_config(
-            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            paths={
+                "output": str(tmp_path / "output"),
+                "documents": str(tmp_path / "docs"),
+            },
             compare={"enabled": False},
         )
         (tmp_path / "output").mkdir(parents=True, exist_ok=True)
@@ -629,7 +535,10 @@ class TestStepCompare:
     def test_정상_비교_실행(self, make_config, make_qa_pair, tmp_path, mocker):
         """ModelComparator를 mock하여 비교 결과를 반환하는지 확인합니다."""
         config = make_config(
-            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            paths={
+                "output": str(tmp_path / "output"),
+                "documents": str(tmp_path / "docs"),
+            },
             compare={"enabled": True, "base_model": "base", "finetuned_model": "ft"},
         )
         (tmp_path / "output").mkdir(parents=True, exist_ok=True)
@@ -653,7 +562,10 @@ class TestStepCompare:
     def test_결과_파일_저장_호출(self, make_config, make_qa_pair, tmp_path, mocker):
         """comparator.save_results가 올바른 경로로 호출되는지 확인합니다."""
         config = make_config(
-            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            paths={
+                "output": str(tmp_path / "output"),
+                "documents": str(tmp_path / "docs"),
+            },
             compare={"enabled": True, "base_model": "base", "finetuned_model": "ft"},
         )
         (tmp_path / "output").mkdir(parents=True, exist_ok=True)
@@ -672,7 +584,9 @@ class TestStepCompare:
         pipeline.step_compare(pairs)
 
         expected_path = pipeline.output_dir / config.compare.output_file
-        mock_comparator.save_results.assert_called_once_with(mock_results, expected_path)
+        mock_comparator.save_results.assert_called_once_with(
+            mock_results, expected_path
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -683,10 +597,15 @@ class TestStepCompare:
 class TestStepScoreRegeneration:
     """Pipeline.step_score 재생성 기능의 테스트입니다."""
 
-    def test_재생성_비활성화시_기존_동작(self, make_config, make_qa_pair, tmp_path, mocker):
+    def test_재생성_비활성화시_기존_동작(
+        self, make_config, make_qa_pair, tmp_path, mocker
+    ):
         """scoring.regenerate=False이면 재생성 없이 기존 동작을 하는지 확인합니다."""
         config = make_config(
-            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            paths={
+                "output": str(tmp_path / "output"),
+                "documents": str(tmp_path / "docs"),
+            },
             scoring={"enabled": True, "threshold": 3.0, "regenerate": False},
         )
         (tmp_path / "output").mkdir(parents=True, exist_ok=True)
@@ -704,10 +623,15 @@ class TestStepScoreRegeneration:
 
         assert len(result) == len(pairs)
 
-    def test_step_score에_docs_전달_가능(self, make_config, make_qa_pair, make_parsed_doc, tmp_path, mocker):
+    def test_step_score에_docs_전달_가능(
+        self, make_config, make_qa_pair, make_parsed_doc, tmp_path, mocker
+    ):
         """step_score가 docs 파라미터를 받을 수 있는지 확인합니다."""
         config = make_config(
-            paths={"output": str(tmp_path / "output"), "documents": str(tmp_path / "docs")},
+            paths={
+                "output": str(tmp_path / "output"),
+                "documents": str(tmp_path / "docs"),
+            },
             scoring={"enabled": True, "threshold": 3.0, "regenerate": False},
         )
         (tmp_path / "output").mkdir(parents=True, exist_ok=True)
@@ -726,7 +650,9 @@ class TestStepScoreRegeneration:
 
         assert len(result) == len(pairs)
 
-    def test_파이프라인_run에서_step_score에_docs_전달(self, make_config, tmp_path, mocker):
+    def test_파이프라인_run에서_step_score에_docs_전달(
+        self, make_config, tmp_path, mocker
+    ):
         """Pipeline.run()에서 step_score가 docs를 받는지 확인합니다."""
         pipeline = _make_pipeline(make_config, tmp_path)
 
@@ -746,14 +672,15 @@ class TestStepScoreRegeneration:
         mocker.patch.object(pipeline, "step_convert", return_value=mock_training_path)
         mocker.patch.object(pipeline, "step_train", return_value=mock_adapter_path)
         mocker.patch.object(pipeline, "step_export", return_value=mock_export_path)
-        mocker.patch.object(pipeline, "step_dialogue", return_value=[])
-        mocker.patch.object(pipeline, "step_gguf_export", return_value=mock_export_path)
         mocker.patch.object(pipeline, "step_eval", return_value=[])
-        mocker.patch.object(pipeline, "step_autorag_export", return_value=(Path(), Path()))
+        mocker.patch.object(
+            pipeline, "step_autorag_export", return_value=(Path(), Path())
+        )
         mocker.patch.object(pipeline, "step_rag_index", return_value=Path())
 
         pipeline.run()
 
         pipeline.step_score.assert_called_once_with(
-            mock_validated, docs=mock_docs,
+            mock_validated,
+            docs=mock_docs,
         )

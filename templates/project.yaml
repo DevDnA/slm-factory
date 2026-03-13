@@ -226,13 +226,6 @@ incremental:
   merge_strategy: "append"              # "append" (기존 유지+추가) | "replace" (전체 교체)
   resume_adapter: ""                    # 이전 어댑터 경로 (이어서 학습)
 
-# -- 멀티턴 대화 생성(Dialogue Generation) -----------------------------------
-dialogue:
-  enabled: true                         # 단일 QA를 멀티턴 대화로 확장합니다
-  min_turns: 2                          # 최소 대화 턴 수
-  max_turns: 5                          # 최대 대화 턴 수
-  include_single_qa: true               # 단일 QA도 학습 데이터에 포함
-
 # -- QA 리뷰(Review) -------------------------------------------------------
 review:
   enabled: true                         # TUI에서 QA 쌍을 수동 검토합니다
