@@ -28,6 +28,7 @@ class ParsedDocument:
 @dataclass
 class QAPair:
     """메타데이터를 포함한 단일 질문-답변 쌍."""
+
     question: str
     answer: str
     instruction: str = ""
@@ -41,6 +42,7 @@ class QAPair:
 @dataclass
 class EvalResult:
     """단일 평가 결과."""
+
     question: str
     reference_answer: str
     generated_answer: str
@@ -48,23 +50,9 @@ class EvalResult:
 
 
 @dataclass
-class DialogueTurn:
-    """대화의 단일 턴."""
-    role: str
-    content: str
-
-
-@dataclass
-class MultiTurnDialogue:
-    """멀티턴 대화 데이터."""
-    turns: list[DialogueTurn] = field(default_factory=list)
-    source_doc: str = ""
-    category: str = ""
-
-
-@dataclass
 class CompareResult:
     """모델 비교 결과."""
+
     question: str
     reference_answer: str
     base_answer: str

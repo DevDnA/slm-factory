@@ -61,7 +61,6 @@ _STAGE_DEFS: list[tuple[str, str, str, str]] = [
     ("export", "모델 병합", "merged_model/", "디렉토리"),
     ("eval", "모델 평가", "eval_results.json", "건"),
     ("compare", "모델 비교", "compare_results.json", "건"),
-    ("dialogue", "대화 생성", "dialogues.json", "건"),
 ]
 
 

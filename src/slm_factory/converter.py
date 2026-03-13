@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from transformers import AutoTokenizer
 
     from .config import SLMConfig
-    from .models import MultiTurnDialogue, QAPair
+    from .models import QAPair
 
 from .utils import get_logger
 
@@ -25,18 +25,18 @@ logger = get_logger("converter")
 
 class ChatFormatter:
     """QA 쌍을 채팅 템플릿 형식의 학습 데이터로 변환합니다.
-    
+
     학생 모델의 토크나이저를 사용하여 올바른 채팅 템플릿을 적용하고,
     모든 HuggingFace 모델에 대해 올바른 역할 태그(<start_of_turn>, [INST], <|im_start|> 등)를 보장합니다.
     """
-    
+
     def __init__(self, config: SLMConfig) -> None:
         self.config = config
         self.model_name = config.student.model
         self.max_seq_length = config.student.max_seq_length
         self.system_prompt = config.questions.system_prompt
         self._tokenizer = None  # 지연 로딩
-    
+
     @property
     def tokenizer(self) -> AutoTokenizer:
         """토크나이저를 지연 로딩합니다 (필요하지 않으면 import 비용 회피).
@@ -48,6 +48,7 @@ class ChatFormatter:
         """
         if self._tokenizer is None:
             from transformers import AutoTokenizer
+
             logger.warning(
                 "trust_remote_code=True로 토크나이저를 로드합니다 (model=%s). "
                 "이 옵션은 모델 저장소의 코드를 로컬에서 실행하므로, "
@@ -76,80 +77,92 @@ class ChatFormatter:
                 raise
             logger.info("토크나이저 로드됨: %s", self.model_name)
         return self._tokenizer
-    
+
     def build_messages(self, pair: QAPair) -> list[dict[str, str]]:
         """QA 쌍에서 OpenAI 메시지 형식을 구성합니다.
-        
+
         매개변수
         ----------
         pair : QAPair
             형식화할 질문-답변 쌍.
-        
+
         반환값
         -------
         list[dict[str, str]]
             'role'과 'content' 키를 가진 메시지 딕셔너리 리스트.
         """
         messages = []
-        
+
         # 시스템 메시지가 있으면만 추가
         if self.system_prompt:
             messages.append({"role": "system", "content": self.system_prompt})
-        
+
         messages.append({"role": "user", "content": pair.question})
         messages.append({"role": "assistant", "content": pair.answer})
-        
+
         return messages
-    
+
     def _apply_template(self, messages: list[dict[str, str]]) -> str | None:
         """채팅 템플릿을 적용합니다. 시스템 역할 실패 시 자동 fallback합니다."""
         try:
             return self.tokenizer.apply_chat_template(
-                messages, tokenize=False, add_generation_prompt=False,
+                messages,
+                tokenize=False,
+                add_generation_prompt=False,
             )
         except RuntimeError:
             raise
         except Exception as e:
             logger.debug(
                 "%s에서 시스템 역할 실패 (오류: %s), 시스템 없이 재시도 중",
-                self.model_name, type(e).__name__,
+                self.model_name,
+                type(e).__name__,
             )
             messages_no_system = [m for m in messages if m["role"] != "system"]
             try:
                 return self.tokenizer.apply_chat_template(
-                    messages_no_system, tokenize=False, add_generation_prompt=False,
+                    messages_no_system,
+                    tokenize=False,
+                    add_generation_prompt=False,
                 )
             except RuntimeError:
                 raise
             except Exception as e2:
                 logger.error(
                     "형식화 실패 (%s): %s — 이 QA 쌍은 학습 데이터에서 제외됩니다",
-                    self.model_name, e2,
+                    self.model_name,
+                    e2,
                 )
                 return None
 
     def format_one(self, pair: QAPair) -> str | None:
         """단일 QA 쌍을 채팅 템플릿으로 형식화합니다."""
         return self._apply_template(self.build_messages(pair))
-    
+
     def format_batch(self, pairs: list[QAPair]) -> list[dict[str, str]]:
         """QA 쌍 배치를 형식화하고 max_seq_length로 필터링합니다.
-        
+
         매개변수
         ----------
         pairs : list[QAPair]
             형식화할 질문-답변 쌍 리스트.
-        
+
         반환값
         -------
         list[dict[str, str]]
             HF 데이터셋 준비가 된 {"text": formatted_string} 딕셔너리 리스트.
         """
-        from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeRemainingColumn
-        
+        from rich.progress import (
+            Progress,
+            SpinnerColumn,
+            BarColumn,
+            TextColumn,
+            TimeRemainingColumn,
+        )
+
         formatted_data = []
         skipped = 0
-        
+
         progress = Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
@@ -157,25 +170,28 @@ class ChatFormatter:
             TextColumn("{task.completed}/{task.total}"),
             TimeRemainingColumn(),
         )
-        
+
         # Phase 1: 모든 쌍을 형식화 (진행률 표시)
         valid_texts: list[str] = []
         with progress:
             task_id = progress.add_task("훈련 데이터 변환 중...", total=len(pairs))
-            
+
             for pair in pairs:
                 formatted_text = self.format_one(pair)
-                
+
                 if formatted_text is None:
                     skipped += 1
                 else:
                     valid_texts.append(formatted_text)
                 progress.advance(task_id)
-        
+
         # Phase 2: 배치 토큰 수 검사
         if valid_texts:
             batch_encoded = self.tokenizer(
-                valid_texts, padding=False, truncation=False, return_attention_mask=False,
+                valid_texts,
+                padding=False,
+                truncation=False,
+                return_attention_mask=False,
             )
             for text, token_ids in zip(valid_texts, batch_encoded["input_ids"]):
                 if len(token_ids) > self.max_seq_length:
@@ -187,7 +203,7 @@ class ChatFormatter:
                     )
                     continue
                 formatted_data.append({"text": text})
-        
+
         total = len(pairs)
         accepted = len(formatted_data)
         logger.info(
@@ -196,30 +212,30 @@ class ChatFormatter:
             total,
             skipped,
         )
-        
+
         return formatted_data
-    
+
     def save_training_data(
         self,
         pairs: list[QAPair],
         output_path: str | Path,
     ) -> Path:
         """쌍을 형식화하고 JSONL 학습 데이터로 저장합니다.
-        
+
         매개변수
         ----------
         pairs : list[QAPair]
             형식화하고 저장할 질문-답변 쌍 리스트.
         output_path : str or Path
             JSONL 파일을 저장할 경로.
-        
+
         반환값
         -------
         Path
             출력 경로 (Path 객체).
         """
         output_path = Path(output_path)
-        
+
         # 모든 쌍 형식화
         formatted_data = self.format_batch(pairs)
 
@@ -228,49 +244,49 @@ class ChatFormatter:
                 "학습 데이터가 모두 필터링되어 0건입니다. "
                 "max_seq_length 값을 늘리거나 토크나이저/모델을 확인하세요."
             )
-        
+
         # JSONL로 저장 (한 줄에 하나의 JSON 객체)
         with open(output_path, "w", encoding="utf-8") as f:
             for item in formatted_data:
                 f.write(json.dumps(item, ensure_ascii=False) + "\n")
-        
+
         logger.info(
             "%d개 학습 예제를 %s에 저장함",
             len(formatted_data),
             output_path,
         )
-        
+
         return output_path
-    
+
     def format_from_alpaca_file(
         self,
         input_path: str | Path,
         output_path: str | Path,
     ) -> Path:
         """Alpaca JSON 파일을 로드하고, QAPair로 변환하고, 형식화된 학습 데이터를 저장합니다.
-        
+
         독립 실행형 사용을 위한 편의 메서드입니다.
-        
+
         매개변수
         ----------
         input_path : str or Path
             Alpaca JSON 파일 경로 ('instruction', 'input', 'output' 키를 가진 딕셔너리 리스트).
         output_path : str or Path
             형식화된 JSONL 파일을 저장할 경로.
-        
+
         반환값
         -------
         Path
             출력 경로 (Path 객체).
         """
         from .models import QAPair
-        
+
         input_path = Path(input_path)
-        
+
         # Alpaca JSON 로드
         with open(input_path, "r", encoding="utf-8") as f:
             alpaca_data = json.load(f)
-        
+
         # QAPair 객체로 변환
         pairs = []
         for item in alpaca_data:
@@ -278,100 +294,20 @@ class ChatFormatter:
             instruction = item.get("instruction", "")
             input_text = item.get("input", "")
             output_text = item.get("output", "")
-            
+
             # instruction과 input을 질문으로 결합
             question = instruction
             if input_text:
                 question = f"{instruction}\n{input_text}".strip()
-            
+
             pair = QAPair(
                 question=question,
                 answer=output_text,
                 instruction=instruction,
             )
             pairs.append(pair)
-        
+
         logger.info("%d개 쌍을 %s에서 로드함", len(pairs), input_path)
-        
+
         # 형식화 및 저장
         return self.save_training_data(pairs, output_path)
-
-    # ------------------------------------------------------------------
-    # 멀티턴 대화 지원
-    # ------------------------------------------------------------------
-
-    def build_dialogue_messages(
-        self, dialogue: MultiTurnDialogue
-    ) -> list[dict[str, str]]:
-        """멀티턴 대화를 OpenAI 메시지 형식으로 변환합니다."""
-        messages: list[dict[str, str]] = []
-
-        if self.system_prompt:
-            messages.append({"role": "system", "content": self.system_prompt})
-
-        for turn in dialogue.turns:
-            messages.append({"role": turn.role, "content": turn.content})
-
-        return messages
-
-    def format_dialogue(self, dialogue: MultiTurnDialogue) -> str | None:
-        """멀티턴 대화를 채팅 템플릿으로 형식화합니다."""
-        return self._apply_template(self.build_dialogue_messages(dialogue))
-
-    def save_dialogue_training_data(
-        self,
-        dialogues: list[MultiTurnDialogue],
-        pairs: list[QAPair],
-        output_path: str | Path,
-    ) -> Path:
-        """대화 데이터를 학습용 JSONL로 저장합니다."""
-        output_path = Path(output_path)
-        formatted_data: list[dict[str, str]] = []
-
-        # 단일 QA 포함 여부 — 배치 토큰 검사
-        if self.config.dialogue.include_single_qa:
-            qa_texts: list[str] = []
-            for pair in pairs:
-                formatted_text = self.format_one(pair)
-                if formatted_text is not None:
-                    qa_texts.append(formatted_text)
-            if qa_texts:
-                batch_encoded = self.tokenizer(
-                    qa_texts, padding=False, truncation=False, return_attention_mask=False,
-                )
-                for text, token_ids in zip(qa_texts, batch_encoded["input_ids"]):
-                    if len(token_ids) <= self.max_seq_length:
-                        formatted_data.append({"text": text})
-
-        # 대화 데이터 — 배치 토큰 검사
-        skipped = 0
-        dialogue_texts: list[str] = []
-        for dialogue in dialogues:
-            formatted_text = self.format_dialogue(dialogue)
-            if formatted_text is None:
-                skipped += 1
-            else:
-                dialogue_texts.append(formatted_text)
-
-        if dialogue_texts:
-            batch_encoded = self.tokenizer(
-                dialogue_texts, padding=False, truncation=False, return_attention_mask=False,
-            )
-            for text, token_ids in zip(dialogue_texts, batch_encoded["input_ids"]):
-                if len(token_ids) > self.max_seq_length:
-                    skipped += 1
-                    continue
-                formatted_data.append({"text": text})
-
-        with open(output_path, "w", encoding="utf-8") as f:
-            for item in formatted_data:
-                f.write(json.dumps(item, ensure_ascii=False) + "\n")
-
-        logger.info(
-            "%d개 학습 예제를 %s에 저장함 (대화 %d개 건너뜀)",
-            len(formatted_data),
-            output_path,
-            skipped,
-        )
-
-        return output_path
