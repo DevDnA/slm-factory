@@ -281,7 +281,7 @@ class TrainingConfig(BaseModel):
     learning_rate: float = 2.0e-5
     lr_scheduler: str = "cosine"
     warmup_ratio: float = 0.1
-    num_epochs: int = 20
+    num_epochs: int = 2
     early_stopping: EarlyStoppingConfig = Field(default_factory=EarlyStoppingConfig)
     optimizer: str = "adamw_torch_fused"  # 디바이스 자동 감지로 런타임에 조정됨
     bf16: bool = True  # 디바이스 자동 감지로 런타임에 조정됨
