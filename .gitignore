@@ -84,3 +84,6 @@ tmp/
 AGENTS.md
 **/AGENTS.md
 test-run/
+my-project/
+redteam/
+redteam_results.json
