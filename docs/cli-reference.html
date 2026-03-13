@@ -93,8 +93,6 @@
                 <li class="toc-h3"><a href="#tool-review"><code>tool review</code></a></li>
                 <li class="toc-h3"><a href="#tool-dashboard"><code>tool dashboard</code></a></li>
                 <li class="toc-h3"><a href="#tool-convert"><code>tool convert</code></a></li>
-                <li class="toc-h3"><a href="#tool-dialogue"><code>tool dialogue</code></a></li>
-                <li class="toc-h3"><a href="#tool-gguf"><code>tool gguf</code></a></li>
                 <li class="toc-h3"><a href="#tool-evolve"><code>tool evolve</code></a></li>
                 <li class="toc-h3"><a href="#tool-update"><code>tool update</code></a></li>
                 <li class="toc-h3"><a href="#tool-compare-data"><code>tool compare-data</code></a></li>
@@ -246,16 +244,6 @@
                   <td><code>tool convert</code></td>
                   <td><span class="tag tag-new">도구</span></td>
                   <td>QA 데이터를 훈련용 JSONL 형식으로 변환합니다</td>
-                </tr>
-                <tr>
-                  <td><code>tool dialogue</code></td>
-                  <td><span class="tag tag-new">도구</span></td>
-                  <td>QA 쌍을 멀티턴 대화 데이터로 확장합니다</td>
-                </tr>
-                <tr>
-                  <td><code>tool gguf</code></td>
-                  <td><span class="tag tag-new">도구</span></td>
-                  <td>병합된 모델을 GGUF 양자화 형식으로 변환합니다</td>
                 </tr>
                 <tr>
                   <td><code>tool update</code></td>
@@ -652,18 +640,6 @@ uv run slm-factory init policy-assistant --path /workspace/projects</code></pre>
                     <td><span class="tag tag-required">필수</span></td>
                     <td>모델 병합 + Ollama Modelfile 생성</td>
                     <td><code>output/merged_model/</code></td>
-                  </tr>
-                  <tr>
-                    <td><code>dialogue</code></td>
-                    <td><span class="tag tag-optional">기본 활성</span></td>
-                    <td>멀티턴 대화 생성</td>
-                    <td><code>output/dialogues.json</code></td>
-                  </tr>
-                  <tr>
-                    <td><code>gguf_export</code></td>
-                    <td><span class="tag tag-optional">기본 활성</span></td>
-                    <td>GGUF 양자화 변환</td>
-                    <td><code>output/*.gguf</code></td>
                   </tr>
                   <tr>
                     <td><code>eval</code></td>
@@ -1213,30 +1189,18 @@ uv run slm-factory eval compare \
                   </tr>
                   <tr>
                     <td>10</td>
-                    <td>멀티턴 대화 생성</td>
-                    <td><span class="tag tag-optional">선택</span></td>
-                    <td>QA 쌍을 멀티턴 대화 형식으로 확장합니다. 건너뛸 수 있습니다.</td>
-                  </tr>
-                  <tr>
-                    <td>11</td>
-                    <td>GGUF 변환</td>
-                    <td><span class="tag tag-optional">선택</span></td>
-                    <td>모델을 llama.cpp 호환 GGUF 형식으로 변환합니다. 건너뛸 수 있습니다. (<code>gguf_export.enabled</code> 설정 반영)</td>
-                  </tr>
-                  <tr>
-                    <td>12</td>
                     <td>모델 평가</td>
                     <td><span class="tag tag-optional">선택</span></td>
                     <td>BLEU/ROUGE 메트릭으로 학습된 모델을 평가합니다. 건너뛸 수 있습니다.</td>
                   </tr>
                   <tr>
-                    <td>13</td>
+                    <td>11</td>
                     <td>코퍼스 내보내기</td>
                     <td><span class="tag tag-optional">선택</span></td>
                     <td>QA·문서를 RAG 인덱싱용 parquet으로 내보냅니다. 건너뛸 수 있습니다. (<code>autorag_export.enabled</code> 설정 반영)</td>
                   </tr>
                   <tr>
-                    <td>14</td>
+                    <td>12</td>
                     <td>RAG 인덱싱</td>
                     <td><span class="tag tag-optional">선택</span></td>
                     <td>corpus.parquet을 ChromaDB에 임베딩하여 적재합니다. 건너뛸 수 있습니다.</td>
@@ -1422,135 +1386,6 @@ uv run slm-factory tool convert --config my-project/project.yaml --data ./my-pro
             <pre><code>변환 완료! 훈련 데이터: ./my-project/output/training_data.jsonl (360개 쌍)</code></pre>
 
             <p>생성 파일: <code>output/training_data.jsonl</code></p>
-          </article>
-
-          <hr>
-
-          <!-- tool dialogue -->
-          <article id="tool-dialogue">
-            <h3><code>tool dialogue</code></h3>
-            <p>QA 쌍을 멀티턴 대화 형식으로 확장합니다. Teacher LLM이 단일 질문-답변을 자연스러운 다중 턴 대화로 변환합니다.</p>
-
-            <h4>사용법</h4>
-            <pre data-lang="bash"><code>uv run slm-factory tool dialogue [OPTIONS]</code></pre>
-
-            <h4>옵션</h4>
-            <div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>플래그</th>
-                    <th>단축키</th>
-                    <th>타입</th>
-                    <th>기본값</th>
-                    <th>설명</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td><code>--config</code></td>
-                    <td></td>
-                    <td><code>TEXT</code></td>
-                    <td><code>project.yaml</code></td>
-                    <td>프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다.</td>
-                  </tr>
-                  <tr>
-                    <td><code>--data</code></td>
-                    <td></td>
-                    <td><code>TEXT</code></td>
-                    <td><code>None</code></td>
-                    <td>QA 데이터 파일 경로 (<code>qa_alpaca.json</code> 또는 <code>qa_augmented.json</code>). 미지정 시 자동 감지합니다.</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <p><code>--data</code> 미지정 시 자동 감지 우선순위: <code>qa_augmented.json</code> &rarr; <code>qa_scored.json</code> &rarr; <code>qa_alpaca.json</code></p>
-
-            <h4>예시</h4>
-            <pre data-lang="bash"><code># 자동 감지된 QA 데이터로 대화 생성
-uv run slm-factory tool dialogue --config my-project/project.yaml
-
-# 특정 파일로 대화 생성
-uv run slm-factory tool dialogue --config my-project/project.yaml --data ./my-project/output/qa_alpaca.json</code></pre>
-
-            <h4>출력</h4>
-            <pre><code>대화 생성 완료! 120개 대화 생성됨 &rarr; ./my-project/output/dialogues.json</code></pre>
-
-            <p>생성 파일: <code>output/dialogues.json</code></p>
-
-            <h4>참고</h4>
-            <div class="callout callout-info">
-              <div class="callout-content">
-                <ul>
-                  <li>대화 생성에는 Ollama 서버와 Teacher 모델이 필요합니다.</li>
-                  <li>대화 설정(<code>turns</code>, <code>style</code> 등)은 <code>project.yaml</code>의 <code>dialogue</code> 섹션에서 설정합니다. <a href="configuration.html">설정 레퍼런스</a>를 참조하십시오.</li>
-                </ul>
-              </div>
-            </div>
-          </article>
-
-          <hr>
-
-          <!-- tool gguf -->
-          <article id="tool-gguf">
-            <h3><code>tool gguf</code></h3>
-            <p>병합된 모델을 llama.cpp 호환 GGUF 양자화 형식으로 변환합니다. llama.cpp의 변환 스크립트를 내부적으로 사용합니다.</p>
-
-            <h4>사용법</h4>
-            <pre data-lang="bash"><code>uv run slm-factory tool gguf [OPTIONS]</code></pre>
-
-            <h4>옵션</h4>
-            <div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>플래그</th>
-                    <th>단축키</th>
-                    <th>타입</th>
-                    <th>기본값</th>
-                    <th>설명</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td><code>--config</code></td>
-                    <td></td>
-                    <td><code>TEXT</code></td>
-                    <td><code>project.yaml</code></td>
-                    <td>프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다.</td>
-                  </tr>
-                  <tr>
-                    <td><code>--model-dir</code></td>
-                    <td></td>
-                    <td><code>TEXT</code></td>
-                    <td><code>None</code></td>
-                    <td>병합된 모델 디렉토리 경로입니다. 미지정 시 <code>output/merged_model</code>을 사용합니다.</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <h4>예시</h4>
-            <pre data-lang="bash"><code># 기본 경로의 모델을 GGUF로 변환
-uv run slm-factory tool gguf --config my-project/project.yaml
-
-# 특정 모델 디렉토리 지정
-uv run slm-factory tool gguf --config my-project/project.yaml --model-dir ./my-project/output/merged_model</code></pre>
-
-            <h4>출력</h4>
-            <pre><code>GGUF 변환 완료! 파일: ./my-project/output/merged_model.gguf</code></pre>
-
-            <h4>참고</h4>
-            <div class="callout callout-info">
-              <div class="callout-content">
-                <ul>
-                  <li>GGUF 변환은 2단계로 진행됩니다: ① 모델을 F16 GGUF로 변환 &rarr; ② 설정된 양자화 타입으로 양자화. 중간 F16 파일은 자동 정리됩니다.</li>
-              <li>GGUF 변환 전에 <code>export</code> 명령으로 모델을 먼저 병합해야 합니다.</li>
-                  <li>양자화 타입은 <code>project.yaml</code>의 <code>gguf_export.quantization_type</code>에서 설정합니다. <a href="configuration.html">설정 레퍼런스</a>를 참조하십시오.</li>
-                </ul>
-              </div>
-            </div>
           </article>
 
           <hr>
@@ -2116,7 +1951,6 @@ uv run slm-factory clean --all --config my-project/project.yaml</code></pre>
 &#x251C;&#x2500;&#x2500; qa_augmented.json           # augment 단계 출력 (선택)
 &#x251C;&#x2500;&#x2500; qa_reviewed.json            # tool review 출력 (선택)
 &#x251C;&#x2500;&#x2500; data_analysis.json          # analyze 단계 출력 (선택)
-&#x251C;&#x2500;&#x2500; dialogues.json              # tool dialogue 출력 (선택)
 &#x251C;&#x2500;&#x2500; eval_results.json           # eval run 출력 (선택)
 &#x251C;&#x2500;&#x2500; compare_results.json        # eval compare 출력 (선택)
 &#x251C;&#x2500;&#x2500; training_data.jsonl         # convert 단계 출력
@@ -2125,7 +1959,6 @@ uv run slm-factory clean --all --config my-project/project.yaml</code></pre>
 &#x2502;       &#x251C;&#x2500;&#x2500; adapter_config.json
 &#x2502;       &#x251C;&#x2500;&#x2500; adapter_model.safetensors
 &#x2502;       &#x2514;&#x2500;&#x2500; ...
-&#x251C;&#x2500;&#x2500; *.gguf                      # tool gguf 출력 (선택)
 &#x251C;&#x2500;&#x2500; autorag/                    # tool export-autorag 출력 (선택)
 &#x2502;   &#x251C;&#x2500;&#x2500; corpus.parquet          # 문서 청크 (검색 코퍼스)
 &#x2502;   &#x2514;&#x2500;&#x2500; qa.parquet              # QA 평가 데이터
@@ -2178,11 +2011,6 @@ uv run slm-factory clean --all --config my-project/project.yaml</code></pre>
                   <td>카테고리 분포, 길이 통계, 데이터 품질 경고를 포함한 분석 보고서입니다.</td>
                 </tr>
                 <tr>
-                  <td><code>dialogues.json</code></td>
-                  <td><code>tool dialogue</code></td>
-                  <td>QA 쌍을 멀티턴 대화 형식으로 확장한 데이터입니다.</td>
-                </tr>
-                <tr>
                   <td><code>eval_results.json</code></td>
                   <td><code>eval run</code></td>
                   <td>BLEU/ROUGE 메트릭별 점수와 평균 점수를 포함한 평가 결과입니다.</td>
@@ -2201,11 +2029,6 @@ uv run slm-factory clean --all --config my-project/project.yaml</code></pre>
                   <td><code>checkpoints/adapter/</code></td>
                   <td><code>train</code></td>
                   <td>PEFT 형식의 LoRA 어댑터 가중치입니다. <code>export</code> 명령으로 기본 모델과 병합합니다.</td>
-                </tr>
-                <tr>
-                  <td><code>*.gguf</code></td>
-                  <td><code>tool gguf</code></td>
-                  <td>GGUF 양자화 형식으로 변환된 모델 파일입니다. llama.cpp 호환 형식입니다.</td>
                 </tr>
                 <tr>
                   <td><code>autorag/</code></td>

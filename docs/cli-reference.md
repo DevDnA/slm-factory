@@ -41,8 +41,6 @@ uv run slm-factory [전역 옵션] <명령어> [옵션]
 | `tool review` | 🔧 도구 | QA 쌍을 TUI에서 수동으로 승인/거부/편집합니다 |
 | `tool dashboard` | 🔧 도구 | 파이프라인 진행 상태를 실시간 TUI로 모니터링합니다 |
 | `tool convert` | 🔧 도구 | QA 데이터를 훈련용 JSONL 형식으로 변환합니다 |
-| `tool dialogue` | 🔧 도구 | QA 쌍을 멀티턴 대화 데이터로 확장합니다 |
-| `tool gguf` | 🔧 도구 | 병합된 모델을 GGUF 양자화 형식으로 변환합니다 |
 | `tool update` | 🔧 도구 | 변경된 문서만 감지하여 증분 처리합니다 |
 | `tool evolve` | 🔧 도구 | 자동 진화 (증분→학습→품질게이트→배포) |
 | `tool compare-data` | 🔧 도구 | 두 QA 데이터셋의 품질 비교 |
@@ -214,13 +212,11 @@ uv run slm-factory run [OPTIONS]
 | `convert` | 필수 | 채팅 템플릿 적용 JSONL 변환 | `output/training_data.jsonl` |
 | `train` | 필수 | LoRA 파인튜닝 | `output/checkpoints/adapter/` |
 | `export` | 필수 | 모델 병합 + Ollama Modelfile 생성 | `output/merged_model/` |
-| `dialogue` | 기본 활성 | 멀티턴 대화 생성 | `output/dialogues.json` |
-| `gguf_export` | 기본 활성 | GGUF 양자화 변환 | `output/*.gguf` |
 | `eval` | 기본 활성 | BLEU/ROUGE 평가 | `output/eval_results.json` |
 | `autorag_export` | 기본 활성 | RAG 인덱싱 데이터 내보내기 | `output/autorag/` |
 | `rag_index` | 기본 활성 | ChromaDB 벡터 인덱싱 | `output/chroma_db/` |
 
-`--until`을 생략하면 위 전체 14단계를 순서대로 실행합니다. 각 단계는 해당 설정의 `enabled` 값에 따라 실행 여부가 결정됩니다.
+`--until`을 생략하면 위 전체 12단계를 순서대로 실행합니다. 각 단계는 해당 설정의 `enabled` 값에 따라 실행 여부가 결정됩니다.
 
 **`--resume` 동작 방식**
 
@@ -502,7 +498,7 @@ uv run slm-factory tool wizard [OPTIONS]
 | 설정 파일 로드 | 필수 | `project.yaml`을 자동 탐색하거나 경로를 직접 입력합니다 |
 | 문서 선택 | 필수 | `documents/` 디렉토리의 파일 목록을 표시하고 전체 또는 개별 선택합니다 |
 
-**14단계 파이프라인** (단계 번호는 [빠른 참조](quick-reference.md) 다이어그램과 동일)
+**12단계 파이프라인** (단계 번호는 [빠른 참조](quick-reference.md) 다이어그램과 동일)
 
 > **단계 유형 안내**: **필수** — 항상 실행, 건너뛸 수 없음 · **선택** — 사용자 확인 후 건너뛸 수 있음 (`enabled` 설정 반영) · **자동** — 사용자 확인 없이 자동 실행
 
@@ -518,11 +514,9 @@ uv run slm-factory tool wizard [OPTIONS]
 | 7 | 데이터 변환 | **자동** | QA 데이터를 채팅 템플릿 적용 JSONL 형식으로 변환합니다 |
 | 8 | LoRA 학습 | 필수 | Student 모델에 LoRA 어댑터를 적용하여 파인튜닝합니다. 확인 후 진행합니다. |
 | 9 | 모델 내보내기 | 필수 | LoRA 어댑터를 병합하고 Ollama Modelfile을 생성합니다. 확인 후 진행합니다. |
-| 10 | 멀티턴 대화 생성 | 선택 | QA 쌍을 멀티턴 대화 형식으로 확장합니다. 건너뛸 수 있습니다. |
-| 11 | GGUF 변환 | 선택 | 모델을 llama.cpp 호환 GGUF 형식으로 변환합니다. 건너뛸 수 있습니다. (`gguf_export.enabled` 설정 반영) |
-| 12 | 모델 평가 | 선택 | BLEU/ROUGE 메트릭으로 학습된 모델을 평가합니다. 건너뛸 수 있습니다. |
-| 13 | 코퍼스 내보내기 | 선택 | QA·문서를 RAG 인덱싱용 parquet으로 내보냅니다. 건너뛸 수 있습니다. (`autorag_export.enabled` 설정 반영) |
-| 14 | RAG 인덱싱 | 선택 | corpus.parquet을 ChromaDB에 임베딩하여 적재합니다. 건너뛸 수 있습니다. |
+| 10 | 모델 평가 | 선택 | BLEU/ROUGE 메트릭으로 학습된 모델을 평가합니다. 건너뛸 수 있습니다. |
+| 11 | 코퍼스 내보내기 | 선택 | QA·문서를 RAG 인덱싱용 parquet으로 내보냅니다. 건너뛸 수 있습니다. (`autorag_export.enabled` 설정 반영) |
+| 12 | RAG 인덱싱 | 선택 | corpus.parquet을 ChromaDB에 임베딩하여 적재합니다. 건너뛸 수 있습니다. |
 
 선택 단계를 건너뛰면 해당 단계를 나중에 실행할 수 있는 CLI 명령어를 안내합니다.
 
@@ -652,91 +646,6 @@ uv run slm-factory tool convert --config my-project/project.yaml --data ./my-pro
 ```
 
 생성 파일: `output/training_data.jsonl`
-
----
-
-### `tool dialogue`
-
-QA 쌍을 멀티턴 대화 형식으로 확장합니다. Teacher LLM이 단일 질문-답변을 자연스러운 다중 턴 대화로 변환합니다.
-
-**사용법**
-
-```
-uv run slm-factory tool dialogue [OPTIONS]
-```
-
-**옵션**
-
-| 플래그 | 단축키 | 타입 | 기본값 | 설명 |
-|--------|--------|------|--------|------|
-| `--config` | | `TEXT` | `project.yaml` | 프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다. |
-| `--data` | | `TEXT` | `None` | QA 데이터 파일 경로 (`qa_alpaca.json` 또는 `qa_augmented.json`). 미지정 시 자동 감지합니다. |
-
-`--data` 미지정 시 자동 감지 우선순위: `qa_augmented.json` → `qa_scored.json` → `qa_alpaca.json`
-
-**예시**
-
-```bash
-# 자동 감지된 QA 데이터로 대화 생성
-uv run slm-factory tool dialogue --config my-project/project.yaml
-
-# 특정 파일로 대화 생성
-uv run slm-factory tool dialogue --config my-project/project.yaml --data ./my-project/output/qa_alpaca.json
-```
-
-**출력**
-
-```
-대화 생성 완료! 120개 대화 생성됨 → ./my-project/output/dialogues.json
-```
-
-생성 파일: `output/dialogues.json`
-
-**참고**
-
-- 대화 생성에는 Ollama 서버와 Teacher 모델이 필요합니다.
-- 대화 설정(`turns`, `style` 등)은 `project.yaml`의 `dialogue` 섹션에서 설정합니다. [설정 레퍼런스](configuration.md)를 참조하십시오.
-
----
-
-### `tool gguf`
-
-병합된 모델을 llama.cpp 호환 GGUF 양자화 형식으로 변환합니다. llama.cpp의 변환 스크립트를 내부적으로 사용합니다.
-
-**사용법**
-
-```
-uv run slm-factory tool gguf [OPTIONS]
-```
-
-**옵션**
-
-| 플래그 | 단축키 | 타입 | 기본값 | 설명 |
-|--------|--------|------|--------|------|
-| `--config` | | `TEXT` | `project.yaml` | 프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다. |
-| `--model-dir` | | `TEXT` | `None` | 병합된 모델 디렉토리 경로입니다. 미지정 시 `output/merged_model`을 사용합니다. |
-
-**예시**
-
-```bash
-# 기본 경로의 모델을 GGUF로 변환
-uv run slm-factory tool gguf --config my-project/project.yaml
-
-# 특정 모델 디렉토리 지정
-uv run slm-factory tool gguf --config my-project/project.yaml --model-dir ./my-project/output/merged_model
-```
-
-**출력**
-
-```
-GGUF 변환 완료! 파일: ./my-project/output/merged_model.gguf
-```
-
-**참고**
-
-- GGUF 변환은 2단계로 진행됩니다: ① 모델을 F16 GGUF로 변환 → ② 설정된 양자화 타입으로 양자화. 중간 F16 파일은 자동 정리됩니다.
-- GGUF 변환 전에 `export` 명령으로 모델을 먼저 병합해야 합니다.
-- 양자화 타입은 `project.yaml`의 `gguf_export.quantization_type`에서 설정합니다. [설정 레퍼런스](configuration.md)를 참조하십시오.
 
 ---
 
@@ -1137,8 +1046,6 @@ uv run slm-factory status --config my-project/project.yaml
 │ convert  │ training_data.jsonl      │ 없음   │ -            │
 │ train    │ checkpoints/adapter/     │ 없음   │ -            │
 │ export   │ merged_model/            │ 없음   │ -            │
-│ dialogue │ dialogues.json           │ 없음   │ -            │
-│ gguf     │ *.gguf                   │ 없음   │ -            │
 │ eval     │ eval_results.json        │ 없음   │ -            │
 │ autorag  │ autorag/                 │ 없음   │ -            │
 │ rag      │ chroma_db/               │ 없음   │ -            │
@@ -1239,7 +1146,6 @@ output/
 ├── qa_augmented.json           # augment 단계 출력 (선택)
 ├── qa_reviewed.json            # tool review 출력 (선택)
 ├── data_analysis.json          # analyze 단계 출력 (선택)
-├── dialogues.json              # tool dialogue 출력 (선택)
 ├── eval_results.json           # eval run 출력 (선택)
 ├── compare_results.json        # eval compare 출력 (선택)
 ├── training_data.jsonl         # convert 단계 출력
@@ -1248,7 +1154,6 @@ output/
 │       ├── adapter_config.json
 │       ├── adapter_model.safetensors
 │       └── ...
-├── *.gguf                      # tool gguf 출력 (선택)
 ├── autorag/                    # tool export-autorag 출력 (선택)
 │   ├── corpus.parquet          # 문서 청크 (검색 코퍼스)
 │   └── qa.parquet              # QA 평가 데이터
@@ -1272,12 +1177,10 @@ output/
 | `qa_augmented.json` | `run --until augment` | 데이터 증강이 완료된 QA 쌍입니다. `--resume` 시 `analyze`부터 재개합니다. |
 | `qa_reviewed.json` | `tool review` | TUI에서 수동 리뷰를 거친 QA 쌍입니다. 승인된 항목만 포함됩니다. |
 | `data_analysis.json` | `run --until analyze` | 카테고리 분포, 길이 통계, 데이터 품질 경고를 포함한 분석 보고서입니다. |
-| `dialogues.json` | `tool dialogue` | QA 쌍을 멀티턴 대화 형식으로 확장한 데이터입니다. |
 | `eval_results.json` | `eval run` | BLEU/ROUGE 메트릭별 점수와 평균 점수를 포함한 평가 결과입니다. |
 | `compare_results.json` | `eval compare` | 각 질문에 대한 Base 모델과 Fine-tuned 모델의 답변을 나란히 기록한 비교 결과입니다. |
 | `training_data.jsonl` | `tool convert` | Student 모델의 채팅 템플릿이 적용된 학습 데이터입니다. 각 줄은 `{"text": "..."}` 형식입니다. |
 | `checkpoints/adapter/` | `train` | PEFT 형식의 LoRA 어댑터 가중치입니다. `export` 명령으로 기본 모델과 병합합니다. |
-| `*.gguf` | `tool gguf` | GGUF 양자화 형식으로 변환된 모델 파일입니다. llama.cpp 호환 형식입니다. |
 | `autorag/` | `tool export-autorag` | RAG 인덱싱용 parquet 데이터. `corpus.parquet`(문서 청크)과 `qa.parquet`(QA 평가 데이터)을 포함합니다. |
 | `chroma_db/` | `tool rag-index` | ChromaDB 벡터 인덱스입니다. `tool rag-serve`가 이 디렉토리를 참조하여 유사도 검색을 수행합니다. |
 | `merged_model/` | `export` | LoRA 어댑터가 병합된 최종 모델입니다. `Modelfile`로 Ollama에 즉시 배포할 수 있습니다. |

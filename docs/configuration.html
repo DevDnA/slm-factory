@@ -87,16 +87,14 @@
           <li><a href="#eval">14. eval &mdash; 모델 평가 설정</a></li>
           <li><a href="#compare">15. compare &mdash; 모델 비교 설정</a></li>
           <li><a href="#evolve">16. evolve &mdash; 자동 진화 설정</a></li>
-          <li><a href="#gguf-export">17. gguf_export &mdash; GGUF 변환 설정</a></li>
-          <li><a href="#autorag-export">18. autorag_export &mdash; RAG 데이터 내보내기 설정</a></li>
-          <li><a href="#rag">19. rag &mdash; RAG 서비스 설정</a></li>
-          <li><a href="#incremental">20. incremental &mdash; 증분 학습 설정</a></li>
-          <li><a href="#dialogue">21. dialogue &mdash; 멀티턴 대화 설정</a></li>
-          <li><a href="#review">22. review &mdash; QA 리뷰 설정</a></li>
-          <li><a href="#dashboard">23. dashboard &mdash; 대시보드 설정</a></li>
-          <li><a href="#recipes">24. 설정 레시피</a></li>
-          <li><a href="#full-example">25. 전체 설정 예시</a></li>
-          <li><a href="#check">26. 설정 검증 (slm-factory check)</a></li>
+          <li><a href="#autorag-export">17. autorag_export &mdash; RAG 데이터 내보내기 설정</a></li>
+          <li><a href="#rag">18. rag &mdash; RAG 서비스 설정</a></li>
+          <li><a href="#incremental">19. incremental &mdash; 증분 학습 설정</a></li>
+          <li><a href="#review">20. review &mdash; QA 리뷰 설정</a></li>
+          <li><a href="#dashboard">21. dashboard &mdash; 대시보드 설정</a></li>
+          <li><a href="#recipes">22. 설정 레시피</a></li>
+          <li><a href="#full-example">23. 전체 설정 예시</a></li>
+          <li><a href="#check">25. 설정 검증 (slm-factory check)</a></li>
         </ol>
       </nav>
 
@@ -218,9 +216,6 @@
             <rect x="600" y="118" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="660" y="134" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">export</text>
 
-            <rect x="600" y="148" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
-            <text x="660" y="164" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">gguf_export</text>
-
             <!-- ===== Features items ===== -->
             <rect x="780" y="118" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="840" y="134" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">eval</text>
@@ -235,10 +230,7 @@
             <text x="840" y="224" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">incremental</text>
 
             <rect x="780" y="238" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
-            <text x="840" y="254" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">dialogue</text>
-
-            <rect x="780" y="268" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
-            <text x="840" y="284" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">review</text>
+            <text x="840" y="254" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">review</text>
 
             <rect x="780" y="298" width="120" height="24" rx="5" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="840" y="314" text-anchor="middle" fill="#1A202C" font-size="11" font-weight="600" font-family="Pretendard, sans-serif">dashboard</text>
@@ -1028,38 +1020,10 @@ If the document does not contain relevant information, say "The document does no
       <hr>
 
       <!-- ============================================================
-           Section 17: gguf_export
-           ============================================================ -->
-      <section id="gguf-export">
-        <h2>17. gguf_export &mdash; GGUF 변환 설정</h2>
-        <blockquote><p>병합된 모델을 llama.cpp 호환 GGUF 양자화 형식으로 변환합니다.</p></blockquote>
-
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
-            </thead>
-            <tbody>
-              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>true</code></td><td>GGUF 변환 기능 활성화 여부</td></tr>
-              <tr><td><code>quantization_type</code></td><td><code>str</code></td><td><code>"q4_k_m"</code></td><td>양자화 타입. <code>q4_0</code>, <code>q4_1</code>, <code>q4_k_m</code>, <code>q4_k_s</code>, <code>q5_0</code>, <code>q5_1</code>, <code>q5_k_m</code>, <code>q5_k_s</code>, <code>q8_0</code>, <code>f16</code>, <code>f32</code> 중 선택</td></tr>
-              <tr><td><code>llama_cpp_path</code></td><td><code>str</code></td><td><code>""</code></td><td>llama.cpp 경로. 빈 문자열이면 시스템 PATH에서 탐색합니다</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <pre data-lang="yaml"><code>gguf_export:
-  enabled: true
-  quantization_type: "q4_k_m"
-  llama_cpp_path: "/path/to/llama.cpp"</code></pre>
-      </section>
-
-      <hr>
-
-      <!-- ============================================================
-           Section 18: autorag_export
+           Section 17: autorag_export
            ============================================================ -->
       <section id="autorag-export">
-        <h2>18. autorag_export &mdash; RAG 데이터 내보내기 설정</h2>
+        <h2>17. autorag_export &mdash; RAG 데이터 내보내기 설정</h2>
         <blockquote><p>slm-factory의 파싱·QA 데이터를 RAG 인덱싱용 parquet 형식으로 내보냅니다.</p></blockquote>
 
         <div class="table-wrapper">
@@ -1094,10 +1058,10 @@ If the document does not contain relevant information, say "The document does no
       <hr>
 
       <!-- ============================================================
-           Section 19: incremental
+           Section 18: incremental
            ============================================================ -->
       <section id="rag">
-        <h2>19. rag &mdash; RAG 서비스 설정</h2>
+        <h2>18. rag &mdash; RAG 서비스 설정</h2>
         <blockquote><p><code>corpus.parquet</code>을 ChromaDB에 임베딩하여 적재하고, Ollama SLM과 연동하는 RAG API 서버를 실행합니다.</p></blockquote>
 
         <div class="table-wrapper">
@@ -1144,7 +1108,7 @@ If the document does not contain relevant information, say "The document does no
       <hr>
 
       <section id="incremental">
-        <h2>20. incremental &mdash; 증분 학습 설정</h2>
+        <h2>19. incremental &mdash; 증분 학습 설정</h2>
         <blockquote><p>문서 추가 시 기존 QA를 유지하면서 새 문서만 처리합니다. 해시 기반으로 변경을 감지합니다.</p></blockquote>
 
         <div class="table-wrapper">
@@ -1171,47 +1135,10 @@ If the document does not contain relevant information, say "The document does no
       <hr>
 
       <!-- ============================================================
-           Section 20: dialogue
-           ============================================================ -->
-      <section id="dialogue">
-        <h2>21. dialogue &mdash; 멀티턴 대화 설정</h2>
-        <blockquote><p>QA 쌍을 멀티턴 대화 형식으로 확장합니다.</p></blockquote>
-
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
-            </thead>
-            <tbody>
-              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>true</code></td><td>멀티턴 대화 생성 기능 활성화 여부</td></tr>
-              <tr><td><code>min_turns</code></td><td><code>int</code></td><td><code>2</code></td><td>최소 대화 턴 수 (2 이상)</td></tr>
-              <tr><td><code>max_turns</code></td><td><code>int</code></td><td><code>5</code></td><td>최대 대화 턴 수</td></tr>
-              <tr><td><code>include_single_qa</code></td><td><code>bool</code></td><td><code>true</code></td><td>단일 QA 쌍도 대화 데이터에 포함할지 여부</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="callout callout-warning">
-          <div class="callout-content">
-            <div class="callout-title">제약조건</div>
-            <p><code>min_turns</code>는 반드시 <code>max_turns</code>보다 작거나 같아야 합니다. 또한 <code>min_turns</code>는 2 이상이어야 합니다. 이를 위반하면 설정 로드 시 오류가 발생합니다.</p>
-          </div>
-        </div>
-
-        <pre data-lang="yaml"><code>dialogue:
-  enabled: true
-  min_turns: 2
-  max_turns: 5
-  include_single_qa: true</code></pre>
-      </section>
-
-      <hr>
-
-      <!-- ============================================================
-           Section 21: review
+           Section 20: review
            ============================================================ -->
       <section id="review">
-        <h2>22. review &mdash; QA 리뷰 설정</h2>
+        <h2>20. review &mdash; QA 리뷰 설정</h2>
         <blockquote><p>TUI에서 QA 쌍을 수동으로 검토하고 승인/거부/편집합니다.</p></blockquote>
 
         <div class="table-wrapper">
@@ -1236,10 +1163,10 @@ If the document does not contain relevant information, say "The document does no
       <hr>
 
       <!-- ============================================================
-           Section 22: dashboard
+           Section 21: dashboard
            ============================================================ -->
       <section id="dashboard">
-        <h2>23. dashboard &mdash; 대시보드 설정</h2>
+        <h2>21. dashboard &mdash; 대시보드 설정</h2>
         <blockquote><p>파이프라인 진행 상태를 실시간 TUI로 모니터링합니다.</p></blockquote>
 
         <div class="table-wrapper">
@@ -1280,10 +1207,10 @@ If the document does not contain relevant information, say "The document does no
       <hr>
 
       <!-- ============================================================
-           Section 23: 설정 레시피
+           Section 22: 설정 레시피
            ============================================================ -->
       <section id="recipes">
-        <h2>24. 설정 레시피</h2>
+        <h2>22. 설정 레시피</h2>
 
         <p>자주 사용되는 설정 패턴을 레시피 형태로 제공합니다. 각 레시피는 특정 상황에 맞게 최소한의 필드만 변경합니다.</p>
         <p>각 설정을 언제 사용할지에 대한 맥락은 <a href="guide.html">사용 가이드</a>를 참조하십시오.</p>
@@ -1374,10 +1301,10 @@ training:
       <hr>
 
       <!-- ============================================================
-           Section 24: 전체 설정 예시
+           Section 23: 전체 설정 예시
            ============================================================ -->
       <section id="full-example">
-        <h2>25. 전체 설정 예시 (한국어 정책 문서 프로젝트)</h2>
+        <h2>23. 전체 설정 예시 (한국어 정책 문서 프로젝트)</h2>
 
         <p>한국어 회사 정책 문서를 처리하는 완전한 <code>project.yaml</code> 예시입니다.</p>
 
@@ -1527,13 +1454,7 @@ eval:
 compare:
   enabled: false
 
-gguf_export:
-  enabled: false
-
 incremental:
-  enabled: false
-
-dialogue:
   enabled: false
 
 review:
@@ -1561,7 +1482,7 @@ dashboard:
            Section 25: 설정 검증
            ============================================================ -->
       <section id="check">
-        <h2>26. 설정 검증 (slm-factory check)</h2>
+        <h2>25. 설정 검증 (slm-factory check)</h2>
 
         <p>설정 파일이 올바른지 확인하려면 <code>check</code> 명령을 사용합니다:</p>
         <pre data-lang="bash"><code>uv run slm-factory check --config project.yaml</code></pre>

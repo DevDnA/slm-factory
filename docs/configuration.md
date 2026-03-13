@@ -614,26 +614,7 @@ evolve:
 ```
 ---
 
-## 18. gguf_export — GGUF 변환 설정
-
-> 병합된 모델을 llama.cpp 호환 GGUF 양자화 형식으로 변환합니다.
-
-| 필드 | 타입 | 기본값 | 설명 |
-|------|------|--------|------|
-| `enabled` | `bool` | `true` | GGUF 변환 기능 활성화 여부 |
-| `quantization_type` | `str` | `"q4_k_m"` | 양자화 타입. `q4_0`, `q4_1`, `q4_k_m`, `q4_k_s`, `q5_0`, `q5_1`, `q5_k_m`, `q5_k_s`, `q8_0`, `f16`, `f32` 중 선택 |
-| `llama_cpp_path` | `str` | `""` | llama.cpp 경로. 빈 문자열이면 시스템 PATH에서 탐색합니다 |
-
-```yaml
-gguf_export:
-  enabled: true
-  quantization_type: "q4_k_m"
-  llama_cpp_path: "/path/to/llama.cpp"
-```
-
----
-
-## 19. autorag_export — RAG 데이터 내보내기 설정
+## 18. autorag_export — RAG 데이터 내보내기 설정
 
 > slm-factory의 파싱·QA 데이터를 RAG 인덱싱용 parquet 형식으로 내보냅니다.
 
@@ -661,7 +642,7 @@ autorag_export:
 
 ---
 
-## 20. rag — RAG 서비스 설정
+## 19. rag — RAG 서비스 설정
 
 > `corpus.parquet`을 ChromaDB에 임베딩하여 적재하고, Ollama SLM과 연동하는 RAG API 서버를 실행합니다.
 
@@ -706,7 +687,7 @@ rag:
 
 ---
 
-## 21. incremental — 증분 학습 설정
+## 20. incremental — 증분 학습 설정
 
 > 문서 추가 시 기존 QA를 유지하면서 새 문서만 처리합니다. 해시 기반으로 변경을 감지합니다.
 
@@ -727,30 +708,7 @@ incremental:
 
 ---
 
-## 22. dialogue — 멀티턴 대화 설정
-
-> QA 쌍을 멀티턴 대화 형식으로 확장합니다.
-
-| 필드 | 타입 | 기본값 | 설명 |
-|------|------|--------|------|
-| `enabled` | `bool` | `true` | 멀티턴 대화 생성 기능 활성화 여부 |
-| `min_turns` | `int` | `2` | 최소 대화 턴 수 (2 이상) |
-| `max_turns` | `int` | `5` | 최대 대화 턴 수 |
-| `include_single_qa` | `bool` | `true` | 단일 QA 쌍도 대화 데이터에 포함할지 여부 |
-
-**제약조건**: `min_turns`는 반드시 `max_turns`보다 작거나 같아야 합니다. 또한 `min_turns`는 2 이상이어야 합니다. 이를 위반하면 설정 로드 시 오류가 발생합니다.
-
-```yaml
-dialogue:
-  enabled: true
-  min_turns: 2
-  max_turns: 5
-  include_single_qa: true
-```
-
----
-
-## 23. review — QA 리뷰 설정
+## 21. review — QA 리뷰 설정
 
 > TUI에서 QA 쌍을 수동으로 검토하고 승인/거부/편집합니다.
 
@@ -769,7 +727,7 @@ review:
 
 ---
 
-## 24. dashboard — 대시보드 설정
+## 22. dashboard — 대시보드 설정
 
 > 파이프라인 진행 상태를 실시간 TUI로 모니터링합니다.
 
@@ -788,7 +746,7 @@ dashboard:
 
 ---
 
-## 25. 설정 레시피
+## 23. 설정 레시피
 
 자주 사용되는 설정 패턴을 레시피 형태로 제공합니다. 각 레시피는 특정 상황에 맞게 최소한의 필드만 변경합니다.
 
@@ -899,7 +857,7 @@ teacher:
 
 ---
 
-## 26. 전체 설정 예시 (한국어 정책 문서 프로젝트)
+## 24. 전체 설정 예시 (한국어 정책 문서 프로젝트)
 
 한국어 회사 정책 문서를 처리하는 완전한 `project.yaml` 예시입니다.
 
@@ -1068,7 +1026,7 @@ dashboard:
 
 ---
 
-## 27. 설정 검증 (slm-factory check)
+## 25. 설정 검증 (slm-factory check)
 
 설정 파일이 올바른지 확인하려면 `check` 명령을 사용합니다:
 

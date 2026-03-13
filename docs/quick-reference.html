@@ -258,16 +258,6 @@ uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
                   <td><code>--config</code>, <code>--data</code></td>
                 </tr>
                 <tr>
-                  <td><code>slm-factory tool dialogue</code></td>
-                  <td>멀티턴 대화 생성</td>
-                  <td><code>--config</code>, <code>--data</code></td>
-                </tr>
-                <tr>
-                  <td><code>slm-factory tool gguf</code></td>
-                  <td>GGUF 양자화 변환</td>
-                  <td><code>--config</code>, <code>--model-dir</code></td>
-                </tr>
-                <tr>
                   <td><code>slm-factory tool update</code></td>
                   <td>증분 업데이트 (변경 문서만)</td>
                   <td><code>--config</code></td>
@@ -419,36 +409,22 @@ uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
                    <td><code>output/merged_model/</code></td>
                  </tr>
                  <tr>
-                   <td>10</td>
-                   <td><strong>dialogue</strong></td>
-                   <td><span class="tag tag-optional">선택</span></td>
-                   <td>QA 쌍을 멀티턴 대화로 확장 (<code>dialogue.enabled: true</code>)</td>
-                   <td><code>output/dialogues.json</code></td>
-                 </tr>
-                 <tr>
-                   <td>11</td>
-                   <td><strong>gguf_export</strong></td>
-                   <td><span class="tag tag-optional">선택</span></td>
-                   <td>GGUF 양자화 변환 (<code>gguf_export.enabled: true</code>)</td>
-                   <td><code>output/*.gguf</code></td>
-                 </tr>
-                 <tr>
-                   <td>12</td>
-                   <td><strong>eval</strong></td>
+                    <td>10</td>
+                    <td><strong>eval</strong></td>
                    <td><span class="tag tag-optional">선택</span></td>
                    <td>BLEU/ROUGE 평가 (<code>eval.enabled: true</code>)</td>
                    <td><code>output/eval_results.json</code></td>
                  </tr>
                  <tr>
-                   <td>13</td>
-                   <td><strong>autorag_export</strong></td>
+                    <td>11</td>
+                    <td><strong>autorag_export</strong></td>
                    <td><span class="tag tag-optional">선택</span></td>
                    <td>RAG 인덱싱 데이터 내보내기 (<code>autorag_export.enabled: true</code>)</td>
                    <td><code>output/autorag/*.parquet</code></td>
                  </tr>
                  <tr>
-                   <td>14</td>
-                   <td><strong>rag_index</strong></td>
+                    <td>12</td>
+                    <td><strong>rag_index</strong></td>
                    <td><span class="tag tag-optional">선택</span></td>
                    <td>ChromaDB 벡터 인덱싱 (<code>autorag_export.enabled: true</code>)</td>
                    <td><code>output/chroma_db/</code></td>
@@ -517,20 +493,14 @@ uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
               <rect x="526" y="4" width="148" height="195" rx="8" fill="#FFFCF5" stroke="#ECC48D" stroke-width="0.75"/>
               <text x="600" y="19" font-family="Pretendard, sans-serif" font-size="10" font-weight="700" fill="#C05621" text-anchor="middle">서비스 배포</text>
               <rect x="536" y="27" width="128" height="20" rx="4" fill="#FFFAF0" stroke="#ED8936" stroke-width="0.75" stroke-dasharray="4,2"/>
-              <text x="600" y="40" font-family="Pretendard, sans-serif" font-size="9.5" font-weight="600" fill="#C05621" text-anchor="middle">10. dialogue</text>
-              <text x="600" y="56" font-family="JetBrains Mono, Consolas, monospace" font-size="7" fill="#718096" text-anchor="middle">dialogues.json</text>
+              <text x="600" y="40" font-family="Pretendard, sans-serif" font-size="9.5" font-weight="600" fill="#C05621" text-anchor="middle">10. eval</text>
+              <text x="600" y="56" font-family="JetBrains Mono, Consolas, monospace" font-size="7" fill="#718096" text-anchor="middle">eval_results.json</text>
               <rect x="536" y="61" width="128" height="20" rx="4" fill="#FFFAF0" stroke="#ED8936" stroke-width="0.75" stroke-dasharray="4,2"/>
-              <text x="600" y="74" font-family="Pretendard, sans-serif" font-size="9.5" font-weight="600" fill="#C05621" text-anchor="middle">11. gguf_export</text>
-              <text x="600" y="90" font-family="JetBrains Mono, Consolas, monospace" font-size="7" fill="#718096" text-anchor="middle">*.gguf</text>
+              <text x="600" y="74" font-family="Pretendard, sans-serif" font-size="9.5" font-weight="600" fill="#C05621" text-anchor="middle">11. autorag_export</text>
+              <text x="600" y="90" font-family="JetBrains Mono, Consolas, monospace" font-size="7" fill="#718096" text-anchor="middle">autorag/*.parquet</text>
               <rect x="536" y="95" width="128" height="20" rx="4" fill="#FFFAF0" stroke="#ED8936" stroke-width="0.75" stroke-dasharray="4,2"/>
-              <text x="600" y="108" font-family="Pretendard, sans-serif" font-size="9.5" font-weight="600" fill="#C05621" text-anchor="middle">12. eval</text>
-              <text x="600" y="124" font-family="JetBrains Mono, Consolas, monospace" font-size="7" fill="#718096" text-anchor="middle">eval_results.json</text>
-              <rect x="536" y="129" width="128" height="20" rx="4" fill="#FFFAF0" stroke="#ED8936" stroke-width="0.75" stroke-dasharray="4,2"/>
-              <text x="600" y="142" font-family="Pretendard, sans-serif" font-size="9.5" font-weight="600" fill="#C05621" text-anchor="middle">13. autorag_export</text>
-              <text x="600" y="158" font-family="JetBrains Mono, Consolas, monospace" font-size="7" fill="#718096" text-anchor="middle">autorag/*.parquet</text>
-              <rect x="536" y="163" width="128" height="20" rx="4" fill="#FFFAF0" stroke="#ED8936" stroke-width="0.75" stroke-dasharray="4,2"/>
-              <text x="600" y="176" font-family="Pretendard, sans-serif" font-size="9.5" font-weight="600" fill="#C05621" text-anchor="middle">14. rag_index</text>
-              <text x="600" y="192" font-family="JetBrains Mono, Consolas, monospace" font-size="7" fill="#718096" text-anchor="middle">chroma_db/</text>
+              <text x="600" y="108" font-family="Pretendard, sans-serif" font-size="9.5" font-weight="600" fill="#C05621" text-anchor="middle">12. rag_index</text>
+              <text x="600" y="124" font-family="JetBrains Mono, Consolas, monospace" font-size="7" fill="#718096" text-anchor="middle">chroma_db/</text>
 
               <!-- Horizontal arrows between groups -->
               <line x1="152" y1="100" x2="178" y2="100" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#pf-arrow-gray)"/>
@@ -640,7 +610,6 @@ uv run slm-factory eval compare \
 ├── qa_augmented.json           # 데이터 증강이 완료된 QA 쌍
 ├── qa_reviewed.json            # TUI 수동 리뷰를 거친 QA 쌍
 ├── data_analysis.json          # 카테고리 분포, 길이 통계, 품질 경고
-├── dialogues.json              # 멀티턴 대화 형식으로 확장된 데이터
 ├── eval_results.json           # BLEU/ROUGE 평가 점수
 ├── compare_results.json        # Base vs Fine-tuned 비교 결과
 ├── training_data.jsonl         # 채팅 템플릿 적용된 최종 학습 데이터
@@ -648,7 +617,6 @@ uv run slm-factory eval compare \
 │   └── adapter/                # LoRA 어댑터 가중치 (PEFT 형식)
 │       ├── adapter_config.json
 │       └── adapter_model.safetensors
-├── *.gguf                      # GGUF 양자화 변환 결과 (선택)
 ├── autorag/                    # RAG 인덱싱용 데이터 (corpus.parquet, qa.parquet)
 └── merged_model/               # 병합된 최종 모델 (HuggingFace 형식)
     ├── config.json

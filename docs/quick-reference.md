@@ -80,8 +80,6 @@ uv run slm-factory tool wizard --config my-project/project.yaml
 | `slm-factory tool dashboard` | 파이프라인 대시보드 TUI | `--config` |
 | `slm-factory tool evolve` | 자동 진화 (증분→학습→품질게이트→배포) | `--config`, `--force-update`, `--skip-gate` |
 | `slm-factory tool convert` | QA → JSONL 변환 | `--config`, `--data` |
-| `slm-factory tool dialogue` | 멀티턴 대화 생성 | `--config`, `--data` |
-| `slm-factory tool gguf` | GGUF 양자화 변환 | `--config`, `--model-dir` |
 | `slm-factory tool update` | 증분 업데이트 (변경 문서만) | `--config` |
 | `slm-factory tool compare-data` | 두 QA 데이터셋 품질 비교 | `--baseline` / `-b`, `--target` / `-t` |
 | `slm-factory tool export-autorag` | RAG 인덱싱용 데이터 내보내기 | `--config`, `--qa-file` |
@@ -114,11 +112,9 @@ uv run slm-factory tool wizard --config my-project/project.yaml
 7. **convert** (필수) — 채팅 템플릿 적용 JSONL 변환 → `output/training_data.jsonl`
 8. **train** (필수) — LoRA 파인튜닝 → `output/checkpoints/adapter/`
 9. **export** (필수) — 모델 병합 + Ollama Modelfile 생성 → `output/merged_model/`
-10. **dialogue** (선택) — QA 쌍을 멀티턴 대화로 확장 → `output/dialogues.json`
-11. **gguf_export** (선택) — GGUF 양자화 변환 → `output/*.gguf`
-12. **eval** (선택) — BLEU/ROUGE 평가 → `output/eval_results.json`
-13. **autorag_export** (선택) — RAG 인덱싱 데이터 내보내기 → `output/autorag/`
-14. **rag_index** (선택) — ChromaDB 벡터 인덱싱 → `output/chroma_db/`
+10. **eval** (선택) — BLEU/ROUGE 평가 → `output/eval_results.json`
+11. **autorag_export** (선택) — RAG 인덱싱 데이터 내보내기 → `output/autorag/`
+12. **rag_index** (선택) — ChromaDB 벡터 인덱싱 → `output/chroma_db/`
 
 > 모든 선택 단계는 기본으로 활성화됩니다. 개별 비활성화는 `project.yaml`에서 `enabled: false`로 설정합니다.
 
@@ -214,7 +210,6 @@ output/
 ├── qa_augmented.json           # 데이터 증강이 완료된 QA 쌍
 ├── qa_reviewed.json            # TUI 수동 리뷰를 거친 QA 쌍
 ├── data_analysis.json          # 카테고리 분포, 길이 통계, 품질 경고
-├── dialogues.json              # 멀티턴 대화 형식으로 확장된 데이터
 ├── eval_results.json           # BLEU/ROUGE 평가 점수
 ├── compare_results.json        # Base vs Fine-tuned 비교 결과
 ├── training_data.jsonl         # 채팅 템플릿 적용된 최종 학습 데이터
@@ -222,7 +217,6 @@ output/
 │   └── adapter/                # LoRA 어댑터 가중치 (PEFT 형식)
 │       ├── adapter_config.json
 │       └── adapter_model.safetensors
-├── *.gguf                      # GGUF 양자화 변환 결과 (선택)
 ├── autorag/                    # RAG 인덱싱용 데이터 (corpus.parquet, qa.parquet)
 ├── chroma_db/                  # RAG 벡터 인덱스 (ChromaDB)
 └── merged_model/               # 병합된 최종 모델 (HuggingFace 형식)

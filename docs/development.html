@@ -132,7 +132,7 @@
                   <td><code>models.py</code>, <code>config.py</code></td>
                 </tr>
                 <tr>
-                  <td><code>teacher/qa_generator.py</code>, <code>teacher/dialogue_generator.py</code></td>
+                  <td><code>teacher/qa_generator.py</code></td>
                   <td><code>teacher/base.py</code>, <code>models.py</code></td>
                 </tr>
                 <tr>
@@ -179,15 +179,6 @@ class EvalResult:
     scores: dict  # {"bleu": 0.42, "rouge1": 0.61, ...}
 
 @dataclass
-class DialogueTurn:
-    role: str  # "user" 또는 "assistant"
-    content: str
-
-@dataclass
-class MultiTurnDialogue:
-    turns: list[DialogueTurn]; source_doc: str = ""; category: str = ""
-
-@dataclass
 class CompareResult:
     question: str; reference_answer: str
     base_answer: str; finetuned_answer: str
@@ -208,8 +199,7 @@ class CompareResult:
     augment: AugmentConfig;      analyzer: AnalyzerConfig
     student: StudentConfig;      training: TrainingConfig
     export: ExportConfig;        eval: EvalConfig
-    gguf_export: GGUFExportConfig; incremental: IncrementalConfig
-    dialogue: DialogueConfig;    review: ReviewConfig
+    incremental: IncrementalConfig; review: ReviewConfig
     compare: CompareConfig;      evolve: EvolveConfig
     dashboard: DashboardConfig</code></pre>
 
@@ -275,12 +265,6 @@ def create_default_config() -&gt; str:
         self, pairs: list[QAPair], model_name: str
     ) -&gt; list[EvalResult]:
         """BLEU/ROUGE 메트릭으로 모델을 평가합니다."""
-
-    def step_gguf_export(self, model_dir: Path) -&gt; Path:
-        """병합된 모델을 GGUF 형식으로 변환합니다."""
-
-    def step_dialogue(self, pairs: list[QAPair]) -&gt; list[MultiTurnDialogue]:
-        """QA 쌍에서 멀티턴 대화를 생성합니다."""
 
     def step_compare(self, pairs: list[QAPair]) -&gt; list[CompareResult]:
         """Base 모델과 Fine-tuned 모델의 답변을 비교합니다."""
@@ -475,15 +459,6 @@ def create_teacher(config: TeacherConfig) -&gt; BaseTeacher:
     def save_alpaca(self, pairs: list[QAPair], output_path: str | Path) -&gt; Path: ...
     # QA 쌍을 Alpaca 형식 JSON으로 저장합니다.</code></pre>
 
-          <hr>
-
-          <h3 id="dialogue-generator">DialogueGenerator</h3>
-
-          <pre data-lang="python"><code>class DialogueGenerator:
-    def __init__(self, teacher: BaseTeacher, config: DialogueConfig, teacher_config: TeacherConfig) -&gt; None: ...
-    async def generate_dialogue(self, pair: QAPair) -&gt; MultiTurnDialogue | None: ...
-    async def generate_all(self, pairs: list[QAPair]) -&gt; list[MultiTurnDialogue]: ...
-    def save_dialogues(self, dialogues: list[MultiTurnDialogue], path: Path) -&gt; None: ...</code></pre>
         </section>
 
 
@@ -709,16 +684,6 @@ class DataAnalyzer:
 
           <hr>
 
-          <h3 id="gguf-exporter">GGUFExporter (exporter/gguf_export.py)</h3>
-
-          <pre data-lang="python"><code>class GGUFExporter:
-    def __init__(self, config: SLMConfig) -&gt; None: ...
-
-    def export(self, model_dir: Path) -&gt; Path:
-        """llama.cpp의 convert_hf_to_gguf.py로 GGUF 파일을 생성합니다.
-        config.gguf_export.quantization_type: q4_k_m, q8_0, f16 등
-        config.gguf_export.llama_cpp_path: llama.cpp 디렉토리 경로
-        """</code></pre>
         </section>
 
 
@@ -971,10 +936,9 @@ class VLLMExporter:
 ├── test_parsers_{base,pdf,hwpx,html,text,docx}.py
 ├── test_teacher.py              # OllamaTeacher, OpenAICompatTeacher
 ├── test_qa_generator.py         # QAGenerator
-├── test_dialogue_generator.py   # DialogueGenerator
 ├── test_validator_{rules,similarity}.py
 ├── test_{scorer,augmenter,analyzer,converter}.py
-├── test_exporter{,_gguf}.py     # HFExporter, OllamaExporter, GGUFExporter
+├── test_exporter.py             # HFExporter, OllamaExporter
 ├── test_{evaluator,comparator,incremental}.py
 ├── test_{reviewer,dashboard}.py # TUI
 ├── test_cli.py                  # CLI 명령어

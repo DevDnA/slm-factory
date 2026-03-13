@@ -38,8 +38,7 @@ src/slm_factory/
 │   ├── base.py              # BaseTeacher ABC
 │   ├── ollama.py            # OllamaTeacher (로컬 Ollama REST API)
 │   ├── openai_compat.py     # OpenAICompatTeacher (OpenAI 호환 API)
-│   ├── qa_generator.py      # QAGenerator (문서 → QA 쌍)
-│   └── dialogue_generator.py  # DialogueGenerator (QA → 멀티턴 대화)
+│   └── qa_generator.py      # QAGenerator (문서 → QA 쌍)
 ├── validator/
 │   ├── __init__.py
 │   ├── rules.py             # RuleValidator (규칙 기반 필터링)
@@ -50,8 +49,7 @@ src/slm_factory/
 ├── exporter/
 │   ├── __init__.py
 │   ├── hf_export.py         # HFExporter (LoRA 병합 및 저장)
-│   ├── ollama_export.py     # OllamaExporter (Modelfile 생성)
-│   └── gguf_export.py       # GGUFExporter (GGUF 양자화 변환)
+│   └── ollama_export.py     # OllamaExporter (Modelfile 생성)
 └── tui/
     ├── __init__.py
     ├── widgets.py           # 공유 TUI 위젯 (QACard, StatusBar)
@@ -68,7 +66,7 @@ src/slm_factory/
 | `analyzer.py`, `evaluator.py`, `incremental.py` | `models.py`, `utils.py` |
 | `comparator.py` | `evaluator.py`, `models.py`, `utils.py` |
 | `converter.py`, `validator/*.py` | `models.py`, `config.py` |
-| `teacher/qa_generator.py`, `teacher/dialogue_generator.py` | `teacher/base.py`, `models.py` |
+| `teacher/qa_generator.py` | `teacher/base.py`, `models.py` |
 | `trainer/lora_trainer.py`, `exporter/*.py` | `config.py` (ML 라이브러리는 지연 임포트) |
 | `tui/*.py` | `models.py`, `config.py` |
 
@@ -100,15 +98,6 @@ class EvalResult:
     scores: dict  # {"bleu": 0.42, "rouge1": 0.61, ...}
 
 @dataclass
-class DialogueTurn:
-    role: str  # "user" 또는 "assistant"
-    content: str
-
-@dataclass
-class MultiTurnDialogue:
-    turns: list[DialogueTurn]; source_doc: str = ""; category: str = ""
-
-@dataclass
 class CompareResult:
     question: str; reference_answer: str
     base_answer: str; finetuned_answer: str
@@ -130,8 +119,8 @@ class SLMConfig(BaseModel):
     augment: AugmentConfig;      analyzer: AnalyzerConfig
     student: StudentConfig;      training: TrainingConfig
     export: ExportConfig;        eval: EvalConfig
-    gguf_export: GGUFExportConfig; incremental: IncrementalConfig
-    dialogue: DialogueConfig;    review: ReviewConfig
+    incremental: IncrementalConfig
+    review: ReviewConfig
     compare: CompareConfig;      evolve: EvolveConfig
     dashboard: DashboardConfig
     chunking: ChunkingConfig
@@ -203,12 +192,6 @@ class Pipeline:
         self, pairs: list[QAPair], model_name: str
     ) -> list[EvalResult]:
         """BLEU/ROUGE 메트릭으로 모델을 평가합니다."""
-
-    def step_gguf_export(self, model_dir: Path) -> Path:
-        """병합된 모델을 GGUF 형식으로 변환합니다."""
-
-    def step_dialogue(self, pairs: list[QAPair]) -> list[MultiTurnDialogue]:
-        """QA 쌍에서 멀티턴 대화를 생성합니다."""
 
     def step_compare(self, pairs: list[QAPair]) -> list[CompareResult]:
         """Base 모델과 Fine-tuned 모델의 답변을 비교합니다."""
@@ -366,16 +349,6 @@ class QAGenerator:
 
     def save_alpaca(self, pairs: list[QAPair], output_path: str | Path) -> Path: ...
     # QA 쌍을 Alpaca 형식 JSON으로 저장합니다.
-```
-
-### DialogueGenerator
-
-```python
-class DialogueGenerator:
-    def __init__(self, teacher: BaseTeacher, config: DialogueConfig, teacher_config: TeacherConfig) -> None: ...
-    async def generate_dialogue(self, pair: QAPair) -> MultiTurnDialogue | None: ...
-    async def generate_all(self, pairs: list[QAPair]) -> list[MultiTurnDialogue]: ...
-    def save_dialogues(self, dialogues: list[MultiTurnDialogue], path: Path) -> None: ...
 ```
 
 ---
@@ -562,19 +535,6 @@ class OllamaExporter:
         """ollama create 명령으로 모델을 생성합니다. 성공 여부를 반환합니다."""
     def export(self, model_dir: str | Path, output_dir=None) -> Path:
         """Modelfile을 생성하고 Ollama가 감지되면 모델을 자동 생성합니다."""
-```
-
-### GGUFExporter (exporter/gguf_export.py)
-
-```python
-class GGUFExporter:
-    def __init__(self, config: SLMConfig) -> None: ...
-
-    def export(self, model_dir: Path) -> Path:
-        """llama.cpp의 convert_hf_to_gguf.py로 GGUF 파일을 생성합니다.
-        config.gguf_export.quantization_type: q4_k_m, q8_0, f16 등
-        config.gguf_export.llama_cpp_path: llama.cpp 디렉토리 경로
-        """
 ```
 
 ---
@@ -815,10 +775,9 @@ tests/
 ├── test_parsers_{base,pdf,hwpx,html,text,docx}.py
 ├── test_teacher.py              # OllamaTeacher, OpenAICompatTeacher
 ├── test_qa_generator.py         # QAGenerator
-├── test_dialogue_generator.py   # DialogueGenerator
 ├── test_validator_{rules,similarity}.py
 ├── test_{scorer,augmenter,analyzer,converter}.py
-├── test_exporter{,_gguf}.py     # HFExporter, OllamaExporter, GGUFExporter
+├── test_exporter.py             # HFExporter, OllamaExporter
 ├── test_{evaluator,comparator,incremental}.py
 ├── test_integration.py          # 통합 테스트 (청킹, 재생성, 관계 정규화)
 ├── test_{reviewer,dashboard}.py # TUI
