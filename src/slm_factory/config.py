@@ -87,7 +87,9 @@ class HwpxOptions(BaseModel):
 class ParsingConfig(BaseModel):
     """문서 파싱 설정입니다."""
 
-    formats: list[str] = Field(default_factory=lambda: ["pdf", "txt", "html"])
+    formats: list[str] = Field(
+        default_factory=lambda: ["pdf", "txt", "html", "md", "hwpx", "hwp", "docx"]
+    )
     pdf: PdfOptions = Field(default_factory=PdfOptions)
     hwpx: HwpxOptions = Field(default_factory=HwpxOptions)
 

@@ -93,7 +93,7 @@ class TestParsingConfig:
     def test_기본값(self):
         """formats, pdf, hwpx의 기본값을 검증합니다."""
         cfg = ParsingConfig()
-        assert cfg.formats == ["pdf", "txt", "html"]
+        assert cfg.formats == ["pdf", "txt", "html", "md", "hwpx", "hwp", "docx"]
         assert isinstance(cfg.pdf, PdfOptions)
         assert isinstance(cfg.hwpx, HwpxOptions)
 
