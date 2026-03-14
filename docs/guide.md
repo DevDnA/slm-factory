@@ -72,7 +72,7 @@ ollama serve
 ollama pull qwen3.5:9b
 
 # 고품질 대안 (24GB+ VRAM 필요)
-ollama pull qwen3.5:9b
+ollama pull qwen3.5:27b
 
 # 한국어 최적화 대안
 ollama pull exaone3.5:7.8b
