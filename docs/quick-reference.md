@@ -20,7 +20,7 @@ cd slm-factory
 
 ```bash
 ollama serve           # 별도 터미널에서 실행 (백그라운드 유지)
-ollama pull qwen3:8b   # Teacher 모델 다운로드 (최초 1회)
+ollama pull qwen3.5:9b   # Teacher 모델 다운로드 (최초 1회)
 ```
 
 ---
@@ -243,7 +243,7 @@ paths:
 
 teacher:
   backend: "ollama"                     # "ollama" 또는 "openai"
-  model: "qwen3:8b"
+  model: "qwen3.5:9b"
   api_base: "http://localhost:11434"
   temperature: 0.3
 
@@ -275,7 +275,7 @@ chunking:
 | `Could not install packages due to an OSError` (pykospacing) | Python 버전 또는 Git 미설치 | `python --version` 확인 (3.11+), `git --version` 확인 |
 | `Only N QA pairs generated. Recommend at least 100` | 문서 부족 또는 질문 카테고리 부족 | 문서 추가 또는 `questions.categories` 확장 |
 | 대부분의 답변이 "The document does not contain..." | Teacher 모델 타임아웃 또는 질문 부적합 | `teacher.timeout: 300`, 질문을 문서 내용에 맞게 수정 |
-| `model not found` (Ollama) | Teacher 모델 미다운로드 | `ollama pull qwen3:8b` |
+| `model not found` (Ollama) | Teacher 모델 미다운로드 | `ollama pull qwen3.5:9b` |
 | `externally-managed-environment` (pip) | 환경 미설정 | `./setup.sh` 실행 후 재시도 |
 
 > 상세 해결 방법은 [사용 가이드](guide.md#7-트러블슈팅)를 참조하십시오.

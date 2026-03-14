@@ -151,7 +151,7 @@ chunking:
 | 필드 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
 | `backend` | `"ollama"` \| `"openai"` | `"ollama"` | 사용할 LLM 백엔드. `"ollama"`는 로컬 Ollama 서버, `"openai"`는 OpenAI 호환 API입니다 |
-| `model` | `str` | `"qwen3:8b"` | 모델 이름 또는 ID (빈 값 불가) |
+| `model` | `str` | `"qwen3.5:9b"` | 모델 이름 또는 ID (빈 값 불가) |
 | `api_base` | `str` | `"http://localhost:11434"` | API 엔드포인트 URL (빈 값 불가) |
 | `api_key` | `str \| None` | `null` | API 키. `backend: "openai"`일 때 필수입니다. Ollama는 불필요합니다 |
 | `temperature` | `float` | `0.3` | 생성 온도 (0.0~1.0). 낮을수록 일관성 있는 답변을 생성합니다 |
@@ -162,7 +162,7 @@ chunking:
 ```yaml
 teacher:
   backend: "ollama"
-  model: "qwen3:8b"
+  model: "qwen3.5:9b"
   api_base: "http://localhost:11434"
   temperature: 0.3
   timeout: 180
@@ -181,7 +181,7 @@ teacher:
   temperature: 0.3
 ```
 
-권장 Ollama 모델: `qwen3:8b` (다국어, 8GB VRAM), `qwen3.5:9b` (고품질, 24GB+), `exaone3.5:7.8b` (한국어 최적화).
+권장 Ollama 모델: `qwen3.5:9b` (다국어, 8GB VRAM), `qwen3.5:9b` (고품질, 24GB+), `exaone3.5:7.8b` (한국어 최적화).
 
 ---
 
@@ -883,7 +883,7 @@ parsing:
 # 로컬 Ollama 서버 사용
 teacher:
   backend: "ollama"
-  model: "qwen3:8b"  # 한국어 지원 우수
+  model: "qwen3.5:9b"  # 한국어 지원 우수
   api_base: "http://localhost:11434"
   temperature: 0.3
   timeout: 180
@@ -1016,7 +1016,7 @@ dashboard:
 
 1. `parsing.formats: ["pdf", "hwpx"]` — PDF와 HWPX 모두 파싱합니다
 2. `hwpx.apply_spacing: true` — 한국어 띄어쓰기를 자동 교정합니다
-3. `teacher.model: "qwen3:8b"` — 한국어 지원이 우수한 모델을 선택했습니다
+3. `teacher.model: "qwen3.5:9b"` — 한국어 지원이 우수한 모델을 선택했습니다
 4. 질문과 시스템 프롬프트를 모두 한국어로 작성하여 한국어 답변을 유도합니다
 5. 한국어 거부 패턴 5개를 추가했습니다
 6. `groundedness.model`을 다국어 지원 모델로 변경했습니다
@@ -1052,7 +1052,7 @@ $ uv run slm-factory check --config project.yaml
 ✓ Config file: Valid
 ✓ Documents directory: Found (5 files)
 ✓ Output directory: Writable
-✓ Ollama connection: Connected (model: qwen3:8b)
+✓ Ollama connection: Connected (model: qwen3.5:9b)
 
 모든 점검 통과!
 ```

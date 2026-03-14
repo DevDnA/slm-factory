@@ -18,7 +18,7 @@ ok()    { echo -e "${GREEN}✓${NC} $*"; }
 warn()  { echo -e "${YELLOW}⚠${NC} $*"; }
 fail()  { echo -e "${RED}✗${NC} $*"; exit 1; }
 
-TEACHER_MODEL="${SLM_TEACHER_MODEL:-qwen3:8b}"
+TEACHER_MODEL="${SLM_TEACHER_MODEL:-qwen3.5:9b}"
 OLLAMA_URL="${OLLAMA_HOST:-http://localhost:11434}"
 
 echo ""

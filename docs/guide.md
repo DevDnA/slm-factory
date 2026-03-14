@@ -65,11 +65,11 @@ ollama serve
 
 **3단계: Teacher 모델 다운로드**
 
-한국어와 영어를 모두 지원하는 `qwen3:8b`를 권장합니다.
+한국어와 영어를 모두 지원하는 `qwen3.5:9b`를 권장합니다.
 
 ```bash
 # 권장 Teacher 모델 (한국어/다국어, 8GB VRAM)
-ollama pull qwen3:8b
+ollama pull qwen3.5:9b
 
 # 고품질 대안 (24GB+ VRAM 필요)
 ollama pull qwen3.5:9b
@@ -81,7 +81,7 @@ ollama pull exaone3.5:7.8b
 다운로드 완료 후 정상 동작을 확인합니다.
 
 ```bash
-ollama run qwen3:8b "안녕하세요"
+ollama run qwen3.5:9b "안녕하세요"
 ```
 
 ---
@@ -289,7 +289,7 @@ project:
 
 teacher:
   backend: "ollama"           # "ollama" 또는 "openai"
-  model: "qwen3:8b"           # Teacher 모델 이름
+  model: "qwen3.5:9b"           # Teacher 모델 이름
   api_base: "http://localhost:11434"
   temperature: 0.3
 
@@ -392,7 +392,7 @@ parsing:
 
 teacher:
   backend: "ollama"
-  model: "qwen3:8b"
+  model: "qwen3.5:9b"
   api_base: "http://localhost:11434"
   temperature: 0.3
   timeout: 180
@@ -489,7 +489,7 @@ parsing:
 
 teacher:
   backend: "ollama"
-  model: "qwen3:8b"
+  model: "qwen3.5:9b"
   api_base: "http://localhost:11434"
   temperature: 0.2              # 기술 문서는 낮은 temperature 권장
   timeout: 180
@@ -1023,7 +1023,7 @@ questions:
     문서 내용에만 근거하여 답변하십시오.
 ```
 
-한국어 지원이 우수한 Teacher 모델은 `qwen3:8b`입니다. `llama3.1:8b`는 한국어 지원이 제한적입니다.
+한국어 지원이 우수한 Teacher 모델은 `qwen3.5:9b`입니다. `llama3.1:8b`는 한국어 지원이 제한적입니다.
 
 ---
 

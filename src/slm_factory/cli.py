@@ -119,7 +119,7 @@ def _get_error_hints(error: Exception) -> list[str]:
     ):
         return [
             "Ollama가 실행 중인지 확인하세요: `ollama serve`",
-            "모델이 다운로드되었는지 확인하세요: `ollama pull qwen3:8b` (또는 설정한 Teacher 모델)",
+            "모델이 다운로드되었는지 확인하세요: `ollama pull qwen3.5:9b` (또는 설정한 Teacher 모델)",
         ]
 
     if isinstance(error, RuntimeError) and (
@@ -421,7 +421,7 @@ def init(
         f"  2. 별도 터미널에서 Ollama를 실행하세요: [cyan]ollama serve[/cyan]"
     )
     console.print(
-        f"  3. Teacher 모델을 다운로드하세요: [cyan]ollama pull qwen3:8b[/cyan]"
+        f"  3. Teacher 모델을 다운로드하세요: [cyan]ollama pull qwen3.5:9b[/cyan]"
     )
     console.print(f"\n[bold]실행:[/bold]")
     console.print(

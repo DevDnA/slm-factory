@@ -105,7 +105,7 @@ class TestTeacherConfig:
         """교사 설정의 기본값을 검증합니다."""
         cfg = TeacherConfig()
         assert cfg.backend == "ollama"
-        assert cfg.model == "qwen3:8b"
+        assert cfg.model == "qwen3.5:9b"
         assert cfg.api_base == "http://localhost:11434"
         assert cfg.api_key is None
         assert cfg.temperature == 0.3
@@ -239,7 +239,7 @@ class TestTrainingConfig:
         assert cfg.learning_rate == 2e-5
         assert cfg.lr_scheduler == "cosine"
         assert cfg.warmup_ratio == 0.1
-        assert cfg.num_epochs == 2
+        assert cfg.num_epochs == 5
         assert cfg.optimizer == "adamw_torch_fused"
         assert cfg.bf16 is True
         assert cfg.train_split == 0.9

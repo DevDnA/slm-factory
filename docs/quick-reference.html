@@ -103,7 +103,7 @@ cd slm-factory
           <p><code>./setup.sh</code>가 Ollama 모델 다운로드를 자동 처리합니다. 수동으로 실행하려면 아래 명령을 사용하세요.</p>
 
           <pre data-lang="bash"><code>ollama serve           # 별도 터미널에서 실행 (백그라운드 유지)
-ollama pull qwen3:8b   # Teacher 모델 다운로드 (최초 1회)</code></pre>
+ollama pull qwen3.5:9b   # Teacher 모델 다운로드 (최초 1회)</code></pre>
         </section>
 
 
@@ -644,7 +644,7 @@ paths:
 
 teacher:
   backend: "ollama"                     # "ollama" 또는 "openai"
-  model: "qwen3:8b"
+  model: "qwen3.5:9b"
   api_base: "http://localhost:11434"
   temperature: 0.3
 
@@ -712,7 +712,7 @@ export:
                 <tr>
                   <td><code>model not found</code> (Ollama)</td>
                   <td>Teacher 모델 미다운로드</td>
-                  <td><code>ollama pull qwen3:8b</code></td>
+                  <td><code>ollama pull qwen3.5:9b</code></td>
                 </tr>
                 <tr>
                   <td><code>externally-managed-environment</code> (pip)</td>

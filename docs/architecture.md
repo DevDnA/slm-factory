@@ -317,7 +317,7 @@ SLMConfig (root)
 │
 ├── teacher: TeacherConfig
 │   ├── backend: Literal["ollama", "openai"] = "ollama"
-│   ├── model: str = "qwen3:8b"
+│   ├── model: str = "qwen3.5:9b"
 │   ├── api_base: str = "http://localhost:11434"
 │   ├── api_key: str | None = None
 │   ├── temperature: float = 0.3

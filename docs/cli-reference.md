@@ -101,7 +101,7 @@ uv run slm-factory init policy-assistant --path /workspace/projects
 사전 준비:
   1. ./my-project/documents 디렉토리에 학습할 문서(PDF, TXT 등)를 추가하세요
   2. Ollama를 실행하세요: ollama serve  ← ./setup.sh가 자동 처리
-  3. Teacher 모델을 다운로드하세요: ollama pull qwen3:8b  ← ./setup.sh가 자동 처리
+  3. Teacher 모델을 다운로드하세요: ollama pull qwen3.5:9b  ← ./setup.sh가 자동 처리
 
 실행:
   4. 환경 점검: slm-factory check --config ./my-project/project.yaml
@@ -166,7 +166,7 @@ uv run slm-factory check --config my-project/project.yaml
 │ 문서 디렉토리│ OK     │ 3개 파일 (./documents)       │
 │ 출력 디렉토리│ OK     │ 쓰기 가능 (./output)         │
 │ Ollama 연결  │ OK     │ v0.3.12 (http://localhost:11434) │
-│ 모델 사용 가능│ OK    │ qwen3:8b                     │
+│ 모델 사용 가능│ OK    │ qwen3.5:9b                     │
 └──────────────┴────────┴──────────────────────────────┘
 
 모든 점검 통과!

@@ -13,6 +13,7 @@ import pytest
 # Heavy ML 라이브러리 mock (torch, transformers, peft, trl, datasets 등)
 # ---------------------------------------------------------------------------
 
+
 def _ensure_ml_mocks() -> None:
     """테스트 환경에 없는 ML 라이브러리의 mock 모듈을 sys.modules에 등록합니다."""
     ml_modules = [
@@ -133,7 +134,9 @@ def make_parsed_doc():
 def tmp_text_file(tmp_path: Path) -> Path:
     """임시 텍스트 파일을 생성하여 경로를 반환합니다."""
     f = tmp_path / "sample.txt"
-    f.write_text("# 샘플 문서\n\n이것은 테스트용 텍스트 파일입니다.\n", encoding="utf-8")
+    f.write_text(
+        "# 샘플 문서\n\n이것은 테스트용 텍스트 파일입니다.\n", encoding="utf-8"
+    )
     return f
 
 
@@ -141,7 +144,10 @@ def tmp_text_file(tmp_path: Path) -> Path:
 def tmp_md_file(tmp_path: Path) -> Path:
     """임시 마크다운 파일을 생성하여 경로를 반환합니다."""
     f = tmp_path / "readme.md"
-    f.write_text("# 테스트 마크다운\n\n본문 내용입니다.\n\n## 섹션 2\n\n추가 내용.\n", encoding="utf-8")
+    f.write_text(
+        "# 테스트 마크다운\n\n본문 내용입니다.\n\n## 섹션 2\n\n추가 내용.\n",
+        encoding="utf-8",
+    )
     return f
 
 
@@ -180,7 +186,7 @@ parsing:
 
 teacher:
   backend: "ollama"
-  model: "qwen3:8b"
+  model: "qwen3.5:9b"
 """,
         encoding="utf-8",
     )
@@ -191,4 +197,5 @@ teacher:
 def sample_validation_config():
     """테스트용 ValidationConfig를 반환합니다."""
     from slm_factory.config import ValidationConfig
+
     return ValidationConfig()

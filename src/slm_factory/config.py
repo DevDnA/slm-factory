@@ -96,7 +96,7 @@ class TeacherConfig(BaseModel):
     """QA 생성을 위한 교사 LLM 설정입니다."""
 
     backend: Literal["ollama", "openai"] = "ollama"
-    model: str = Field("qwen3:8b", min_length=1)
+    model: str = Field("qwen3.5:9b", min_length=1)
     api_base: str = Field("http://localhost:11434", min_length=1)
     api_key: str | None = None
     temperature: float = 0.3

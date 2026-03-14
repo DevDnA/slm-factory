@@ -382,7 +382,7 @@
             </thead>
             <tbody>
               <tr><td><code>backend</code></td><td><code>"ollama" | "openai"</code></td><td><code>"ollama"</code></td><td>사용할 LLM 백엔드. <code>"ollama"</code>는 로컬 Ollama 서버, <code>"openai"</code>는 OpenAI 호환 API입니다</td></tr>
-              <tr><td><code>model</code></td><td><code>str</code></td><td><code>"qwen3:8b"</code></td><td>모델 이름 또는 ID (빈 값 불가)</td></tr>
+              <tr><td><code>model</code></td><td><code>str</code></td><td><code>"qwen3.5:9b"</code></td><td>모델 이름 또는 ID (빈 값 불가)</td></tr>
               <tr><td><code>api_base</code></td><td><code>str</code></td><td><code>"http://localhost:11434"</code></td><td>API 엔드포인트 URL (빈 값 불가)</td></tr>
               <tr><td><code>api_key</code></td><td><code>str | None</code></td><td><code>null</code></td><td>API 키. <code>backend: "openai"</code>일 때 필수입니다. Ollama는 불필요합니다</td></tr>
               <tr><td><code>temperature</code></td><td><code>float</code></td><td><code>0.3</code></td><td>생성 온도 (0.0~1.0). 낮을수록 일관성 있는 답변을 생성합니다</td></tr>
@@ -395,7 +395,7 @@
 
         <pre data-lang="yaml"><code>teacher:
   backend: "ollama"
-  model: "qwen3:8b"
+  model: "qwen3.5:9b"
   api_base: "http://localhost:11434"
   temperature: 0.3
   timeout: 180
@@ -411,7 +411,7 @@
   api_key: "sk-proj-..."
   temperature: 0.3</code></pre>
 
-        <p>권장 Ollama 모델: <code>qwen3:8b</code> (다국어, 8GB VRAM), <code>qwen3.5:9b</code> (고품질, 24GB+), <code>exaone3.5:7.8b</code> (한국어 최적화).</p>
+        <p>권장 Ollama 모델: <code>qwen3.5:9b</code> (다국어, 8GB VRAM), <code>qwen3.5:9b</code> (고품질, 24GB+), <code>exaone3.5:7.8b</code> (한국어 최적화).</p>
       </section>
 
       <hr>
@@ -1329,7 +1329,7 @@ parsing:
 # 로컬 Ollama 서버 사용
 teacher:
   backend: "ollama"
-  model: "qwen3:8b"  # 한국어 지원 우수
+  model: "qwen3.5:9b"  # 한국어 지원 우수
   api_base: "http://localhost:11434"
   temperature: 0.3
   timeout: 180
@@ -1467,7 +1467,7 @@ dashboard:
         <ol>
           <li><code>parsing.formats: ["pdf", "hwpx"]</code> &mdash; PDF와 HWPX 모두 파싱합니다</li>
           <li><code>hwpx.apply_spacing: true</code> &mdash; 한국어 띄어쓰기를 자동 교정합니다</li>
-          <li><code>teacher.model: "qwen3:8b"</code> &mdash; 한국어 지원이 우수한 모델을 선택했습니다</li>
+          <li><code>teacher.model: "qwen3.5:9b"</code> &mdash; 한국어 지원이 우수한 모델을 선택했습니다</li>
           <li>질문과 시스템 프롬프트를 모두 한국어로 작성하여 한국어 답변을 유도합니다</li>
           <li>한국어 거부 패턴 5개를 추가했습니다</li>
           <li><code>groundedness.model</code>을 다국어 지원 모델로 변경했습니다</li>
@@ -1508,7 +1508,7 @@ dashboard:
 &#10003; Config file: Valid
 &#10003; Documents directory: Found (5 files)
 &#10003; Output directory: Writable
-&#10003; Ollama connection: Connected (model: qwen3:8b)
+&#10003; Ollama connection: Connected (model: qwen3.5:9b)
 
 모든 점검 통과!</code></pre>
 
