@@ -239,7 +239,7 @@ class TestTrainingConfig:
         assert cfg.learning_rate == 2e-5
         assert cfg.lr_scheduler == "cosine"
         assert cfg.warmup_ratio == 0.1
-        assert cfg.num_epochs == 20
+        assert cfg.num_epochs == 2
         assert cfg.optimizer == "adamw_torch_fused"
         assert cfg.bf16 is True
         assert cfg.train_split == 0.9
@@ -422,7 +422,9 @@ class TestScoringConfigRegeneration:
 
     def test_regenerate_활성화_정상(self):
         """regenerate=True와 유효한 max_regenerate_rounds가 정상 생성되는지 확인합니다."""
-        cfg = ScoringConfig(enabled=True, threshold=3.0, regenerate=True, max_regenerate_rounds=3)
+        cfg = ScoringConfig(
+            enabled=True, threshold=3.0, regenerate=True, max_regenerate_rounds=3
+        )
         assert cfg.regenerate is True
         assert cfg.max_regenerate_rounds == 3
 

@@ -38,7 +38,9 @@ class _RichProgressCallback(TrainerCallback):
 
     def on_epoch_begin(self, args, state, control, **kwargs):
         if state.epoch is not None:
-            logger.info("Epoch %d/%d 시작", int(state.epoch) + 1, int(args.num_train_epochs))
+            logger.info(
+                "Epoch %d/%d 시작", int(state.epoch) + 1, int(args.num_train_epochs)
+            )
 
     def on_log(self, args, state, control, logs=None, **kwargs):
         if logs:
@@ -54,7 +56,9 @@ class _RichProgressCallback(TrainerCallback):
 
     def on_train_end(self, args, state, control, **kwargs):
         epoch_str = f"{state.epoch:.1f}" if state.epoch else "?"
-        logger.info("학습 완료 — 총 %d 스텝, 최종 epoch %s", state.global_step, epoch_str)
+        logger.info(
+            "학습 완료 — 총 %d 스텝, 최종 epoch %s", state.global_step, epoch_str
+        )
 
 
 class LoRATrainer:
@@ -99,9 +103,7 @@ class LoRATrainer:
             "신뢰할 수 있는 출처의 모델만 사용하세요.",
             model_name,
         )
-        tokenizer = AutoTokenizer.from_pretrained(
-            model_name, trust_remote_code=True
-        )
+        tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
         tokenizer.padding_side = "right"
 
         # 양자화 설정 (CUDA + bitsandbytes 사용 가능 시에만)
@@ -198,18 +200,27 @@ class LoRATrainer:
         # (예: qwen3_5 등 신규 모델) 기본값을 사용합니다.
         if target_modules is None:
             try:
-                from peft.utils.constants import TRANSFORMERS_MODELS_TO_LORA_TARGET_MODULES_MAPPING
+                from peft.utils.constants import (
+                    TRANSFORMERS_MODELS_TO_LORA_TARGET_MODULES_MAPPING,
+                )
                 from transformers import AutoConfig
+
                 model_cfg = AutoConfig.from_pretrained(
-                    self.student_config.model, trust_remote_code=True,
+                    self.student_config.model,
+                    trust_remote_code=True,
                 )
                 model_type = getattr(model_cfg, "model_type", "")
-                if model_type and model_type not in TRANSFORMERS_MODELS_TO_LORA_TARGET_MODULES_MAPPING:
+                if (
+                    model_type
+                    and model_type
+                    not in TRANSFORMERS_MODELS_TO_LORA_TARGET_MODULES_MAPPING
+                ):
                     target_modules = ["q_proj", "v_proj"]
                     logger.info(
                         "모델 타입 '%s'에 대한 PEFT 기본 매핑이 없어 "
                         "target_modules=%s를 사용합니다",
-                        model_type, target_modules,
+                        model_type,
+                        target_modules,
                     )
             except (ImportError, Exception):
                 pass
@@ -233,16 +244,23 @@ class LoRATrainer:
         )
         return lora_config
 
-    def _create_training_args(self) -> Any:
+    def _create_training_args(self, num_training_samples: int = 0) -> Any:
         """설정에서 SFTConfig를 구성합니다.
 
         디바이스에 맞게 bf16/fp16, 옵티마이저 등을 자동 재정의합니다.
+
+        매개변수
+        ----------
+        num_training_samples:
+            학습 데이터셋의 샘플 수. warmup_steps 계산에 사용됩니다.
 
         반환값
         -------
         trl.SFTConfig
             완전한 학습 인자 명세.
         """
+        import math
+
         from trl import SFTConfig
 
         from ..device import get_training_overrides
@@ -250,7 +268,6 @@ class LoRATrainer:
         tc = self.training_config
         device = getattr(self, "_device_info", None)
 
-        # 디바이스에 맞는 파라미터 재정의
         if device is not None:
             overrides = get_training_overrides(device)
         else:
@@ -263,7 +280,9 @@ class LoRATrainer:
             if adjusted != grad_accum:
                 logger.info(
                     "멀티 GPU(%d개): gradient_accumulation_steps %d → %d 조정",
-                    gpu_count, grad_accum, adjusted,
+                    gpu_count,
+                    grad_accum,
+                    adjusted,
                 )
                 grad_accum = adjusted
 
@@ -271,6 +290,17 @@ class LoRATrainer:
         if tc.neftune_noise_alpha is not None:
             neftune_kwargs["neftune_noise_alpha"] = tc.neftune_noise_alpha
             logger.info("NEFTune enabled: noise_alpha=%.1f", tc.neftune_noise_alpha)
+
+        warmup_kwargs: dict[str, Any] = {}
+        if num_training_samples > 0:
+            steps_per_epoch = math.ceil(
+                num_training_samples / tc.batch_size / grad_accum
+            )
+            total_steps = steps_per_epoch * tc.num_epochs
+            warmup_steps = int(tc.warmup_ratio * total_steps)
+            warmup_kwargs["warmup_steps"] = warmup_steps
+        else:
+            warmup_kwargs["warmup_ratio"] = tc.warmup_ratio
 
         training_args = SFTConfig(
             output_dir=str(self.output_dir),
@@ -280,7 +310,7 @@ class LoRATrainer:
             gradient_accumulation_steps=grad_accum,
             learning_rate=tc.learning_rate,
             lr_scheduler_type=tc.lr_scheduler,
-            warmup_ratio=tc.warmup_ratio,
+            **warmup_kwargs,
             optim=overrides.get("optim", tc.optimizer),
             bf16=overrides.get("bf16", tc.bf16),
             fp16=overrides.get("fp16", False),
@@ -295,10 +325,14 @@ class LoRATrainer:
             seed=42,
             remove_unused_columns=False,
             **neftune_kwargs,
-            **{k: v for k, v in overrides.items() if k not in ("bf16", "fp16", "optim")},
+            **{
+                k: v for k, v in overrides.items() if k not in ("bf16", "fp16", "optim")
+            },
         )
 
-        precision = "bf16" if training_args.bf16 else ("fp16" if training_args.fp16 else "fp32")
+        precision = (
+            "bf16" if training_args.bf16 else ("fp16" if training_args.fp16 else "fp32")
+        )
         logger.info(
             "Training: %d epochs, batch=%d, grad_accum=%d, lr=%.2e, scheduler=%s, "
             "precision=%s, optim=%s, gpu_count=%d",
@@ -372,8 +406,12 @@ class LoRATrainer:
         model = get_peft_model(model, lora_config)
         model.print_trainable_parameters()
 
-        # 학습 인자와 콜백 구성
-        training_args = self._create_training_args()
+        num_train = (
+            len(dataset_dict["train"])
+            if hasattr(dataset_dict["train"], "__len__")
+            else 0
+        )
+        training_args = self._create_training_args(num_training_samples=num_train)
         callbacks = self._create_callbacks()
 
         # 트레이너 생성
@@ -394,14 +432,26 @@ class LoRATrainer:
             trainer.train()
         except RuntimeError as e:
             error_msg = str(e).lower()
-            if "out of memory" in error_msg or "cuda" in error_msg or "mps" in error_msg:
+            if (
+                "out of memory" in error_msg
+                or "cuda" in error_msg
+                or "mps" in error_msg
+            ):
                 logger.error("GPU 메모리 부족 — 다음을 시도하세요:")
-                logger.error("  1. batch_size를 줄이세요 (현재: %d)", self.training_config.batch_size)
-                logger.error("  2. gradient_accumulation_steps를 늘리세요 (현재: %d)", self.training_config.gradient_accumulation_steps)
+                logger.error(
+                    "  1. batch_size를 줄이세요 (현재: %d)",
+                    self.training_config.batch_size,
+                )
+                logger.error(
+                    "  2. gradient_accumulation_steps를 늘리세요 (현재: %d)",
+                    self.training_config.gradient_accumulation_steps,
+                )
                 if device_type == "cuda":
                     logger.error("  3. quantization.enabled를 true로 설정하세요")
                 elif device_type == "mps":
-                    logger.error("  3. PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0 환경변수를 설정하세요")
+                    logger.error(
+                        "  3. PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0 환경변수를 설정하세요"
+                    )
                 logger.error("  4. LoRA r 값을 줄이세요 (현재: %d)", self.lora_config.r)
                 raise RuntimeError(
                     "GPU 메모리가 부족합니다. project.yaml에서 batch_size를 줄이거나 "
@@ -468,10 +518,12 @@ class DataLoader:
         from datasets import DatasetDict
 
         split = dataset.train_test_split(test_size=1 - self.train_split, seed=42)
-        ds_dict = DatasetDict({
-            "train": split["train"],
-            "eval": split["test"],
-        })
+        ds_dict = DatasetDict(
+            {
+                "train": split["train"],
+                "eval": split["test"],
+            }
+        )
         _data_logger.info(
             "Split: %d train / %d eval (%.0f%% train)",
             len(ds_dict["train"]),
