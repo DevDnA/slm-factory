@@ -215,18 +215,12 @@ class ScoringConfig(BaseModel):
     enabled: bool = True
     threshold: float = 3.0
     max_concurrency: int = 3
-    regenerate: bool = False
-    max_regenerate_rounds: int = 2
 
     @model_validator(mode="after")
     def _check_scoring_threshold(self) -> "ScoringConfig":
         """점수 기준값의 유효성을 검증합니다."""
         if self.enabled and not (1.0 <= self.threshold <= 5.0):
             raise ValueError(f"threshold({self.threshold})는 1.0~5.0 범위여야 합니다")
-        if self.max_regenerate_rounds < 1:
-            raise ValueError(
-                f"max_regenerate_rounds({self.max_regenerate_rounds})는 1 이상이어야 합니다"
-            )
         return self
 
 

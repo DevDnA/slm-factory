@@ -638,24 +638,6 @@ uv run slm-factory tool compare-data -b output/qa_before_chunking.json -t output
 
 ---
 
-### 저품질 QA 재생성 (scoring.regenerate)
-
-품질 점수 평가에서 `threshold` 미만으로 평가된 QA 쌍을 바로 폐기하지 않고, 이전 점수와 실패 이유를 프롬프트에 주입하여 개선된 답변을 비동기 배치로 재생성합니다.
-
-**설정**:
-
-```yaml
-scoring:
-  enabled: true
-  threshold: 3.5
-  regenerate: true            # 저품질 QA 재생성 활성화
-  max_regenerate_rounds: 2    # 최대 재생성 반복 횟수
-```
-
-**동작**: 각 라운드에서 `threshold` 미만인 QA를 모아 Teacher LLM에 "이전 점수: X, 이유: Y" 피드백과 함께 재생성을 요청합니다. 재생성된 QA는 다시 점수 평가를 받으며, 최대 `max_regenerate_rounds`만큼 반복됩니다.
-
----
-
 ### 품질 점수 평가 (scoring)
 
 Teacher LLM이 생성된 각 QA 쌍을 1~5점으로 평가하여 저품질 데이터를 자동으로 필터링합니다. 점수가 `threshold` 미만인 QA는 학습 데이터에서 제외됩니다.

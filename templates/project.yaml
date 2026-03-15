@@ -73,13 +73,11 @@ validation:
 
 # -- 3a단계: 품질 점수 평가(Quality Scoring) --------------------------------
 scoring:
-  enabled: true                         # Teacher LLM이 QA 쌍을 1~5점으로 평가합니다
-                                        # 활성화 시 LLM 호출 추가 → 시간 2배 증가
-                                        # 원본 문서를 함께 전달하여 환각(Hallucination) 탐지도 수행
-  threshold: 3.0                        # 이 점수 미만의 QA 쌍을 제거합니다 (1.0~5.0)
-  max_concurrency: 2                    # 동시 평가 요청 수
-  regenerate: false                     # true면 낮은 점수의 QA를 재생성 (시간 소요 큼)
-  max_regenerate_rounds: 2              # 최대 재생성 반복 횟수
+   enabled: true                         # Teacher LLM이 QA 쌍을 1~5점으로 평가합니다
+                                         # 활성화 시 LLM 호출 추가 → 시간 2배 증가
+                                         # 원본 문서를 함께 전달하여 환각(Hallucination) 탐지도 수행
+   threshold: 3.0                        # 이 점수 미만의 QA 쌍을 제거합니다 (1.0~5.0)
+   max_concurrency: 2                    # 동시 평가 요청 수
 
 # -- 3b단계: 데이터 증강(Data Augmentation) ---------------------------------
 augment:

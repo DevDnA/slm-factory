@@ -597,16 +597,14 @@ class TestStepCompare:
 class TestStepScoreRegeneration:
     """Pipeline.step_score 재생성 기능의 테스트입니다."""
 
-    def test_재생성_비활성화시_기존_동작(
-        self, make_config, make_qa_pair, tmp_path, mocker
-    ):
-        """scoring.regenerate=False이면 재생성 없이 기존 동작을 하는지 확인합니다."""
+    def test_step_score_기본_동작(self, make_config, make_qa_pair, tmp_path, mocker):
+        """step_score의 기본 동작을 확인합니다."""
         config = make_config(
             paths={
                 "output": str(tmp_path / "output"),
                 "documents": str(tmp_path / "docs"),
             },
-            scoring={"enabled": True, "threshold": 3.0, "regenerate": False},
+            scoring={"enabled": True, "threshold": 3.0},
         )
         (tmp_path / "output").mkdir(parents=True, exist_ok=True)
         (tmp_path / "docs").mkdir(parents=True, exist_ok=True)
@@ -632,7 +630,7 @@ class TestStepScoreRegeneration:
                 "output": str(tmp_path / "output"),
                 "documents": str(tmp_path / "docs"),
             },
-            scoring={"enabled": True, "threshold": 3.0, "regenerate": False},
+            scoring={"enabled": True, "threshold": 3.0},
         )
         (tmp_path / "output").mkdir(parents=True, exist_ok=True)
         (tmp_path / "docs").mkdir(parents=True, exist_ok=True)

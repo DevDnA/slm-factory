@@ -318,19 +318,15 @@ validation:
 | `enabled` | `bool` | `true` | 품질 점수 평가 기능 활성화 여부 |
 | `threshold` | `float` | `3.0` | QA 쌍 최소 합격 점수 (1.0~5.0). 이 점수 미만의 QA 쌍은 데이터셋에서 제거됩니다 |
 | `max_concurrency` | `int` | `2` | 비동기 점수 평가 시 최대 동시 요청 수 |
-| `regenerate` | `bool` | `true` | 저품질 QA 쌍을 피드백 기반으로 재생성하여 복구 |
-| `max_regenerate_rounds` | `int` | `2` | 재생성 최대 반복 횟수 (1 이상) |
 
 ```yaml
 scoring:
-  enabled: true
-  threshold: 3.5
-  max_concurrency: 2
-  regenerate: true
-  max_regenerate_rounds: 2
+   enabled: true
+   threshold: 3.5
+   max_concurrency: 2
 ```
 
-Teacher LLM이 질문의 명확성, 답변의 정확성, 문서와의 관련성을 종합하여 1~5점으로 평가합니다. `threshold` 미만의 QA 쌍은 데이터셋에서 제거됩니다. `regenerate: true`로 설정하면 제거 대신 이전 점수와 실패 이유를 프롬프트에 주입하여 개선된 답변을 비동기 배치로 재생성합니다.
+Teacher LLM이 질문의 명확성, 답변의 정확성, 문서와의 관련성을 종합하여 1~5점으로 평가합니다. `threshold` 미만의 QA 쌍은 데이터셋에서 제거됩니다.
 
 ---
 

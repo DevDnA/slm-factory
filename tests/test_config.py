@@ -404,33 +404,6 @@ class TestChunkingConfig:
 # ---------------------------------------------------------------------------
 
 
-class TestScoringConfigRegeneration:
-    """ScoringConfig 재생성 관련 필드의 테스트입니다."""
-
-    def test_regenerate_기본값_false(self):
-        """regenerate 기본값이 False인지 확인합니다."""
-        cfg = ScoringConfig()
-        assert cfg.regenerate is False
-
-    def test_max_regenerate_rounds_기본값(self):
-        """max_regenerate_rounds 기본값이 2인지 확인합니다."""
-        cfg = ScoringConfig()
-        assert cfg.max_regenerate_rounds == 2
-
-    def test_max_regenerate_rounds_최소값_검증(self):
-        """max_regenerate_rounds가 1 미만이면 ValueError를 발생시키는지 확인합니다."""
-        with pytest.raises(ValueError, match="max_regenerate_rounds"):
-            ScoringConfig(enabled=True, threshold=3.0, max_regenerate_rounds=0)
-
-    def test_regenerate_활성화_정상(self):
-        """regenerate=True와 유효한 max_regenerate_rounds가 정상 생성되는지 확인합니다."""
-        cfg = ScoringConfig(
-            enabled=True, threshold=3.0, regenerate=True, max_regenerate_rounds=3
-        )
-        assert cfg.regenerate is True
-        assert cfg.max_regenerate_rounds == 3
-
-
 # ---------------------------------------------------------------------------
 # SLMConfig에 chunking 필드 존재 확인
 # ---------------------------------------------------------------------------

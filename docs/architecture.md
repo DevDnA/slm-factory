@@ -351,9 +351,7 @@ SLMConfig (root)
 ├── scoring: ScoringConfig
 │   ├── enabled: bool = True
 │   ├── threshold: float = 3.0
-│   ├── max_concurrency: int = 2
-│   ├── regenerate: bool = True
-│   └── max_regenerate_rounds: int = 2
+│   └── max_concurrency: int = 2
 │
 ├── augment: AugmentConfig
 │   ├── enabled: bool = True

@@ -1841,14 +1841,6 @@ def wizard(
         )
         if Confirm.ask("  품질 점수 평가를 하시겠습니까?", default=score_default):
             pipeline.config.scoring.enabled = True
-            regen_default = pipeline.config.scoring.regenerate
-            console.print(
-                "  [dim]저품질 QA를 자동 재생성하면 폐기 대신 개선된 답변으로 복구합니다.[/dim]"
-            )
-            if Confirm.ask(
-                "  저품질 QA 재생성을 활성화하시겠습니까?", default=regen_default
-            ):
-                pipeline.config.scoring.regenerate = True
             try:
                 before = len(pairs)
                 pairs = pipeline.step_score(pairs, docs=docs)
