@@ -286,7 +286,7 @@ class TrainingConfig(BaseModel):
     lora: LoraConfig = Field(default_factory=LoraConfig)
     batch_size: int = 1
     gradient_accumulation_steps: int = 16
-    learning_rate: float = 2.0e-5
+    learning_rate: float = 2.0e-4
     lr_scheduler: str = "cosine"
     warmup_ratio: float = 0.1
     num_epochs: int | Literal["auto"] = "auto"

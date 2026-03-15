@@ -238,7 +238,7 @@ class TestTrainingConfig:
         cfg = TrainingConfig()
         assert cfg.batch_size == 1
         assert cfg.gradient_accumulation_steps == 16
-        assert cfg.learning_rate == 2e-5
+        assert cfg.learning_rate == 2e-4
         assert cfg.lr_scheduler == "cosine"
         assert cfg.warmup_ratio == 0.1
         assert cfg.num_epochs == "auto"

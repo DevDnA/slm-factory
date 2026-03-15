@@ -279,42 +279,23 @@ class TestSectionAwareChunk:
 
 
 class TestAutoNumEpochs:
-    def test_소량_데이터_20에포크(self):
-        assert auto_num_epochs(50) == 20
+    def test_소량_데이터_3에포크(self):
+        assert auto_num_epochs(50) == 3
 
-    def test_100미만_20에포크(self):
-        assert auto_num_epochs(99) == 20
+    def test_200미만_3에포크(self):
+        assert auto_num_epochs(199) == 3
 
-    def test_100_15에포크(self):
-        assert auto_num_epochs(100) == 15
+    def test_200_5에포크(self):
+        assert auto_num_epochs(200) == 5
 
-    def test_300미만_15에포크(self):
-        assert auto_num_epochs(299) == 15
+    def test_1000미만_5에포크(self):
+        assert auto_num_epochs(999) == 5
 
-    def test_300_10에포크(self):
-        assert auto_num_epochs(300) == 10
-
-    def test_500미만_10에포크(self):
-        assert auto_num_epochs(499) == 10
-
-    def test_500_5에포크(self):
-        assert auto_num_epochs(500) == 5
-
-    def test_2000미만_5에포크(self):
-        assert auto_num_epochs(1999) == 5
-
-    def test_2000이상_3에포크(self):
-        assert auto_num_epochs(2000) == 3
+    def test_1000이상_3에포크(self):
+        assert auto_num_epochs(1000) == 3
 
     def test_대량_데이터_3에포크(self):
         assert auto_num_epochs(10000) == 3
 
     def test_경계값_0(self):
-        assert auto_num_epochs(0) == 20
-
-    def test_단조_감소(self):
-        prev = auto_num_epochs(1)
-        for n in [50, 100, 300, 500, 2000, 5000]:
-            curr = auto_num_epochs(n)
-            assert curr <= prev
-            prev = curr
+        assert auto_num_epochs(0) == 3

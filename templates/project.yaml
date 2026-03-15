@@ -122,7 +122,7 @@ training:
                                         # → VRAM별 권장값: 8GB→2, 16GB→4~8, 24GB→8~16
   gradient_accumulation_steps: 16         # 이 횟수만큼 모아서 한 번에 학습. 실질 배치 = 2 × 8 = 16
                                         # → VRAM 부족으로 batch_size를 줄였을 때, 이 값을 올리면 보완됨
-  learning_rate: 2.0e-5                 # 한 번에 얼마나 많이 배울지. 클수록 빠르지만 불안정해질 수 있음
+  learning_rate: 2.0e-4                 # 한 번에 얼마나 많이 배울지. 클수록 빠르지만 불안정해질 수 있음
                                         # → QA 데이터가 적으면(<100개) 1e-5로 낮추는 것을 권장
   lr_scheduler: "cosine"                # 학습이 진행될수록 learning_rate를 어떻게 줄일지 결정
                                         # → "cosine": 후반부에 서서히 감소 (권장)
