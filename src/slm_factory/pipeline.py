@@ -721,7 +721,7 @@ class Pipeline:
         except ImportError:
             logger.warning(
                 "RAG 의존성 미설치 — rag_index 건너뜀 "
-                "(pip install slm-factory[rag,validation])"
+                "(uv sync --extra rag --extra validation)"
             )
             return Path()
 

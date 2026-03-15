@@ -774,7 +774,7 @@ def _start_rag_server(config) -> None:
     except ImportError:
         console.print(
             "\n[yellow]RAG 서버 의존성 미설치[/yellow] — "
-            "pip install slm-factory[rag,validation]\n"
+            "uv sync --extra rag --extra validation\n"
         )
         return
 
@@ -2020,7 +2020,7 @@ def wizard(
                 )
             else:
                 console.print(
-                    "  [yellow]⏭ RAG 의존성 미설치 (pip install slm-factory[rag,validation])[/yellow]"
+                    "  [yellow]⏭ RAG 의존성 미설치 (uv sync --extra rag --extra validation)[/yellow]"
                 )
         except Exception as e:
             _print_error("RAG 인덱싱 실패", e, hints=_get_error_hints(e))
@@ -2235,7 +2235,7 @@ def rag_index(
         _print_error(
             "RAG 의존성 미설치",
             "chromadb 또는 sentence-transformers가 설치되지 않았습니다",
-            ["pip install slm-factory[rag,validation]"],
+            ["uv sync --extra rag --extra validation"],
         )
         raise typer.Exit(code=1)
     except Exception as e:
@@ -2301,7 +2301,7 @@ def rag_serve(
         _print_error(
             "RAG 의존성 미설치",
             "fastapi, uvicorn 또는 chromadb가 설치되지 않았습니다",
-            ["pip install slm-factory[rag,validation]"],
+            ["uv sync --extra rag --extra validation"],
         )
         raise typer.Exit(code=1)
     except Exception as e:

@@ -36,12 +36,12 @@ class TestDOCXParser:
                 parser.parse(docx_file)
 
             assert "python-docx가 설치되지 않았습니다" in str(exc_info.value)
-            assert "pip install slm-factory[docx]" in str(exc_info.value)
+            assert "uv sync --extra docx" in str(exc_info.value)
 
     def test_parse_FileNotFoundError_when_file_missing(self, tmp_path):
         """존재하지 않는 파일 경로에 대해 FileNotFoundError를 발생시키는지 확인합니다."""
         parser = DOCXParser()
-        
+
         mock_doc = MagicMock()
         with patch("docx.Document", return_value=mock_doc):
             with pytest.raises(FileNotFoundError):
@@ -117,13 +117,13 @@ class TestDOCXParser:
 
         style1 = Mock()
         style1.name = "Heading 1"
-        
+
         style2 = Mock()
         style2.name = "Heading 2"
-        
+
         style3 = Mock()
         style3.name = "Heading 3"
-        
+
         style_normal = Mock()
         style_normal.name = "Normal"
 

@@ -43,8 +43,7 @@ class DOCXParser(BaseParser):
             from docx import Document
         except ImportError as exc:
             raise ImportError(
-                "python-docx가 설치되지 않았습니다. "
-                "pip install slm-factory[docx] 로 설치하세요."
+                "python-docx가 설치되지 않았습니다. uv sync --extra docx 로 설치하세요."
             ) from exc
 
         path = Path(path)
@@ -72,7 +71,11 @@ class DOCXParser(BaseParser):
             text = para.text.strip()
             if text:
                 # 헤딩 스타일 처리
-                if para.style and hasattr(para.style, "name") and isinstance(para.style.name, str):
+                if (
+                    para.style
+                    and hasattr(para.style, "name")
+                    and isinstance(para.style.name, str)
+                ):
                     if para.style.name.startswith("Heading"):
                         # Heading 1, Heading 2, Heading 10 등에서 숫자 추출
                         level = 1

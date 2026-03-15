@@ -4,7 +4,7 @@ HWPX 파일은 XML을 포함하는 ZIP 아카이브입니다 (section0.xml, sect
 단락은 <hp:p><hp:t> 태그에, 표는 <hp:tbl><hp:tr><hp:tc> 태그에 있습니다.
 멀티섹션 문서의 경우 모든 ``Contents/section*.xml`` 파일을 순서대로 병합합니다.
 
-선택사항: 한국어 띄어쓰기 교정을 위한 kiwipiepy (pip install slm-factory[korean]).
+선택사항: 한국어 띄어쓰기 교정을 위한 kiwipiepy (uv sync --extra korean).
 """
 
 from __future__ import annotations
