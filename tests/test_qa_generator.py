@@ -407,7 +407,7 @@ class TestBuildAutoGeneratePrompt:
         assert "시스템 지시사항" in prompt
         assert "테스트 문서" in prompt
         assert "5개의 다양한 질문-답변 쌍을 생성하세요" in prompt
-        assert "JSON 배열 형식" in prompt
+        assert "JSON 형식" in prompt
 
     def test_chunk_info_포함(self, mocker, make_config):
         gen, _ = _make_generator(mocker, make_config)
