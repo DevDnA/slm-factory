@@ -397,7 +397,7 @@ class TestHWPXParserErrors:
         bad_file.write_bytes(b"this is not a zip file")
 
         parser = HWPXParser()
-        with pytest.raises(RuntimeError, match="HWPX 파일을 읽을 수 없습니다"):
+        with pytest.raises(RuntimeError, match="유효한 HWPX"):
             parser.parse(bad_file)
 
 
@@ -411,7 +411,8 @@ class TestHWPXParserRegistration:
 
     def test_extensions(self):
         """지원 확장자가 .hwpx인지 확인합니다."""
-        assert HWPXParser.extensions == [".hwpx"]
+        assert ".hwpx" in HWPXParser.extensions
+        assert ".hwp" in HWPXParser.extensions
 
     def test_can_parse_hwpx(self, simple_hwpx: Path):
         """HWPX 파일에 대해 can_parse가 True를 반환합니다."""

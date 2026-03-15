@@ -74,8 +74,10 @@ class TestHWPParserBasic:
         hwp_file = tmp_path / "test.hwp"
         hwp_file.write_bytes(b"this is not an OLE file")
 
-        with patch("slm_factory.parsers.hwp.HAS_OLEFILE", True), \
-             patch("slm_factory.parsers.hwp.olefile") as mock_olefile:
+        with (
+            patch("slm_factory.parsers.hwp.HAS_OLEFILE", True),
+            patch("slm_factory.parsers.hwp.olefile") as mock_olefile,
+        ):
             mock_olefile.isOleFile.return_value = False
 
             from slm_factory.parsers.hwp import HWPParser
@@ -97,13 +99,14 @@ class TestHWPParserBasic:
         header_data = bytearray(40)
         header_data[36] = 0
         mock_ole.openstream.side_effect = lambda name: (
-            BytesIO(bytes(header_data)) if name == "FileHeader"
-            else BytesIO(body_data)
+            BytesIO(bytes(header_data)) if name == "FileHeader" else BytesIO(body_data)
         )
         mock_ole.exists.return_value = False
 
-        with patch("slm_factory.parsers.hwp.HAS_OLEFILE", True), \
-             patch("slm_factory.parsers.hwp.olefile") as mock_olefile:
+        with (
+            patch("slm_factory.parsers.hwp.HAS_OLEFILE", True),
+            patch("slm_factory.parsers.hwp.olefile") as mock_olefile,
+        ):
             mock_olefile.isOleFile.return_value = True
             mock_olefile.OleFileIO.return_value = mock_ole
 
@@ -130,13 +133,14 @@ class TestHWPParserBasic:
         header_data = bytearray(40)
         header_data[36] = 1
         mock_ole.openstream.side_effect = lambda name: (
-            BytesIO(bytes(header_data)) if name == "FileHeader"
-            else BytesIO(compressed)
+            BytesIO(bytes(header_data)) if name == "FileHeader" else BytesIO(compressed)
         )
         mock_ole.exists.return_value = False
 
-        with patch("slm_factory.parsers.hwp.HAS_OLEFILE", True), \
-             patch("slm_factory.parsers.hwp.olefile") as mock_olefile:
+        with (
+            patch("slm_factory.parsers.hwp.HAS_OLEFILE", True),
+            patch("slm_factory.parsers.hwp.olefile") as mock_olefile,
+        ):
             mock_olefile.isOleFile.return_value = True
             mock_olefile.OleFileIO.return_value = mock_ole
 
@@ -178,8 +182,10 @@ class TestHWPParserMultiSection:
         mock_ole.openstream.side_effect = open_stream
         mock_ole.exists.return_value = False
 
-        with patch("slm_factory.parsers.hwp.HAS_OLEFILE", True), \
-             patch("slm_factory.parsers.hwp.olefile") as mock_olefile:
+        with (
+            patch("slm_factory.parsers.hwp.HAS_OLEFILE", True),
+            patch("slm_factory.parsers.hwp.olefile") as mock_olefile,
+        ):
             mock_olefile.isOleFile.return_value = True
             mock_olefile.OleFileIO.return_value = mock_ole
 
@@ -207,13 +213,14 @@ class TestHWPParserMetadata:
 
         header_data = bytearray(40)
         mock_ole.openstream.side_effect = lambda name: (
-            BytesIO(bytes(header_data)) if name == "FileHeader"
-            else BytesIO(body_data)
+            BytesIO(bytes(header_data)) if name == "FileHeader" else BytesIO(body_data)
         )
         mock_ole.exists.return_value = False
 
-        with patch("slm_factory.parsers.hwp.HAS_OLEFILE", True), \
-             patch("slm_factory.parsers.hwp.olefile") as mock_olefile:
+        with (
+            patch("slm_factory.parsers.hwp.HAS_OLEFILE", True),
+            patch("slm_factory.parsers.hwp.olefile") as mock_olefile,
+        ):
             mock_olefile.isOleFile.return_value = True
             mock_olefile.OleFileIO.return_value = mock_ole
 
@@ -232,7 +239,8 @@ class TestHWPParserRegistration:
         """지원 확장자가 .hwp인지 확인합니다."""
         from slm_factory.parsers.hwp import HWPParser
 
-        assert HWPParser.extensions == [".hwp"]
+        assert ".hwp" in HWPParser.extensions
+        assert ".hwpx" in HWPParser.extensions
 
     def test_can_parse_hwp(self, tmp_path: Path):
         """.hwp 파일에 대해 can_parse가 True를 반환합니다."""

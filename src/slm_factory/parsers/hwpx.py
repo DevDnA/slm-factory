@@ -62,7 +62,7 @@ def _table_to_markdown(table_element) -> str:
 class HWPXParser(BaseParser):
     """HWPX (한국 문서) 파일을 파싱합니다."""
 
-    extensions: ClassVar[list[str]] = [".hwpx"]
+    extensions: ClassVar[list[str]] = [".hwpx", ".hwp"]
 
     def parse(self, path: Path) -> ParsedDocument:
         """HWPX 파일에서 텍스트와 표를 추출합니다.
@@ -88,9 +88,22 @@ class HWPXParser(BaseParser):
         if not path.exists():
             raise FileNotFoundError(f"HWPX not found: {path}")
 
-        # ------------------------------------------------------------------
-        # ZIP 아카이브에서 XML 추출 (멀티섹션 지원)
-        # ------------------------------------------------------------------
+        if not zipfile.is_zipfile(str(path)):
+            try:
+                import olefile
+
+                if olefile.isOleFile(str(path)):
+                    from .hwp import HWPParser
+
+                    logger.info("File %s is HWP5 (OLE2) format, delegating", path.name)
+                    return HWPParser().parse(path)
+            except ImportError:
+                pass
+            raise RuntimeError(
+                f"유효한 HWPX(ZIP) 파일이 아닙니다: {path}\n"
+                f"원인: 파일이 손상되었거나 지원하지 않는 형식입니다."
+            )
+
         try:
             with zipfile.ZipFile(path, "r") as zf:
                 section_files = sorted(
