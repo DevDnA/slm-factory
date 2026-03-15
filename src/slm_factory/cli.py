@@ -595,6 +595,15 @@ def _run_until_step(
     if from_step:
         start_idx = _STEP_ORDER.index(from_step)
         output_dir = Path(pipeline.config.paths.output)
+        if from_step == "export":
+            adapter_candidate = output_dir / "checkpoints" / "adapter"
+            if not adapter_candidate.is_dir():
+                adapter_candidate = output_dir / "adapter"
+            if adapter_candidate.is_dir():
+                adapter_path = adapter_candidate
+            else:
+                console.print("[red]오류:[/red] adapter 디렉토리를 찾을 수 없습니다")
+                return None
         _loaded = _load_preceding_data(pipeline, from_step, output_dir)
         if _loaded is not None:
             docs, pairs, training_data_path = _loaded
