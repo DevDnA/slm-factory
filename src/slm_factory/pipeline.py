@@ -444,9 +444,11 @@ class Pipeline:
             f"개선 방향: {guidance}"
         )
 
+        chunk_content = self._find_relevant_chunk(doc, pair.question, pair.answer)
+
         prompt = generator.build_prompt(
             doc_title=doc.title,
-            content=doc.content,
+            content=chunk_content,
             question=pair.question,
             tables=doc.tables if doc.tables else None,
             system_prompt=enhanced_system,
@@ -470,6 +472,41 @@ class Pipeline:
                 e,
             )
         return None
+
+    def _find_relevant_chunk(
+        self, doc: ParsedDocument, question: str, answer: str
+    ) -> str:
+        """질문/답변과 가장 관련 있는 문서 청크를 찾아 반환합니다."""
+        from .calibration import auto_chunk_size, section_aware_chunk
+        from .teacher.qa_generator import chunk_document
+
+        max_context = self.config.teacher.max_context_chars
+        if len(doc.content) <= max_context:
+            return doc.content
+
+        chunk_size = self.config.chunking.chunk_size
+        if chunk_size == "auto":
+            cs = auto_chunk_size(doc.content, max_context)
+            chunks = section_aware_chunk(doc.content, cs)
+        else:
+            overlap = min(self.config.chunking.overlap_chars, chunk_size // 5)
+            chunks = chunk_document(doc.content, chunk_size, overlap)
+
+        if not chunks:
+            return doc.content
+
+        search_text = f"{question} {answer}".lower()
+        best_chunk = chunks[0]
+        best_score = 0
+        for chunk in chunks:
+            words = set(search_text.split())
+            chunk_lower = chunk.lower()
+            score = sum(1 for w in words if w in chunk_lower)
+            if score > best_score:
+                best_score = score
+                best_chunk = chunk
+
+        return best_chunk
 
     # ------------------------------------------------------------------
     # 단계 3b: 데이터 증강
