@@ -529,12 +529,14 @@ class QAGenerator:
 
         chunk_size = self.chunking_config.chunk_size
         if chunk_size == "auto":
-            from ..calibration import auto_chunk_size
+            from ..calibration import auto_chunk_size, section_aware_chunk
 
-            chunk_size = auto_chunk_size(doc.content, self.max_context)
+            max_size = auto_chunk_size(doc.content, self.max_context)
+            chunks = section_aware_chunk(doc.content, max_size)
+        else:
+            overlap = min(self.chunking_config.overlap_chars, chunk_size // 5)
+            chunks = chunk_document(doc.content, chunk_size, overlap)
 
-        overlap = min(self.chunking_config.overlap_chars, chunk_size // 5)
-        chunks = chunk_document(doc.content, chunk_size, overlap)
         if len(chunks) == 1:
             return [(chunks[0], None)]
 

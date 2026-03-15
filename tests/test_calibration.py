@@ -2,7 +2,12 @@
 
 import pytest
 
-from slm_factory.calibration import auto_chunk_size, auto_questions_per_chunk
+from slm_factory.calibration import (
+    _find_section_boundaries,
+    auto_chunk_size,
+    auto_questions_per_chunk,
+    section_aware_chunk,
+)
 
 
 class TestAutoChunkSize:
@@ -149,3 +154,124 @@ class TestAutoConfigIntegration:
 
         assert ChunkingConfig().chunk_size == "auto"
         assert QuestionsConfig().questions_per_chunk == "auto"
+
+
+class TestFindSectionBoundaries:
+    def test_로마_숫자_헤더_감지(self):
+        content = (
+            "서문 텍스트\n"
+            "Ⅰ. 사업 개요\n내용1\n"
+            "Ⅱ. 추진 배경\n내용2\n"
+            "Ⅲ. 사업 범위\n내용3\n"
+        )
+        boundaries = _find_section_boundaries(content)
+        assert len(boundaries) == 3
+        assert all(
+            content[b] == "Ⅰ" or content[b] == "Ⅱ" or content[b] == "Ⅲ"
+            for b in boundaries
+        )
+
+    def test_아라비아_숫자_헤더_감지(self):
+        content = "1. 개요\n내용A\n2. 목적\n내용B\n3. 범위\n내용C\n"
+        boundaries = _find_section_boundaries(content)
+        assert len(boundaries) == 3
+
+    def test_연도_제외(self):
+        content = "2026. 연도는 헤더가 아닙니다\n" * 5
+        boundaries = _find_section_boundaries(content)
+        assert len(boundaries) == 0
+
+    def test_헤더_없으면_빈_리스트(self):
+        content = "일반 텍스트입니다. 헤더 패턴이 없습니다.\n" * 10
+        boundaries = _find_section_boundaries(content)
+        assert boundaries == []
+
+    def test_3개_미만이면_빈_리스트(self):
+        content = "Ⅰ. 사업 개요\n내용1\nⅡ. 추진 배경\n내용2\n"
+        boundaries = _find_section_boundaries(content)
+        assert boundaries == []
+
+
+class TestSectionAwareChunk:
+    def _make_section(self, header: str, body_chars: int = 600) -> str:
+        return f"{header}\n" + "가" * body_chars
+
+    def test_기본_섹션_분할(self):
+        sections = [
+            self._make_section("Ⅰ. 개요", 800),
+            self._make_section("Ⅱ. 배경", 800),
+            self._make_section("Ⅲ. 범위", 800),
+        ]
+        content = "\n".join(sections)
+        chunks = section_aware_chunk(content, max_chunk_size=5000)
+        assert len(chunks) >= 1
+        for chunk in chunks:
+            assert len(chunk) <= 5000
+
+    def test_소형_섹션_병합(self):
+        sections = [
+            self._make_section("Ⅰ. 개요", 200),
+            self._make_section("Ⅱ. 배경", 200),
+            self._make_section("Ⅲ. 범위", 200),
+            self._make_section("Ⅳ. 기타", 200),
+        ]
+        content = "\n".join(sections)
+        chunks = section_aware_chunk(content, max_chunk_size=5000)
+        total_sections_chars = sum(len(s) for s in sections)
+        assert len(chunks) < 4
+        assert sum(len(c) for c in chunks) > 0
+
+    def test_대형_섹션_분할(self):
+        large_body = "\n\n".join(["긴 문단입니다. " * 50 for _ in range(20)])
+        sections = [
+            f"Ⅰ. 개요\n{large_body}",
+            self._make_section("Ⅱ. 배경", 600),
+            self._make_section("Ⅲ. 범위", 600),
+        ]
+        content = "\n".join(sections)
+        chunks = section_aware_chunk(content, max_chunk_size=2000)
+        assert len(chunks) >= 3
+        for chunk in chunks:
+            assert len(chunk) <= 2000
+
+    def test_200자_미만_필터링(self):
+        sections = [
+            self._make_section("Ⅰ. 개요", 800),
+            "Ⅱ. 목차",
+            "Ⅲ. 참고",
+            self._make_section("Ⅳ. 본문", 800),
+        ]
+        content = "\n".join(sections)
+        chunks = section_aware_chunk(content, max_chunk_size=50000)
+        for chunk in chunks:
+            assert len(chunk.strip()) >= 200
+
+    def test_헤더_없으면_폴백(self):
+        content = "\n\n".join(["일반 텍스트 문단입니다. " * 30 for _ in range(10)])
+        chunks = section_aware_chunk(content, max_chunk_size=2000)
+        assert len(chunks) >= 1
+        for chunk in chunks:
+            assert len(chunk) <= 2000
+
+    def test_한국어_RFP_패턴(self):
+        content = (
+            "제안요청서\n\n"
+            "Ⅰ. 사업 개요\n" + "사업 개요 내용입니다. " * 100 + "\n\n"
+            "Ⅱ. 현황 및 문제점\n" + "현황 분석 내용입니다. " * 200 + "\n\n"
+            "Ⅲ. 사업 추진 방향\n" + "추진 방향 내용입니다. " * 50 + "\n\n"
+            "Ⅳ. 제안 요청 사항\n" + "제안 요청 상세 내용입니다. " * 300 + "\n\n"
+            "Ⅴ. 제안서 작성 안내\n" + "작성 안내 내용입니다. " * 80 + "\n\n"
+            "Ⅵ. 평가 기준\n" + "평가 기준 내용입니다. " * 60 + "\n"
+        )
+        chunks = section_aware_chunk(content, max_chunk_size=5000)
+        assert len(chunks) >= 3
+        for chunk in chunks:
+            assert len(chunk) <= 5000
+            assert len(chunk.strip()) >= 200
+
+    def test_하위_호환_정수_chunk_size(self):
+        from slm_factory.teacher.qa_generator import chunk_document
+
+        content = "가나다라마바사" * 500
+        expected = chunk_document(content, 1000, 200)
+        assert len(expected) >= 1
