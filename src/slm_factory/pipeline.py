@@ -28,6 +28,21 @@ class Pipeline:
     def __init__(self, config: SLMConfig) -> None:
         self.config = config
         self.output_dir = Path(config.paths.output)
+        self._setup_hf_auth()
+
+    @staticmethod
+    def _setup_hf_auth() -> None:
+        import os
+
+        token = os.environ.get("HF_TOKEN")
+        if token:
+            try:
+                from huggingface_hub import login
+
+                login(token=token, add_to_git_credential=False)
+                logger.info("HuggingFace 인증 완료 (HF_TOKEN)")
+            except Exception:
+                pass
 
     # ------------------------------------------------------------------
     # 유틸리티 헬퍼
