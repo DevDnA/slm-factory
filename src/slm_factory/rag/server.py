@@ -239,7 +239,10 @@ def create_app(config: "SLMConfig"):
                         "prompt": prompt,
                         "stream": True,
                         "think": False,
-                        "options": {"num_predict": config.rag.max_tokens},
+                        "options": {
+                            "num_predict": config.rag.max_tokens,
+                            "num_ctx": 8192,
+                        },
                     },
                 ) as resp:
                     resp.raise_for_status()
@@ -278,7 +281,7 @@ def create_app(config: "SLMConfig"):
                 "prompt": prompt,
                 "stream": False,
                 "think": False,
-                "options": {"num_predict": config.rag.max_tokens},
+                "options": {"num_predict": config.rag.max_tokens, "num_ctx": 8192},
             },
         )
         response.raise_for_status()
