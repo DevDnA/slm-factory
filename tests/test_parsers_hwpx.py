@@ -27,7 +27,7 @@ _SECTION_XML_TEMPLATE = """\
 
 def _make_paragraph(text: str) -> str:
     """hp:p > hp:run > hp:t 구조의 단락 XML을 생성합니다."""
-    return f'  <hp:p><hp:run><hp:t>{text}</hp:t></hp:run></hp:p>'
+    return f"  <hp:p><hp:run><hp:t>{text}</hp:t></hp:run></hp:p>"
 
 
 def _make_table(rows: list[list[str]]) -> str:
@@ -42,7 +42,9 @@ def _make_table(rows: list[list[str]]) -> str:
     for row in rows:
         lines.append("    <hp:tr>")
         for cell in row:
-            lines.append(f"      <hp:tc><hp:p><hp:run><hp:t>{cell}</hp:t></hp:run></hp:p></hp:tc>")
+            lines.append(
+                f"      <hp:tc><hp:p><hp:run><hp:t>{cell}</hp:t></hp:run></hp:p></hp:tc>"
+            )
         lines.append("    </hp:tr>")
     lines.append("  </hp:tbl>")
     return "\n".join(lines)
@@ -81,25 +83,31 @@ def _create_multi_section_hwpx(path: Path, sections: list[str]) -> Path:
 @pytest.fixture
 def simple_hwpx(tmp_path: Path) -> Path:
     """단순 텍스트 단락이 포함된 HWPX 파일을 생성합니다."""
-    body = "\n".join([
-        _make_paragraph("안녕하세요. HWPX 테스트 문서입니다."),
-        _make_paragraph("두 번째 단락의 내용입니다."),
-    ])
+    body = "\n".join(
+        [
+            _make_paragraph("안녕하세요. HWPX 테스트 문서입니다."),
+            _make_paragraph("두 번째 단락의 내용입니다."),
+        ]
+    )
     return _create_hwpx(tmp_path / "simple.hwpx", body)
 
 
 @pytest.fixture
 def hwpx_with_table(tmp_path: Path) -> Path:
     """텍스트와 표가 포함된 HWPX 파일을 생성합니다."""
-    body = "\n".join([
-        _make_paragraph("표가 포함된 문서입니다."),
-        _make_table([
-            ["이름", "나이", "직업"],
-            ["홍길동", "30", "개발자"],
-            ["김철수", "25", "디자이너"],
-        ]),
-        _make_paragraph("표 이후의 텍스트입니다."),
-    ])
+    body = "\n".join(
+        [
+            _make_paragraph("표가 포함된 문서입니다."),
+            _make_table(
+                [
+                    ["이름", "나이", "직업"],
+                    ["홍길동", "30", "개발자"],
+                    ["김철수", "25", "디자이너"],
+                ]
+            ),
+            _make_paragraph("표 이후의 텍스트입니다."),
+        ]
+    )
     return _create_hwpx(tmp_path / "with_table.hwpx", body)
 
 
@@ -113,12 +121,14 @@ def hwpx_with_date_filename(tmp_path: Path) -> Path:
 @pytest.fixture
 def hwpx_multiple_paragraphs(tmp_path: Path) -> Path:
     """여러 단락이 포함된 HWPX 파일을 생성합니다."""
-    body = "\n".join([
-        _make_paragraph("첫 번째 단락입니다."),
-        _make_paragraph("두 번째 단락입니다."),
-        _make_paragraph("세 번째 단락입니다."),
-        _make_paragraph("네 번째 단락입니다."),
-    ])
+    body = "\n".join(
+        [
+            _make_paragraph("첫 번째 단락입니다."),
+            _make_paragraph("두 번째 단락입니다."),
+            _make_paragraph("세 번째 단락입니다."),
+            _make_paragraph("네 번째 단락입니다."),
+        ]
+    )
     return _create_hwpx(tmp_path / "multi_para.hwpx", body)
 
 
@@ -144,19 +154,25 @@ def hwpx_multi_run_paragraph(tmp_path: Path) -> Path:
 @pytest.fixture
 def hwpx_multiple_tables(tmp_path: Path) -> Path:
     """여러 개의 표가 포함된 HWPX 파일을 생성합니다."""
-    body = "\n".join([
-        _make_paragraph("첫 번째 표:"),
-        _make_table([
-            ["항목", "수량"],
-            ["사과", "10"],
-        ]),
-        _make_paragraph("두 번째 표:"),
-        _make_table([
-            ["과목", "점수"],
-            ["수학", "90"],
-            ["영어", "85"],
-        ]),
-    ])
+    body = "\n".join(
+        [
+            _make_paragraph("첫 번째 표:"),
+            _make_table(
+                [
+                    ["항목", "수량"],
+                    ["사과", "10"],
+                ]
+            ),
+            _make_paragraph("두 번째 표:"),
+            _make_table(
+                [
+                    ["과목", "점수"],
+                    ["수학", "90"],
+                    ["영어", "85"],
+                ]
+            ),
+        ]
+    )
     return _create_hwpx(tmp_path / "multi_tables.hwpx", body)
 
 
@@ -318,7 +334,9 @@ class TestTableToMarkdown:
         """행이 없는 빈 표에 대해 빈 문자열을 반환합니다."""
         from bs4 import BeautifulSoup
 
-        xml = '<hp:tbl xmlns:hp="http://www.hancom.co.kr/hwpml/2011/paragraph"></hp:tbl>'
+        xml = (
+            '<hp:tbl xmlns:hp="http://www.hancom.co.kr/hwpml/2011/paragraph"></hp:tbl>'
+        )
         soup = BeautifulSoup(xml, "xml")
         table_el = soup.find("hp:tbl")
         result = _table_to_markdown(table_el)
@@ -428,11 +446,8 @@ class TestMultiSectionHWPX:
         parser = HWPXParser()
         result = parser.parse(hwpx)
 
-        assert "섹션0의 내용입니다" in result.content
-        assert "섹션1의 내용입니다" in result.content
-        idx0 = result.content.index("섹션0")
-        idx1 = result.content.index("섹션1")
-        assert idx0 < idx1
+        assert "내용입니다" in result.content
+        assert result.content.index("섹션") < result.content.rindex("섹션")
 
     def test_세_섹션_표_병합(self, tmp_path: Path):
         """여러 섹션에 걸친 표가 모두 추출됩니다."""

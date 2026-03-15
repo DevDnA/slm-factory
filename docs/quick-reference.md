@@ -272,7 +272,7 @@ chunking:
 | `Failed to connect to Ollama at http://localhost:11434` | Ollama 서버 미실행 | `ollama serve` 실행 후 재시도 |
 | `CUDA out of memory` | GPU VRAM 부족 | `training.batch_size: 2`, `quantization.bits: 4` 설정 |
 | `Failed to parse HWPX file - section0.xml not found` | HWPX 파일 손상 | 한글에서 `.hwpx`로 다시 저장하거나 `.hwp` 형식으로 변환 |
-| `Could not install packages due to an OSError` (pykospacing) | Python 버전 또는 Git 미설치 | `python --version` 확인 (3.11+), `git --version` 확인 |
+| `Could not install packages due to an OSError` (kiwipiepy) | Python 버전 미호환 | `python --version` 확인 (3.11+) |
 | `Only N QA pairs generated. Recommend at least 100` | 문서 부족 또는 질문 카테고리 부족 | 문서 추가 또는 `questions.categories` 확장 |
 | 대부분의 답변이 "The document does not contain..." | Teacher 모델 타임아웃 또는 질문 부적합 | `teacher.timeout: 300`, 질문을 문서 내용에 맞게 수정 |
 | `model not found` (Ollama) | Teacher 모델 미다운로드 | `ollama pull qwen3.5:9b` |

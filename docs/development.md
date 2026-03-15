@@ -269,7 +269,7 @@ from slm_factory.parsers import registry
 | 파서 클래스 | 파일 | 확장자 | 주요 라이브러리 |
 |------------|------|--------|----------------|
 | `PDFParser` | `pdf.py` | `.pdf` | PyMuPDF (fitz) |
-| `HWPXParser` | `hwpx.py` | `.hwpx` | lxml, pykospacing (선택적) |
+| `HWPXParser` | `hwpx.py` | `.hwpx` | lxml, kiwipiepy (선택적) |
 | `HTMLParser` | `html.py` | `.html`, `.htm` | BeautifulSoup4 (lxml 백엔드), charset-normalizer |
 | `TextParser` | `text.py` | `.txt`, `.md` | charset-normalizer |
 | `DOCXParser` | `docx.py` | `.docx` | python-docx (선택적) |
@@ -494,7 +494,7 @@ class LoRATrainer:
 
 | 파라미터 | 기본값 | 설명 |
 |---------|--------|------|
-| `num_epochs` | 20 | 학습 에포크 수 |
+| `num_epochs` | 5 | 학습 에포크 수 |
 | `learning_rate` | 2.0e-5 | 학습률 |
 | `batch_size` | 4 | 디바이스당 배치 크기 |
 | `lora.r` / `lora.alpha` | 16 / 32 | LoRA 랭크 / 스케일링 |

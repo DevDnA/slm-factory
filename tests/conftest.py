@@ -40,7 +40,6 @@ def _ensure_ml_mocks() -> None:
         "sentence_transformers",
         "sentence_transformers.SentenceTransformer",
         "sentence_transformers.util",
-        "kiwipiepy",
     ]
     for mod_name in ml_modules:
         if mod_name not in sys.modules:

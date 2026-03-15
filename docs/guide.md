@@ -25,7 +25,7 @@ slm-factory를 실행하려면 다음 환경이 필요합니다.
 
 | 항목 | 최소 요구사항 | 권장 사양 |
 |------|-------------|---------|
-| **Python** | 3.11 이상 | 3.11 또는 3.12 |
+| **Python** | 3.11 이상 | 3.11 ~ 3.14 |
 | **GPU** | CPU 가능 (매우 느림) | NVIDIA CUDA GPU (VRAM 8GB+) 또는 Apple Silicon (M1/M2/M3/M4/M5) |
 | **Ollama** | 1.0 이상 | 최신 버전 |
 | **디스크** | 5GB 이상 | 20GB 이상 (모델 여러 개 보관 시) |
@@ -102,7 +102,7 @@ uv run slm-factory version
 
 > **참고**: `./setup.sh`는 [uv](https://docs.astral.sh/uv/) 설치, 가상환경 생성, 의존성 설치, Ollama 모델 준비를 한 번에 처리합니다.
 
-`./setup.sh`는 PDF/HTML/TXT/HWPX/DOCX 파싱, 한국어 띄어쓰기 교정, 한국어 형태소 분석(kiwipiepy), 임베딩 기반 검증, 테스트 도구, Shell 자동완성을 포함한 모든 기능을 설치합니다. 한국어 기능만 별도로 설치하려면 `uv sync --extra korean`을 사용하세요 (pykospacing, kiwipiepy 포함). PyTorch, CUDA 런타임 등 대용량 패키지가 포함되어 있어 **초회 설치 시 10~20분 이상** 소요될 수 있습니다.
+`./setup.sh`는 PDF/HTML/TXT/HWPX/DOCX 파싱, 한국어 띄어쓰기 교정, 한국어 형태소 분석(kiwipiepy), 임베딩 기반 검증, 테스트 도구, Shell 자동완성을 포함한 모든 기능을 설치합니다. 한국어 기능만 별도로 설치하려면 `uv sync --extra korean`을 사용하세요 (kiwipiepy 포함). PyTorch, CUDA 런타임 등 대용량 패키지가 포함되어 있어 **초회 설치 시 10~20분 이상** 소요될 수 있습니다.
 
 ---
 
@@ -294,7 +294,7 @@ teacher:
   temperature: 0.3
 
 student:
-  model: "Qwen/Qwen3.5-2B"       # HuggingFace 모델 ID
+  model: "Qwen/Qwen2.5-1.5B"      # HuggingFace 모델 ID
 
 export:
   ollama:
@@ -433,11 +433,11 @@ scoring:
   threshold: 3.5
 
 student:
-  model: "Qwen/Qwen3.5-2B"
+  model: "Qwen/Qwen2.5-1.5B"
   max_seq_length: 4096
 
 training:
-  num_epochs: 20
+  num_epochs: 5
   batch_size: 4
   learning_rate: 2e-5
   quantization:
@@ -535,11 +535,11 @@ augment:
   num_variants: 2
 
 student:
-  model: "Qwen/Qwen3.5-2B"
+  model: "Qwen/Qwen2.5-1.5B"
   max_seq_length: 4096
 
 training:
-  num_epochs: 15
+  num_epochs: 5
   batch_size: 4
   learning_rate: 1.5e-5
   quantization:
@@ -893,7 +893,7 @@ Error: Failed to parse HWPX file - section0.xml not found
 
 ---
 
-### pykospacing 설치 오류
+### kiwipiepy 설치 오류
 
 **증상**:
 ```
@@ -907,17 +907,12 @@ ERROR: Could not install packages due to an OSError
 python --version
 ```
 
-방법 2: Git 설치 확인 (pykospacing은 Git 저장소에서 설치됨)
+방법 2: 수동 설치 시도
 ```bash
-git --version
+uv pip install kiwipiepy
 ```
 
-방법 3: 수동 설치 시도
-```bash
-uv pip install git+https://github.com/haven-jeon/PyKoSpacing.git
-```
-
-방법 4: 한국어 띄어쓰기 교정 비활성화
+방법 3: 한국어 띄어쓰기 교정 비활성화
 ```yaml
 parsing:
   hwpx:

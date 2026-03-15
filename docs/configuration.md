@@ -83,7 +83,7 @@ paths:
 
 | 필드 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
-| `formats` | `list[str]` | `["pdf", "txt", "html"]` | 파싱할 문서 형식 목록 |
+| `formats` | `list[str]` | `["pdf", "txt", "html", "md", "hwpx", "hwp", "docx"]` | 파싱할 문서 형식 목록 |
 | `pdf` | `PdfOptions` | (하위 참조) | PDF 파싱 옵션 |
 | `hwpx` | `HwpxOptions` | (하위 참조) | HWPX 파싱 옵션 |
 
@@ -92,7 +92,7 @@ paths:
 | 형식 | 확장자 | 필요 패키지 |
 |------|--------|-------------|
 | `pdf` | `.pdf` | `pymupdf` (기본 포함) |
-| `hwpx` | `.hwpx` | `beautifulsoup4`, `lxml` (기본 포함), `pykospacing` (선택) |
+| `hwpx` | `.hwpx` | `beautifulsoup4`, `lxml` (기본 포함), `kiwipiepy` (선택) |
 | `html` | `.html`, `.htm` | `beautifulsoup4` (기본 포함) |
 | `txt` | `.txt` | 없음 |
 | `md` | `.md` | 없음 |
@@ -108,7 +108,7 @@ paths:
 
 | 필드 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
-| `apply_spacing` | `bool` | `true` | 한국어 띄어쓰기 교정을 적용합니다. `pykospacing` 패키지가 필요합니다. `uv sync --extra korean`으로 설치하면 띄어쓰기 교정(`pykospacing`)과 형태소 분석(`kiwipiepy`) 기능이 함께 설치됩니다 |
+| `apply_spacing` | `bool` | `true` | 한국어 띄어쓰기 교정을 적용합니다. `kiwipiepy` 패키지가 필요합니다. `uv sync --extra korean`으로 설치하면 띄어쓰기 교정 및 형태소 분석(`kiwipiepy`) 기능이 설치됩니다 |
 
 ```yaml
 parsing:
@@ -415,7 +415,7 @@ student:
 | `learning_rate` | `float` | `2e-5` | 학습률. LoRA 파인튜닝에는 `1e-5 ~ 5e-5` 범위를 권장합니다 |
 | `lr_scheduler` | `str` | `"cosine"` | 학습률 스케줄러. `"cosine"`, `"linear"`, `"constant"` 등 |
 | `warmup_ratio` | `float` | `0.1` | 워밍업 비율. 전체 학습 스텝의 10%를 워밍업에 사용합니다 (0.0~1.0) |
-| `num_epochs` | `int` | `20` | 최대 에포크 수. 조기 종료가 활성화되면 이보다 일찍 멈출 수 있습니다 |
+| `num_epochs` | `int` | `5` | 최대 에포크 수. 조기 종료가 활성화되면 이보다 일찍 멈출 수 있습니다 |
 | `optimizer` | `str` | `"adamw_torch_fused"` | 옵티마이저. `"adamw_torch_fused"`는 PyTorch의 fused AdamW로 가장 빠릅니다 |
 | `bf16` | `bool` | `true` | bfloat16 혼합 정밀도 학습. Ampere 이상 GPU (RTX 30xx, A100 등)에서만 지원됩니다 |
 | `train_split` | `float` | `0.9` | 학습 데이터 비율. 0.9는 90% 학습, 10% 검증을 의미합니다 (0.0~1.0) |
@@ -465,7 +465,7 @@ training:
   learning_rate: 2.0e-5
   lr_scheduler: "cosine"
   warmup_ratio: 0.1
-  num_epochs: 20
+  num_epochs: 5
   early_stopping:
     enabled: true
     patience: 3
@@ -808,7 +808,7 @@ training:
 ```yaml
 # 경량 Student 모델
 student:
-  model: "Qwen/Qwen3.5-2B"
+  model: "Qwen/Qwen2.5-1.5B"
   max_seq_length: 2048
 
 # 메모리 최적화 학습 설정
@@ -960,7 +960,7 @@ analyzer:
 
 # 한국어 지원 우수한 Student 모델
 student:
-  model: "Qwen/Qwen3.5-2B"
+  model: "Qwen/Qwen2.5-1.5B"
   max_seq_length: 4096
 
 # 12GB VRAM 기준 설정
@@ -976,7 +976,7 @@ training:
   learning_rate: 2.0e-5
   lr_scheduler: "cosine"
   warmup_ratio: 0.1
-  num_epochs: 20
+  num_epochs: 5
   early_stopping:
     enabled: true
     patience: 3
@@ -1020,7 +1020,7 @@ dashboard:
 4. 질문과 시스템 프롬프트를 모두 한국어로 작성하여 한국어 답변을 유도합니다
 5. 한국어 거부 패턴 5개를 추가했습니다
 6. `groundedness.model`을 다국어 지원 모델로 변경했습니다
-7. `student.model: "Qwen/Qwen3.5-2B"` — 한국어 지원이 우수한 다국어 모델입니다
+7. `student.model: "Qwen/Qwen2.5-1.5B"` — 한국어 지원이 우수한 다국어 모델입니다
 8. `export.ollama.parameters.temperature: 0.5` — 정책 문서는 일관성이 중요하므로 낮췄습니다
 9. `compare`, `review`, `dashboard`는 수동 조작이 필요하므로 명시적으로 비활성화합니다. 나머지 선택적 단계는 기본값(`true`)을 그대로 사용합니다
 

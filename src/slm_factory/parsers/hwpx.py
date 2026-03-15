@@ -4,7 +4,7 @@ HWPX 파일은 XML을 포함하는 ZIP 아카이브입니다 (section0.xml, sect
 단락은 <hp:p><hp:t> 태그에, 표는 <hp:tbl><hp:tr><hp:tc> 태그에 있습니다.
 멀티섹션 문서의 경우 모든 ``Contents/section*.xml`` 파일을 순서대로 병합합니다.
 
-선택사항: 한국어 단어 간격 수정을 위한 pykospacing (pip install slm-factory[korean]).
+선택사항: 한국어 띄어쓰기 교정을 위한 kiwipiepy (pip install slm-factory[korean]).
 """
 
 from __future__ import annotations
@@ -17,16 +17,21 @@ from typing import ClassVar
 from bs4 import BeautifulSoup
 
 from ..utils import get_logger
-from .base import BaseParser, ParsedDocument, extract_date_from_filename, rows_to_markdown
+from .base import (
+    BaseParser,
+    ParsedDocument,
+    extract_date_from_filename,
+    rows_to_markdown,
+)
 
 logger = get_logger("parsers.hwpx")
 
-# 선택적 한국어 간격 수정을 위해 pykospacing 가져오기 시도
 try:
-    from pykospacing import spacing
-    HAS_PYKOSPACING = True
+    from kiwipiepy import Kiwi
+
+    _kiwi: Kiwi | None = Kiwi()
 except ImportError:
-    HAS_PYKOSPACING = False
+    _kiwi = None
 
 
 def _table_to_markdown(table_element) -> str:
@@ -89,18 +94,18 @@ class HWPXParser(BaseParser):
         try:
             with zipfile.ZipFile(path, "r") as zf:
                 section_files = sorted(
-                    name for name in zf.namelist()
+                    name
+                    for name in zf.namelist()
                     if re.match(r"Contents/section\d+\.xml$", name)
                 )
                 if not section_files:
                     raise FileNotFoundError("No section XML files found")
-                xml_parts = [
-                    zf.read(name).decode("utf-8") for name in section_files
-                ]
+                xml_parts = [zf.read(name).decode("utf-8") for name in section_files]
                 if len(section_files) > 1:
                     logger.info(
                         "HWPX 멀티섹션 감지: %d개 섹션 (%s)",
-                        len(section_files), path.name,
+                        len(section_files),
+                        path.name,
                     )
         except FileNotFoundError as exc:
             raise RuntimeError(
@@ -148,12 +153,16 @@ class HWPXParser(BaseParser):
 
                 if text_parts:
                     para_text = "".join(text_parts)
-                    # 선택적 한국어 간격 수정 적용
-                    if HAS_PYKOSPACING:
+                    if _kiwi is not None:
                         try:
-                            para_text = spacing(para_text)
+                            result = _kiwi.space(para_text)
+                            para_text = (
+                                result if isinstance(result, str) else "".join(result)
+                            )
                         except Exception:
-                            logger.debug("pykospacing failed for paragraph, using original text")
+                            logger.debug(
+                                "kiwipiepy spacing failed, using original text"
+                            )
                     paragraphs.append(para_text)
 
             # ------------------------------------------------------------------
