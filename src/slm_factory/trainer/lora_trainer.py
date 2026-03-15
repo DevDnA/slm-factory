@@ -127,7 +127,7 @@ class LoRATrainer:
             else:
                 logger.warning(
                     "BitsAndBytes가 설치되지 않았습니다. 양자화 없이 진행합니다. "
-                    "설치: pip install bitsandbytes"
+                    "설치: uv sync --extra cuda"
                 )
 
         try:

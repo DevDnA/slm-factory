@@ -1020,7 +1020,7 @@ dashboard:
 4. 질문과 시스템 프롬프트를 모두 한국어로 작성하여 한국어 답변을 유도합니다
 5. 한국어 거부 패턴 5개를 추가했습니다
 6. `groundedness.model`을 다국어 지원 모델로 변경했습니다
-7. `student.model: "google/gemma-3-1b-it"` — 한국어 지원이 우수한 다국어 모델입니다
+7. `student.model: "google/gemma-3-1b-it"` — 소량 데이터에서 파인튜닝이 용이한 경량 Instruct 모델입니다
 8. `export.ollama.parameters.temperature: 0.5` — 정책 문서는 일관성이 중요하므로 낮췄습니다
 9. `compare`, `review`, `dashboard`는 수동 조작이 필요하므로 명시적으로 비활성화합니다. 나머지 선택적 단계는 기본값(`true`)을 그대로 사용합니다
 

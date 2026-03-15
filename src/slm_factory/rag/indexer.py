@@ -64,15 +64,14 @@ class RAGIndexer:
         except ImportError:
             raise RuntimeError(
                 "sentence-transformers가 설치되지 않았습니다. "
-                "pip install sentence-transformers 로 설치하세요."
+                "uv sync --extra rag 로 설치하세요."
             )
 
         try:
             import chromadb
         except ImportError:
             raise RuntimeError(
-                "chromadb가 설치되지 않았습니다. "
-                "pip install chromadb 로 설치하세요."
+                "chromadb가 설치되지 않았습니다. uv sync --extra rag 로 설치하세요."
             )
 
         # corpus.parquet 로드
@@ -96,7 +95,9 @@ class RAGIndexer:
         # 데이터 추출
         doc_ids = df["doc_id"].tolist()
         contents = df["contents"].tolist()
-        metadatas_raw = df["metadata"].tolist() if "metadata" in df.columns else [{}] * len(df)
+        metadatas_raw = (
+            df["metadata"].tolist() if "metadata" in df.columns else [{}] * len(df)
+        )
 
         batch_size = self.config.rag.batch_size
         total = len(contents)

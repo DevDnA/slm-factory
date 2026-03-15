@@ -233,9 +233,7 @@ def print_device_summary(device: DeviceInfo) -> None:
     elif device.type == "mps":
         table.add_row("4bit 양자화", "[dim]미지원[/dim] (Unified Memory로 대체)")
     else:
-        table.add_row(
-            "4bit 양자화", "[yellow]미설치[/yellow] (pip install bitsandbytes)"
-        )
+        table.add_row("4bit 양자화", "[yellow]미설치[/yellow] (uv sync --extra cuda)")
 
     # 옵티마이저
     table.add_row("옵티마이저", device.recommended_optimizer)

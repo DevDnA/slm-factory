@@ -851,7 +851,7 @@ training:
 방법 2: 배치 크기 감소
 ```yaml
 training:
-  batch_size: 2                    # 기본값 4에서 감소
+  batch_size: 2                    # 기본값
   gradient_accumulation_steps: 8   # 총 배치 크기 유지 (2×8=16)
 ```
 
@@ -909,7 +909,7 @@ python --version
 
 방법 2: 수동 설치 시도
 ```bash
-uv pip install kiwipiepy
+uv sync --extra korean
 ```
 
 방법 3: 한국어 띄어쓰기 교정 비활성화
@@ -964,7 +964,7 @@ teacher:
 방법 1: Teacher 모델 타임아웃 증가
 ```yaml
 teacher:
-  timeout: 300                     # 기본값 180초에서 증가
+  timeout: 300                     # 기본값
 ```
 
 방법 2: 다른 Teacher 모델 시도

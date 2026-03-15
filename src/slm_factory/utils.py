@@ -160,5 +160,5 @@ def run_async(coro: Awaitable[T]) -> T:
         raise RuntimeError(
             "이미 실행 중인 이벤트 루프에서 호출되었습니다. "
             "Jupyter 등에서 사용하려면 nest_asyncio를 설치하세요: "
-            "pip install nest_asyncio"
+            "uv pip install nest_asyncio"
         )

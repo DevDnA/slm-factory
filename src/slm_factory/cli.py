@@ -1113,7 +1113,7 @@ def check(
             bnb_detail = (
                 "사용 가능"
                 if device.quantization_available
-                else "미설치 (pip install bitsandbytes)"
+                else "미설치 (uv sync --extra cuda)"
             )
             table.add_row("4bit 양자화", bnb_status, bnb_detail)
         elif device.type == "mps":

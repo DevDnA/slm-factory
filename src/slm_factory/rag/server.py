@@ -45,14 +45,14 @@ def create_app(config: "SLMConfig"):
         from fastapi.responses import JSONResponse
     except ImportError:
         raise RuntimeError(
-            "fastapi가 설치되지 않았습니다. pip install fastapi 로 설치하세요."
+            "fastapi가 설치되지 않았습니다. uv sync --extra rag 로 설치하세요."
         )
 
     try:
         import chromadb
     except ImportError:
         raise RuntimeError(
-            "chromadb가 설치되지 않았습니다. pip install chromadb 로 설치하세요."
+            "chromadb가 설치되지 않았습니다. uv sync --extra rag 로 설치하세요."
         )
 
     try:
@@ -60,7 +60,7 @@ def create_app(config: "SLMConfig"):
     except ImportError:
         raise RuntimeError(
             "sentence-transformers가 설치되지 않았습니다. "
-            "pip install sentence-transformers 로 설치하세요."
+            "uv sync --extra rag 로 설치하세요."
         )
 
     import httpx
