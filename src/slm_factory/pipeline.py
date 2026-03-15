@@ -372,7 +372,7 @@ class Pipeline:
 
         from .utils import run_bounded
 
-        semaphore = asyncio.Semaphore(1)
+        semaphore = asyncio.Semaphore(self.config.teacher.max_concurrency)
 
         progress = Progress(
             SpinnerColumn(),
