@@ -146,23 +146,38 @@ class ModelEvaluator:
         ref = _preprocess_for_metrics(reference, tokenizer)
         gen = _preprocess_for_metrics(generated, tokenizer)
 
+        if not gen.strip():
+            return {
+                m: 0.0
+                for m in ["bleu", "rouge1", "rouge2", "rougeL"]
+                if m in metrics or "rouge" in metrics
+            }
+
         if "bleu" in metrics:
             bleu = _load_bleu()
-            result = bleu.compute(
-                predictions=[gen],
-                references=[[ref]],
-            )
-            scores["bleu"] = round(result["bleu"], 4)
+            try:
+                result = bleu.compute(
+                    predictions=[gen],
+                    references=[[ref]],
+                )
+                scores["bleu"] = round(result["bleu"], 4)
+            except ZeroDivisionError:
+                scores["bleu"] = 0.0
 
         if "rouge" in metrics:
             rouge = _load_rouge()
-            result = rouge.compute(
-                predictions=[gen],
-                references=[ref],
-            )
-            scores["rouge1"] = round(result["rouge1"], 4)
-            scores["rouge2"] = round(result["rouge2"], 4)
-            scores["rougeL"] = round(result["rougeL"], 4)
+            try:
+                result = rouge.compute(
+                    predictions=[gen],
+                    references=[ref],
+                )
+                scores["rouge1"] = round(result["rouge1"], 4)
+                scores["rouge2"] = round(result["rouge2"], 4)
+                scores["rougeL"] = round(result["rougeL"], 4)
+            except ZeroDivisionError:
+                scores["rouge1"] = 0.0
+                scores["rouge2"] = 0.0
+                scores["rougeL"] = 0.0
 
         return scores
 
