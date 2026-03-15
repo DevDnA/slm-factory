@@ -30,17 +30,24 @@ class Pipeline:
         self.output_dir = Path(config.paths.output)
         self._setup_hf_auth()
 
-    @staticmethod
-    def _setup_hf_auth() -> None:
+    def _setup_hf_auth(self) -> None:
         import os
 
         token = os.environ.get("HF_TOKEN")
+        if not token:
+            env_file = Path(self.config.paths.documents).parent / ".env"
+            if env_file.is_file():
+                for line in env_file.read_text(encoding="utf-8").splitlines():
+                    line = line.strip()
+                    if line.startswith("HF_TOKEN=") and not line.startswith("#"):
+                        token = line.split("=", 1)[1].strip().strip("\"'")
+                        break
         if token:
             try:
                 from huggingface_hub import login
 
                 login(token=token, add_to_git_credential=False)
-                logger.info("HuggingFace 인증 완료 (HF_TOKEN)")
+                logger.info("HuggingFace 인증 완료")
             except Exception:
                 pass
 

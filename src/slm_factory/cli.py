@@ -405,6 +405,10 @@ def init(
 
     config_path.write_text(config_content, encoding="utf-8")
 
+    env_path = project_dir / ".env"
+    if not env_path.exists():
+        env_path.write_text("HF_TOKEN=\n", encoding="utf-8")
+
     console.print(
         f"\n[green]✓[/green] 프로젝트 '{name}'가 생성되었습니다: [cyan]{project_dir}[/cyan]\n"
     )
