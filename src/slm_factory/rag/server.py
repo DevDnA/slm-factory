@@ -45,16 +45,14 @@ def create_app(config: "SLMConfig"):
         from fastapi.responses import JSONResponse
     except ImportError:
         raise RuntimeError(
-            "fastapi가 설치되지 않았습니다. "
-            "pip install fastapi 로 설치하세요."
+            "fastapi가 설치되지 않았습니다. pip install fastapi 로 설치하세요."
         )
 
     try:
         import chromadb
     except ImportError:
         raise RuntimeError(
-            "chromadb가 설치되지 않았습니다. "
-            "pip install chromadb 로 설치하세요."
+            "chromadb가 설치되지 않았습니다. pip install chromadb 로 설치하세요."
         )
 
     try:
@@ -216,10 +214,7 @@ def create_app(config: "SLMConfig"):
             context_parts.append(doc)
 
         context = "\n\n---\n\n".join(context_parts)
-        prompt = (
-            f"{_RAG_SYSTEM_PROMPT}\n\n{context}\n\n"
-            f"질문: {body.query}\n답변:"
-        )
+        prompt = f"{_RAG_SYSTEM_PROMPT}\n\n{context}\n\n질문: {body.query}\n답변:"
         return sources, prompt
 
     @app.post("/v1/query")
@@ -234,6 +229,7 @@ def create_app(config: "SLMConfig"):
         http_client = app.state.http_client
 
         if body.stream:
+
             async def _generate_stream():
                 async with http_client.stream(
                     "POST",
@@ -242,6 +238,7 @@ def create_app(config: "SLMConfig"):
                         "model": ollama_model,
                         "prompt": prompt,
                         "stream": True,
+                        "think": False,
                         "options": {"num_predict": config.rag.max_tokens},
                     },
                 ) as resp:
@@ -280,6 +277,7 @@ def create_app(config: "SLMConfig"):
                 "model": ollama_model,
                 "prompt": prompt,
                 "stream": False,
+                "think": False,
                 "options": {"num_predict": config.rag.max_tokens},
             },
         )

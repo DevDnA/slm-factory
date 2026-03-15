@@ -212,6 +212,159 @@ class QAGenerator:
 
         return normalized
 
+    def build_auto_generate_prompt(
+        self,
+        doc_title: str,
+        content: str,
+        num_questions: int,
+        tables: list[str] | None = None,
+        chunk_info: str | None = None,
+    ) -> str:
+        """Teacher LLM이 청크를 보고 다양한 Q+A 쌍을 자동 생성하기 위한 프롬프트를 구성합니다."""
+        system_prompt = self.questions_config.system_prompt
+
+        truncated_content = content[: self.max_context]
+        if len(content) > self.max_context:
+            truncated_content += "\n\n[이하 생략...]"
+
+        title_with_chunk = doc_title
+        if chunk_info:
+            title_with_chunk = f"{doc_title} ({chunk_info})"
+
+        prompt_parts = [
+            f"# 시스템 지시사항\n{system_prompt}",
+            f"\n# 문서: {title_with_chunk}\n{truncated_content}",
+        ]
+
+        if tables:
+            tables_section = "\n## 관련 표\n" + "\n\n".join(tables)
+            prompt_parts.append(tables_section)
+
+        prompt_parts.extend(
+            [
+                f"\n# 지시사항",
+                f"위 문서를 분석하여 {num_questions}개의 다양한 질문-답변 쌍을 생성하세요.",
+                "",
+                "질문 생성 기준:",
+                "- 문서에 명시된 사실 기반의 구체적인 질문을 만드세요",
+                "- 수치, 날짜, 이름 등 구체적 정보를 묻는 질문을 포함하세요",
+                "- 개요, 기술, 절차, 비교 등 다양한 유형의 질문을 만드세요",
+                "- 문서에서 직접 답변할 수 있는 질문만 만드세요",
+                "",
+                "반드시 아래 JSON 배열 형식으로만 응답하세요:",
+                '[{"instruction": "질문1", "output": "답변1"}, '
+                '{"instruction": "질문2", "output": "답변2"}, ...]',
+                "",
+                "코드 블록, 마크다운 서식, JSON 외의 텍스트를 포함하지 마세요.",
+            ]
+        )
+
+        return "\n".join(prompt_parts)
+
+    def parse_auto_response(self, text: str) -> list[dict[str, str]]:
+        """자동 생성 LLM 응답(JSON 배열)을 파싱하여 QA 딕셔너리 리스트를 반환합니다."""
+        text = text.strip()
+        text = re.sub(r"^```(?:json)?\s*", "", text)
+        text = re.sub(r"\s*```$", "", text)
+        text = text.strip()
+
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as e:
+            logger.warning("Failed to parse auto-generate JSON response: %s", e)
+            return []
+
+        if isinstance(data, dict):
+            for key in ("data", "items"):
+                if key in data and isinstance(data[key], list):
+                    data = data[key]
+                    break
+            else:
+                data = [data]
+
+        if not isinstance(data, list):
+            logger.warning("Auto-generate response is not a list")
+            return []
+
+        results: list[dict[str, str]] = []
+        for item in data:
+            if not isinstance(item, dict):
+                continue
+
+            normalized: dict[str, str] = {}
+            if "instruction" in item:
+                normalized["instruction"] = str(item["instruction"])
+            elif "question" in item:
+                normalized["instruction"] = str(item["question"])
+            else:
+                continue
+
+            if "output" in item:
+                normalized["output"] = str(item["output"])
+            elif "answer" in item:
+                normalized["output"] = str(item["answer"])
+            else:
+                continue
+
+            results.append(normalized)
+
+        return results
+
+    async def _auto_generate_one_async(
+        self,
+        semaphore: asyncio.Semaphore,
+        doc: ParsedDocument,
+        chunk_content: str,
+        chunk_info: str | None,
+    ) -> list[QAPair]:
+        """청크 하나에 대해 auto_generate 프롬프트로 Teacher 호출 → 다수 QA 추출."""
+        async with semaphore:
+            try:
+                prompt = self.build_auto_generate_prompt(
+                    doc_title=doc.title,
+                    content=chunk_content,
+                    num_questions=self.questions_config.questions_per_chunk,
+                    tables=doc.tables if doc.tables else None,
+                    chunk_info=chunk_info,
+                )
+
+                kwargs: dict[str, Any] = {}
+                if self.teacher_config.backend == "ollama":
+                    kwargs["format"] = "json"
+                    kwargs["think"] = False
+
+                response = await self.teacher.agenerate(prompt, **kwargs)
+
+                parsed_list = self.parse_auto_response(response)
+                if not parsed_list:
+                    logger.warning(
+                        "Auto-generate returned no QA pairs for %s %s",
+                        doc.doc_id,
+                        chunk_info or "",
+                    )
+                    return []
+
+                pairs: list[QAPair] = []
+                for parsed in parsed_list:
+                    pairs.append(
+                        QAPair(
+                            question=parsed["instruction"],
+                            answer=parsed["output"],
+                            instruction=parsed["instruction"],
+                            source_doc=doc.doc_id,
+                            category="auto_generated",
+                        )
+                    )
+                return pairs
+            except Exception as e:
+                logger.error(
+                    "Error in auto-generate for %s %s: %s",
+                    doc.doc_id,
+                    chunk_info or "",
+                    e,
+                )
+                return []
+
     def generate_for_document(
         self,
         doc: ParsedDocument,
@@ -391,6 +544,9 @@ class QAGenerator:
         ``generate_all``의 비동기 버전입니다.
         청킹이 활성화되면 문서를 청크로 분할하여 각 청크별로 QA를 생성합니다.
 
+        ``auto_generate=True``이면 각 청크에서 Teacher LLM이 질문-답변 쌍을
+        자동 생성합니다. 기존 고정질문이 있으면 자동생성 QA에 추가됩니다.
+
         Args:
             docs: 파싱된 문서 목록
             questions: 선택적 질문 목록(기본값: config.questions.get_all_questions())
@@ -401,11 +557,16 @@ class QAGenerator:
         max_concurrency = self.teacher_config.max_concurrency
         semaphore = asyncio.Semaphore(max_concurrency)
 
+        use_auto = self.questions_config.auto_generate
+
         if questions is not None:
             all_qc = [("", q) for q in questions]
         else:
             all_qc = self.questions_config.get_questions_with_categories()
-        if not all_qc:
+
+        has_fixed = bool(all_qc)
+
+        if not has_fixed and not use_auto:
             logger.warning("No questions configured")
             return []
 
@@ -422,9 +583,20 @@ class QAGenerator:
             TimeRemainingColumn(),
         )
 
-        total = len(doc_chunks) * len(all_qc)
+        fixed_total = len(doc_chunks) * len(all_qc) if has_fixed else 0
+        auto_total = len(doc_chunks) if use_auto else 0
+        total = fixed_total + auto_total
 
-        if self.chunking_config.enabled and len(doc_chunks) > len(docs):
+        if use_auto:
+            logger.info(
+                "Auto-generate enabled: %d chunks × %d questions/chunk, "
+                "fixed questions: %d (concurrency=%d)...",
+                len(doc_chunks),
+                self.questions_config.questions_per_chunk,
+                fixed_total,
+                max_concurrency,
+            )
+        elif self.chunking_config.enabled and len(doc_chunks) > len(docs):
             logger.info(
                 "Chunking enabled: %d documents → %d chunks, "
                 "generating %d QA pairs (concurrency=%d)...",
@@ -445,53 +617,86 @@ class QAGenerator:
         with progress:
             task_id = progress.add_task("QA 쌍 생성 중...", total=total)
 
-            async def _generate_with_progress(
-                semaphore: asyncio.Semaphore,
-                doc: ParsedDocument,
-                question: str,
-                chunk_content: str | None,
-                chunk_info: str | None,
-                category: str = "",
-            ) -> QAPair | None:
-                result = await self._generate_one_async(
-                    semaphore,
-                    doc,
-                    question,
-                    category=category,
-                    chunk_content=chunk_content,
-                    chunk_info=chunk_info,
-                )
-                progress.advance(task_id)
-                return result
+            # --- 자동생성 ---
+            if use_auto:
 
-            tasks: list[asyncio.Task[QAPair | None]] = []
-            for doc, chunk_content, chunk_info in doc_chunks:
-                for category, question in all_qc:
-                    task = asyncio.create_task(
-                        _generate_with_progress(
-                            semaphore,
-                            doc,
-                            question,
-                            chunk_content,
-                            chunk_info,
-                            category,
+                async def _auto_with_progress(
+                    doc: ParsedDocument,
+                    chunk_content: str,
+                    chunk_info: str | None,
+                ) -> list[QAPair]:
+                    result = await self._auto_generate_one_async(
+                        semaphore, doc, chunk_content, chunk_info
+                    )
+                    progress.advance(task_id)
+                    return result
+
+                auto_tasks: list[asyncio.Task[list[QAPair]]] = []
+                for doc, chunk_content, chunk_info in doc_chunks:
+                    auto_tasks.append(
+                        asyncio.create_task(
+                            _auto_with_progress(doc, chunk_content, chunk_info)
                         )
                     )
-                    tasks.append(task)
 
-            results = await asyncio.gather(*tasks, return_exceptions=True)
+                auto_results = await asyncio.gather(*auto_tasks, return_exceptions=True)
+                for result in auto_results:
+                    if isinstance(result, Exception):
+                        logger.error("Auto-generate task failed: %s", result)
+                    elif isinstance(result, list):
+                        pairs.extend(result)
 
-        for result in results:
-            if isinstance(result, Exception):
-                logger.error("Task failed: %s", result)
-            elif result is not None:
-                pairs.append(result)
+            # --- 고정질문 ---
+            if has_fixed:
+
+                async def _generate_with_progress(
+                    semaphore: asyncio.Semaphore,
+                    doc: ParsedDocument,
+                    question: str,
+                    chunk_content: str | None,
+                    chunk_info: str | None,
+                    category: str = "",
+                ) -> QAPair | None:
+                    result = await self._generate_one_async(
+                        semaphore,
+                        doc,
+                        question,
+                        category=category,
+                        chunk_content=chunk_content,
+                        chunk_info=chunk_info,
+                    )
+                    progress.advance(task_id)
+                    return result
+
+                fixed_tasks: list[asyncio.Task[QAPair | None]] = []
+                for doc, chunk_content, chunk_info in doc_chunks:
+                    for category, question in all_qc:
+                        fixed_tasks.append(
+                            asyncio.create_task(
+                                _generate_with_progress(
+                                    semaphore,
+                                    doc,
+                                    question,
+                                    chunk_content,
+                                    chunk_info,
+                                    category,
+                                )
+                            )
+                        )
+
+                fixed_results = await asyncio.gather(
+                    *fixed_tasks, return_exceptions=True
+                )
+                for result in fixed_results:
+                    if isinstance(result, Exception):
+                        logger.error("Task failed: %s", result)
+                    elif result is not None:
+                        pairs.append(result)
 
         logger.info(
-            "Generated %d QA pairs from %d documents (%d failed)",
+            "Generated %d QA pairs from %d documents",
             len(pairs),
             len(docs),
-            total - len(pairs),
         )
         return pairs
 

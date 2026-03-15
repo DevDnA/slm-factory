@@ -79,9 +79,7 @@ class TestBuildPrompt:
 
     def test_content_잘림_확인(self, mocker, make_config):
         """content가 max_context_chars보다 길면 잘리고 truncated 표시가 나타나는지 확인합니다."""
-        gen, _ = _make_generator(
-            mocker, make_config, teacher={"max_context_chars": 50}
-        )
+        gen, _ = _make_generator(mocker, make_config, teacher={"max_context_chars": 50})
         long_content = "A" * 100
         prompt = gen.build_prompt(
             doc_title="제목",
@@ -181,7 +179,10 @@ class TestGenerateForDocument:
             questions={"categories": {"factual": ["문서의 주요 내용은?"]}},
         )
         mock_teacher.generate.return_value = json.dumps(
-            {"instruction": "문서의 주요 내용은?", "output": "이것은 충분히 긴 답변입니다. 최소 길이를 충족합니다."}
+            {
+                "instruction": "문서의 주요 내용은?",
+                "output": "이것은 충분히 긴 답변입니다. 최소 길이를 충족합니다.",
+            }
         )
 
         doc = make_parsed_doc()
@@ -366,7 +367,8 @@ class TestGetDocChunks:
     def test_청킹_활성화_긴_문서(self, mocker, make_config, make_parsed_doc):
         """chunking이 활성화되고 문서가 길면 여러 (chunk, Part N/M) 튜플을 반환하는지 확인합니다."""
         gen, _ = _make_generator(
-            mocker, make_config,
+            mocker,
+            make_config,
             chunking={"enabled": True, "chunk_size": 1000, "overlap_chars": 100},
         )
         doc = make_parsed_doc(content="X" * 3000)
@@ -378,10 +380,188 @@ class TestGetDocChunks:
     def test_청킹_활성화_짧은_문서(self, mocker, make_config, make_parsed_doc):
         """chunking이 활성화되어도 짧은 문서는 (content, None)으로 반환되는지 확인합니다."""
         gen, _ = _make_generator(
-            mocker, make_config,
+            mocker,
+            make_config,
             chunking={"enabled": True, "chunk_size": 10000, "overlap_chars": 500},
         )
         doc = make_parsed_doc(content="짧은 문서")
         chunks = gen._get_doc_chunks(doc)
         assert len(chunks) == 1
         assert chunks[0][1] is None
+
+
+# ---------------------------------------------------------------------------
+# build_auto_generate_prompt
+# ---------------------------------------------------------------------------
+
+
+class TestBuildAutoGeneratePrompt:
+    def test_기본_구조(self, mocker, make_config):
+        gen, _ = _make_generator(mocker, make_config)
+        prompt = gen.build_auto_generate_prompt(
+            doc_title="테스트 문서",
+            content="문서 내용입니다.",
+            num_questions=5,
+        )
+
+        assert "시스템 지시사항" in prompt
+        assert "테스트 문서" in prompt
+        assert "5개의 다양한 질문-답변 쌍을 생성하세요" in prompt
+        assert "JSON 배열 형식" in prompt
+
+    def test_chunk_info_포함(self, mocker, make_config):
+        gen, _ = _make_generator(mocker, make_config)
+        prompt = gen.build_auto_generate_prompt(
+            doc_title="문서",
+            content="내용",
+            num_questions=3,
+            chunk_info="Part 2/5",
+        )
+
+        assert "문서 (Part 2/5)" in prompt
+
+    def test_tables_포함(self, mocker, make_config):
+        gen, _ = _make_generator(mocker, make_config)
+        prompt = gen.build_auto_generate_prompt(
+            doc_title="제목",
+            content="내용",
+            num_questions=3,
+            tables=["| A | B |"],
+        )
+
+        assert "관련 표" in prompt
+        assert "| A | B |" in prompt
+
+    def test_content_잘림(self, mocker, make_config):
+        gen, _ = _make_generator(mocker, make_config, teacher={"max_context_chars": 50})
+        prompt = gen.build_auto_generate_prompt(
+            doc_title="제목",
+            content="A" * 100,
+            num_questions=3,
+        )
+
+        assert "[이하 생략...]" in prompt
+        assert "A" * 100 not in prompt
+
+    def test_질문_안내_포함(self, mocker, make_config):
+        gen, _ = _make_generator(mocker, make_config)
+        prompt = gen.build_auto_generate_prompt(
+            doc_title="제목",
+            content="내용",
+            num_questions=10,
+        )
+
+        assert "사실 기반" in prompt
+        assert "수치, 날짜, 이름" in prompt
+        assert '"instruction"' in prompt
+        assert '"output"' in prompt
+
+
+# ---------------------------------------------------------------------------
+# parse_auto_response
+# ---------------------------------------------------------------------------
+
+
+class TestParseAutoResponse:
+    def test_정상_JSON_배열(self, mocker, make_config):
+        gen, _ = _make_generator(mocker, make_config)
+        text = json.dumps(
+            [
+                {"instruction": "질문1", "output": "답변1"},
+                {"instruction": "질문2", "output": "답변2"},
+            ],
+            ensure_ascii=False,
+        )
+        results = gen.parse_auto_response(text)
+
+        assert len(results) == 2
+        assert results[0]["instruction"] == "질문1"
+        assert results[1]["output"] == "답변2"
+
+    def test_question_answer_키_정규화(self, mocker, make_config):
+        gen, _ = _make_generator(mocker, make_config)
+        text = json.dumps(
+            [
+                {"question": "Q?", "answer": "A!"},
+            ]
+        )
+        results = gen.parse_auto_response(text)
+
+        assert len(results) == 1
+        assert results[0]["instruction"] == "Q?"
+        assert results[0]["output"] == "A!"
+
+    def test_빈_배열(self, mocker, make_config):
+        gen, _ = _make_generator(mocker, make_config)
+        results = gen.parse_auto_response("[]")
+        assert results == []
+
+    def test_잘못된_JSON_빈_리스트(self, mocker, make_config):
+        gen, _ = _make_generator(mocker, make_config)
+        results = gen.parse_auto_response("이것은 JSON이 아닙니다")
+        assert results == []
+
+    def test_코드_펜스_제거(self, mocker, make_config):
+        gen, _ = _make_generator(mocker, make_config)
+        text = '```json\n[{"instruction": "Q", "output": "A"}]\n```'
+        results = gen.parse_auto_response(text)
+        assert len(results) == 1
+
+    def test_data_래핑_풀림(self, mocker, make_config):
+        gen, _ = _make_generator(mocker, make_config)
+        text = json.dumps(
+            {
+                "data": [
+                    {"instruction": "Q1", "output": "A1"},
+                ]
+            }
+        )
+        results = gen.parse_auto_response(text)
+        assert len(results) == 1
+        assert results[0]["instruction"] == "Q1"
+
+    def test_items_래핑_풀림(self, mocker, make_config):
+        gen, _ = _make_generator(mocker, make_config)
+        text = json.dumps(
+            {
+                "items": [
+                    {"instruction": "Q1", "output": "A1"},
+                ]
+            }
+        )
+        results = gen.parse_auto_response(text)
+        assert len(results) == 1
+
+    def test_단일_객체_리스트_변환(self, mocker, make_config):
+        gen, _ = _make_generator(mocker, make_config)
+        text = '{"instruction": "Q", "output": "A"}'
+        results = gen.parse_auto_response(text)
+        assert len(results) == 1
+        assert results[0]["instruction"] == "Q"
+
+    def test_부분_파싱_필수_키_누락_건너뜀(self, mocker, make_config):
+        gen, _ = _make_generator(mocker, make_config)
+        text = json.dumps(
+            [
+                {"instruction": "유효", "output": "답변"},
+                {"foo": "bar"},
+                {"instruction": "유효2", "output": "답변2"},
+            ],
+            ensure_ascii=False,
+        )
+        results = gen.parse_auto_response(text)
+        assert len(results) == 2
+        assert results[0]["instruction"] == "유효"
+        assert results[1]["instruction"] == "유효2"
+
+    def test_비딕셔너리_항목_건너뜀(self, mocker, make_config):
+        gen, _ = _make_generator(mocker, make_config)
+        text = json.dumps(
+            [
+                {"instruction": "Q", "output": "A"},
+                "문자열 항목",
+                42,
+            ]
+        )
+        results = gen.parse_auto_response(text)
+        assert len(results) == 1

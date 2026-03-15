@@ -112,10 +112,16 @@ class QuestionsConfig(BaseModel):
 
     질문은 *categories* (카테고리명을 질문 문자열 리스트로 매핑하는 딕셔너리)를
     통해 인라인으로 정의하거나, *file*을 통해 외부 파일에서 로드할 수 있습니다.
+
+    ``auto_generate=True``이면 Teacher LLM이 각 청크를 분석하여 질문-답변 쌍을
+    자동으로 생성합니다. 기존 ``categories`` 고정질문이 있으면 자동생성 QA가
+    **추가**됩니다. ``categories``가 비어있으면 자동생성만 수행합니다.
     """
 
     categories: dict[str, list[str]] = Field(default_factory=dict)
     file: Path | None = None
+    auto_generate: bool = False
+    questions_per_chunk: int = Field(default=10, ge=1)
     system_prompt: str = _EN_DEFAULT_QA_SYSTEM_PROMPT
     output_format: str = "alpaca"
 

@@ -33,7 +33,9 @@ teacher:
   max_concurrency: 4                    # 동시 요청 수. Ollama: 1~2, vLLM: 8~16 권장
 
 questions:
-  categories:
+  auto_generate: true                     # Teacher LLM이 문서 청크를 분석하여 Q+A를 자동 생성합니다
+  questions_per_chunk: 10                 # 청크당 생성할 질문 수
+  categories:                             # auto_generate와 함께 사용 가능 — 자동생성 QA에 추가됩니다
     overview:                             # 문서 개요 파악용 질문
       - "이 문서의 주요 목적은 무엇인가요?"
       - "이 문서가 해결하고자 하는 문제는 무엇인가요?"
