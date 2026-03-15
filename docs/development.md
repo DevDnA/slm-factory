@@ -496,7 +496,7 @@ class LoRATrainer:
 |---------|--------|------|
 | `num_epochs` | 5 | 학습 에포크 수 |
 | `learning_rate` | 2.0e-5 | 학습률 |
-| `batch_size` | 4 | 디바이스당 배치 크기 |
+| `batch_size` | 2 | 디바이스당 배치 크기 |
 | `lora.r` / `lora.alpha` | 16 / 32 | LoRA 랭크 / 스케일링 |
 | `early_stopping.patience` | 3 | 조기 종료 인내 에포크 수 |
 

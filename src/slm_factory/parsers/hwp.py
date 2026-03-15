@@ -22,6 +22,7 @@ logger = get_logger("parsers.hwp")
 
 try:
     import olefile
+
     HAS_OLEFILE = True
 except ImportError:
     HAS_OLEFILE = False
@@ -80,7 +81,9 @@ class HWPParser(BaseParser):
 
         try:
             header_data = ole.openstream("FileHeader").read()
-            is_compressed = bool(header_data[36] & 1) if len(header_data) > 36 else False
+            is_compressed = (
+                bool(header_data[36] & 1) if len(header_data) > 36 else False
+            )
 
             paragraphs = self._extract_text_from_sections(ole, is_compressed)
 
@@ -126,7 +129,8 @@ class HWPParser(BaseParser):
         paragraphs: list[str] = []
 
         section_streams = sorted(
-            name for name in ole.listdir()
+            name
+            for name in ole.listdir()
             if len(name) == 2
             and name[0] == "BodyText"
             and name[1].startswith("Section")
@@ -181,7 +185,7 @@ def _extract_text_from_bodytext(data: bytes) -> list[str]:
             break
 
         if tag_id == HWPTAG_PARA_TEXT:
-            payload = data[offset:offset + size]
+            payload = data[offset : offset + size]
             text = _decode_para_text(payload)
             if text.strip():
                 paragraphs.append(text.strip())
@@ -204,17 +208,23 @@ def _decode_para_text(payload: bytes) -> str:
         code = struct.unpack_from("<H", payload, i)[0]
 
         if code < 32:
-            # HWP 제어 코드: 확장 제어 문자는 추가 바이트를 소비
             if code in (0, 10, 13):
-                # NULL, LF, CR — 줄바꿈으로 처리
                 if chars and chars[-1] != "\n":
                     chars.append("\n")
                 i += 2
             elif code in (1, 2, 3, 11, 12, 14, 15, 16, 17, 18, 21, 22, 23):
-                # 확장 제어 문자 — 추가 데이터 건너뜀 (12바이트 추가)
                 i += 16
             else:
                 i += 2
+        elif 0xD800 <= code <= 0xDBFF:
+            if i + 3 < len(payload):
+                low = struct.unpack_from("<H", payload, i + 2)[0]
+                if 0xDC00 <= low <= 0xDFFF:
+                    codepoint = 0x10000 + ((code - 0xD800) << 10) + (low - 0xDC00)
+                    chars.append(chr(codepoint))
+                    i += 4
+                    continue
+            i += 2
         else:
             chars.append(chr(code))
             i += 2

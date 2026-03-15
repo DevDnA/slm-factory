@@ -410,8 +410,8 @@ student:
 
 | 필드 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
-| `batch_size` | `int` | `4` | 디바이스당 배치 크기. GPU 메모리에 따라 조정합니다 |
-| `gradient_accumulation_steps` | `int` | `4` | 그래디언트 누적 스텝. 실제 배치 크기는 `batch_size × gradient_accumulation_steps` (기본값: 4×4=16) |
+| `batch_size` | `int` | `2` | 디바이스당 배치 크기. GPU 메모리에 따라 조정합니다 |
+| `gradient_accumulation_steps` | `int` | `8` | 그래디언트 누적 스텝. 실제 배치 크기는 `batch_size × gradient_accumulation_steps` (기본값: 2×8=16) |
 | `learning_rate` | `float` | `2e-5` | 학습률. LoRA 파인튜닝에는 `1e-5 ~ 5e-5` 범위를 권장합니다 |
 | `lr_scheduler` | `str` | `"cosine"` | 학습률 스케줄러. `"cosine"`, `"linear"`, `"constant"` 등 |
 | `warmup_ratio` | `float` | `0.1` | 워밍업 비율. 전체 학습 스텝의 10%를 워밍업에 사용합니다 (0.0~1.0) |
