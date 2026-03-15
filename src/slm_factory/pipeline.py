@@ -455,7 +455,9 @@ class Pipeline:
         )
 
         try:
-            response = await generator.teacher.agenerate(prompt)
+            response = await generator.teacher.agenerate(
+                prompt, format="json", think=False
+            )
             parsed = generator.parse_response(response)
             if parsed:
                 return QAPair(
