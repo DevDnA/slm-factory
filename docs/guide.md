@@ -851,7 +851,7 @@ training:
 방법 2: 배치 크기 감소
 ```yaml
 training:
-  batch_size: 2                    # 기본값
+  batch_size: 1                    # 기본값
   gradient_accumulation_steps: 8   # 총 배치 크기 유지 (2×8=16)
 ```
 

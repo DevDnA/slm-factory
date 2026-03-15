@@ -284,8 +284,8 @@ class TrainingConfig(BaseModel):
     """전체 훈련 하이퍼파라미터 설정입니다."""
 
     lora: LoraConfig = Field(default_factory=LoraConfig)
-    batch_size: int = 2
-    gradient_accumulation_steps: int = 8
+    batch_size: int = 1
+    gradient_accumulation_steps: int = 16
     learning_rate: float = 2.0e-5
     lr_scheduler: str = "cosine"
     warmup_ratio: float = 0.1

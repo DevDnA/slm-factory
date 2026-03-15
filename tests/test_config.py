@@ -236,8 +236,8 @@ class TestTrainingConfig:
     def test_기본값(self):
         """훈련 설정의 기본값을 검증합니다."""
         cfg = TrainingConfig()
-        assert cfg.batch_size == 2
-        assert cfg.gradient_accumulation_steps == 8
+        assert cfg.batch_size == 1
+        assert cfg.gradient_accumulation_steps == 16
         assert cfg.learning_rate == 2e-5
         assert cfg.lr_scheduler == "cosine"
         assert cfg.warmup_ratio == 0.1

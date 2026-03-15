@@ -270,7 +270,7 @@ chunking:
 | 증상 | 원인 | 해결 |
 |------|------|------|
 | `Failed to connect to Ollama at http://localhost:11434` | Ollama 서버 미실행 | `ollama serve` 실행 후 재시도 |
-| `CUDA out of memory` | GPU VRAM 부족 | `training.batch_size: 2`, `quantization.bits: 4` 설정 |
+| `CUDA out of memory` | GPU VRAM 부족 | `training.batch_size: 1`, `quantization.bits: 4` 설정 |
 | `Failed to parse HWPX file - section0.xml not found` | HWPX 파일 손상 | 한글에서 `.hwpx`로 다시 저장하거나 `.hwp` 형식으로 변환 |
 | `Could not install packages due to an OSError` (kiwipiepy) | Python 버전 미호환 | `python --version` 확인 (3.11+) |
 | `Only N QA pairs generated. Recommend at least 100` | 문서 부족 또는 질문 카테고리 부족 | 문서 추가 또는 `questions.categories` 확장 |
