@@ -34,7 +34,7 @@ teacher:
 
 questions:
   auto_generate: true                     # Teacher LLM이 문서 청크를 분석하여 Q+A를 자동 생성합니다
-  questions_per_chunk: 10                 # 청크당 생성할 질문 수
+  questions_per_chunk: "auto"             # "auto" 또는 정수 (예: 10)
   categories: {}                          # 고정 질문 없이 자동생성만 사용
     # 수동 질문을 추가하려면 아래처럼 카테고리를 정의하세요:
     # overview:
@@ -244,7 +244,7 @@ dashboard:
 # 활성화 시 문서를 chunk_size 단위로 나누고 각 청크마다 QA를 생성합니다.
 chunking:
   enabled: true                         # 청킹 활성화 여부
-  chunk_size: 10000                     # 각 청크의 최대 문자 수
+  chunk_size: "auto"                     # "auto" 또는 정수 (예: 10000)
   overlap_chars: 500                    # 청크 간 중첩 문자 수 (문맥 연속성 유지)
 
 # -- 6단계: 모델 내보내기(Export) -------------------------------------------

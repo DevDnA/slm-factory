@@ -320,10 +320,16 @@ class QAGenerator:
         """청크 하나에 대해 auto_generate 프롬프트로 Teacher 호출 → 다수 QA 추출."""
         async with semaphore:
             try:
+                num_questions = self.questions_config.questions_per_chunk
+                if num_questions == "auto":
+                    from ..calibration import auto_questions_per_chunk
+
+                    num_questions = auto_questions_per_chunk(chunk_content)
+
                 prompt = self.build_auto_generate_prompt(
                     doc_title=doc.title,
                     content=chunk_content,
-                    num_questions=self.questions_config.questions_per_chunk,
+                    num_questions=num_questions,
                     tables=doc.tables if doc.tables else None,
                     chunk_info=chunk_info,
                 )
@@ -521,11 +527,14 @@ class QAGenerator:
         if not self.chunking_config.enabled:
             return [(doc.content, None)]
 
-        chunks = chunk_document(
-            doc.content,
-            self.chunking_config.chunk_size,
-            self.chunking_config.overlap_chars,
-        )
+        chunk_size = self.chunking_config.chunk_size
+        if chunk_size == "auto":
+            from ..calibration import auto_chunk_size
+
+            chunk_size = auto_chunk_size(doc.content, self.max_context)
+
+        overlap = min(self.chunking_config.overlap_chars, chunk_size // 5)
+        chunks = chunk_document(doc.content, chunk_size, overlap)
         if len(chunks) == 1:
             return [(chunks[0], None)]
 
@@ -588,14 +597,24 @@ class QAGenerator:
         total = fixed_total + auto_total
 
         if use_auto:
-            logger.info(
-                "Auto-generate enabled: %d chunks × %d questions/chunk, "
-                "fixed questions: %d (concurrency=%d)...",
-                len(doc_chunks),
-                self.questions_config.questions_per_chunk,
-                fixed_total,
-                max_concurrency,
-            )
+            qpc = self.questions_config.questions_per_chunk
+            if qpc == "auto":
+                logger.info(
+                    "Auto-generate enabled: %d chunks × auto questions/chunk, "
+                    "fixed questions: %d (concurrency=%d)...",
+                    len(doc_chunks),
+                    fixed_total,
+                    max_concurrency,
+                )
+            else:
+                logger.info(
+                    "Auto-generate enabled: %d chunks × %d questions/chunk, "
+                    "fixed questions: %d (concurrency=%d)...",
+                    len(doc_chunks),
+                    qpc,
+                    fixed_total,
+                    max_concurrency,
+                )
         elif self.chunking_config.enabled and len(doc_chunks) > len(docs):
             logger.info(
                 "Chunking enabled: %d documents → %d chunks, "

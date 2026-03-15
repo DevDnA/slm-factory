@@ -121,7 +121,7 @@ class QuestionsConfig(BaseModel):
     categories: dict[str, list[str]] = Field(default_factory=dict)
     file: Path | None = None
     auto_generate: bool = False
-    questions_per_chunk: int = Field(default=10, ge=1)
+    questions_per_chunk: int | Literal["auto"] = Field(default="auto")
     system_prompt: str = _EN_DEFAULT_QA_SYSTEM_PROMPT
     output_format: str = "alpaca"
 
@@ -566,8 +566,8 @@ class ChunkingConfig(BaseModel):
     """
 
     enabled: bool = True
-    chunk_size: int = 10000
-    """각 청크의 최대 문자 수입니다."""
+    chunk_size: int | Literal["auto"] = "auto"
+    """각 청크의 최대 문자 수입니다. ``"auto"``이면 문서 분석으로 자동 결정합니다."""
 
     overlap_chars: int = 500
     """연속된 청크 간 중첩 문자 수입니다. 문맥 연속성을 유지합니다."""
@@ -575,12 +575,14 @@ class ChunkingConfig(BaseModel):
     @model_validator(mode="after")
     def _check_chunking_params(self) -> "ChunkingConfig":
         """청킹 파라미터의 유효성을 검증합니다."""
-        if self.chunk_size < 1000:
-            raise ValueError(f"chunk_size({self.chunk_size})는 1000 이상이어야 합니다")
         if self.overlap_chars < 0:
             raise ValueError(
                 f"overlap_chars({self.overlap_chars})는 0 이상이어야 합니다"
             )
+        if self.chunk_size == "auto":
+            return self
+        if self.chunk_size < 1000:
+            raise ValueError(f"chunk_size({self.chunk_size})는 1000 이상이어야 합니다")
         if self.overlap_chars >= self.chunk_size:
             raise ValueError(
                 f"overlap_chars({self.overlap_chars})는 "

@@ -371,7 +371,7 @@ class TestChunkingConfig:
         """청킹 설정의 기본값을 검증합니다."""
         cfg = ChunkingConfig()
         assert cfg.enabled is True
-        assert cfg.chunk_size == 10000
+        assert cfg.chunk_size == "auto"
         assert cfg.overlap_chars == 500
 
     def test_chunk_size_최소값_검증(self):
