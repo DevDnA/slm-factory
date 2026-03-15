@@ -721,6 +721,99 @@ class QAGenerator:
         )
         return pairs
 
+    async def generate_refinement_qa(
+        self,
+        weak_results: list,
+        docs: list,
+    ) -> list[QAPair]:
+        """Student가 약한 주제에 대한 타겟 QA를 생성합니다."""
+        max_concurrency = self.teacher_config.max_concurrency
+        semaphore = asyncio.Semaphore(max_concurrency)
+
+        progress = Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("{task.completed}/{task.total}"),
+            TimeRemainingColumn(),
+        )
+
+        pairs: list[QAPair] = []
+
+        with progress:
+            task_id = progress.add_task(
+                "약점 타겟 QA 생성 중...", total=len(weak_results)
+            )
+
+            tasks = [
+                asyncio.create_task(
+                    self._generate_refinement_one(semaphore, result, progress, task_id)
+                )
+                for result in weak_results
+            ]
+
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for result in results:
+            if isinstance(result, Exception):
+                logger.error("Refinement QA 생성 실패: %s", result)
+            elif isinstance(result, list):
+                pairs.extend(result)
+
+        logger.info("Refinement QA 생성 완료: %d개", len(pairs))
+        return pairs
+
+    async def _generate_refinement_one(
+        self,
+        semaphore: asyncio.Semaphore,
+        eval_result: Any,
+        progress: Progress,
+        task_id: Any,
+    ) -> list[QAPair]:
+        async with semaphore:
+            try:
+                prompt = (
+                    f"학생 모델이 다음 질문에 제대로 답하지 못했습니다.\n\n"
+                    f"질문: {eval_result.question}\n"
+                    f"정답: {eval_result.reference_answer}\n"
+                    f"학생 답변: {eval_result.generated_answer}\n\n"
+                    f"이 주제에 대한 학습을 강화하기 위해 "
+                    f"관련된 새로운 질문-답변 쌍 3개를 생성하세요.\n"
+                    f"다른 각도에서 같은 주제를 다뤄야 합니다.\n\n"
+                    "반드시 JSON 형식으로 응답: "
+                    '{{"items": [{{"instruction": "질문", "output": "답변"}}, ...]}}'
+                )
+
+                kwargs: dict[str, Any] = {}
+                if self.teacher_config.backend == "ollama":
+                    kwargs["format"] = "json"
+                    kwargs["think"] = False
+
+                response = await self.teacher.agenerate(prompt, **kwargs)
+                parsed_list = self.parse_auto_response(response)
+
+                pairs: list[QAPair] = []
+                for parsed in parsed_list:
+                    pairs.append(
+                        QAPair(
+                            question=parsed["instruction"],
+                            answer=parsed["output"],
+                            instruction=parsed["instruction"],
+                            source_doc="refinement",
+                            category="refinement",
+                        )
+                    )
+                return pairs
+            except Exception as e:
+                logger.error(
+                    "Refinement QA 생성 오류 for '%s': %s",
+                    eval_result.question[:40],
+                    e,
+                )
+                return []
+            finally:
+                progress.advance(task_id)
+
     def save_alpaca(self, pairs: list[QAPair], output_path: str | Path) -> Path:
         """QA 쌍을 Alpaca 형식 JSON 파일로 저장합니다.
 

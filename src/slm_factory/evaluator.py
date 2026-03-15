@@ -9,7 +9,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import httpx
-from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeRemainingColumn
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    TimeRemainingColumn,
+)
 from rich.table import Table
 
 if TYPE_CHECKING:
@@ -31,6 +37,7 @@ def _load_bleu():
     global _bleu_metric
     if _bleu_metric is None:
         import evaluate
+
         _bleu_metric = evaluate.load("bleu")
     return _bleu_metric
 
@@ -39,6 +46,7 @@ def _load_rouge():
     global _rouge_metric
     if _rouge_metric is None:
         import evaluate
+
         _rouge_metric = evaluate.load("rouge")
     return _rouge_metric
 
@@ -108,9 +116,15 @@ class ModelEvaluator:
         self.timeout = config.teacher.timeout
         self.max_concurrency = config.teacher.max_concurrency
 
-    async def _generate(self, client: httpx.AsyncClient, model_name: str, question: str) -> str:
+    async def _generate(
+        self, client: httpx.AsyncClient, model_name: str, question: str
+    ) -> str:
         return await ollama_generate(
-            client, self.api_base, model_name, question, self.timeout,
+            client,
+            self.api_base,
+            model_name,
+            question,
+            self.timeout,
             max_tokens=self.eval_config.max_tokens,
         )
 
@@ -135,20 +149,70 @@ class ModelEvaluator:
         if "bleu" in metrics:
             bleu = _load_bleu()
             result = bleu.compute(
-                predictions=[gen], references=[[ref]],
+                predictions=[gen],
+                references=[[ref]],
             )
             scores["bleu"] = round(result["bleu"], 4)
 
         if "rouge" in metrics:
             rouge = _load_rouge()
             result = rouge.compute(
-                predictions=[gen], references=[ref],
+                predictions=[gen],
+                references=[ref],
             )
             scores["rouge1"] = round(result["rouge1"], 4)
             scores["rouge2"] = round(result["rouge2"], 4)
             scores["rougeL"] = round(result["rougeL"], 4)
 
         return scores
+
+    async def _llm_judge_score(
+        self,
+        client: httpx.AsyncClient,
+        reference: str,
+        generated: str,
+        question: str,
+    ) -> float:
+        """Teacher LLM이 생성 답변의 의미적 정확성을 0~5 점수로 평가합니다."""
+        prompt = (
+            "다음 질문에 대한 참조 답변과 생성 답변을 비교하여 "
+            "생성 답변의 품질을 0~5 점수로 평가하세요.\n\n"
+            f"질문: {question}\n"
+            f"참조 답변: {reference}\n"
+            f"생성 답변: {generated}\n\n"
+            "평가 기준:\n"
+            "- 5: 참조 답변과 의미적으로 동일하며 정확함\n"
+            "- 4: 핵심 정보가 모두 포함되어 있으나 표현이 다름\n"
+            "- 3: 핵심 정보의 일부가 포함됨\n"
+            "- 2: 관련 내용이지만 핵심 정보가 누락됨\n"
+            "- 1: 부분적으로만 관련됨\n"
+            "- 0: 전혀 관련 없거나 잘못된 답변\n\n"
+            '반드시 JSON 형식으로만 응답: {"score": 정수}'
+        )
+
+        model = self.eval_config.llm_judge_model or self.config.teacher.model
+        response = await ollama_generate(
+            client,
+            self.api_base,
+            model,
+            prompt,
+            self.timeout,
+            max_tokens=50,
+            format="json",
+            think=False,
+        )
+
+        import re
+
+        try:
+            data = json.loads(response)
+            score = int(data.get("score", 0))
+            return max(0, min(5, score)) / 5.0
+        except (json.JSONDecodeError, ValueError, TypeError):
+            match = re.search(r'"score"\s*:\s*(\d)', response)
+            if match:
+                return max(0, min(5, int(match.group(1)))) / 5.0
+            return 0.0
 
     async def _evaluate_one(
         self,
@@ -158,6 +222,12 @@ class ModelEvaluator:
     ) -> EvalResult:
         generated = await self._generate(client, model_name, pair.question)
         scores = self._compute_scores(pair.answer, generated)
+
+        if "llm_judge" in self.eval_config.metrics:
+            scores["llm_judge"] = await self._llm_judge_score(
+                client, pair.answer, generated, pair.question
+            )
+
         return EvalResult(
             question=pair.question,
             reference_answer=pair.answer,
@@ -166,7 +236,9 @@ class ModelEvaluator:
         )
 
     async def _evaluate_async(
-        self, qa_pairs: list[QAPair], model_name: str,
+        self,
+        qa_pairs: list[QAPair],
+        model_name: str,
     ) -> list[EvalResult]:
         semaphore = asyncio.Semaphore(self.max_concurrency)
         results: list[EvalResult] = []
@@ -184,7 +256,12 @@ class ModelEvaluator:
                 task_id = progress.add_task("모델 평가 중...", total=len(qa_pairs))
 
                 tasks = [
-                    run_bounded(semaphore, self._evaluate_one(client, model_name, pair), progress, task_id)
+                    run_bounded(
+                        semaphore,
+                        self._evaluate_one(client, model_name, pair),
+                        progress,
+                        task_id,
+                    )
                     for pair in qa_pairs
                 ]
                 gathered = await asyncio.gather(*tasks, return_exceptions=True)
@@ -211,7 +288,9 @@ class ModelEvaluator:
         """평가 결과를 JSON 파일로 저장합니다."""
         path.parent.mkdir(parents=True, exist_ok=True)
         data = [asdict(r) for r in results]
-        path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        path.write_text(
+            json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
         logger.info("평가 결과 저장: %s (%d건)", path, len(results))
 
     def check_quality_gate(
@@ -241,12 +320,16 @@ class ModelEvaluator:
             if avg < threshold:
                 logger.warning(
                     "품질 게이트 실패: %s 평균 %.4f < 임계값 %.4f",
-                    metric, avg, threshold,
+                    metric,
+                    avg,
+                    threshold,
                 )
                 passed = False
 
         if passed:
-            logger.info("품질 게이트 통과: %s", {k: f"{v:.4f}" for k, v in averages.items()})
+            logger.info(
+                "품질 게이트 통과: %s", {k: f"{v:.4f}" for k, v in averages.items()}
+            )
 
         return passed, averages
 

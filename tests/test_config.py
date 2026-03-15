@@ -7,6 +7,7 @@ import pytest
 from slm_factory.config import (
     ChunkingConfig,
     EarlyStoppingConfig,
+    EvalConfig,
     ExportConfig,
     GroundednessConfig,
     HwpxOptions,
@@ -18,6 +19,7 @@ from slm_factory.config import (
     ProjectConfig,
     QuantizationConfig,
     QuestionsConfig,
+    RefinementConfig,
     ScoringConfig,
     SLMConfig,
     StudentConfig,
@@ -239,7 +241,7 @@ class TestTrainingConfig:
         assert cfg.learning_rate == 2e-5
         assert cfg.lr_scheduler == "cosine"
         assert cfg.warmup_ratio == 0.1
-        assert cfg.num_epochs == 5
+        assert cfg.num_epochs == "auto"
         assert cfg.optimizer == "adamw_torch_fused"
         assert cfg.bf16 is True
         assert cfg.train_split == 0.9
@@ -504,3 +506,88 @@ class TestSLMConfigLanguageDefaults:
         cfg = load_config(tmp_yaml_config)
         assert cfg.questions.system_prompt == _KO_DEFAULT_QA_SYSTEM_PROMPT
         assert cfg.export.ollama.system_prompt == _KO_DEFAULT_OLLAMA_SYSTEM_PROMPT
+
+
+# ---------------------------------------------------------------------------
+# EvalConfig llm_judge 필드
+# ---------------------------------------------------------------------------
+
+
+class TestEvalConfigLlmJudge:
+    def test_기본_메트릭에_llm_judge_포함(self):
+        cfg = EvalConfig()
+        assert "llm_judge" in cfg.metrics
+
+    def test_llm_judge_model_기본_빈문자열(self):
+        cfg = EvalConfig()
+        assert cfg.llm_judge_model == ""
+
+    def test_llm_judge_model_설정(self):
+        cfg = EvalConfig(llm_judge_model="qwen3.5:9b")
+        assert cfg.llm_judge_model == "qwen3.5:9b"
+
+    def test_llm_judge_없이_기존_메트릭만(self):
+        cfg = EvalConfig(metrics=["bleu", "rouge"])
+        assert "llm_judge" not in cfg.metrics
+        assert "bleu" in cfg.metrics
+
+
+# ---------------------------------------------------------------------------
+# TrainingConfig num_epochs auto
+# ---------------------------------------------------------------------------
+
+
+class TestTrainingConfigAutoEpochs:
+    def test_기본값_auto(self):
+        cfg = TrainingConfig()
+        assert cfg.num_epochs == "auto"
+
+    def test_정수_설정(self):
+        cfg = TrainingConfig(num_epochs=10)
+        assert cfg.num_epochs == 10
+
+    def test_auto_문자열_설정(self):
+        cfg = TrainingConfig(num_epochs="auto")
+        assert cfg.num_epochs == "auto"
+
+
+# ---------------------------------------------------------------------------
+# RefinementConfig
+# ---------------------------------------------------------------------------
+
+
+class TestRefinementConfig:
+    def test_기본값(self):
+        cfg = RefinementConfig()
+        assert cfg.enabled is False
+        assert cfg.max_rounds == 1
+        assert cfg.llm_judge_threshold == 0.6
+
+    def test_활성화(self):
+        cfg = RefinementConfig(enabled=True, max_rounds=3, llm_judge_threshold=0.5)
+        assert cfg.enabled is True
+        assert cfg.max_rounds == 3
+        assert cfg.llm_judge_threshold == 0.5
+
+    def test_max_rounds_최소값_검증(self):
+        with pytest.raises(ValueError, match="max_rounds"):
+            RefinementConfig(max_rounds=0)
+
+    def test_threshold_범위_검증(self):
+        with pytest.raises(ValueError, match="llm_judge_threshold"):
+            RefinementConfig(llm_judge_threshold=1.5)
+
+    def test_threshold_음수_검증(self):
+        with pytest.raises(ValueError, match="llm_judge_threshold"):
+            RefinementConfig(llm_judge_threshold=-0.1)
+
+
+class TestSLMConfigRefinement:
+    def test_refinement_필드_존재(self, default_config):
+        assert isinstance(default_config.refinement, RefinementConfig)
+        assert default_config.refinement.enabled is False
+
+    def test_refinement_오버라이드(self, make_config):
+        cfg = make_config(refinement={"enabled": True, "max_rounds": 2})
+        assert cfg.refinement.enabled is True
+        assert cfg.refinement.max_rounds == 2

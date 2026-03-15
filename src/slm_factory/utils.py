@@ -31,7 +31,9 @@ def setup_logging(level: str = "INFO") -> logging.Logger:
             level=getattr(logging, level.upper(), logging.INFO),
             format="%(message)s",
             datefmt="[%X]",
-            handlers=[RichHandler(console=console, rich_tracebacks=True, show_path=False)],
+            handlers=[
+                RichHandler(console=console, rich_tracebacks=True, show_path=False)
+            ],
         )
         _configured = True
     return logging.getLogger("slm_factory")
@@ -75,11 +77,21 @@ async def ollama_generate(
     *,
     max_tokens: int = 512,
     max_retries: int = 3,
+    format: str | None = None,
+    think: bool | None = None,
 ) -> str:
     """Ollama /api/generate 엔드포인트로 답변을 생성합니다.
 
     일시적 오류(HTTP 5xx, 타임아웃, 연결 오류)에 대해
     지수 백오프로 재시도합니다.
+
+    매개변수
+    ----------
+    format:
+        응답 형식입니다. ``"json"``이면 JSON 형식으로 응답을 제한합니다.
+    think:
+        사고 과정(thinking/reasoning) 활성화 여부입니다.
+        ``False``이면 사고 과정 없이 즉시 응답합니다.
     """
     import asyncio as _asyncio
 
@@ -89,6 +101,10 @@ async def ollama_generate(
         "stream": False,
         "options": {"num_predict": max_tokens},
     }
+    if format is not None:
+        body["format"] = format
+    if think is not None:
+        body["think"] = think
 
     last_exc: Exception | None = None
     for attempt in range(max_retries):
@@ -103,10 +119,13 @@ async def ollama_generate(
         except Exception as exc:  # noqa: BLE001
             last_exc = exc
             if attempt < max_retries - 1:
-                wait = 2 ** attempt
+                wait = 2**attempt
                 get_logger("utils").debug(
                     "ollama_generate 재시도 %d/%d (%s): %.1f초 대기",
-                    attempt + 1, max_retries, exc, wait,
+                    attempt + 1,
+                    max_retries,
+                    exc,
+                    wait,
                 )
                 await _asyncio.sleep(wait)
     if last_exc is None:
@@ -134,6 +153,7 @@ def run_async(coro: Awaitable[T]) -> T:
     # 이미 이벤트 루프가 실행 중 (Jupyter 등)
     try:
         import nest_asyncio
+
         nest_asyncio.apply()
         return asyncio.run(coro)
     except ImportError:

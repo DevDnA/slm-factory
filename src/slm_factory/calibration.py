@@ -45,6 +45,23 @@ def auto_chunk_size(content: str, max_context_chars: int = 12000) -> int:
     return result
 
 
+def auto_num_epochs(num_examples: int) -> int:
+    """학습 데이터 양에 따라 최적 에포크 수를 계산합니다.
+
+    소량 데이터는 더 많은 반복이 필요합니다.
+    """
+    if num_examples < 100:
+        return 20
+    elif num_examples < 300:
+        return 15
+    elif num_examples < 500:
+        return 10
+    elif num_examples < 2000:
+        return 5
+    else:
+        return 3
+
+
 def auto_questions_per_chunk(chunk: str) -> int:
     """청크 내용의 정보 밀도를 분석하여 최적 질문 수를 계산합니다.
 

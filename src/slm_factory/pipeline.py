@@ -588,6 +588,19 @@ class Pipeline:
         """
         from .trainer import DataLoader, LoRATrainer
 
+        num_epochs = self.config.training.num_epochs
+        if num_epochs == "auto":
+            from .calibration import auto_num_epochs
+
+            num_examples = sum(1 for _ in open(training_data_path, encoding="utf-8"))
+            num_epochs = auto_num_epochs(num_examples)
+            logger.info(
+                "Auto num_epochs: %d examples → %d epochs",
+                num_examples,
+                num_epochs,
+            )
+            self.config.training.num_epochs = num_epochs
+
         logger.info("Loading training data from %s", training_data_path)
 
         loader = DataLoader(self.config.training.train_split)
@@ -776,6 +789,77 @@ class Pipeline:
         return corpus_path, qa_path
 
     # ------------------------------------------------------------------
+    # Iterative Refinement
+    # ------------------------------------------------------------------
+
+    def step_refine(
+        self,
+        eval_results: list[EvalResult],
+        docs: list[ParsedDocument],
+        model_name: str,
+    ) -> list[EvalResult]:
+        """Student 약점을 분석하고 타겟 QA를 재생성하여 재학습합니다.
+
+        매개변수
+        ----------
+        eval_results:
+            :meth:`step_eval`에서 얻은 평가 결과입니다.
+        docs:
+            원본 파싱된 문서입니다.
+        model_name:
+            Ollama 모델 이름입니다.
+
+        반환값
+        -------
+        list[EvalResult]
+            최종 평가 결과입니다.
+        """
+        if not self.config.refinement.enabled:
+            return eval_results
+
+        from .teacher.qa_generator import QAGenerator
+
+        threshold = self.config.refinement.llm_judge_threshold
+
+        for round_num in range(1, self.config.refinement.max_rounds + 1):
+            weak = [r for r in eval_results if r.scores.get("llm_judge", 0) < threshold]
+            if not weak:
+                logger.info("Refinement round %d: 약점 없음, 완료", round_num)
+                break
+
+            logger.info(
+                "Refinement round %d: %d개 약점 타겟 QA 생성",
+                round_num,
+                len(weak),
+            )
+
+            generator = QAGenerator(self.config)
+            refinement_pairs = run_async(generator.generate_refinement_qa(weak, docs))
+
+            if not refinement_pairs:
+                logger.info("Refinement round %d: 생성된 QA 없음, 중단", round_num)
+                break
+
+            refinement_pairs = self.step_validate(refinement_pairs, docs=docs)
+            refinement_pairs = self.step_score(refinement_pairs, docs=docs)
+
+            if not refinement_pairs:
+                logger.info("Refinement round %d: 검증 통과 QA 없음, 중단", round_num)
+                break
+
+            refinement_pairs = self.step_augment(refinement_pairs)
+
+            training_path = self.step_convert(refinement_pairs)
+            adapter_path = self.step_train(training_path)
+            self.step_export(adapter_path)
+
+            eval_results = self.step_eval(refinement_pairs, model_name)
+
+            logger.info("Refinement round %d 완료", round_num)
+
+        return eval_results
+
+    # ------------------------------------------------------------------
     # 단계 9: 모델 비교
     # ------------------------------------------------------------------
 
@@ -837,38 +921,39 @@ class Pipeline:
 
             self.config.paths.ensure_dirs()
 
-            logger.info("━━━ [1/12] 문서 파싱 ━━━")
+            logger.info("━━━ [1/13] 문서 파싱 ━━━")
             docs = self.step_parse()
 
-            logger.info("━━━ [2/12] QA 쌍 생성 ━━━")
+            logger.info("━━━ [2/13] QA 쌍 생성 ━━━")
             pairs = self.step_generate(docs)
 
-            logger.info("━━━ [3/12] QA 검증 ━━━")
+            logger.info("━━━ [3/13] QA 검증 ━━━")
             pairs = self.step_validate(pairs, docs=docs)
 
-            logger.info("━━━ [4/12] 품질 점수 평가 ━━━")
+            logger.info("━━━ [4/13] 품질 점수 평가 ━━━")
             pairs = self.step_score(pairs, docs=docs)
 
-            logger.info("━━━ [5/12] 데이터 증강 ━━━")
+            logger.info("━━━ [5/13] 데이터 증강 ━━━")
             pairs = self.step_augment(pairs)
 
-            logger.info("━━━ [6/12] 데이터 분석 ━━━")
+            logger.info("━━━ [6/13] 데이터 분석 ━━━")
             self.step_analyze(pairs)
 
-            logger.info("━━━ [7/12] 훈련 데이터 변환 ━━━")
+            logger.info("━━━ [7/13] 훈련 데이터 변환 ━━━")
             training_data_path = self.step_convert(pairs)
 
-            logger.info("━━━ [8/12] LoRA 학습 ━━━")
+            logger.info("━━━ [8/13] LoRA 학습 ━━━")
             adapter_path = self.step_train(training_data_path)
 
-            logger.info("━━━ [9/12] 모델 내보내기 ━━━")
+            logger.info("━━━ [9/13] 모델 내보내기 ━━━")
             model_dir = self.step_export(adapter_path)
 
-            logger.info("━━━ [10/12] 모델 평가 ━━━")
+            logger.info("━━━ [10/13] 모델 평가 ━━━")
             ollama_cfg = self.config.export.ollama
+            eval_results: list = []
             if ollama_cfg.enabled and ollama_cfg.model_name and pairs:
                 if self._ollama_model_exists(ollama_cfg.model_name):
-                    self.step_eval(pairs, ollama_cfg.model_name)
+                    eval_results = self.step_eval(pairs, ollama_cfg.model_name)
                 else:
                     logger.warning(
                         "Ollama 모델 '%s'을(를) 찾을 수 없어 평가를 건너뜁니다. "
@@ -877,7 +962,13 @@ class Pipeline:
                         ollama_cfg.model_name,
                     )
 
-            logger.info("━━━ [11/12] RAG 데이터 내보내기 ━━━")
+            logger.info("━━━ [11/13] Iterative Refinement ━━━")
+            if self.config.refinement.enabled and eval_results:
+                eval_results = self.step_refine(
+                    eval_results, docs, ollama_cfg.model_name
+                )
+
+            logger.info("━━━ [12/13] RAG 데이터 내보내기 ━━━")
             doc_dicts = [asdict(d) if dataclasses.is_dataclass(d) else d for d in docs]
             pair_dicts = [
                 asdict(p) if dataclasses.is_dataclass(p) else p for p in pairs
@@ -887,7 +978,7 @@ class Pipeline:
                 pair_dicts,
             )
 
-            logger.info("━━━ [12/12] RAG 벡터 인덱싱 ━━━")
+            logger.info("━━━ [13/13] RAG 벡터 인덱싱 ━━━")
             self.step_rag_index(corpus_path)
 
             elapsed = time.time() - start

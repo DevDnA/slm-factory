@@ -289,7 +289,8 @@ class TrainingConfig(BaseModel):
     learning_rate: float = 2.0e-5
     lr_scheduler: str = "cosine"
     warmup_ratio: float = 0.1
-    num_epochs: int = 5
+    num_epochs: int | Literal["auto"] = "auto"
+    """에포크 수입니다. ``"auto"``이면 학습 데이터 양에 따라 자동 결정합니다."""
     early_stopping: EarlyStoppingConfig = Field(default_factory=EarlyStoppingConfig)
     optimizer: str = "adamw_torch_fused"  # 디바이스 자동 감지로 런타임에 조정됨
     bf16: bool = True  # 디바이스 자동 감지로 런타임에 조정됨
@@ -353,7 +354,7 @@ class EvalConfig(BaseModel):
 
     enabled: bool = True
     test_split: float = 0.1
-    metrics: list[str] = Field(default_factory=lambda: ["bleu", "rouge"])
+    metrics: list[str] = Field(default_factory=lambda: ["bleu", "rouge", "llm_judge"])
     max_samples: int = 50
     max_tokens: int = 512
     """Ollama 생성 최대 토큰 수. 평가 시 응답 길이를 제한하여 무한 생성을 방지합니다."""
@@ -364,6 +365,8 @@ class EvalConfig(BaseModel):
         default_factory=lambda: {"bleu": 0.1, "rougeL": 0.2}
     )
     """메트릭별 최소 통과 임계값입니다. 평균 점수가 이 값 미만이면 품질 게이트 실패입니다."""
+    llm_judge_model: str = ""
+    """LLM-as-Judge에 사용할 모델입니다. 빈 문자열이면 teacher.model을 사용합니다."""
 
     @model_validator(mode="after")
     def _check_eval_params(self) -> "EvalConfig":
@@ -372,6 +375,35 @@ class EvalConfig(BaseModel):
             raise ValueError(f"test_split({self.test_split})은 0과 1 사이여야 합니다")
         if self.max_samples < 1:
             raise ValueError(f"max_samples({self.max_samples})는 1 이상이어야 합니다")
+        return self
+
+
+class RefinementConfig(BaseModel):
+    """Iterative Refinement 설정입니다.
+
+    학습 후 평가에서 약점이 발견된 QA에 대해
+    Teacher LLM으로 추가 학습 데이터를 생성하고 재학습합니다.
+    """
+
+    enabled: bool = False
+    """Refinement 활성화 여부입니다. 기본 비활성."""
+
+    max_rounds: int = 1
+    """최대 Refinement 반복 횟수입니다."""
+
+    llm_judge_threshold: float = 0.6
+    """이 점수 미만인 QA를 약점으로 판단합니다 (0.0~1.0)."""
+
+    @model_validator(mode="after")
+    def _check_refinement_params(self) -> "RefinementConfig":
+        """Refinement 설정의 유효성을 검증합니다."""
+        if self.max_rounds < 1:
+            raise ValueError(f"max_rounds({self.max_rounds})는 1 이상이어야 합니다")
+        if not (0.0 <= self.llm_judge_threshold <= 1.0):
+            raise ValueError(
+                f"llm_judge_threshold({self.llm_judge_threshold})는 "
+                "0.0~1.0 범위여야 합니다"
+            )
         return self
 
 
@@ -616,6 +648,7 @@ class SLMConfig(BaseModel):
     training: TrainingConfig = Field(default_factory=TrainingConfig)
     export: ExportConfig = Field(default_factory=ExportConfig)
     eval: EvalConfig = Field(default_factory=EvalConfig)
+    refinement: RefinementConfig = Field(default_factory=RefinementConfig)
     autorag_export: AutoRAGExportConfig = Field(default_factory=AutoRAGExportConfig)
     rag: RagConfig = Field(default_factory=RagConfig)
     incremental: IncrementalConfig = Field(default_factory=IncrementalConfig)

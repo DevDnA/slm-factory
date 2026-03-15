@@ -129,7 +129,7 @@ training:
                                         # → "linear": 일정하게 감소 | "constant": 줄이지 않음
   warmup_ratio: 0.1                     # 학습 초반에 learning_rate를 천천히 올리는 구간 (전체의 10%)
                                         # → 초반 학습이 불안정할 때 이 값을 0.15~0.2로 올려보세요
-  num_epochs: 5                         # 전체 QA 데이터를 최대 몇 바퀴 반복 학습할지 (상한선)
+  num_epochs: "auto"                     # "auto" 또는 정수 (예: 5). auto는 데이터 양에 따라 자동 결정
                                         # → early_stopping이 켜져 있으면 이 수 전에 자동 종료됩니다
                                         # → QA 100개 이하: 10~20, 1000개 이상: 3~5 권장
 
@@ -161,9 +161,11 @@ training:
 eval:
   enabled: true                         # 학습된 모델을 held-out QA로 자동 평가합니다
   test_split: 0.1                       # 전체 QA 중 평가용 비율 (0.0~1.0)
-  metrics: ["bleu", "rouge"]            # 평가 메트릭: bleu, rouge, bertscore
+  metrics: ["bleu", "rouge", "llm_judge"]  # 평가 메트릭: bleu, rouge, llm_judge
+                                        # llm_judge: Teacher LLM이 의미적 정확성을 0~5점으로 평가
                                         # 한국어(language: "ko") + kiwipiepy 설치 시 형태소 단위 평가 자동 적용
                                         # → uv sync --extra korean
+  llm_judge_model: ""                   # LLM-as-Judge 모델 (빈 값이면 teacher.model 사용)
   max_samples: 50                       # 최대 평가 샘플 수
   max_tokens: 512                       # 평가 시 응답 최대 토큰 수. SLM의 무한 생성을 방지합니다
   output_file: "eval_results.json"      # 평가 결과 저장 파일
@@ -171,6 +173,12 @@ eval:
   quality_thresholds:                   # 메트릭별 최소 통과 임계값
     bleu: 0.1
     rougeL: 0.2
+
+# -- Iterative Refinement ---------------------------------------------------
+refinement:
+  enabled: false                        # 학습 후 약점 QA를 자동 재생성하여 재학습
+  max_rounds: 1                         # 최대 Refinement 반복 횟수
+  llm_judge_threshold: 0.6              # 이 점수 미만인 QA를 약점으로 판단 (0.0~1.0)
 
 # -- AutoRAG 데이터 내보내기(AutoRAG Export) -----------------------------------
 autorag_export:
