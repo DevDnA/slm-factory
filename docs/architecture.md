@@ -366,7 +366,7 @@ SLMConfig (root)
 │   └── output_file: str = "data_analysis.json"
 │
 ├── student: StudentConfig
-│   ├── model: str = "Qwen/Qwen3.5-2B"
+│   ├── model: str = "google/gemma-3-1b-it"
 │   └── max_seq_length: int = 4096
 │
 ├── training: TrainingConfig

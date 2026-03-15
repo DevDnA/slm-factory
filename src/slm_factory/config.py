@@ -251,7 +251,7 @@ class AnalyzerConfig(BaseModel):
 class StudentConfig(BaseModel):
     """학생 (미세조정된) 모델 설정입니다."""
 
-    model: str = Field("Qwen/Qwen3.5-2B", min_length=1)
+    model: str = Field("google/gemma-3-1b-it", min_length=1)
     max_seq_length: int = 4096
 
 

@@ -248,7 +248,7 @@ teacher:
   temperature: 0.3
 
 student:
-  model: "Qwen/Qwen3.5-2B"
+  model: "google/gemma-3-1b-it"
 
 export:
   ollama:

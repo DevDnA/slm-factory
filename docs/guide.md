@@ -294,7 +294,7 @@ teacher:
   temperature: 0.3
 
 student:
-  model: "Qwen/Qwen3.5-2B"      # HuggingFace 모델 ID
+  model: "google/gemma-3-1b-it"      # HuggingFace 모델 ID
 
 export:
   ollama:
@@ -433,7 +433,7 @@ scoring:
   threshold: 3.5
 
 student:
-  model: "Qwen/Qwen3.5-2B"
+  model: "google/gemma-3-1b-it"
   max_seq_length: 4096
 
 training:
@@ -535,7 +535,7 @@ augment:
   num_variants: 2
 
 student:
-  model: "Qwen/Qwen3.5-2B"
+  model: "google/gemma-3-1b-it"
   max_seq_length: 4096
 
 training:

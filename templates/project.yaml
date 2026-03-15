@@ -97,9 +97,9 @@ analyzer:
 
 # -- 4·5단계: 학생 모델(Student Model) + 학습(Training) --------------------
 student:
-  model: "Qwen/Qwen3.5-2B"            # ⚠ 첫 실행 시 HuggingFace에서 자동 다운로드 (~3GB)
-                                        # 추천: Qwen/Qwen3.5-2B (5GB VRAM), Qwen/Qwen3.5-4B (10GB VRAM)
-                                        #       모든 Qwen3.5 모델은 Apache 2.0 라이센스 (상업/정부 사용 가능)
+  model: "google/gemma-3-1b-it"            # ⚠ 첫 실행 시 HuggingFace에서 자동 다운로드 (~1GB)
+                                        # HF_TOKEN 환경변수 필요 (Gemma는 gated repo)
+                                        # 추천: google/gemma-3-1b-it (3GB VRAM), Qwen/Qwen3.5-2B (5GB VRAM)
   max_seq_length: 4096                  # 이 토큰 수를 초과하는 QA 쌍은 convert 단계에서 제외됩니다
                                         # → 줄이면 긴 QA가 버려지지만 VRAM 사용량 감소. 부족 시 2048
 
