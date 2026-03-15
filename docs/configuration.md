@@ -395,12 +395,12 @@ student:
 
 | 모델 | HuggingFace ID | VRAM (LoRA) | 특징 |
 |------|----------------|-------------|------|
-| Qwen3.5 2B | `google/gemma-3-1b-it` | ~5GB | 다국어 201언어, Apache 2.0, 8GB VRAM 권장 |
-| Qwen3.5 4B | `Qwen/Qwen3.5-4B` | ~12GB | 고품질, 24GB+ VRAM 권장 |
+| Gemma 3 1B | `google/gemma-3-1b-it` | ~3GB | Gemma License (상업 허용), 소량 데이터 파인튜닝 용이 |
+| Gemma 3 4B | `google/gemma-3-4b-it` | ~10GB | Gemma License (상업 허용), 128K 컨텍스트 |
 | Phi-4 Mini | `microsoft/Phi-4-mini-instruct` | ~10GB (QLoRA) | MIT, 추론 강점, 한국어 공식 지원 |
-| Qwen3 1.7B | `Qwen/Qwen3-1.7B` | ~6GB | 한국어 양호, 검증된 안정성 |
+| Qwen3.5 4B | `Qwen/Qwen3.5-4B` | ~10GB | Apache 2.0, 다국어 201언어 |
 
-모델 선택 기준: 8GB VRAM은 `google/gemma-3-1b-it` (BF16 LoRA), 24GB+는 `Qwen/Qwen3.5-4B` 권장.
+모델 선택 기준: 8GB VRAM은 `google/gemma-3-1b-it`, 16GB+는 `google/gemma-3-4b-it` 권장.
 
 ---
 
