@@ -111,7 +111,7 @@ class TestTeacherConfig:
         assert cfg.temperature == 0.3
         assert cfg.timeout == 300
         assert cfg.max_context_chars == 12000
-        assert cfg.max_concurrency == 3
+        assert cfg.max_concurrency == 2
 
 
 class TestQuestionsConfig:

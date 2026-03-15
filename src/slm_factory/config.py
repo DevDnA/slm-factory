@@ -104,7 +104,7 @@ class TeacherConfig(BaseModel):
     temperature: float = 0.3
     timeout: int = 300
     max_context_chars: int = 12000
-    max_concurrency: int = 3
+    max_concurrency: int = 2
 
 
 class QuestionsConfig(BaseModel):

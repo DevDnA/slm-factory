@@ -323,7 +323,7 @@ SLMConfig (root)
 │   ├── temperature: float = 0.3
 │   ├── timeout: int = 300
 │   ├── max_context_chars: int = 12000
-│   └── max_concurrency: int = 3
+│   └── max_concurrency: int = 2
 │
 ├── questions: QuestionsConfig
 │   ├── categories: dict[str, list[str]] = {}
@@ -351,14 +351,14 @@ SLMConfig (root)
 ├── scoring: ScoringConfig
 │   ├── enabled: bool = True
 │   ├── threshold: float = 3.0
-│   ├── max_concurrency: int = 3
+│   ├── max_concurrency: int = 2
 │   ├── regenerate: bool = True
 │   └── max_regenerate_rounds: int = 2
 │
 ├── augment: AugmentConfig
 │   ├── enabled: bool = True
 │   ├── num_variants: int = 2
-│   ├── max_concurrency: int = 3
+│   ├── max_concurrency: int = 2
 │   └── min_similarity: float = 0.3
 │
 ├── analyzer: AnalyzerConfig
