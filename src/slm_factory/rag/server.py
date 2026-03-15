@@ -42,7 +42,7 @@ def create_app(config: "SLMConfig"):
         from fastapi import FastAPI, Request
         from fastapi.middleware.cors import CORSMiddleware
         from fastapi.middleware.gzip import GZipMiddleware
-        from fastapi.responses import JSONResponse
+        from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
     except ImportError:
         raise RuntimeError(
             "fastapi가 설치되지 않았습니다. uv sync --extra rag 로 설치하세요."
@@ -336,6 +336,57 @@ def create_app(config: "SLMConfig"):
     async def health_check() -> dict:
         """하위 호환성을 위한 /health/ready 별칭."""
         return await health_ready()
+
+    # ------------------------------------------------------------------
+    # 웹 채팅 UI & SSE 스트리밍
+    # ------------------------------------------------------------------
+
+    @app.get("/chat", response_class=HTMLResponse)
+    async def chat_page():
+        html_path = Path(__file__).parent / "static" / "chat.html"
+        return HTMLResponse(html_path.read_text(encoding="utf-8"))
+
+    @app.post("/v1/stream")
+    async def query_stream(body: QueryRequest):
+        sources, prompt = _search_documents(body)
+        http_client = app.state.http_client
+
+        async def _generate():
+            async with http_client.stream(
+                "POST",
+                f"{api_base}/api/generate",
+                json={
+                    "model": ollama_model,
+                    "prompt": prompt,
+                    "stream": True,
+                    "think": False,
+                    "options": {"num_predict": config.rag.max_tokens},
+                },
+            ) as resp:
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    if not line:
+                        continue
+                    chunk = json.loads(line)
+                    token = chunk.get("response", "")
+                    if token:
+                        yield f"data: {json.dumps({'type': 'token', 'content': token}, ensure_ascii=False)}\n\n"
+                    if chunk.get("done"):
+                        break
+
+            yield f"data: {json.dumps({'type': 'sources', 'sources': [s.model_dump() for s in sources]}, ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+        logger.info(
+            "RAG SSE 스트리밍 시작 — 검색 %d건, 모델: %s",
+            len(sources),
+            ollama_model,
+        )
+        return StreamingResponse(
+            _generate(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
 
     return app
 

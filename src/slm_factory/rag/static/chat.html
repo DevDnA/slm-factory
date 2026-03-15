@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>slm-factory RAG 서비스</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ─── Design Tokens ─── */
+:root {
+  --color-bg-primary: #111827;
+  --color-bg-secondary: #1a1f36;
+  --color-bg-tertiary: #232946;
+  --color-bg-input: #1e2340;
+  --color-bg-user-msg: #4f7cff;
+  --color-bg-ai-msg: #232946;
+  --color-bg-source: #1a1f36;
+  --color-bg-source-hover: #2a3158;
+  --color-bg-header: rgba(17, 24, 39, 0.92);
+
+  --color-text-primary: #eef0f6;
+  --color-text-secondary: #9ba3bf;
+  --color-text-muted: #6b7394;
+  --color-text-inverse: #ffffff;
+  --color-text-user: #ffffff;
+
+  --color-accent: #4f7cff;
+  --color-accent-hover: #6b91ff;
+  --color-accent-glow: rgba(79, 124, 255, 0.15);
+  --color-accent-subtle: rgba(79, 124, 255, 0.08);
+  --color-success: #34d399;
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-border-input: rgba(255, 255, 255, 0.1);
+  --color-border-input-focus: rgba(79, 124, 255, 0.5);
+
+  --font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 20px;
+  --spacing-2xl: 24px;
+  --spacing-3xl: 32px;
+  --spacing-4xl: 48px;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-pill: 9999px;
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px rgba(79, 124, 255, 0.2);
+
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  --header-height: 60px;
+  --input-height: 72px;
+  --max-content-width: 800px;
+}
+
+/* ─── Reset & Base ─── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--color-text-primary);
+  background: var(--color-bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── App Layout ─── */
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* ─── Header ─── */
+.header {
+  height: var(--header-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--spacing-2xl);
+  background: var(--color-bg-header);
+  border-bottom: 1px solid var(--color-border);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.header-logo {
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, var(--color-accent), #7c3aed);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-inverse);
+  letter-spacing: -0.5px;
+}
+
+.header-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  letter-spacing: -0.3px;
+}
+
+.header-status {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-success);
+  box-shadow: 0 0 6px rgba(52, 211, 153, 0.5);
+  animation: pulse-dot 2.5s ease-in-out infinite;
+}
+
+.status-dot.disconnected {
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+  animation: none;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ─── Messages Area ─── */
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--spacing-2xl) var(--spacing-lg);
+  scroll-behavior: smooth;
+}
+
+.messages::-webkit-scrollbar {
+  width: 5px;
+}
+
+.messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.messages::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-pill);
+}
+
+.messages::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.messages-inner {
+  max-width: var(--max-content-width);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+
+/* ─── Message Bubble ─── */
+.message {
+  display: flex;
+  gap: var(--spacing-md);
+  animation: msg-in var(--transition-slow) ease-out both;
+}
+
+@keyframes msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message.user {
+  flex-direction: row-reverse;
+}
+
+.message-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.message.ai .message-avatar {
+  background: linear-gradient(135deg, var(--color-accent), #7c3aed);
+  color: var(--color-text-inverse);
+}
+
+.message.user .message-avatar {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+}
+
+.message-body {
+  max-width: 75%;
+  min-width: 0;
+}
+
+.message-content {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  font-size: 14px;
+  line-height: 1.7;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.message.ai .message-content {
+  background: var(--color-bg-ai-msg);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  border-top-left-radius: var(--spacing-xs);
+}
+
+.message.user .message-content {
+  background: var(--color-bg-user-msg);
+  color: var(--color-text-user);
+  border-top-right-radius: var(--spacing-xs);
+}
+
+/* ─── Sources Accordion ─── */
+.sources-wrapper {
+  margin-top: var(--spacing-sm);
+}
+
+.sources-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: 12px;
+  font-family: var(--font-family);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.sources-toggle:hover {
+  color: var(--color-accent);
+  border-color: rgba(79, 124, 255, 0.3);
+  background: var(--color-accent-subtle);
+}
+
+.sources-toggle .chevron {
+  display: inline-block;
+  transition: transform var(--transition-fast);
+  font-size: 10px;
+}
+
+.sources-toggle.open .chevron {
+  transform: rotate(180deg);
+}
+
+.sources-list {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height var(--transition-slow), opacity var(--transition-base);
+  opacity: 0;
+}
+
+.sources-list.open {
+  max-height: 600px;
+  opacity: 1;
+  margin-top: var(--spacing-sm);
+}
+
+.source-item {
+  padding: var(--spacing-md);
+  background: var(--color-bg-source);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--spacing-sm);
+  transition: background var(--transition-fast);
+}
+
+.source-item:hover {
+  background: var(--color-bg-source-hover);
+}
+
+.source-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-xs);
+}
+
+.source-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.source-score {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.source-text {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ─── Typing Indicator ─── */
+.typing-indicator {
+  display: none;
+  gap: var(--spacing-md);
+  animation: msg-in var(--transition-slow) ease-out both;
+}
+
+.typing-indicator.visible {
+  display: flex;
+}
+
+.typing-dots {
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--color-bg-ai-msg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  border-top-left-radius: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.typing-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-text-muted);
+  animation: bounce-dot 1.4s ease-in-out infinite;
+}
+
+.typing-dots span:nth-child(2) { animation-delay: 0.15s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes bounce-dot {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
+}
+
+/* ─── Input Area ─── */
+.input-area {
+  padding: var(--spacing-lg) var(--spacing-2xl) var(--spacing-xl);
+  background: var(--color-bg-primary);
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.input-wrapper {
+  max-width: var(--max-content-width);
+  margin: 0 auto;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--spacing-md);
+  background: var(--color-bg-input);
+  border: 1px solid var(--color-border-input);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-lg);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.input-wrapper:focus-within {
+  border-color: var(--color-border-input-focus);
+  box-shadow: var(--shadow-glow);
+}
+
+.input-field {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  font-size: 14px;
+  line-height: 1.5;
+  resize: none;
+  max-height: 120px;
+  min-height: 24px;
+  padding: var(--spacing-sm) 0;
+}
+
+.input-field::placeholder {
+  color: var(--color-text-muted);
+}
+
+.send-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.send-btn:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+  box-shadow: var(--shadow-glow);
+}
+
+.send-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.send-btn svg {
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-inverse);
+}
+
+.input-hint {
+  text-align: center;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-top: var(--spacing-sm);
+}
+
+/* ─── Empty State ─── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--spacing-4xl) var(--spacing-2xl);
+  gap: var(--spacing-lg);
+}
+
+.empty-icon {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, var(--color-accent), #7c3aed);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  box-shadow: var(--shadow-glow);
+}
+
+.empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.empty-desc {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  max-width: 360px;
+  line-height: 1.6;
+}
+
+/* ─── Error Toast ─── */
+.toast {
+  position: fixed;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #dc2626;
+  color: var(--color-text-inverse);
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  pointer-events: none;
+  transition: all var(--transition-base);
+  z-index: 100;
+}
+
+.toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 640px) {
+  .header {
+    padding: 0 var(--spacing-lg);
+  }
+
+  .header-title {
+    font-size: 14px;
+  }
+
+  .messages {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+
+  .message-body {
+    max-width: 85%;
+  }
+
+  .input-area {
+    padding: var(--spacing-md) var(--spacing-lg) var(--spacing-lg);
+  }
+
+  .input-hint {
+    display: none;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="header">
+    <div class="header-brand">
+      <div class="header-logo">R</div>
+      <span class="header-title">slm-factory RAG 서비스</span>
+    </div>
+    <div class="header-status">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">연결됨</span>
+    </div>
+  </header>
+
+  <main class="messages" id="messagesArea">
+    <div class="messages-inner" id="messagesInner">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">
+          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+          </svg>
+        </div>
+        <h2 class="empty-title">문서 기반 Q&A 서비스</h2>
+        <p class="empty-desc">안녕하세요! 문서 기반 Q&A 서비스입니다. 궁금한 것을 질문해주세요.</p>
+      </div>
+    </div>
+  </main>
+
+ 
+  <div class="input-area">
+    <div class="input-wrapper">
+      <textarea
+        class="input-field"
+        id="inputField"
+        placeholder="질문을 입력하세요..."
+        rows="1"
+      ></textarea>
+      <button class="send-btn" id="sendBtn" title="전송">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </button>
+    </div>
+    <p class="input-hint">Enter로 전송 &middot; Shift+Enter로 줄바꿈</p>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ─── DOM ───
+  const messagesInner = document.getElementById('messagesInner');
+  const messagesArea = document.getElementById('messagesArea');
+  const emptyState = document.getElementById('emptyState');
+  const inputField = document.getElementById('inputField');
+  const sendBtn = document.getElementById('sendBtn');
+  const statusDot = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+  const toast = document.getElementById('toast');
+
+  let isStreaming = false;
+
+  // ─── Auto-resize textarea ───
+  inputField.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  });
+
+  // ─── Keyboard ───
+  inputField.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  });
+
+  sendBtn.addEventListener('click', handleSend);
+
+  // ─── Health check ───
+  async function checkHealth() {
+    try {
+      const res = await fetch('/health/live');
+      if (res.ok) {
+        statusDot.classList.remove('disconnected');
+        statusText.textContent = '연결됨';
+      } else {
+        throw new Error();
+      }
+    } catch {
+      statusDot.classList.add('disconnected');
+      statusText.textContent = '연결 끊김';
+    }
+  }
+
+  checkHealth();
+  setInterval(checkHealth, 30000);
+
+  // ─── Send message ───
+  function handleSend() {
+    const query = inputField.value.trim();
+    if (!query || isStreaming) return;
+
+    // Hide empty state
+    if (emptyState) {
+      emptyState.style.display = 'none';
+    }
+
+    appendMessage('user', query);
+    inputField.value = '';
+    inputField.style.height = 'auto';
+    streamResponse(query);
+  }
+
+  // ─── Append message bubble ───
+  function appendMessage(role, text) {
+    const msgEl = document.createElement('div');
+    msgEl.className = 'message ' + role;
+
+    const avatarEl = document.createElement('div');
+    avatarEl.className = 'message-avatar';
+    avatarEl.textContent = role === 'user' ? 'U' : 'AI';
+
+    const bodyEl = document.createElement('div');
+    bodyEl.className = 'message-body';
+
+    const contentEl = document.createElement('div');
+    contentEl.className = 'message-content';
+    contentEl.textContent = text;
+
+    bodyEl.appendChild(contentEl);
+    msgEl.appendChild(avatarEl);
+    msgEl.appendChild(bodyEl);
+    messagesInner.appendChild(msgEl);
+    scrollToBottom();
+
+    return { msgEl, bodyEl, contentEl };
+  }
+
+  // ─── Typing indicator ───
+  function showTyping() {
+    const indicator = document.createElement('div');
+    indicator.className = 'message ai';
+    indicator.id = 'currentTyping';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'message-avatar';
+    avatar.textContent = 'AI';
+
+    const dots = document.createElement('div');
+    dots.className = 'typing-dots';
+    dots.innerHTML = '<span></span><span></span><span></span>';
+
+    indicator.appendChild(avatar);
+    indicator.appendChild(dots);
+    messagesInner.appendChild(indicator);
+    scrollToBottom();
+  }
+
+  function hideTyping() {
+    const el = document.getElementById('currentTyping');
+    if (el) el.remove();
+  }
+
+  // ─── Scroll to bottom ───
+  function scrollToBottom() {
+    requestAnimationFrame(function() {
+      messagesArea.scrollTop = messagesArea.scrollHeight;
+    });
+  }
+
+  // ─── Show toast ───
+  function showToast(msg) {
+    toast.textContent = msg;
+    toast.classList.add('visible');
+    setTimeout(function() {
+      toast.classList.remove('visible');
+    }, 4000);
+  }
+
+  // ─── Build sources section ───
+  function buildSources(sources, bodyEl) {
+    if (!sources || sources.length === 0) return;
+
+    var wrapper = document.createElement('div');
+    wrapper.className = 'sources-wrapper';
+
+    var toggle = document.createElement('button');
+    toggle.className = 'sources-toggle';
+    toggle.innerHTML = '<svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>'
+      + ' 참조 문서 ' + sources.length + '건 <span class="chevron">&#9660;</span>';
+
+    var list = document.createElement('div');
+    list.className = 'sources-list';
+
+    sources.forEach(function(src, i) {
+      var item = document.createElement('div');
+      item.className = 'source-item';
+
+      var header = document.createElement('div');
+      header.className = 'source-header';
+
+      var label = document.createElement('span');
+      label.className = 'source-label';
+      label.textContent = '문서 ' + (i + 1);
+
+      var score = document.createElement('span');
+      score.className = 'source-score';
+      score.textContent = '유사도 ' + (src.score * 100).toFixed(0) + '%';
+
+      header.appendChild(label);
+      header.appendChild(score);
+
+      var text = document.createElement('div');
+      text.className = 'source-text';
+      text.textContent = src.content;
+
+      item.appendChild(header);
+      item.appendChild(text);
+      list.appendChild(item);
+    });
+
+    toggle.addEventListener('click', function() {
+      var isOpen = list.classList.toggle('open');
+      toggle.classList.toggle('open', isOpen);
+    });
+
+    wrapper.appendChild(toggle);
+    wrapper.appendChild(list);
+    bodyEl.appendChild(wrapper);
+    scrollToBottom();
+  }
+
+  // ─── SSE Stream response ───
+  async function streamResponse(query) {
+    isStreaming = true;
+    sendBtn.disabled = true;
+    showTyping();
+
+    var answer = '';
+    var contentEl = null;
+    var bodyEl = null;
+    var sources = [];
+
+    try {
+      var response = await fetch('/v1/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: query, stream: true })
+      });
+
+      if (!response.ok) {
+        throw new Error('서버 응답 오류 (' + response.status + ')');
+      }
+
+      var reader = response.body.getReader();
+      var decoder = new TextDecoder();
+      var buffer = '';
+
+      hideTyping();
+
+      // Create AI message bubble
+      var parts = appendMessage('ai', '');
+      contentEl = parts.contentEl;
+      bodyEl = parts.bodyEl;
+
+      while (true) {
+        var result = await reader.read();
+        if (result.done) break;
+
+        buffer += decoder.decode(result.value, { stream: true });
+        var lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (var i = 0; i < lines.length; i++) {
+          var line = lines[i].trim();
+          if (!line.startsWith('data: ')) continue;
+
+          var jsonStr = line.slice(6);
+          try {
+            var data = JSON.parse(jsonStr);
+          } catch {
+            continue;
+          }
+
+          if (data.type === 'token') {
+            answer += data.content;
+            contentEl.textContent = answer;
+            scrollToBottom();
+          } else if (data.type === 'sources') {
+            sources = data.sources || [];
+          } else if (data.type === 'done') {
+            // stream finished
+          }
+        }
+      }
+
+      // Append sources after stream is done
+      if (sources.length > 0) {
+        buildSources(sources, bodyEl);
+      }
+
+      if (!answer) {
+        contentEl.textContent = '답변을 생성하지 못했습니다.';
+      }
+
+    } catch (err) {
+      hideTyping();
+      if (!contentEl) {
+        var parts2 = appendMessage('ai', '');
+        contentEl = parts2.contentEl;
+      }
+      contentEl.textContent = '오류가 발생했습니다: ' + err.message;
+      contentEl.style.color = '#f87171';
+      showToast('요청 처리 중 오류가 발생했습니다.');
+    } finally {
+      isStreaming = false;
+      sendBtn.disabled = false;
+      inputField.focus();
+    }
+  }
+
+  // ─── Focus on load ───
+  inputField.focus();
+})();
+</script>
+</body>
+</html>
