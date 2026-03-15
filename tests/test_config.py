@@ -213,7 +213,7 @@ class TestStudentConfig:
     def test_기본값(self):
         """학생 모델 설정의 기본값을 검증합니다."""
         cfg = StudentConfig()
-        assert cfg.model == "Qwen/Qwen2.5-1.5B"
+        assert cfg.model == "Qwen/Qwen3.5-2B"
         assert cfg.max_seq_length == 4096
 
 

@@ -366,7 +366,7 @@ SLMConfig (root)
 │   └── output_file: str = "data_analysis.json"
 │
 ├── student: StudentConfig
-│   ├── model: str = "Qwen/Qwen2.5-1.5B"
+│   ├── model: str = "Qwen/Qwen3.5-2B"
 │   └── max_seq_length: int = 4096
 │
 ├── training: TrainingConfig

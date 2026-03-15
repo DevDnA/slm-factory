@@ -382,12 +382,12 @@ analyzer:
 
 | 필드 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
-| `model` | `str` | `"Qwen/Qwen2.5-1.5B"` | HuggingFace 모델 ID. causal LM이어야 합니다 (예: Qwen, Gemma, Llama) (빈 값 불가) |
+| `model` | `str` | `"Qwen/Qwen3.5-2B"` | HuggingFace 모델 ID. causal LM이어야 합니다 (예: Qwen, Gemma, Llama) (빈 값 불가) |
 | `max_seq_length` | `int` | `4096` | 학습 데이터의 최대 토큰 길이. 이보다 긴 시퀀스는 잘립니다 |
 
 ```yaml
 student:
-  model: "Qwen/Qwen2.5-1.5B"
+  model: "Qwen/Qwen3.5-2B"
   max_seq_length: 4096
 ```
 
@@ -808,7 +808,7 @@ training:
 ```yaml
 # 경량 Student 모델
 student:
-  model: "Qwen/Qwen2.5-1.5B"
+  model: "Qwen/Qwen3.5-2B"
   max_seq_length: 2048
 
 # 메모리 최적화 학습 설정
@@ -960,7 +960,7 @@ analyzer:
 
 # 한국어 지원 우수한 Student 모델
 student:
-  model: "Qwen/Qwen2.5-1.5B"
+  model: "Qwen/Qwen3.5-2B"
   max_seq_length: 4096
 
 # 12GB VRAM 기준 설정
@@ -1020,7 +1020,7 @@ dashboard:
 4. 질문과 시스템 프롬프트를 모두 한국어로 작성하여 한국어 답변을 유도합니다
 5. 한국어 거부 패턴 5개를 추가했습니다
 6. `groundedness.model`을 다국어 지원 모델로 변경했습니다
-7. `student.model: "Qwen/Qwen2.5-1.5B"` — 한국어 지원이 우수한 다국어 모델입니다
+7. `student.model: "Qwen/Qwen3.5-2B"` — 한국어 지원이 우수한 다국어 모델입니다
 8. `export.ollama.parameters.temperature: 0.5` — 정책 문서는 일관성이 중요하므로 낮췄습니다
 9. `compare`, `review`, `dashboard`는 수동 조작이 필요하므로 명시적으로 비활성화합니다. 나머지 선택적 단계는 기본값(`true`)을 그대로 사용합니다
 
