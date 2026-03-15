@@ -20,6 +20,30 @@ from .base import BaseParser, ParsedDocument, extract_date_from_filename
 
 logger = get_logger("parsers.hwp")
 
+_CJK = r"\u3400-\u4DBF\u4E00-\u9FFF"
+_HWP_ARTIFACT_RE = re.compile(
+    rf"[{_CJK}]\n[\u0080-\u024F]\n"
+    rf"|[{_CJK}][\u0800-\u09FF]"
+    r"|[\u0200-\u02FF]"
+    rf"|(?<=[\uAC00-\uD7A3\d\s])[{_CJK}](?=[\n\s\uAC00-\uD7A3])"
+    rf"|(?<=[\uAC00-\uD7A3])[{_CJK}](?=$)"
+    r"|[\u2C00-\u2C5F]"
+    r"|[\U000F0000-\U000FFFFF]"
+)
+
+
+def _clean_hwp_text(text: str) -> str:
+    """HWP 파서 출력에서 제어 문자 아티팩트를 제거합니다.
+
+    HWP5 바이너리에서 추출된 텍스트에는 섹션 마커, 서식 바이트 등이
+    한자(CJK)나 라틴 확장 문자로 디코딩되어 남습니다.
+    패턴: "주요현황艰\\nȃ\\n", "2,476浵ࡦ" 등
+    """
+    cleaned = _HWP_ARTIFACT_RE.sub("", text)
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip()
+
+
 try:
     import olefile
 
@@ -88,7 +112,7 @@ class HWPParser(BaseParser):
             paragraphs = self._extract_text_from_sections(ole, is_compressed)
 
             content = "\n\n".join(paragraphs).strip()
-            content = re.sub(r"\n{3,}", "\n\n", content)
+            content = _clean_hwp_text(content)
 
             metadata: dict[str, object] = {}
             date_from_name = extract_date_from_filename(path.stem)
