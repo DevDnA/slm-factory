@@ -229,6 +229,56 @@ class ModelEvaluator:
                 return max(0, min(5, int(match.group(1)))) / 5.0
             return 0.0
 
+    async def _batch_llm_judge(
+        self,
+        client: httpx.AsyncClient,
+        items: list[tuple[str, str, str]],
+    ) -> list[float]:
+        qa_list = ""
+        for i, (question, reference, generated) in enumerate(items):
+            qa_list += (
+                f"[{i}] 질문: {question[:100]}\n"
+                f"    참조: {reference[:150]}\n"
+                f"    생성: {generated[:150]}\n"
+            )
+
+        prompt = (
+            f"다음 {len(items)}개의 생성 답변을 참조 답변과 비교하여 0~5점으로 평가하세요.\n"
+            "5=의미적 동일, 3=핵심 포함, 0=전혀 무관\n\n"
+            f"{qa_list}\n"
+            '반드시 JSON: {{"scores": [{{"id": 0, "score": 점수}}, ...]}}'
+        )
+
+        model = self.eval_config.llm_judge_model or self.config.teacher.model
+        api_base = self.config.teacher.api_base
+        timeout = self.config.teacher.timeout
+
+        response = await ollama_generate(
+            client,
+            api_base,
+            model,
+            prompt,
+            timeout,
+            max_tokens=200,
+            format="json",
+            think=False,
+        )
+
+        results = [0.0] * len(items)
+        try:
+            data = json.loads(response)
+            scores_list = data.get("scores", data.get("items", []))
+            if isinstance(data, list):
+                scores_list = data
+            for item in scores_list:
+                idx = int(item.get("id", -1))
+                score = int(item.get("score", 0))
+                if 0 <= idx < len(items):
+                    results[idx] = max(0, min(5, score)) / 5.0
+        except (json.JSONDecodeError, ValueError, TypeError):
+            pass
+        return results
+
     async def _evaluate_one(
         self,
         client: httpx.AsyncClient,
@@ -237,11 +287,6 @@ class ModelEvaluator:
     ) -> EvalResult:
         generated = await self._generate(client, model_name, pair.question)
         scores = self._compute_scores(pair.answer, generated)
-
-        if "llm_judge" in self.eval_config.metrics:
-            scores["llm_judge"] = await self._llm_judge_score(
-                client, pair.answer, generated, pair.question
-            )
 
         return EvalResult(
             question=pair.question,
@@ -281,11 +326,26 @@ class ModelEvaluator:
                 ]
                 gathered = await asyncio.gather(*tasks, return_exceptions=True)
 
-        for item in gathered:
-            if isinstance(item, BaseException):
-                logger.error("평가 실패: %s", item)
-                continue
-            results.append(item)
+            for item in gathered:
+                if isinstance(item, BaseException):
+                    logger.error("평가 실패: %s", item)
+                    continue
+                results.append(item)
+
+            if "llm_judge" in self.eval_config.metrics and results:
+                batch_size = 10
+                for i in range(0, len(results), batch_size):
+                    batch = results[i : i + batch_size]
+                    items = [
+                        (r.question, r.reference_answer, r.generated_answer)
+                        for r in batch
+                    ]
+                    try:
+                        judge_scores = await self._batch_llm_judge(client, items)
+                        for j, score in enumerate(judge_scores):
+                            batch[j].scores["llm_judge"] = score
+                    except Exception as e:
+                        logger.error("LLM Judge 배치 실패: %s", e)
 
         logger.info("평가 완료: %d/%d 성공", len(results), len(qa_pairs))
         return results

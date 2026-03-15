@@ -164,7 +164,7 @@ eval:
                                         # 한국어(language: "ko") + kiwipiepy 설치 시 형태소 단위 평가 자동 적용
                                         # → uv sync --extra korean
   llm_judge_model: ""                   # LLM-as-Judge 모델 (빈 값이면 teacher.model 사용)
-  max_samples: 50                       # 최대 평가 샘플 수
+  max_samples: 20                       # 최대 평가 샘플 수
   max_tokens: 512                       # 평가 시 응답 최대 토큰 수. SLM의 무한 생성을 방지합니다
   output_file: "eval_results.json"      # 평가 결과 저장 파일
   quality_gate: true                    # 평가 점수가 임계값 미달 시 경고를 출력합니다

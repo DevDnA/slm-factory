@@ -349,7 +349,7 @@ class EvalConfig(BaseModel):
     enabled: bool = True
     test_split: float = 0.1
     metrics: list[str] = Field(default_factory=lambda: ["bleu", "rouge", "llm_judge"])
-    max_samples: int = 50
+    max_samples: int = 20
     max_tokens: int = 512
     """Ollama 생성 최대 토큰 수. 평가 시 응답 길이를 제한하여 무한 생성을 방지합니다."""
     output_file: str = "eval_results.json"

@@ -523,7 +523,7 @@ export:
 | `enabled` | `bool` | `true` | 모델 평가 기능 활성화 여부 |
 | `test_split` | `float` | `0.1` | 평가에 사용할 데이터 비율 (0.0~1.0) |
 | `metrics` | `list[str]` | `["bleu", "rouge"]` | 평가 메트릭 목록 |
-| `max_samples` | `int` | `50` | 평가에 사용할 최대 샘플 수 |
+| `max_samples` | `int` | `20` | 평가에 사용할 최대 샘플 수 |
 | `max_tokens` | `int` | `512` | Ollama 생성 최대 토큰 수. 평가 시 무한 생성을 방지합니다 |
 | `output_file` | `str` | `"eval_results.json"` | 평가 결과 JSON 파일명. `paths.output` 디렉토리에 저장됩니다 |
 | `quality_gate` | `bool` | `true` | 품질 게이트 활성화 여부. `true`이면 평가 결과가 임계값 미달 시 경고합니다 |
