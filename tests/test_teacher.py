@@ -30,7 +30,7 @@ def _make_teacher_config(**overrides) -> TeacherConfig:
         "api_base": "http://localhost:11434",
         "api_key": None,
         "temperature": 0.3,
-        "timeout": 180,
+        "timeout": 300,
     }
     defaults.update(overrides)
     return TeacherConfig(**defaults)

@@ -109,9 +109,9 @@ class TestTeacherConfig:
         assert cfg.api_base == "http://localhost:11434"
         assert cfg.api_key is None
         assert cfg.temperature == 0.3
-        assert cfg.timeout == 180
+        assert cfg.timeout == 300
         assert cfg.max_context_chars == 12000
-        assert cfg.max_concurrency == 4
+        assert cfg.max_concurrency == 3
 
 
 class TestQuestionsConfig:

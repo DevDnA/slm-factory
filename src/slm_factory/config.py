@@ -102,9 +102,9 @@ class TeacherConfig(BaseModel):
     api_base: str = Field("http://localhost:11434", min_length=1)
     api_key: str | None = None
     temperature: float = 0.3
-    timeout: int = 180
+    timeout: int = 300
     max_context_chars: int = 12000
-    max_concurrency: int = 4
+    max_concurrency: int = 3
 
 
 class QuestionsConfig(BaseModel):
@@ -214,7 +214,7 @@ class ScoringConfig(BaseModel):
 
     enabled: bool = True
     threshold: float = 3.0
-    max_concurrency: int = 4
+    max_concurrency: int = 3
     regenerate: bool = True
     max_regenerate_rounds: int = 2
 
@@ -235,7 +235,7 @@ class AugmentConfig(BaseModel):
 
     enabled: bool = True
     num_variants: int = 2
-    max_concurrency: int = 4
+    max_concurrency: int = 3
     min_similarity: float = 0.3
     """패러프레이즈된 질문과 원본 질문 간 최소 토큰 겹침 비율입니다.
     이 값 미만이면 의미가 변질된 것으로 간주하여 제거합니다 (0.0~1.0)."""

@@ -28,9 +28,9 @@ teacher:
   api_base: "http://localhost:11434"    # ollama 기본 주소. vLLM: "http://localhost:8000/v1"
   api_key: null                         # ollama는 불필요. openai 백엔드 사용 시 필수
   temperature: 0.3                      # 낮을수록 일관된 답변 (0.1~0.5 권장)
-  timeout: 180                          # 초 단위. 긴 문서 처리 시 300~600으로 증가
+  timeout: 300                          # 초 단위. 긴 문서 처리 시 300~600으로 증가
   max_context_chars: 12000              # Teacher 모델에 한 번에 보내는 문서 글자 수. 문서가 길면 이 단위로 나눠서 처리
-  max_concurrency: 4                    # 동시 요청 수. Ollama: 1~2, vLLM: 8~16 권장
+  max_concurrency: 3                    # 동시 요청 수. Ollama: 2~3, vLLM: 8~16 권장
 
 questions:
   auto_generate: true                     # Teacher LLM이 문서 청크를 분석하여 Q+A를 자동 생성합니다
@@ -92,7 +92,7 @@ scoring:
                                         # 활성화 시 LLM 호출 추가 → 시간 2배 증가
                                         # 원본 문서를 함께 전달하여 환각(Hallucination) 탐지도 수행
   threshold: 3.0                        # 이 점수 미만의 QA 쌍을 제거합니다 (1.0~5.0)
-  max_concurrency: 4                    # 동시 평가 요청 수
+  max_concurrency: 3                    # 동시 평가 요청 수
   regenerate: true                      # 낮은 점수의 QA를 재생성하여 품질 향상 시도
   max_regenerate_rounds: 2              # 최대 재생성 반복 횟수
 
@@ -101,7 +101,7 @@ augment:
   enabled: true                         # 질문을 다양한 표현으로 변형하여 학습 데이터를 늘립니다
                                         # QA 100개 미만일 때 활성화 권장
   num_variants: 2                       # 각 질문당 생성할 변형 수 (데이터가 N배 증가)
-  max_concurrency: 4                    # 동시 증강 요청 수
+  max_concurrency: 3                    # 동시 증강 요청 수
   min_similarity: 0.3                   # 패러프레이즈 최소 토큰 겹침 비율 (0.0~1.0)
                                         # → 이 값 미만이면 의미 변질로 간주하여 제거
 
