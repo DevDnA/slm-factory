@@ -55,9 +55,10 @@ class TestBuildScoringPrompt:
         assert "1~5점" in prompt
         assert "JSON" in prompt
 
-
     def test_source_text_포함_시_원본_문서_섹션_존재(self, scorer, sample_pair):
-        prompt = scorer._build_scoring_prompt(sample_pair, source_text="문서 내용입니다.")
+        prompt = scorer._build_scoring_prompt(
+            sample_pair, source_text="문서 내용입니다."
+        )
         assert "원본 문서" in prompt
         assert "문서 내용입니다." in prompt
 
@@ -105,19 +106,37 @@ class TestParseScore:
 
 
 class TestScoreAll:
-    async def test_threshold_filtering(self, mock_teacher, scoring_config, teacher_config):
+    async def test_threshold_filtering(
+        self, mock_teacher, scoring_config, teacher_config
+    ):
         scoring_config.threshold = 4.0
         scorer = QualityScorer(mock_teacher, scoring_config, teacher_config)
 
         pairs = [
-            QAPair(question="좋은 질문?", answer="좋은 답변", source_doc="a.pdf", category="g"),
-            QAPair(question="나쁜 질문?", answer="나쁜 답변", source_doc="b.pdf", category="g"),
+            QAPair(
+                question="좋은 질문?",
+                answer="좋은 답변",
+                source_doc="a.pdf",
+                category="g",
+            ),
+            QAPair(
+                question="나쁜 질문?",
+                answer="나쁜 답변",
+                source_doc="b.pdf",
+                category="g",
+            ),
         ]
 
-        mock_teacher.agenerate = AsyncMock(side_effect=[
-            json.dumps({"score": 5, "reason": "훌륭합니다"}),
-            json.dumps({"score": 2, "reason": "부족합니다"}),
-        ])
+        mock_teacher.agenerate = AsyncMock(
+            return_value=json.dumps(
+                {
+                    "scores": [
+                        {"id": 0, "score": 5, "reason": "훌륭합니다"},
+                        {"id": 1, "score": 2, "reason": "부족합니다"},
+                    ]
+                }
+            )
+        )
 
         accepted, filtered = await scorer.score_all(pairs)
         assert len(accepted) == 1
@@ -133,16 +152,24 @@ class TestScoreAll:
             QAPair(question="q2?", answer="a2", source_doc="a.pdf", category="g"),
         ]
 
-        mock_teacher.agenerate = AsyncMock(side_effect=[
-            json.dumps({"score": 3, "reason": "ok"}),
-            json.dumps({"score": 4, "reason": "good"}),
-        ])
+        mock_teacher.agenerate = AsyncMock(
+            return_value=json.dumps(
+                {
+                    "scores": [
+                        {"id": 0, "score": 3, "reason": "ok"},
+                        {"id": 1, "score": 4, "reason": "good"},
+                    ]
+                }
+            )
+        )
 
         accepted, filtered = await scorer.score_all(pairs)
         assert len(accepted) == 2
         assert len(filtered) == 0
 
-    async def test_parse_failure_defaults_to_0(self, mock_teacher, scoring_config, teacher_config):
+    async def test_parse_failure_defaults_to_0(
+        self, mock_teacher, scoring_config, teacher_config
+    ):
         """파싱 실패 시 기본 점수 0으로 필터링됩니다."""
         scoring_config.threshold = 3.0
         scorer = QualityScorer(mock_teacher, scoring_config, teacher_config)
@@ -154,7 +181,9 @@ class TestScoreAll:
         assert len(accepted) == 0
         assert len(filtered) == 1
 
-    async def test_source_texts_전달(self, mock_teacher, scoring_config, teacher_config):
+    async def test_source_texts_전달(
+        self, mock_teacher, scoring_config, teacher_config
+    ):
         scoring_config.threshold = 1.0
         scorer = QualityScorer(mock_teacher, scoring_config, teacher_config)
 
@@ -164,18 +193,21 @@ class TestScoreAll:
         ]
         source_texts = {"doc1.pdf": "문서1 내용", "doc2.pdf": "문서2 내용"}
 
-        mock_teacher.agenerate = AsyncMock(side_effect=[
-            json.dumps({"score": 5, "reason": "ok"}),
-            json.dumps({"score": 5, "reason": "ok"}),
-        ])
+        mock_teacher.agenerate = AsyncMock(
+            return_value=json.dumps(
+                {
+                    "scores": [
+                        {"id": 0, "score": 5, "reason": "ok"},
+                        {"id": 1, "score": 5, "reason": "ok"},
+                    ]
+                }
+            )
+        )
 
-        with patch.object(scorer, "_build_scoring_prompt", wraps=scorer._build_scoring_prompt) as mock_build:
+        with patch.object(
+            scorer,
+            "_build_batch_scoring_prompt",
+            wraps=scorer._build_batch_scoring_prompt,
+        ) as mock_build:
             await scorer.score_all(pairs, source_texts=source_texts)
-            assert mock_build.call_count == 2
-            calls = mock_build.call_args_list
-            assert calls[0].kwargs.get("source_text") == "문서1 내용" or (
-                len(calls[0].args) > 1 and calls[0].args[1] == "문서1 내용"
-            )
-            assert calls[1].kwargs.get("source_text") == "문서2 내용" or (
-                len(calls[1].args) > 1 and calls[1].args[1] == "문서2 내용"
-            )
+            assert mock_build.call_count == 1

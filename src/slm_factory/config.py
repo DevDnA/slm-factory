@@ -215,7 +215,7 @@ class ScoringConfig(BaseModel):
     enabled: bool = True
     threshold: float = 3.0
     max_concurrency: int = 3
-    regenerate: bool = True
+    regenerate: bool = False
     max_regenerate_rounds: int = 2
 
     @model_validator(mode="after")

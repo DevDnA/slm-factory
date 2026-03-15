@@ -407,10 +407,10 @@ class TestChunkingConfig:
 class TestScoringConfigRegeneration:
     """ScoringConfig 재생성 관련 필드의 테스트입니다."""
 
-    def test_regenerate_기본값_true(self):
-        """regenerate 기본값이 True인지 확인합니다."""
+    def test_regenerate_기본값_false(self):
+        """regenerate 기본값이 False인지 확인합니다."""
         cfg = ScoringConfig()
-        assert cfg.regenerate is True
+        assert cfg.regenerate is False
 
     def test_max_regenerate_rounds_기본값(self):
         """max_regenerate_rounds 기본값이 2인지 확인합니다."""
