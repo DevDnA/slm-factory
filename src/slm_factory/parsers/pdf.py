@@ -17,12 +17,18 @@ from typing import ClassVar
 import fitz  # PyMuPDF
 
 from ..utils import get_logger
-from .base import BaseParser, ParsedDocument, extract_date_from_filename, rows_to_markdown
+from .base import (
+    BaseParser,
+    ParsedDocument,
+    extract_date_from_filename,
+    rows_to_markdown,
+)
 
 logger = get_logger("parsers.pdf")
 
 try:
     import pymupdf4llm
+
     HAS_PYMUPDF4LLM = True
 except ImportError:
     HAS_PYMUPDF4LLM = False
@@ -30,7 +36,7 @@ except ImportError:
 # 제거할 페이지 번호 라인의 패턴 (예: "- 1 -", "— 3 —", 독립형 숫자)
 _PAGE_NUM_PATTERNS = [
     re.compile(r"^\s*[-—–]\s*\d+\s*[-—–]\s*$", re.MULTILINE),  # - 1 -, — 12 —
-    re.compile(r"^\s*\d+\s*$", re.MULTILINE),                    # 독립형 페이지 번호
+    re.compile(r"^\s*\d+\s*$", re.MULTILINE),  # 독립형 페이지 번호
     re.compile(r"^\s*page\s+\d+\s*$", re.MULTILINE | re.IGNORECASE),  # "Page 3"
 ]
 
@@ -94,6 +100,13 @@ class PDFParser(BaseParser):
 
     extensions: ClassVar[list[str]] = [".pdf"]
 
+    def can_parse_content(self, path: Path) -> bool:
+        try:
+            with open(path, "rb") as f:
+                return f.read(5).startswith(b"%PDF")
+        except Exception:
+            return False
+
     def parse(self, path: Path) -> ParsedDocument:
         """PDF 파일에서 텍스트와 표를 추출합니다.
 
@@ -134,7 +147,8 @@ class PDFParser(BaseParser):
         except Exception as exc:
             logger.warning(
                 "pymupdf4llm 추출 실패, fitz 폴백: %s (%s)",
-                path.name, exc,
+                path.name,
+                exc,
             )
             return self._parse_with_fitz(path)
 
@@ -153,7 +167,9 @@ class PDFParser(BaseParser):
 
         logger.info(
             "pymupdf4llm으로 PDF 추출 완료: %s (%d자, 표 %d개)",
-            path.name, len(content), len(tables_md),
+            path.name,
+            len(content),
+            len(tables_md),
         )
 
         return ParsedDocument(
@@ -183,7 +199,11 @@ class PDFParser(BaseParser):
                     if text:
                         pages_text.append(text)
                 except Exception:
-                    logger.warning("Could not extract text from page %d of %s", page.number, path.name)
+                    logger.warning(
+                        "Could not extract text from page %d of %s",
+                        page.number,
+                        path.name,
+                    )
 
             raw_text = "\n\n".join(pages_text)
             content = _clean_page_numbers(raw_text).strip()
@@ -198,7 +218,9 @@ class PDFParser(BaseParser):
                         if md:
                             tables_md.append(md)
             except AttributeError:
-                logger.debug("Table extraction unavailable (PyMuPDF version lacks find_tables)")
+                logger.debug(
+                    "Table extraction unavailable (PyMuPDF version lacks find_tables)"
+                )
             except Exception:
                 logger.debug("Table extraction failed for %s", path.name, exc_info=True)
 

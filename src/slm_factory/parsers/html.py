@@ -9,7 +9,13 @@ from typing import ClassVar
 from bs4 import BeautifulSoup
 
 from ..utils import get_logger
-from .base import BaseParser, ParsedDocument, detect_encoding, extract_date_from_filename, rows_to_markdown
+from .base import (
+    BaseParser,
+    ParsedDocument,
+    detect_encoding,
+    extract_date_from_filename,
+    rows_to_markdown,
+)
 
 logger = get_logger("parsers.html")
 
@@ -41,6 +47,14 @@ class HTMLParser(BaseParser):
     """HTML 문서를 파싱합니다."""
 
     extensions: ClassVar[list[str]] = [".html", ".htm"]
+
+    def can_parse_content(self, path: Path) -> bool:
+        try:
+            with open(path, "rb") as f:
+                head = f.read(1024).lower().lstrip()
+                return head.startswith((b"<!doctype html", b"<html", b"<!doctype"))
+        except Exception:
+            return False
 
     def parse(self, path: Path) -> ParsedDocument:
         """HTML 파일에서 텍스트와 표를 추출합니다.

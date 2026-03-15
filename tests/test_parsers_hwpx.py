@@ -411,8 +411,7 @@ class TestHWPXParserRegistration:
 
     def test_extensions(self):
         """지원 확장자가 .hwpx인지 확인합니다."""
-        assert ".hwpx" in HWPXParser.extensions
-        assert ".hwp" in HWPXParser.extensions
+        assert HWPXParser.extensions == [".hwpx"]
 
     def test_can_parse_hwpx(self, simple_hwpx: Path):
         """HWPX 파일에 대해 can_parse가 True를 반환합니다."""

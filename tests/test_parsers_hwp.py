@@ -239,8 +239,7 @@ class TestHWPParserRegistration:
         """지원 확장자가 .hwp인지 확인합니다."""
         from slm_factory.parsers.hwp import HWPParser
 
-        assert ".hwp" in HWPParser.extensions
-        assert ".hwpx" in HWPParser.extensions
+        assert HWPParser.extensions == [".hwp"]
 
     def test_can_parse_hwp(self, tmp_path: Path):
         """.hwp 파일에 대해 can_parse가 True를 반환합니다."""

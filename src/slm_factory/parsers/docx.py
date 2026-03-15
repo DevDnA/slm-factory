@@ -17,6 +17,17 @@ class DOCXParser(BaseParser):
 
     extensions: ClassVar[list[str]] = [".docx"]
 
+    def can_parse_content(self, path: Path) -> bool:
+        import zipfile
+
+        try:
+            if not zipfile.is_zipfile(str(path)):
+                return False
+            with zipfile.ZipFile(path, "r") as zf:
+                return "word/document.xml" in zf.namelist()
+        except Exception:
+            return False
+
     def parse(self, path: Path) -> ParsedDocument:
         """DOCX 파일을 파싱하여 ParsedDocument를 반환합니다.
 

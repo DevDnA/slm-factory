@@ -55,7 +55,15 @@ except ImportError:
 class HWPParser(BaseParser):
     """HWP5 (바이너리 한글) 문서를 파싱합니다."""
 
-    extensions: ClassVar[list[str]] = [".hwp", ".hwpx"]
+    extensions: ClassVar[list[str]] = [".hwp"]
+
+    def can_parse_content(self, path: Path) -> bool:
+        if not HAS_OLEFILE:
+            return False
+        try:
+            return olefile.isOleFile(str(path))
+        except Exception:
+            return False
 
     def parse(self, path: Path) -> ParsedDocument:
         """HWP 파일에서 텍스트를 추출합니다.
@@ -87,14 +95,7 @@ class HWPParser(BaseParser):
                 f"설치: uv sync --extra hwp"
             )
 
-        import zipfile as _zipfile
-
         if not olefile.isOleFile(str(path)):
-            if _zipfile.is_zipfile(str(path)):
-                from .hwpx import HWPXParser
-
-                logger.info("File %s is HWPX (ZIP) format, delegating", path.name)
-                return HWPXParser().parse(path)
             raise RuntimeError(
                 f"유효한 HWP(OLE2) 파일이 아닙니다: {path}\n"
                 f"원인: 파일이 손상되었거나 지원하지 않는 형식입니다."

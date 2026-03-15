@@ -8,7 +8,13 @@ from pathlib import Path
 from typing import ClassVar
 
 from charset_normalizer import from_bytes
-from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, MofNCompleteColumn
+from rich.progress import (
+    Progress,
+    SpinnerColumn,
+    TextColumn,
+    BarColumn,
+    MofNCompleteColumn,
+)
 
 from ..models import ParsedDocument
 from ..utils import get_logger
@@ -93,6 +99,13 @@ class BaseParser(ABC):
         """이 파서가 주어진 파일 확장자를 지원하면 True를 반환합니다."""
         return path.suffix.lower() in self.extensions
 
+    def can_parse_content(self, path: Path) -> bool:
+        """파일의 실제 내용(magic bytes)을 검사하여 이 파서가 처리 가능한지 판별합니다.
+
+        기본 구현은 False를 반환합니다. 각 파서에서 오버라이드하세요.
+        """
+        return False
+
 
 class ParserRegistry:
     """파일 확장자로 파서를 자동 발견하고 선택합니다.
@@ -126,7 +139,9 @@ class ParserRegistry:
         """
         instance = parser_cls()
         self._parsers.append(instance)
-        logger.debug("Registered parser %s for %s", parser_cls.__name__, parser_cls.extensions)
+        logger.debug(
+            "Registered parser %s for %s", parser_cls.__name__, parser_cls.extensions
+        )
         return parser_cls
 
     # ------------------------------------------------------------------
@@ -135,6 +150,14 @@ class ParserRegistry:
 
     def get_parser(self, path: Path) -> BaseParser | None:
         """*path*를 처리할 수 있는 첫 번째 등록된 파서를 반환하거나 None을 반환합니다."""
+        # 1차: magic bytes 기반 (정확한 포맷 감지)
+        for parser in self._parsers:
+            try:
+                if parser.can_parse_content(path):
+                    return parser
+            except Exception:
+                continue
+        # 2차: 확장자 폴백 (TXT 등 magic bytes가 없는 포맷)
         for parser in self._parsers:
             if parser.can_parse(path):
                 return parser
@@ -212,5 +235,7 @@ class ParserRegistry:
                 finally:
                     progress.advance(task)
 
-        logger.info("Parsed %d / %d files from %s", len(documents), len(target_files), dir_path)
+        logger.info(
+            "Parsed %d / %d files from %s", len(documents), len(target_files), dir_path
+        )
         return documents
