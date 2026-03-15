@@ -548,6 +548,10 @@ def _load_preceding_data(
             return None
 
     elif from_step == "eval":
+        parsed = output_dir / "parsed_documents.json"
+        if parsed.is_file():
+            raw = json.loads(parsed.read_text(encoding="utf-8"))
+            docs = [ParsedDocument(**item) for item in raw]
         for candidate in ["qa_augmented.json", "qa_scored.json", "qa_alpaca.json"]:
             qa_file = output_dir / candidate
             if qa_file.is_file():
