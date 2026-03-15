@@ -655,9 +655,12 @@ body {
     this.style.height = Math.min(this.scrollHeight, 120) + 'px';
   });
 
-  // ─── Keyboard ───
+  // ─── Keyboard (IME 조합 중 Enter 방지) ───
+  let isComposing = false;
+  inputField.addEventListener('compositionstart', () => { isComposing = true; });
+  inputField.addEventListener('compositionend', () => { isComposing = false; });
   inputField.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !isComposing) {
       e.preventDefault();
       handleSend();
     }
