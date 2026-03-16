@@ -19,7 +19,7 @@
 
 ```bash
 # 문서 1건부터 — RAG 웹 채팅 즉시 시작 (30초)
-slf serve
+slf rag
 
 # 문서 20건+ — 파인튜닝 + RAG 통합 서비스 (30분)
 slf run
@@ -27,7 +27,7 @@ slf run
 
 | 모드 | 명령어 | 문서 수 | 소요 시간 | 서비스 모델 |
 |------|--------|---------|-----------|------------|
-| **RAG 전용** | `slf serve` | 1건부터 | 30초 | Teacher (9B) |
+| **RAG 전용** | `slf rag` | 1건부터 | 30초 | Teacher (9B) |
 | **파인튜닝 + RAG** | `slf run` | 20건+ 권장 | 30분 | Student (파인튜닝) + RAG |
 
 ## 빠른 시작
@@ -57,14 +57,14 @@ cp /path/to/documents/*.pdf my-project/documents/
 ### 3. 서비스 시작
 
 ```bash
-slf serve
+slf rag
 ```
 
 브라우저에서 **http://localhost:8000/chat** 접속
 
 ## 어떻게 동작하는가
 
-### RAG 서비스 (slf serve)
+### RAG 서비스 (slf rag)
 
 ```
 문서 → 섹션 인식 청킹 → 벡터 임베딩(bge-m3) → ChromaDB

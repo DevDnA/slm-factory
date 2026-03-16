@@ -435,7 +435,7 @@ def init(
     )
     console.print(f"\n[bold]실행:[/bold]")
     console.print(f"  4. 전체 파이프라인: [cyan]slm-factory run[/cyan]")
-    console.print(f"  5. 웹 채팅 서비스: [cyan]slm-factory serve[/cyan]\n")
+    console.print(f"  5. 웹 채팅 서비스: [cyan]slm-factory rag[/cyan]\n")
 
 
 _STEP_ORDER = [
@@ -868,7 +868,7 @@ def run(
 
 
 @app.command(rich_help_panel="🚀 시작하기")
-def serve(
+def rag(
     config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
 ) -> None:
     """RAG 웹 채팅 서비스를 시작합니다. 인덱스가 없으면 자동으로 구축합니다."""

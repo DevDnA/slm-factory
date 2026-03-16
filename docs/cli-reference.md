@@ -106,7 +106,7 @@ slf init policy-assistant --path /workspace/projects
 
 실행:
   4. 전체 파이프라인: slf run
-  5. 웹 채팅 서비스: slf serve
+  5. 웹 채팅 서비스: slf rag
 ```
 
 **참고**
@@ -183,7 +183,7 @@ RAG 웹 채팅 서비스를 시작합니다. ChromaDB 인덱스가 없으면 문
 **사용법**
 
 ```
-slf serve [OPTIONS]
+slf rag [OPTIONS]
 ```
 
 **옵션**
@@ -201,10 +201,10 @@ slf serve [OPTIONS]
 
 ```bash
 # 기본 실행 (인덱스 자동 구축 + 서버 시작)
-slf serve
+slf rag
 
 # 특정 설정 파일 사용
-slf serve --config my-project/project.yaml
+slf rag --config my-project/project.yaml
 ```
 
 > `--host`와 `--port` 옵션이 필요한 경우 `slf tool rag-serve`를 사용하십시오.

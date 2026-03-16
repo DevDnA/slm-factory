@@ -61,7 +61,7 @@ slf tool wizard
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|-----------|
 | `slf run` | 전체 파이프라인 실행 | `--until <단계>`, `--from <단계>`, `--resume` / `-r`, `--serve` / `-s` |
-| `slf serve` | RAG 웹 채팅 서비스 (인덱스 자동 구축) | |
+| `slf rag` | RAG 웹 채팅 서비스 (인덱스 자동 구축) | |
 | `slf train` | LoRA 학습 실행 | `--data <jsonl>`, `--resume` / `-r` |
 | `slf export` | 모델 내보내기 (LoRA 병합 + Modelfile) | `--adapter <경로>` |
 

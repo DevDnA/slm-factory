@@ -122,7 +122,7 @@ slf tool export-autorag
 slf tool rag-index
 
 # 3. RAG API 서버 실행
-slf serve
+slf rag
 # → POST http://localhost:8000/v1/query       질의 엔드포인트
 # → GET  http://localhost:8000/health          기본 헬스체크
 # → GET  http://localhost:8000/health/ready    Ollama+ChromaDB 연결 확인
