@@ -379,7 +379,7 @@ def create_app(config: "SLMConfig"):
         sources: list[Source] = []
         context_parts: list[str] = []
         seen_parents: set[str] = set()
-        max_context_chars = 3000
+        max_context_chars = 6000
 
         for doc, doc_id, distance, metadata in zip(
             documents, ids, distances, metadatas
