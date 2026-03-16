@@ -441,8 +441,8 @@ class RagConfig(BaseModel):
     request_timeout: float = 120.0
     """RAG 질의 타임아웃 (초)."""
 
-    max_tokens: int = 2048
-    """Ollama 생성 최대 토큰 수."""
+    max_tokens: int = -1
+    """Ollama 생성 최대 토큰 수. -1이면 모델이 자연스럽게 종료할 때까지 생성합니다."""
 
     ollama_model: str = ""
     """Ollama 모델명. 빈 문자열이면 ``export.ollama.model_name``을 사용합니다."""
