@@ -207,11 +207,15 @@ def create_app(config: "SLMConfig"):
         documents = results.get("documents", [[]])[0]
         ids = results.get("ids", [[]])[0]
         distances = results.get("distances", [[]])[0]
+        metadatas = results.get("metadatas", [[]])[0]
 
-        for doc, doc_id, distance in zip(documents, ids, distances):
+        for doc, doc_id, distance, metadata in zip(
+            documents, ids, distances, metadatas
+        ):
             score = max(0.0, min(1.0, 1.0 - distance))
+            parent = metadata.get("parent_content", doc) if metadata else doc
             sources.append(Source(content=doc, doc_id=doc_id, score=score))
-            context_parts.append(doc)
+            context_parts.append(parent)
 
         context = "\n\n---\n\n".join(context_parts)
         prompt = f"{_RAG_SYSTEM_PROMPT}\n\n{context}\n\n질문: {body.query}\n답변:"

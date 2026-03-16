@@ -112,11 +112,15 @@ class RAGIndexer:
             embeddings = model.encode(batch_contents, show_progress_bar=False)
             embeddings_list = embeddings.tolist()
 
-            # 메타데이터 정제
             sanitized_metadatas = []
             for meta in batch_metadatas:
                 if isinstance(meta, dict):
-                    sanitized_metadatas.append(_sanitize_metadata(meta))
+                    sanitized = _sanitize_metadata(meta)
+                    if "parent_content" in meta and meta["parent_content"]:
+                        sanitized["parent_content"] = str(meta["parent_content"])[
+                            :10000
+                        ]
+                    sanitized_metadatas.append(sanitized)
                 else:
                     sanitized_metadatas.append({})
 

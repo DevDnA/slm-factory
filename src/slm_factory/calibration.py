@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import re
+from dataclasses import dataclass
 
 from .utils import get_logger
 
@@ -265,3 +266,141 @@ def section_aware_chunk(content: str, max_chunk_size: int) -> list[str]:
         return chunk_document(content, max_chunk_size, min(500, max_chunk_size // 5))
 
     return filtered
+
+
+# ---------------------------------------------------------------------------
+# Context-aware chunking (RAG 전용 — 부모-자식 구조)
+# ---------------------------------------------------------------------------
+
+_MAX_PARENT_CHARS = 12000
+
+
+@dataclass
+class ChunkWithContext:
+    """컨텍스트 프리픽스와 부모 청크 정보를 포함하는 RAG 전용 청크."""
+
+    content: str  # 청크 본문
+    context_prefix: str  # "[Ⅲ. 제안요청 내용 > 3. 일반사항]"
+    parent_content: str  # 부모 섹션 전체 (검색이 아닌 응답용)
+    chunk_id: str  # "section_0_chunk_0"
+
+
+def _extract_section_title(text: str) -> str:
+    """청크의 첫 줄에서 섹션 제목을 추출합니다."""
+    first_line = text.strip().split("\n")[0].strip()
+    for pattern in _SECTION_PATTERNS:
+        if pattern.match(first_line):
+            return first_line[:60]
+    return ""
+
+
+def _truncate_parent(text: str, max_chars: int = _MAX_PARENT_CHARS) -> str:
+    """부모 섹션 텍스트를 max_chars 이내로 자릅니다.
+
+    초과 시 앞부분을 우선 유지하고 끝을 자릅니다.
+    """
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars]
+
+
+def section_aware_chunk_with_context(
+    content: str,
+    max_chunk_size: int,
+) -> list[ChunkWithContext]:
+    """문서를 섹션 계층 프리픽스와 부모-자식 구조로 청킹합니다.
+
+    기존 ``section_aware_chunk``를 확장하여:
+    1. 각 청크에 섹션 계층 프리픽스를 추가 (검색 품질 향상)
+    2. 부모 섹션 전체를 ``parent_content``로 보존 (LLM 응답 품질 향상)
+
+    기존 ``section_aware_chunk`` 함수는 변경하지 않으며, 이 함수는 RAG 전용입니다.
+    """
+    # Step 1: 대섹션 경계 찾기
+    boundaries = _find_section_boundaries(content)
+
+    if not boundaries:
+        # 폴백: 섹션 구조 없으면 프리픽스 없이 기존 청킹 사용
+        plain_chunks = section_aware_chunk(content, max_chunk_size)
+        return [
+            ChunkWithContext(
+                content=chunk,
+                context_prefix="",
+                parent_content=chunk,
+                chunk_id=f"chunk_{i}",
+            )
+            for i, chunk in enumerate(plain_chunks)
+        ]
+
+    # Step 2: 대섹션 분할
+    major_sections: list[str] = []
+    if boundaries[0] > 0:
+        preamble = content[: boundaries[0]].strip()
+        if preamble:
+            major_sections.append(preamble)
+
+    for i, start in enumerate(boundaries):
+        end = boundaries[i + 1] if i + 1 < len(boundaries) else len(content)
+        section_text = content[start:end].strip()
+        if section_text:
+            major_sections.append(section_text)
+
+    # Step 3: 각 대섹션 내에서 하위 분할 + 프리픽스 생성
+    results: list[ChunkWithContext] = []
+
+    for sec_idx, section in enumerate(major_sections):
+        major_title = _extract_section_title(section)
+        parent_text = _truncate_parent(section)
+
+        # 대섹션이 max_chunk_size 이하면 그대로 하나의 청크
+        if len(section) <= max_chunk_size:
+            if len(section.strip()) < _MIN_USEFUL_CHARS:
+                continue
+            prefix = f"[{major_title}]" if major_title else ""
+            results.append(
+                ChunkWithContext(
+                    content=section,
+                    context_prefix=prefix,
+                    parent_content=parent_text,
+                    chunk_id=f"section_{sec_idx}_chunk_0",
+                )
+            )
+            continue
+
+        # 대형 섹션 → 하위 헤더로 분할
+        sub_chunks = _split_large_section(section, max_chunk_size)
+        for chunk_idx, chunk in enumerate(sub_chunks):
+            if len(chunk.strip()) < _MIN_USEFUL_CHARS:
+                continue
+            sub_title = _extract_section_title(chunk)
+
+            if major_title and sub_title and sub_title != major_title:
+                prefix = f"[{major_title} > {sub_title}]"
+            elif major_title:
+                prefix = f"[{major_title}]"
+            else:
+                prefix = ""
+
+            results.append(
+                ChunkWithContext(
+                    content=chunk,
+                    context_prefix=prefix,
+                    parent_content=parent_text,
+                    chunk_id=f"section_{sec_idx}_chunk_{chunk_idx}",
+                )
+            )
+
+    if not results:
+        # 모두 필터링됐으면 폴백
+        plain_chunks = section_aware_chunk(content, max_chunk_size)
+        return [
+            ChunkWithContext(
+                content=chunk,
+                context_prefix="",
+                parent_content=chunk,
+                chunk_id=f"chunk_{i}",
+            )
+            for i, chunk in enumerate(plain_chunks)
+        ]
+
+    return results

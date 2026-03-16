@@ -186,8 +186,20 @@ class AutoRAGExporter:
             if tables:
                 content = content + "\n\n" + "\n\n".join(tables)
 
+            context_chunks = self._chunk_with_context(content)
+            if context_chunks is not None:
+                chunk_entries = self._append_context_chunks(
+                    context_chunks,
+                    corpus_rows,
+                    doc_id,
+                    title,
+                    metadata,
+                )
+                doc_chunk_map[doc_id] = chunk_entries
+                continue
+
             chunks = _chunk_for_retrieval(content, self.chunk_size, self.overlap)
-            chunk_entries: list[tuple[str, str]] = []
+            chunk_entries_plain: list[tuple[str, str]] = []
             chunk_start = len(corpus_rows)
 
             offset = 0
@@ -195,14 +207,85 @@ class AutoRAGExporter:
                 chunk_id = str(uuid.uuid5(_NAMESPACE, f"{doc_id}::{i}"))
                 start_idx = offset
                 end_idx = offset + len(chunk_text)
-                # 다음 청크 시작점: 현재 청크 끝 - 중첩 영역
                 offset = end_idx - self.overlap if i < len(chunks) - 1 else end_idx
 
-                corpus_rows.append({
+                corpus_rows.append(
+                    {
+                        "doc_id": chunk_id,
+                        "contents": chunk_text,
+                        "path": metadata.get("path", title),
+                        "start_end_idx": [start_idx, end_idx],
+                        "metadata": {
+                            "last_modified_datetime": datetime.now(),
+                            "prev_id": None,
+                            "next_id": None,
+                            "source_doc_id": doc_id,
+                            "source_title": title,
+                            "chunk_index": i,
+                            "total_chunks": len(chunks),
+                        },
+                    }
+                )
+                chunk_entries_plain.append((chunk_id, chunk_text))
+
+            for j in range(len(chunks)):
+                idx = chunk_start + j
+                if j > 0:
+                    corpus_rows[idx]["metadata"]["prev_id"] = corpus_rows[idx - 1][
+                        "doc_id"
+                    ]
+                if j < len(chunks) - 1:
+                    corpus_rows[idx]["metadata"]["next_id"] = corpus_rows[idx + 1][
+                        "doc_id"
+                    ]
+
+            doc_chunk_map[doc_id] = chunk_entries_plain
+
+        return corpus_rows, doc_chunk_map
+
+    def _chunk_with_context(
+        self,
+        content: str,
+    ) -> list | None:
+        """``section_aware_chunk_with_context``로 컨텍스트 청킹을 시도합니다.
+
+        사용 불가능하면 ``None``을 반환하여 기존 방식으로 폴백합니다.
+        """
+        try:
+            from ..calibration import section_aware_chunk_with_context
+        except ImportError:
+            return None
+        chunks = section_aware_chunk_with_context(content, self.chunk_size)
+        if not chunks:
+            return None
+        return chunks
+
+    def _append_context_chunks(
+        self,
+        context_chunks: list,
+        corpus_rows: list[dict[str, Any]],
+        doc_id: str,
+        title: str,
+        metadata: dict[str, Any],
+    ) -> list[tuple[str, str]]:
+        """``ChunkWithContext`` 리스트를 corpus_rows에 추가합니다."""
+        chunk_entries: list[tuple[str, str]] = []
+        chunk_start = len(corpus_rows)
+        total = len(context_chunks)
+
+        for i, ctx_chunk in enumerate(context_chunks):
+            chunk_id = str(uuid.uuid5(_NAMESPACE, f"{doc_id}::{i}"))
+            prefixed = (
+                ctx_chunk.context_prefix + "\n" + ctx_chunk.content
+                if ctx_chunk.context_prefix
+                else ctx_chunk.content
+            )
+            corpus_rows.append(
+                {
                     "doc_id": chunk_id,
-                    "contents": chunk_text,
+                    "contents": prefixed,
                     "path": metadata.get("path", title),
-                    "start_end_idx": [start_idx, end_idx],
+                    "start_end_idx": [0, len(ctx_chunk.content)],
                     "metadata": {
                         "last_modified_datetime": datetime.now(),
                         "prev_id": None,
@@ -210,26 +293,21 @@ class AutoRAGExporter:
                         "source_doc_id": doc_id,
                         "source_title": title,
                         "chunk_index": i,
-                        "total_chunks": len(chunks),
+                        "total_chunks": total,
+                        "parent_content": ctx_chunk.parent_content,
                     },
-                })
-                chunk_entries.append((chunk_id, chunk_text))
+                }
+            )
+            chunk_entries.append((chunk_id, prefixed))
 
-            # 동일 문서 내 청크 간 prev_id / next_id 설정
-            for j in range(len(chunks)):
-                idx = chunk_start + j
-                if j > 0:
-                    corpus_rows[idx]["metadata"]["prev_id"] = (
-                        corpus_rows[idx - 1]["doc_id"]
-                    )
-                if j < len(chunks) - 1:
-                    corpus_rows[idx]["metadata"]["next_id"] = (
-                        corpus_rows[idx + 1]["doc_id"]
-                    )
+        for j in range(total):
+            idx = chunk_start + j
+            if j > 0:
+                corpus_rows[idx]["metadata"]["prev_id"] = corpus_rows[idx - 1]["doc_id"]
+            if j < total - 1:
+                corpus_rows[idx]["metadata"]["next_id"] = corpus_rows[idx + 1]["doc_id"]
 
-            doc_chunk_map[doc_id] = chunk_entries
-
-        return corpus_rows, doc_chunk_map
+        return chunk_entries
 
     def _build_qa(
         self,
@@ -268,11 +346,13 @@ class AutoRAGExporter:
                 )
                 continue
 
-            qa_rows.append({
-                "qid": str(uuid.uuid4()),
-                "query": question,
-                "retrieval_gt": [relevant_ids],
-                "generation_gt": [answer],
-            })
+            qa_rows.append(
+                {
+                    "qid": str(uuid.uuid4()),
+                    "query": question,
+                    "retrieval_gt": [relevant_ids],
+                    "generation_gt": [answer],
+                }
+            )
 
         return qa_rows
