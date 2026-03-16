@@ -186,14 +186,14 @@ autorag_export:
   overlap_chars: 64                     # 청크 간 중첩 문자 수
 
 # -- RAG 서비스(RAG Service) ------------------------------------------------
-# corpus.parquet을 ChromaDB에 임베딩하여 적재하고,
+# corpus.parquet을 Qdrant에 임베딩하여 적재하고,
 # Ollama SLM과 연동하는 RAG API 서버를 실행합니다.
 # 파이프라인 기본 실행 시 인덱싱까지 자동 수행됩니다.
-# 서버 실행: slm-factory tool rag-serve --config project.yaml
+# 서버 실행: slf tool rag-serve --config project.yaml
 rag:
-  embedding_model: "BAAI/bge-m3"        # 임베딩 모델 (sentence-transformers 호환)
-  vector_db_path: "chroma_db"           # ChromaDB 저장 경로 (output/ 하위)
-  collection_name: "corpus"             # ChromaDB 컬렉션 이름
+  embedding_model: "Qwen/Qwen3-Embedding-8B"  # 임베딩 모델 (sentence-transformers 호환)
+  vector_db_path: "qdrant_db"           # Qdrant 저장 경로 (output/ 하위)
+  collection_name: "corpus"             # Qdrant 컬렉션 이름
   top_k: 5                              # 검색 시 반환할 최대 청크 수
   batch_size: 64                        # 인덱싱 배치 크기
   server_host: "0.0.0.0"               # RAG API 서버 호스트
