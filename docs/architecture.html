@@ -105,9 +105,98 @@
 
         <h3 id="component-structure">2.1 컴포넌트 구조 다이어그램</h3>
 
-        
+        <pre data-lang="text"><code>                     ┌─────────────────────────────┐
+                       CLI (cli.py)
+                       Entry Point (Typer)
+                     └──────────────┬──────────────┘
+                                    ▼
+                     ┌─────────────────────────────┐
+                         Pipeline (pipeline.py)
+                          Orchestrator (12 steps)
+                     └──────────────┬──────────────┘
+                                    ▼
+
+┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+  1. Parse             2. Generate          3. Validate
+  parsers/             teacher/             validator/
+└────────┬─────────┘ └────────┬─────────┘ └────────┬─────────┘
+         ▼                    ▼                    ▼
+  parsed_documents.json qa_alpaca.json       (filtered pairs)
+
+┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+  4. Score             5. Augment           6. Analyze
+  scorer.py            augmenter.py         analyzer.py
+└────────┬─────────┘ └────────┬─────────┘ └────────┬─────────┘
+         ▼                    ▼                    ▼
+  qa_scored.json       qa_augmented.json   data_analysis.json
+
+┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+  7. Convert           8. Train             9. Export
+  converter.py         trainer/             exporter/
+└────────┬─────────┘ └────────┬─────────┘ └────────┬─────────┘
+         ▼                    ▼                    ▼
+  training_data.jsonl  adapter/            merged_model/ Modelfile
+
+┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+  10. Eval             11. Autorag Export   12. RAG Index
+  evaluator.py         exporter/            rag/
+└────────┬─────────┘ └────────┬─────────┘ └────────┬─────────┘
+         ▼                    ▼                    ▼
+  eval_results.json    autorag/*.parquet    chroma_db/
+
+                     ┌─────────────────────────────┐
+                       Config (config.py)
+                       Injected into all components
+                     └─────────────────────────────┘</code></pre>
 
         <h3 id="module-dependencies">2.2 모듈 의존성 다이어그램</h3>
+
+        <pre data-lang="text"><code>cli.py
+  └─→ pipeline.py
+        ├─→ parsers/
+        │     ├─→ base.py (BaseParser, ParserRegistry)
+        │     ├─→ pdf.py (PDFParser)
+        │     ├─→ hwpx.py (HWPXParser)
+        │     ├─→ html.py (HTMLParser)
+        │     ├─→ text.py (TextParser)
+        │     ├─→ docx.py (DOCXParser)
+        │     └─→ hwp.py (HWPParser)
+        │
+        ├─→ teacher/
+        │     ├─→ base.py (BaseTeacher)
+        │     ├─→ ollama.py (OllamaTeacher)
+        │     ├─→ openai_compat.py (OpenAICompatTeacher)
+        │     └─→ qa_generator.py (QAGenerator)
+        │
+        ├─→ validator/
+        │     ├─→ rules.py (RuleValidator)
+        │     └─→ similarity.py (GroundednessChecker)
+        │
+        ├─→ scorer.py (QualityScorer)
+        ├─→ augmenter.py (DataAugmenter)
+        ├─→ analyzer.py (DataAnalyzer)
+        ├─→ converter.py (ChatFormatter)
+        │
+        ├─→ trainer/
+        │     └─→ lora_trainer.py (DataLoader, LoRATrainer)
+        │
+        ├─→ exporter/
+        │     ├─→ hf_export.py (HFExporter)
+        │     ├─→ ollama_export.py (OllamaExporter)
+        │     └─→ autorag_export.py (AutoRAGExporter)
+        │
+        ├─→ evaluator.py (ModelEvaluator)
+        ├─→ comparator.py (ModelComparator)
+        ├─→ incremental.py (IncrementalTracker)
+        ├─→ calibration.py (auto_chunk_size, auto_num_epochs, section_aware_chunk)
+        ├─→ device.py (detect_device)
+        ├─→ evolve_history.py (EvolveHistory)
+        └─→ tui/ (QAReviewerApp, PipelineDashboard)
+
+모든 모듈
+  ├─→ config.py (SLMConfig + 29개 하위 모델)
+  ├─→ models.py (ParsedDocument, QAPair, EvalResult, CompareResult)
+  └─→ utils.py (setup_logging, get_logger)</code></pre>
 
       </section>
 
@@ -129,7 +218,7 @@ class CSVParser(BaseParser):
     def parse(self, path: Path) -&gt; ParsedDocument:
         ...</code></pre>
 
-        <p><code>parsers/__init__.py</code>에서 전역 <code>registry</code> 인스턴스를 생성하고 5개 파서(PDF, HWPX, HTML, Text, DOCX)를 자동 등록합니다. 새 파서를 <code>@registry.register</code>로 등록하면 즉시 파이프라인에서 처리됩니다.</p>
+        <p><code>parsers/__init__.py</code>에서 전역 <code>registry</code> 인스턴스를 생성하고 6개 파서(PDF, HWPX, HWP, HTML, Text, DOCX)를 자동 등록합니다. 새 파서를 <code>@registry.register</code>로 등록하면 즉시 파이프라인에서 처리됩니다.</p>
         <p><code>parsers/base.py</code>의 <code>detect_encoding()</code> 함수는 HTML 파서와 텍스트 파서가 공유하는 인코딩 감지 유틸리티입니다. charset-normalizer를 사용하여 EUC-KR, CP949 등 한국어 인코딩을 정확하게 감지합니다. <code>HTMLParser</code>는 BeautifulSoup4의 lxml 백엔드를 사용하며, h1–h6 헤딩 태그를 마크다운 헤딩으로 변환하여 문서 구조를 보존합니다.</p>
         <p>커스텀 파서 구현 전체 예제는 <a href="development.html">개발자 가이드</a> 참조</p>
 
@@ -160,7 +249,7 @@ class CSVParser(BaseParser):
         <p><code>ChatFormatter</code>는 HuggingFace <code>tokenizer.apply_chat_template()</code>을 래핑하여 통일된 <code>QAPair</code> 형식을 모델별 채팅 형식으로 변환합니다. Gemma처럼 시스템 역할을 지원하지 않는 모델은 시스템 메시지를 제거하고 자동으로 재시도합니다. <code>max_seq_length</code> 초과 항목은 자동으로 제외됩니다.</p>
 
         <h3 id="async-pattern">3.5 비동기 동시성 패턴 (scorer, augmenter)</h3>
-        <p>Scorer, Augmenter는 <code>asyncio.Semaphore</code>로 동시 요청 수를 제한하면서 병렬 처리합니다.</p>
+        <p>Scorer와 Augmenter는 <code>asyncio.Semaphore</code>로 동시 요청 수를 제한하면서 병렬 처리합니다.</p>
 
         <pre data-lang="python"><code>semaphore = asyncio.Semaphore(config.max_concurrency)
 
@@ -217,7 +306,51 @@ results = await asyncio.gather(*tasks, return_exceptions=True)</code></pre>
 
         <h3 id="file-chain">4.2 중간 파일 체인 다이어그램</h3>
 
-        
+        <pre data-lang="text"><code>documents/
+  (PDF, HWPX, HWP, HTML, TXT, MD, DOCX)
+        │
+        ▼ step_parse()
+  parsed_documents.json
+        │
+        ├──▶ chunking (chunking.enabled=true)
+        │      긴 문서를 청크로 분할 → 각 청크마다 QA 생성
+        │
+        ▼ step_generate()
+qa_alpaca.json
+        │
+        ▼ step_validate()
+    [메모리]
+        │
+        ├─▶ step_score()   ──▶  qa_scored.json
+        │
+        ├─▶ step_augment() ──▶  qa_augmented.json
+        │
+        ├─▶ step_analyze() ──▶  data_analysis.json
+        │
+        ▼ step_convert()
+training_data.jsonl
+        │
+        ▼ step_train()
+checkpoints/adapter/
+  ├── adapter_config.json
+  ├── adapter_model.safetensors
+  └── tokenizer_config.json
+        │
+        ▼ step_export()
+merged_model/
+  ├── model.safetensors
+  ├── config.json
+  ├── tokenizer.json
+  └── Modelfile
+        │
+        ▼ step_eval()           (eval.enabled)
+  eval_results.json
+        │
+        ▼ step_autorag_export() (autorag_export.enabled)
+  autorag/corpus.parquet + qa.parquet
+        │
+        ▼ step_rag_index()
+  chroma_db/</code></pre>
 
         <h3 id="resume">4.3 재개 메커니즘 (--resume)</h3>
         <p><code>--resume</code> 옵션을 사용하면 CLI가 중간 파일의 존재 여부를 확인하여 완료된 단계를 건너뜁니다. 체크포인트 감지 우선순위는 다음과 같습니다.</p>
@@ -228,7 +361,7 @@ qa_alpaca.json 존재     →  validate 단계부터 재개
 parsed_documents.json   →  generate 단계부터 재개
 없음                    →  처음부터 실행</code></pre>
 
-        <p><code>slm-factory status</code> 명령으로 각 중간 파일의 존재 여부와 항목 수를 확인할 수 있습니다.</p>
+        <p><code>slf status</code> 명령으로 각 중간 파일의 존재 여부와 항목 수를 확인할 수 있습니다.</p>
         <p>각 단계 사용법은 <a href="guide.html">사용 가이드</a> 참조<br>
         각 단계 API는 <a href="development.html">개발자 가이드</a> 참조</p>
       </section>
@@ -247,7 +380,7 @@ parsed_documents.json   →  generate 단계부터 재개
         <div class="diagram">
           <svg role="img" aria-labelledby="svg4-title svg4-desc" viewBox="0 0 780 500" xmlns="http://www.w3.org/2000/svg">
             <title id="svg4-title">설정 모델 계층 구조 다이어그램</title>
-            <desc id="svg4-desc">SLMConfig 루트 모델에서 23개 하위 설정 모델(ProjectConfig, PathsConfig, ParsingConfig 등)로 이어지는 계층 구조를 Core, Pipeline, Advanced 세 그룹으로 나누어 보여주는 다이어그램</desc>
+            <desc id="svg4-desc">SLMConfig 루트 모델에서 29개 하위 설정 모델(ProjectConfig, PathsConfig, ParsingConfig 등)로 이어지는 계층 구조를 Core, Pipeline, Advanced 세 그룹으로 나누어 보여주는 다이어그램</desc>
             <defs>
               <marker id="s4-arrow" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto"><polyline points="0 0, 5 2, 0 4" fill="none" stroke="#2C5282" stroke-width="1" stroke-linejoin="round"/></marker>
             </defs>
@@ -328,7 +461,7 @@ parsed_documents.json   →  generate 단계부터 재개
             <rect x="550" y="332" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="560" y="350" class="s4-item">dashboard: DashboardConfig</text>
           </svg>
-          <p class="diagram-caption">그림 5-1. SLMConfig 설정 모델 계층 구조 (20개 하위 모델)</p>
+          <p class="diagram-caption">그림 5-1. SLMConfig 설정 모델 계층 구조 (29개 하위 모델)</p>
         </div>
 
         <!-- Full config field details preserved as code block -->
@@ -356,15 +489,17 @@ parsed_documents.json   →  generate 단계부터 재개
 │   ├── api_base: str = "http://localhost:11434"
 │   ├── api_key: str | None = None
 │   ├── temperature: float = 0.3
-│   ├── timeout: int = 180
+│   ├── timeout: int = 300
 │   ├── max_context_chars: int = 12000
-│   └── max_concurrency: int = 4
+│   └── max_concurrency: int = 2
 │
 ├── questions: QuestionsConfig
 │   ├── categories: dict[str, list[str]] = {}
 │   ├── file: Path | None = None
 │   ├── system_prompt: str = "You are a helpful..."
-│   └── output_format: str = "alpaca"
+│   ├── output_format: str = "alpaca"
+│   ├── auto_generate: bool = False
+│   └── questions_per_chunk: int | "auto" = "auto"
 │
 ├── validation: ValidationConfig
 │   ├── enabled: bool = True
@@ -378,52 +513,55 @@ parsed_documents.json   →  generate 단계부터 재개
 │       ├── model: str = "all-MiniLM-L6-v2"
 │       └── threshold: float = 0.3
 │
+├── chunking: ChunkingConfig
+│   ├── enabled: bool = True
+│   ├── chunk_size: int | "auto" = "auto"
+│   └── overlap_chars: int = 500
+│
 ├── scoring: ScoringConfig
 │   ├── enabled: bool = True
 │   ├── threshold: float = 3.0
-│   ├── max_concurrency: int = 4
-│   ├── regenerate: bool = True
-│   └── max_regenerate_rounds: int = 2
+│   └── max_concurrency: int = 3
 │
 ├── augment: AugmentConfig
 │   ├── enabled: bool = True
 │   ├── num_variants: int = 2
-│   ├── min_similarity: float = 0.3
-│   └── max_concurrency: int = 4
+│   ├── max_concurrency: int = 3
+│   └── min_similarity: float = 0.3
 │
 ├── analyzer: AnalyzerConfig
 │   ├── enabled: bool = True
 │   └── output_file: str = "data_analysis.json"
 │
 ├── student: StudentConfig
-│   ├── model: str = "Qwen/Qwen2.5-1.5B"
+│   ├── model: str = "google/gemma-3-1b-it"
 │   └── max_seq_length: int = 4096
 │
 ├── training: TrainingConfig
-│   ├── batch_size: int = 4
-│   ├── gradient_accumulation_steps: int = 4
-│   ├── learning_rate: float = 2e-5
+│   ├── batch_size: int = 1
+│   ├── gradient_accumulation_steps: int = 8
+│   ├── learning_rate = 2e-4
 │   ├── lr_scheduler: str = "cosine"
 │   ├── warmup_ratio: float = 0.1
-│   ├── num_epochs: int = 20
+│   ├── num_epochs: int | "auto" = "auto"
 │   ├── optimizer: str = "adamw_torch_fused"
 │   ├── bf16: bool = True
 │   ├── train_split: float = 0.9
 │   ├── save_strategy: str = "epoch"
-│   ├── neftune_noise_alpha: float | None = None
 │   ├── lora: LoraConfig
-│   │   ├── r: int = 16
-│   │   ├── alpha: int = 32
-│   │   ├── dropout: float = 0.05
+│   │   ├── r: int = 8
+│   │   ├── alpha: int = 16
+│   │   ├── dropout: float = 0.1
 │   │   ├── target_modules: str | list[str] = "auto"
 │   │   └── use_rslora: bool = False
 │   ├── early_stopping: EarlyStoppingConfig
 │   │   ├── enabled: bool = True
 │   │   ├── patience: int = 3
 │   │   └── threshold: float = 0.01
-│   └── quantization: QuantizationConfig
-│       ├── enabled: bool = True
-│       └── bits: int = 4
+│   ├── quantization: QuantizationConfig
+│   │   ├── enabled: bool = True
+│   │   └── bits: int = 4
+│   └── neftune_noise_alpha: float | None = None
 │
 ├── export: ExportConfig
 │   ├── merge_lora: bool = True
@@ -437,12 +575,18 @@ parsed_documents.json   →  generate 단계부터 재개
 ├── eval: EvalConfig
 │   ├── enabled: bool = True
 │   ├── test_split: float = 0.1
-│   ├── metrics: list[str] = ["bleu", "rouge"]
-│   ├── max_samples: int = 50
+│   ├── metrics: list[str] = ["bleu", "rouge", "llm_judge"]
+│   ├── max_samples: int = 20
 │   ├── max_tokens: int = 512
+│   ├── output_file: str = "eval_results.json"
 │   ├── quality_gate: bool = True
-│   ├── quality_thresholds: dict
-│   └── output_file: str = "eval_results.json"
+│   ├── quality_thresholds: dict = {"bleu": 0.1, "rougeL": 0.2}
+│   └── llm_judge_model: str = ""
+│
+├── refinement: RefinementConfig
+│   ├── enabled: bool = False
+│   ├── max_rounds: int = 1
+│   └── llm_judge_threshold: float = 0.6
 │
 ├── incremental: IncrementalConfig
 │   ├── enabled: bool = True
@@ -476,6 +620,31 @@ parsed_documents.json   →  generate 단계부터 재개
 │   ├── enabled: bool = True
 │   ├── refresh_interval: float = 2.0
 │   └── theme: str = "dark"
+│
+├── autorag_export: AutoRAGExportConfig
+│   ├── enabled: bool = True
+│   ├── output_dir: str = "autorag"
+│   ├── chunk_size: int = 512
+│   └── overlap_chars: int = 64
+│
+└── rag: RagConfig
+    ├── embedding_model: str = "BAAI/bge-m3"
+    ├── vector_db_path: str = "chroma_db"
+    ├── collection_name: str = "corpus"
+    ├── top_k: int = 5
+    ├── server_host: str = "0.0.0.0"
+    ├── server_port: int = 8000
+    ├── ollama_model: str = ""
+    ├── workers: int = 1
+    ├── log_level: str = "info"
+    ├── cors_origins: list[str] = ["*"]
+    ├── batch_size: int = 64
+    ├── request_timeout: float = 120.0
+    ├── max_tokens: int = 512
+    ├── reranker_enabled: bool = False
+    ├── reranker_model: str = "BAAI/bge-reranker-v2-m3"
+    ├── hybrid_search: bool = False
+    └── query_rewriting: bool = False
 </code></pre>
 
         <p>각 필드의 상세 설명은 <a href="configuration.html">설정 레퍼런스</a> 참조</p>
@@ -574,7 +743,7 @@ def _strip_none_sections(cls, values: dict) -&gt; dict:
         </div>
 
         <h3 id="default-config">5.3 기본값 생성 로직</h3>
-        <p><code>create_default_config()</code>는 <code>uv run slm-factory init</code> 명령 실행 시 호출되며, 다음 순서로 기본 YAML 템플릿을 반환합니다.</p>
+        <p><code>create_default_config()</code>는 <code>slf init</code> 명령 실행 시 호출되며, 다음 순서로 기본 YAML 템플릿을 반환합니다.</p>
 
         <pre data-lang="text"><code>1. 패키지 루트의 templates/project.yaml 읽기 시도
         │ 실패 시
@@ -661,7 +830,7 @@ def _strip_none_sections(cls, values: dict) -&gt; dict:
               <tr><td>변환 결과 빈 배치</td><td><code>RuntimeError</code> 발생하여 파이프라인 중단</td><td><code>ChatFormatter.format_batch()</code></td></tr>
               <tr><td>JSON 파일 손상</td><td>빈 기본값으로 복구 후 로그 출력</td><td><code>EvolveHistory</code>, <code>IncrementalTracker</code></td></tr>
               <tr><td>진화 품질 게이트 실패</td><td>생성된 Ollama 모델 자동 삭제 후 이전 모델 유지</td><td><code>cli.py</code> evolve 명령</td></tr>
-              <tr><td>설정 파일 없음</td><td>기본 설정 생성 제안 (<code>uv run slm-factory init</code>)</td><td><code>cli.py</code></td></tr>
+              <tr><td>설정 파일 없음</td><td>기본 설정 생성 제안 (<code>slf init</code>)</td><td><code>cli.py</code></td></tr>
               <tr><td>파이프라인 중단</td><td><code>--resume</code>으로 중간 파일에서 재개</td><td><code>cli.py</code> + 중간 파일 체인</td></tr>
             </tbody>
           </table>
@@ -687,7 +856,48 @@ def _strip_none_sections(cls, values: dict) -&gt; dict:
 
         <h3 id="wizard-flow">7.1 실행 흐름 다이어그램</h3>
 
-        
+        <pre data-lang="text"><code>wizard
+  ├─ 준비. 설정 파일 ──────────── _find_config() → load_config()
+  │    └─ 자동 탐색 실패 시 Prompt.ask()
+  │
+  ├─ 준비. 문서 선택 ──────────── 디렉토리 스캔 → Rich Table → Confirm/번호 입력
+  │    └─ 전체 선택 또는 개별 번호 입력
+  │
+  ├─ Step 1. 문서 파싱 ──────────── pipeline.step_parse(files=selected)
+  │    └─ 자동 진행 (확인 없음)
+  │
+  ├─ Step 2. QA 생성 ────────────── Confirm → pipeline.step_generate(docs)
+  │    └─ 거부 시 → 파싱 결과 경로 안내 후 종료
+  │
+  ├─ Step 3. 검증 ───────────────── pipeline.step_validate(pairs, docs)
+  │    └─ 자동 진행 (확인 없음)
+  │
+  ├─ Step 4. 품질 평가 (선택적) ──── Confirm(default=scoring.enabled) → step_score()
+  │    └─ config.scoring.enabled 기본값 반영
+  │
+  ├─ Step 5. 데이터 증강 (선택적) ── Confirm(default=augment.enabled) → step_augment()
+  │    └─ config.augment.enabled 기본값 반영
+  │
+  ├─ Step 6. 통계 분석 (자동) ───── pipeline.step_analyze(pairs)
+  │    └─ 자동 진행 (확인 없음)
+  │
+  ├─ Step 7. 데이터 변환 (자동) ─── step_convert()
+  │    └─ 자동 진행 (확인 없음)
+  │
+  ├─ Step 8. LoRA 학습 ──────────── Confirm → step_train()
+  │    └─ 거부 시 → 학습 데이터 경로 + train 명령어 안내 후 종료
+  │
+  ├─ Step 9. 내보내기 ──────────── Confirm → step_export()
+  │    └─ 거부 시 → 어댑터 경로 + export 명령어 안내 후 종료
+  │
+  ├─ Step 10. 모델 평가 (선택적) ──── Confirm(default=eval.enabled) → step_eval()
+  │    └─ config.eval.enabled 기본값 반영
+  │
+  ├─ Step 11. 코퍼스 내보내기 (선택적) ── Confirm(default=autorag_export.enabled) → step_autorag_export()
+  │    └─ config.autorag_export.enabled 기본값 반영
+  │
+  └─ Step 12. RAG 인덱싱 (선택적) ──────── Confirm(default=True) → step_rag_index()
+       └─ rag 설정 반영</code></pre>
 
         <h3 id="wizard-steps">7.2 필수/선택 단계 분류</h3>
 
@@ -723,13 +933,13 @@ def _strip_none_sections(cls, values: dict) -&gt; dict:
         <p>각 단계를 건너뛸 때 wizard는 나중에 해당 단계를 개별 실행할 수 있는 정확한 CLI 명령어를 안내합니다.</p>
 
         <pre data-lang="text"><code>QA 생성 건너뜀:
-   → "나중에 실행: uv run slm-factory run --until generate --config {config_path}"
+  → "나중에 실행: slf run --until generate --config {config_path}"
 
 학습 건너뜀:
-  → "나중에 실행: uv run slm-factory train --config {config_path} --data {training_data_path}"
+  → "나중에 실행: slf train --config {config_path} --data {training_data_path}"
 
 내보내기 건너뜀:
-  → "나중에 실행: uv run slm-factory export --config {config_path} --adapter {adapter_path}"</code></pre>
+  → "나중에 실행: slf export --config {config_path} --adapter {adapter_path}"</code></pre>
 
         <p>중간 결과 파일은 보존되므로 <code>--resume</code> 옵션 또는 개별 명령어로 이어서 진행할 수 있습니다.</p>
 

@@ -114,16 +114,16 @@ ollama pull qwen3.5:9b   # Teacher 모델 다운로드 (최초 1회)</code></pre
           <h2>프로젝트 시작</h2>
 
           <pre data-lang="bash"><code># 1. 프로젝트 초기화
-uv run slm-factory init my-project
+slf init my-project
 
 # 2. 학습할 문서 복사
 cp /path/to/documents/*.pdf my-project/documents/
 
 # 3. 환경 점검 (선택 권장)
-uv run slm-factory check --config my-project/project.yaml
+slf check --config my-project/project.yaml
 
 # 4. 대화형 파이프라인 실행
-uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
+slf tool wizard --config my-project/project.yaml</code></pre>
         </section>
 
 
@@ -137,7 +137,7 @@ uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
 
           <h3 id="cli-start">시작하기</h3>
 
-          <blockquote><p>모든 명령어는 <code>uv run</code> 접두사를 붙여 실행합니다. (예: <code>uv run slm-factory run</code>)</p></blockquote>
+          <blockquote><p>모든 명령어는 가상환경 활성화 후 실행합니다: <code>source .venv/bin/activate</code></p></blockquote>
 
           <div class="table-wrapper">
             <table>
@@ -150,12 +150,12 @@ uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
               </thead>
               <tbody>
                 <tr>
-                  <td><code>slm-factory init &lt;name&gt;</code></td>
+                  <td><code>slf init &lt;name&gt;</code></td>
                   <td>새 프로젝트 초기화</td>
                   <td><code>--path &lt;디렉토리&gt;</code></td>
                 </tr>
                 <tr>
-                  <td><code>slm-factory check</code></td>
+                  <td><code>slf check</code></td>
                   <td>설정 및 환경 사전 점검</td>
                   <td><code>--config &lt;파일&gt;</code></td>
                 </tr>
@@ -176,17 +176,22 @@ uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
               </thead>
               <tbody>
                 <tr>
-                  <td><code>slm-factory run</code></td>
+                  <td><code>slf run</code></td>
                   <td>전체 파이프라인 실행</td>
                   <td><code>--config</code>, <code>--until &lt;단계&gt;</code>, <code>--from &lt;단계&gt;</code>, <code>--resume</code> / <code>-r</code>, <code>--serve</code> / <code>-s</code></td>
                 </tr>
                 <tr>
-                  <td><code>slm-factory train</code></td>
+                  <td><code>slf serve</code></td>
+                  <td>RAG 웹 채팅 서비스 (인덱스 자동 구축)</td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td><code>slf train</code></td>
                   <td>LoRA 학습 실행</td>
                   <td><code>--config</code>, <code>--data &lt;jsonl&gt;</code>, <code>--resume</code> / <code>-r</code></td>
                 </tr>
                 <tr>
-                  <td><code>slm-factory export</code></td>
+                  <td><code>slf export</code></td>
                   <td>모델 내보내기 (LoRA 병합 + Modelfile)</td>
                   <td><code>--config</code>, <code>--adapter &lt;경로&gt;</code></td>
                 </tr>
@@ -207,12 +212,12 @@ uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
               </thead>
               <tbody>
                 <tr>
-                  <td><code>slm-factory eval run</code></td>
+                  <td><code>slf eval run</code></td>
                   <td>BLEU/ROUGE 평가</td>
                   <td><code>--model &lt;이름&gt;</code>, <code>--config</code>, <code>--data</code></td>
                 </tr>
                 <tr>
-                  <td><code>slm-factory eval compare</code></td>
+                  <td><code>slf eval compare</code></td>
                   <td>Base vs Fine-tuned 비교</td>
                   <td><code>--base-model &lt;이름&gt;</code>, <code>--ft &lt;이름&gt;</code>, <code>--config</code>, <code>--data</code></td>
                 </tr>
@@ -233,47 +238,52 @@ uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
               </thead>
               <tbody>
                 <tr>
-                  <td><code>slm-factory tool wizard</code></td>
+                  <td><code>slf tool wizard</code></td>
                   <td>대화형 파이프라인 (권장)</td>
                   <td><code>--config</code>, <code>--resume</code> / <code>-r</code></td>
                 </tr>
                 <tr>
-                  <td><code>slm-factory tool review</code></td>
+                  <td><code>slf tool review</code></td>
                   <td>QA 수동 리뷰 TUI</td>
                   <td><code>--config</code>, <code>--data</code></td>
                 </tr>
                 <tr>
-                  <td><code>slm-factory tool dashboard</code></td>
+                  <td><code>slf tool dashboard</code></td>
                   <td>파이프라인 대시보드 TUI</td>
                   <td><code>--config</code></td>
                 </tr>
                  <tr>
-                   <td><code>slm-factory tool evolve</code></td>
+                   <td><code>slf tool evolve</code></td>
                    <td>자동 진화 (증분 &rarr; 학습 &rarr; 품질게이트 &rarr; 배포)</td>
                    <td><code>--config</code>, <code>--force-update</code>, <code>--skip-gate</code></td>
                  </tr>
                 <tr>
-                  <td><code>slm-factory tool convert</code></td>
+                  <td><code>slf tool convert</code></td>
                   <td>QA &rarr; JSONL 변환</td>
                   <td><code>--config</code>, <code>--data</code></td>
                 </tr>
                 <tr>
-                  <td><code>slm-factory tool update</code></td>
+                  <td><code>slf tool update</code></td>
                   <td>증분 업데이트 (변경 문서만)</td>
                   <td><code>--config</code></td>
                 </tr>
                 <tr>
-                  <td><code>slm-factory tool export-autorag</code></td>
+                  <td><code>slf tool compare-data</code></td>
+                  <td>두 QA 데이터셋 품질 비교</td>
+                  <td><code>--baseline</code> / <code>-b</code>, <code>--target</code> / <code>-t</code></td>
+                </tr>
+                <tr>
+                  <td><code>slf tool export-autorag</code></td>
                   <td>RAG 인덱싱용 데이터 내보내기</td>
                   <td><code>--config</code>, <code>--qa-file</code></td>
                 </tr>
                 <tr>
-                  <td><code>slm-factory tool rag-index</code></td>
+                  <td><code>slf tool rag-index</code></td>
                   <td>ChromaDB에 임베딩 적재</td>
                   <td><code>--config</code>, <code>--corpus-dir</code></td>
                 </tr>
                 <tr>
-                  <td><code>slm-factory tool rag-serve</code></td>
+                  <td><code>slf tool rag-serve</code></td>
                   <td>RAG API 서버 시작</td>
                   <td><code>--config</code>, <code>--host</code>, <code>--port</code></td>
                 </tr>
@@ -294,17 +304,17 @@ uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
               </thead>
               <tbody>
                 <tr>
-                  <td><code>slm-factory status</code></td>
+                  <td><code>slf status</code></td>
                   <td>파이프라인 진행 상태 확인</td>
                   <td><code>--config</code></td>
                 </tr>
                 <tr>
-                  <td><code>slm-factory clean</code></td>
+                  <td><code>slf clean</code></td>
                   <td>중간 파일 정리</td>
                   <td><code>--config</code>, <code>--all</code>, <code>--yes</code> / <code>-y</code></td>
                 </tr>
                 <tr>
-                  <td><code>slm-factory version</code></td>
+                  <td><code>slf version</code></td>
                   <td>버전 정보 출력</td>
                   <td></td>
                 </tr>
@@ -324,7 +334,7 @@ uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
         <section id="pipeline-steps">
           <h2>파이프라인 단계</h2>
 
-          <p><code>slm-factory run</code> 실행 시 아래 순서로 진행됩니다. wizard(<code>tool wizard</code>)에서는 설정 로드와 문서 선택이 앞에 추가되어 번호가 다릅니다. 상세한 wizard 단계는 <a href="guide.html">사용 가이드</a>를 참조하십시오.</p>
+          <p><code>slf run</code> 실행 시 아래 순서로 진행됩니다. wizard(<code>tool wizard</code>)에서는 설정 로드와 문서 선택이 앞에 추가되어 번호가 다릅니다. 상세한 wizard 단계는 <a href="guide.html">사용 가이드</a>를 참조하십시오.</p>
 
           <div class="table-wrapper">
             <table>
@@ -530,7 +540,7 @@ uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
 
           <p>처음 사용자에게 권장합니다. 각 단계를 확인하며 대화형으로 진행합니다.</p>
 
-          <pre data-lang="bash"><code>uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
+          <pre data-lang="bash"><code>slf tool wizard --config my-project/project.yaml</code></pre>
 
           <hr>
 
@@ -538,7 +548,7 @@ uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
 
           <p>설정을 직접 제어하고 싶을 때 사용합니다.</p>
 
-          <pre data-lang="bash"><code>uv run slm-factory run --config my-project/project.yaml</code></pre>
+          <pre data-lang="bash"><code>slf run --config my-project/project.yaml</code></pre>
 
           <hr>
 
@@ -546,13 +556,13 @@ uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
 
           <p>특정 단계까지만 실행하고 결과를 확인한 후 다음 단계로 진행합니다.</p>
 
-          <pre data-lang="bash"><code>uv run slm-factory run --until parse    --config my-project/project.yaml
-uv run slm-factory run --until generate --config my-project/project.yaml
-uv run slm-factory run --until validate --config my-project/project.yaml
-uv run slm-factory run --until score    --config my-project/project.yaml
-uv run slm-factory run --until augment  --config my-project/project.yaml
-uv run slm-factory train                --config my-project/project.yaml
-uv run slm-factory export               --config my-project/project.yaml</code></pre>
+          <pre data-lang="bash"><code>slf run --until parse    --config my-project/project.yaml
+slf run --until generate --config my-project/project.yaml
+slf run --until validate --config my-project/project.yaml
+slf run --until score    --config my-project/project.yaml
+slf run --until augment  --config my-project/project.yaml
+slf train                --config my-project/project.yaml
+slf export               --config my-project/project.yaml</code></pre>
 
           <hr>
 
@@ -560,7 +570,7 @@ uv run slm-factory export               --config my-project/project.yaml</code><
 
           <p>이미 준비된 <code>training_data.jsonl</code>이 있거나 하이퍼파라미터를 반복 실험할 때 사용합니다.</p>
 
-          <pre data-lang="bash"><code>uv run slm-factory train --config my-project/project.yaml --data ./output/training_data.jsonl</code></pre>
+          <pre data-lang="bash"><code>slf train --config my-project/project.yaml --data ./output/training_data.jsonl</code></pre>
 
           <hr>
 
@@ -568,9 +578,9 @@ uv run slm-factory export               --config my-project/project.yaml</code><
 
           <p>파이프라인이 중간에 중단된 경우, 중간 저장 파일에서 자동으로 재개합니다.</p>
 
-          <pre data-lang="bash"><code>uv run slm-factory run   --config my-project/project.yaml --resume
-uv run slm-factory train --config my-project/project.yaml --resume
-uv run slm-factory tool wizard --config my-project/project.yaml --resume</code></pre>
+          <pre data-lang="bash"><code>slf run   --config my-project/project.yaml --resume
+slf train --config my-project/project.yaml --resume
+slf tool wizard --config my-project/project.yaml --resume</code></pre>
 
           <hr>
 
@@ -579,10 +589,10 @@ uv run slm-factory tool wizard --config my-project/project.yaml --resume</code><
            <p>학습 완료 후 모델 성능을 측정하고 Base 모델과 비교합니다.</p>
 
            <pre data-lang="bash"><code># BLEU/ROUGE 평가
-uv run slm-factory eval run --model my-project-model --config my-project/project.yaml
+slf eval run --model my-project-model --config my-project/project.yaml
 
 # Base vs Fine-tuned 비교
-uv run slm-factory eval compare \
+slf eval compare \
   --base-model gemma:2b \
   --ft my-project-model \
   --config my-project/project.yaml</code></pre>
@@ -591,7 +601,7 @@ uv run slm-factory eval compare \
 
            <p>SLM 학습부터 RAG 인덱싱, API 서버 시작까지 한 번에 실행합니다.</p>
 
-           <pre data-lang="bash"><code>uv run slm-factory run --serve --config my-project/project.yaml</code></pre>
+           <pre data-lang="bash"><code>slf run --serve --config my-project/project.yaml</code></pre>
 
            <p class="note">서버는 foreground로 실행됩니다. <code>Ctrl+C</code>로 종료할 수 있습니다.</p>
          </section>
@@ -649,13 +659,17 @@ teacher:
   temperature: 0.3
 
 student:
-  model: "Qwen/Qwen2.5-1.5B"
+  model: "google/gemma-3-1b-it"
 
 export:
   ollama:
     model_name: "my-project-model"
     system_prompt: "당신은 도메인 전문 도우미입니다."
-</code></pre>
+
+chunking:
+  enabled: true
+  chunk_size: "auto"      # 또는 정수 (예: 10000)
+  overlap_chars: 500</code></pre>
 
           <blockquote>
             <p>전체 설정 옵션(scoring, augment, validation, training, LoRA 등)은 <a href="configuration.html">설정 레퍼런스</a>를 참조하십시오.</p>
@@ -687,7 +701,7 @@ export:
                 <tr>
                   <td><code>CUDA out of memory</code></td>
                   <td>GPU VRAM 부족</td>
-                  <td><code>training.batch_size: 2</code>, <code>quantization.bits: 4</code> 설정</td>
+                  <td><code>training.batch_size: 1</code>, <code>quantization.bits: 4</code> 설정</td>
                 </tr>
                 <tr>
                   <td><code>Failed to parse HWPX file - section0.xml not found</code></td>
@@ -695,9 +709,9 @@ export:
                    <td>한글에서 <code>.hwpx</code>로 다시 저장하거나 <code>.hwp</code> 형식으로 변환</td>
                 </tr>
                 <tr>
-                  <td><code>Could not install packages due to an OSError</code> (pykospacing)</td>
-                  <td>Python 버전 또는 Git 미설치</td>
-                  <td><code>python --version</code> 확인 (3.11+), <code>git --version</code> 확인</td>
+                  <td><code>Could not install packages due to an OSError</code> (kiwipiepy)</td>
+                  <td>Python 버전 미호환</td>
+                  <td><code>python --version</code> 확인 (3.11+)</td>
                 </tr>
                 <tr>
                   <td><code>Only N QA pairs generated. Recommend at least 100</code></td>

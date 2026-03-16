@@ -201,7 +201,10 @@ class CompareResult:
     export: ExportConfig;        eval: EvalConfig
     incremental: IncrementalConfig; review: ReviewConfig
     compare: CompareConfig;      evolve: EvolveConfig
-    dashboard: DashboardConfig</code></pre>
+    dashboard: DashboardConfig
+    chunking: ChunkingConfig
+    autorag_export: AutoRAGExportConfig
+    rag: RagConfig</code></pre>
 
           <p>각 서브 모델의 필드 상세는 <a href="configuration.html">설정 레퍼런스</a>를 참조하십시오.</p>
 
@@ -243,7 +246,9 @@ def create_default_config() -&gt; str:
     ) -&gt; list[QAPair]:
         """규칙 기반 + 선택적 임베딩 검증으로 QA를 필터링합니다."""
 
-    def step_score(self, pairs: list[QAPair]) -&gt; list[QAPair]:
+    def step_score(
+        self, pairs: list[QAPair], docs: list[ParsedDocument] | None = None,
+    ) -&gt; list[QAPair]:
         """Teacher LLM으로 1~5점 품질 평가 후 threshold 필터링합니다."""
 
     def step_augment(self, pairs: list[QAPair]) -&gt; list[QAPair]:
@@ -268,6 +273,12 @@ def create_default_config() -&gt; str:
 
     def step_compare(self, pairs: list[QAPair]) -&gt; list[CompareResult]:
         """Base 모델과 Fine-tuned 모델의 답변을 비교합니다."""
+
+    def step_autorag_export(self, docs: list[ParsedDocument], pairs: list[QAPair]) -&gt; Path:
+        """파싱·QA 데이터를 RAG 인덱싱용 parquet으로 내보냅니다."""
+
+    def step_rag_index(self, corpus_dir: Path | None = None) -&gt; Path:
+        """corpus.parquet을 ChromaDB에 임베딩하여 적재합니다."""
 
     def run(self) -&gt; Path:
         """전체 파이프라인을 엔드-투-엔드로 실행합니다."""</code></pre>
@@ -357,7 +368,7 @@ from slm_factory.parsers import registry</code></pre>
                   <td><code>HWPXParser</code></td>
                   <td><code>hwpx.py</code></td>
                   <td><code>.hwpx</code></td>
-                  <td>lxml, pykospacing (선택적)</td>
+                   <td>lxml, kiwipiepy (선택적)</td>
                 </tr>
                 <tr>
                    <td><code>HTMLParser</code></td>
@@ -377,11 +388,17 @@ from slm_factory.parsers import registry</code></pre>
                   <td><code>.docx</code></td>
                   <td>python-docx (선택적)</td>
                 </tr>
+                <tr>
+                  <td><code>HWPParser</code></td>
+                  <td><code>hwp.py</code></td>
+                  <td><code>.hwp</code></td>
+                  <td>olefile (선택적)</td>
+                </tr>
               </tbody>
             </table>
           </div>
 
-          <p><code>DOCXParser</code>는 <code>python-docx</code>가 설치되지 않은 경우 자동으로 비활성화됩니다. 레지스트리는 <code>parsers/__init__.py</code>에서 모든 파서를 자동 등록합니다.</p>
+          <p><code>DOCXParser</code>는 <code>python-docx</code>가, <code>HWPParser</code>는 <code>olefile</code>이 설치되지 않은 경우 자동으로 비활성화됩니다. 레지스트리는 <code>parsers/__init__.py</code>에서 모든 파서를 자동 등록합니다.</p>
           <p><code>parsers/base.py</code>의 <code>detect_encoding()</code> 함수는 HTML 파서와 텍스트 파서가 공유하는 유틸리티입니다. charset-normalizer를 사용하여 EUC-KR, CP949 등 한국어 인코딩을 정확하게 감지합니다.</p>
         </section>
 
@@ -620,17 +637,17 @@ class DataAnalyzer:
               <tbody>
                 <tr>
                   <td><code>num_epochs</code></td>
-                  <td>20</td>
-                  <td>학습 에포크 수</td>
+                  <td><code>"auto"</code></td>
+                  <td>학습 에포크 수 (<code>"auto"</code>: 데이터 양에 따라 3~5 자동 결정)</td>
                 </tr>
                 <tr>
                   <td><code>learning_rate</code></td>
-                  <td>2.0e-5</td>
+                  <td>2.0e-4</td>
                   <td>학습률</td>
                 </tr>
                 <tr>
                   <td><code>batch_size</code></td>
-                  <td>4</td>
+                  <td>1</td>
                   <td>디바이스당 배치 크기</td>
                 </tr>
                 <tr>
@@ -724,7 +741,7 @@ class DataAnalyzer:
           <h2>9. TUI 모듈 (tui/)</h2>
 
           <h3 id="qa-reviewer-app">QAReviewerApp (reviewer.py)</h3>
-          <p>Textual 기반 QA 수동 리뷰 앱입니다. <code>uv run slm-factory tool review</code> 명령으로 실행됩니다.</p>
+          <p>Textual 기반 QA 수동 리뷰 앱입니다. <code>slf tool review</code> 명령으로 실행됩니다.</p>
 
           <pre data-lang="python"><code>class QAReviewerApp(App[None]):
     """QA 쌍을 하나씩 확인하며 승인/거부/편집하는 TUI 앱입니다.
@@ -735,7 +752,7 @@ class DataAnalyzer:
           <hr>
 
           <h3 id="pipeline-dashboard">PipelineDashboard (dashboard.py)</h3>
-          <p>Textual 기반 파이프라인 모니터링 앱입니다. <code>uv run slm-factory tool dashboard</code> 명령으로 실행됩니다.</p>
+          <p>Textual 기반 파이프라인 모니터링 앱입니다. <code>slf tool dashboard</code> 명령으로 실행됩니다.</p>
 
           <pre data-lang="python"><code>class PipelineDashboard(App[None]):
     """파이프라인 진행 상태를 실시간으로 모니터링하는 TUI 앱입니다.
