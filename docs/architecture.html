@@ -83,7 +83,7 @@
         <p>모든 파이프라인 동작은 <code>project.yaml</code> 파일 하나로 제어됩니다. 코드 수정 없이 문서 파싱 옵션, Teacher 모델, 질문 카테고리, 검증 규칙, Student 모델, 학습 하이퍼파라미터, 내보내기 형식을 변경할 수 있습니다.</p>
 
         <h3 id="step-independence">1.2 단계별 독립 실행</h3>
-        <p>전체 파이프라인은 독립적인 단계(parse, chunking, generate, validate, score, augment, analyze, convert, train, export, eval, autorag_export, rag_index)로 구성됩니다. 각 단계는 CLI 명령어로 개별 실행 가능하며, 이전 단계의 출력 파일을 입력으로 사용합니다. 특정 단계만 재실행하거나 중간 결과를 검토할 수 있습니다.</p>
+        <p>전체 파이프라인은 독립적인 단계(parse, chunking, generate, validate, score, augment, analyze, convert, train, export, eval, refine, autorag_export, rag_index)로 구성됩니다. 각 단계는 CLI 명령어로 개별 실행 가능하며, 이전 단계의 출력 파일을 입력으로 사용합니다. 특정 단계만 재실행하거나 중간 결과를 검토할 수 있습니다.</p>
 
         <h3 id="lazy-import">1.3 지연 임포트 (Lazy Import)</h3>
         <p><code>torch</code>, <code>transformers</code>, <code>peft</code>, <code>sentence-transformers</code> 등 무거운 라이브러리는 실제 사용 시점에만 로드됩니다. CLI 초기 응답 속도를 빠르게 유지하고, 특정 단계만 실행할 때 불필요한 의존성을 로드하지 않습니다. <code>parse</code> 명령어는 딥러닝 라이브러리를 전혀 로드하지 않습니다.</p>
@@ -112,7 +112,7 @@
                                     ▼
                      ┌─────────────────────────────┐
                          Pipeline (pipeline.py)
-                          Orchestrator (12 steps)
+                          Orchestrator (13 steps)
                      └──────────────┬──────────────┘
                                     ▼
 
@@ -137,12 +137,12 @@
          ▼                    ▼                    ▼
   training_data.jsonl  adapter/            merged_model/ Modelfile
 
-┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
-  10. Eval             11. Autorag Export   12. RAG Index
-  evaluator.py         exporter/            rag/
-└────────┬─────────┘ └────────┬─────────┘ └────────┬─────────┘
-         ▼                    ▼                    ▼
-  eval_results.json    autorag/*.parquet    chroma_db/
+┌──────────────┐ ┌──────────────┐ ┌──────────────────┐ ┌──────────────────┐
+  10. Eval         11. Refine       12. Autorag Export   13. RAG Index
+  evaluator.py     refinement/      exporter/            rag/
+└──────┬───────┘ └──────┬───────┘ └────────┬─────────┘ └────────┬─────────┘
+       ▼                ▼                    ▼                    ▼
+  eval_results.json  (재학습)         autorag/*.parquet    chroma_db/
 
                      ┌─────────────────────────────┐
                        Config (config.py)
@@ -345,6 +345,9 @@ merged_model/
         │
         ▼ step_eval()           (eval.enabled)
   eval_results.json
+        │
+        ▼ step_refine()         (refinement.enabled)
+  (약점 QA 재생성 + 재학습)
         │
         ▼ step_autorag_export() (autorag_export.enabled)
   autorag/corpus.parquet + qa.parquet
@@ -893,10 +896,13 @@ def _strip_none_sections(cls, values: dict) -&gt; dict:
   ├─ Step 10. 모델 평가 (선택적) ──── Confirm(default=eval.enabled) → step_eval()
   │    └─ config.eval.enabled 기본값 반영
   │
-  ├─ Step 11. 코퍼스 내보내기 (선택적) ── Confirm(default=autorag_export.enabled) → step_autorag_export()
+  ├─ Step 11. Refinement (선택적) ── Confirm(default=refinement.enabled) → step_refine()
+  │    └─ config.refinement.enabled 기본값 반영
+  │
+  ├─ Step 12. 코퍼스 내보내기 (선택적) ── Confirm(default=autorag_export.enabled) → step_autorag_export()
   │    └─ config.autorag_export.enabled 기본값 반영
   │
-  └─ Step 12. RAG 인덱싱 (선택적) ──────── Confirm(default=True) → step_rag_index()
+  └─ Step 13. RAG 인덱싱 (선택적) ──────── Confirm(default=True) → step_rag_index()
        └─ rag 설정 반영</code></pre>
 
         <h3 id="wizard-steps">7.2 필수/선택 단계 분류</h3>

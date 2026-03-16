@@ -114,8 +114,9 @@ slf tool wizard
 8. **train** (필수) — LoRA 파인튜닝 → `output/checkpoints/adapter/`
 9. **export** (필수) — 모델 병합 + Ollama Modelfile 생성 → `output/merged_model/`
 10. **eval** (선택) — BLEU/ROUGE 평가 → `output/eval_results.json`
-11. **autorag_export** (선택) — RAG 인덱싱 데이터 내보내기 → `output/autorag/`
-12. **rag_index** (선택) — ChromaDB 벡터 인덱싱 → `output/chroma_db/`
+11. **refine** (선택) — Iterative Refinement (약점 QA 재생성 + 재학습)
+12. **autorag_export** (선택) — RAG 인덱싱 데이터 내보내기 → `output/autorag/`
+13. **rag_index** (선택) — ChromaDB 벡터 인덱싱 → `output/chroma_db/`
 
 > 모든 선택 단계는 기본으로 활성화됩니다. 개별 비활성화는 `project.yaml`에서 `enabled: false`로 설정합니다.
 

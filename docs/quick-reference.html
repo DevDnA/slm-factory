@@ -427,13 +427,20 @@ slf tool wizard --config my-project/project.yaml</code></pre>
                  </tr>
                  <tr>
                     <td>11</td>
+                    <td><strong>refine</strong></td>
+                   <td><span class="tag tag-optional">선택</span></td>
+                   <td>Iterative Refinement — 약점 QA 재생성 + 재학습 (<code>refinement.enabled: true</code>)</td>
+                   <td>-</td>
+                 </tr>
+                 <tr>
+                    <td>12</td>
                     <td><strong>autorag_export</strong></td>
                    <td><span class="tag tag-optional">선택</span></td>
                    <td>RAG 인덱싱 데이터 내보내기 (<code>autorag_export.enabled: true</code>)</td>
                    <td><code>output/autorag/*.parquet</code></td>
                  </tr>
                  <tr>
-                    <td>12</td>
+                    <td>13</td>
                     <td><strong>rag_index</strong></td>
                    <td><span class="tag tag-optional">선택</span></td>
                    <td>ChromaDB 벡터 인덱싱 (<code>autorag_export.enabled: true</code>)</td>
@@ -447,7 +454,7 @@ slf tool wizard --config my-project/project.yaml</code></pre>
           <div class="diagram">
             <svg role="img" aria-labelledby="diagram-pipeline-flow-title diagram-pipeline-flow-desc" viewBox="0 0 720 230" xmlns="http://www.w3.org/2000/svg">
               <title id="diagram-pipeline-flow-title">파이프라인 단계 흐름도</title>
-              <desc id="diagram-pipeline-flow-desc">slm-factory의 12단계(+1b) 파이프라인을 4그룹 가로 흐름으로 표시. 각 단계의 출력 파일명 포함.</desc>
+              <desc id="diagram-pipeline-flow-desc">slm-factory의 13단계(+1b) 파이프라인을 4그룹 가로 흐름으로 표시. 각 단계의 출력 파일명 포함.</desc>
               <defs>
                 <marker id="pf-arrow" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto">
                   <polyline points="0 0, 5 2, 0 4" fill="none" stroke="#2C5282" stroke-width="1" stroke-linejoin="round"/>
@@ -504,13 +511,15 @@ slf tool wizard --config my-project/project.yaml</code></pre>
               <text x="600" y="19" font-family="Pretendard, sans-serif" font-size="10" font-weight="700" fill="#C05621" text-anchor="middle">서비스 배포</text>
               <rect x="536" y="27" width="128" height="20" rx="4" fill="#FFFAF0" stroke="#ED8936" stroke-width="0.75" stroke-dasharray="4,2"/>
               <text x="600" y="40" font-family="Pretendard, sans-serif" font-size="9.5" font-weight="600" fill="#C05621" text-anchor="middle">10. eval</text>
-              <text x="600" y="56" font-family="JetBrains Mono, Consolas, monospace" font-size="7" fill="#718096" text-anchor="middle">eval_results.json</text>
-              <rect x="536" y="61" width="128" height="20" rx="4" fill="#FFFAF0" stroke="#ED8936" stroke-width="0.75" stroke-dasharray="4,2"/>
-              <text x="600" y="74" font-family="Pretendard, sans-serif" font-size="9.5" font-weight="600" fill="#C05621" text-anchor="middle">11. autorag_export</text>
-              <text x="600" y="90" font-family="JetBrains Mono, Consolas, monospace" font-size="7" fill="#718096" text-anchor="middle">autorag/*.parquet</text>
-              <rect x="536" y="95" width="128" height="20" rx="4" fill="#FFFAF0" stroke="#ED8936" stroke-width="0.75" stroke-dasharray="4,2"/>
-              <text x="600" y="108" font-family="Pretendard, sans-serif" font-size="9.5" font-weight="600" fill="#C05621" text-anchor="middle">12. rag_index</text>
-              <text x="600" y="124" font-family="JetBrains Mono, Consolas, monospace" font-size="7" fill="#718096" text-anchor="middle">chroma_db/</text>
+              <text x="600" y="54" font-family="JetBrains Mono, Consolas, monospace" font-size="7" fill="#718096" text-anchor="middle">eval_results.json</text>
+              <rect x="536" y="58" width="128" height="20" rx="4" fill="#FFFAF0" stroke="#ED8936" stroke-width="0.75" stroke-dasharray="4,2"/>
+              <text x="600" y="71" font-family="Pretendard, sans-serif" font-size="9.5" font-weight="600" fill="#C05621" text-anchor="middle">11. refine</text>
+              <rect x="536" y="82" width="128" height="20" rx="4" fill="#FFFAF0" stroke="#ED8936" stroke-width="0.75" stroke-dasharray="4,2"/>
+              <text x="600" y="95" font-family="Pretendard, sans-serif" font-size="9.5" font-weight="600" fill="#C05621" text-anchor="middle">12. autorag_export</text>
+              <text x="600" y="109" font-family="JetBrains Mono, Consolas, monospace" font-size="7" fill="#718096" text-anchor="middle">autorag/*.parquet</text>
+              <rect x="536" y="113" width="128" height="20" rx="4" fill="#FFFAF0" stroke="#ED8936" stroke-width="0.75" stroke-dasharray="4,2"/>
+              <text x="600" y="126" font-family="Pretendard, sans-serif" font-size="9.5" font-weight="600" fill="#C05621" text-anchor="middle">13. rag_index</text>
+              <text x="600" y="140" font-family="JetBrains Mono, Consolas, monospace" font-size="7" fill="#718096" text-anchor="middle">chroma_db/</text>
 
               <!-- Horizontal arrows between groups -->
               <line x1="152" y1="100" x2="178" y2="100" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#pf-arrow-gray)"/>
@@ -525,7 +534,7 @@ slf tool wizard --config my-project/project.yaml</code></pre>
               <text x="390" y="218" font-family="JetBrains Mono, Consolas, monospace" font-size="8" fill="#718096">filename</text>
               <text x="435" y="218" font-family="Pretendard, sans-serif" font-size="9" fill="#4A5568">출력 파일</text>
             </svg>
-            <p class="diagram-caption">그림 1. slm-factory 12단계(+1b) 파이프라인 흐름 - 필수 단계(navy)와 선택 단계(orange dashed), 각 단계의 출력 파일</p>
+            <p class="diagram-caption">그림 1. slm-factory 13단계(+1b) 파이프라인 흐름 - 필수 단계(navy)와 선택 단계(orange dashed), 각 단계의 출력 파일</p>
           </div>
         </section>
 

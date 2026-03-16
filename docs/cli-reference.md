@@ -249,10 +249,11 @@ slf tune [OPTIONS]
 | `train` | 필수 | LoRA 파인튜닝 | `output/checkpoints/adapter/` |
 | `export` | 필수 | 모델 병합 + Ollama Modelfile 생성 | `output/merged_model/` |
 | `eval` | 기본 활성 | BLEU/ROUGE 평가 | `output/eval_results.json` |
+| `refine` | 기본 비활성 | Iterative Refinement (약점 QA 재생성 + 재학습) | - |
 | `autorag_export` | 기본 활성 | RAG 인덱싱 데이터 내보내기 | `output/autorag/` |
 | `rag_index` | 기본 활성 | ChromaDB 벡터 인덱싱 | `output/chroma_db/` |
 
-`--until`을 생략하면 위 전체 12단계를 순서대로 실행합니다. 각 단계는 해당 설정의 `enabled` 값에 따라 실행 여부가 결정됩니다.
+`--until`을 생략하면 위 전체 13단계를 순서대로 실행합니다. 각 단계는 해당 설정의 `enabled` 값에 따라 실행 여부가 결정됩니다.
 
 **`--resume` 동작 방식**
 
@@ -532,7 +533,7 @@ slf tool wizard [OPTIONS]
 | 설정 파일 로드 | 필수 | `project.yaml`을 자동 탐색하거나 경로를 직접 입력합니다 |
 | 문서 선택 | 필수 | `documents/` 디렉토리의 파일 목록을 표시하고 전체 또는 개별 선택합니다 |
 
-**12단계 파이프라인** (단계 번호는 [빠른 참조](quick-reference.md) 다이어그램과 동일)
+**13단계 파이프라인** (단계 번호는 [빠른 참조](quick-reference.md) 다이어그램과 동일)
 
 > **단계 유형 안내**: **필수** — 항상 실행, 건너뛸 수 없음 · **선택** — 사용자 확인 후 건너뛸 수 있음 (`enabled` 설정 반영) · **자동** — 사용자 확인 없이 자동 실행
 
@@ -549,8 +550,9 @@ slf tool wizard [OPTIONS]
 | 8 | LoRA 학습 | 필수 | Student 모델에 LoRA 어댑터를 적용하여 파인튜닝합니다. 확인 후 진행합니다. |
 | 9 | 모델 내보내기 | 필수 | LoRA 어댑터를 병합하고 Ollama Modelfile을 생성합니다. 확인 후 진행합니다. |
 | 10 | 모델 평가 | 선택 | BLEU/ROUGE 메트릭으로 학습된 모델을 평가합니다. 건너뛸 수 있습니다. |
-| 11 | 코퍼스 내보내기 | 선택 | QA·문서를 RAG 인덱싱용 parquet으로 내보냅니다. 건너뛸 수 있습니다. (`autorag_export.enabled` 설정 반영) |
-| 12 | RAG 인덱싱 | 선택 | corpus.parquet을 ChromaDB에 임베딩하여 적재합니다. 건너뛸 수 있습니다. |
+| 11 | Refinement | 선택 | Iterative Refinement — 약점 QA 재생성 + 재학습. 건너뛸 수 있습니다. (`refinement.enabled` 설정 반영) |
+| 12 | 코퍼스 내보내기 | 선택 | QA·문서를 RAG 인덱싱용 parquet으로 내보냅니다. 건너뛸 수 있습니다. (`autorag_export.enabled` 설정 반영) |
+| 13 | RAG 인덱싱 | 선택 | corpus.parquet을 ChromaDB에 임베딩하여 적재합니다. 건너뛸 수 있습니다. |
 
 선택 단계를 건너뛰면 해당 단계를 나중에 실행할 수 있는 CLI 명령어를 안내합니다.
 

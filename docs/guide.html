@@ -312,7 +312,7 @@ cp /path/to/docs/*.pdf /path/to/docs/*.txt my-first-project/documents/</code></p
 
           <pre data-lang="bash"><code>slf tool wizard --config my-first-project/project.yaml</code></pre>
 
-          <p>wizard는 준비 단계 후 12단계 파이프라인을 순서대로 실행합니다. 단계 번호는 <a href="quick-reference.html">빠른 참조</a>의 파이프라인 다이어그램과 동일합니다.</p>
+          <p>wizard는 준비 단계 후 13단계 파이프라인을 순서대로 실행합니다. 단계 번호는 <a href="quick-reference.html">빠른 참조</a>의 파이프라인 다이어그램과 동일합니다.</p>
 
           <blockquote>
             <p><strong>단계 유형 안내</strong></p>
@@ -428,12 +428,18 @@ cp /path/to/docs/*.pdf /path/to/docs/*.txt my-first-project/documents/</code></p
                 </tr>
                 <tr>
                   <td>11</td>
+                  <td>Refinement</td>
+                  <td><span class="tag tag-optional">선택</span></td>
+                  <td>Iterative Refinement — 약점 QA 재생성 + 재학습 (<code>refinement.enabled</code> 설정 반영)</td>
+                </tr>
+                <tr>
+                  <td>12</td>
                   <td>코퍼스 내보내기</td>
                   <td><span class="tag tag-optional">선택</span></td>
                   <td>QA·문서를 RAG 인덱싱용 parquet으로 내보냅니다 (<code>autorag_export.enabled</code> 설정 반영)</td>
                 </tr>
                 <tr>
-                  <td>12</td>
+                  <td>13</td>
                   <td>RAG 인덱싱</td>
                   <td><span class="tag tag-optional">선택</span></td>
                   <td>corpus.parquet을 ChromaDB에 임베딩하여 적재합니다 (<code>rag</code> 설정 반영)</td>
@@ -447,8 +453,8 @@ cp /path/to/docs/*.pdf /path/to/docs/*.txt my-first-project/documents/</code></p
           <!-- SVG Diagram: Pipeline Overview -->
           <div class="diagram">
             <svg role="img" aria-labelledby="diagram-pipeline-title diagram-pipeline-desc" viewBox="0 0 720 215" xmlns="http://www.w3.org/2000/svg">
-              <title id="diagram-pipeline-title">slm-factory 12단계(+1b) 파이프라인 개요</title>
-              <desc id="diagram-pipeline-desc">slm-factory의 12단계(+1b) 파이프라인 흐름도. 데이터 준비, 품질 강화, 모델 학습, 서비스 배포 4개 그룹이 좌→우로 흐릅니다.</desc>
+              <title id="diagram-pipeline-title">slm-factory 13단계(+1b) 파이프라인 개요</title>
+              <desc id="diagram-pipeline-desc">slm-factory의 13단계(+1b) 파이프라인 흐름도. 데이터 준비, 품질 강화, 모델 학습, 서비스 배포 4개 그룹이 좌→우로 흐릅니다.</desc>
               <defs>
                 <marker id="pl-arrowhead" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto">
                   <polyline points="0 0, 5 2, 0 4" fill="none" stroke="#2C5282" stroke-width="1" stroke-linejoin="round"/>
@@ -500,14 +506,17 @@ cp /path/to/docs/*.pdf /path/to/docs/*.txt my-first-project/documents/</code></p
               <!-- ── G4: 서비스 배포 ── -->
               <rect x="502" y="4" width="138" height="166" rx="8" fill="#FFFCF5" stroke="#ECC48D" stroke-width="0.75"/>
               <text x="571" y="19" font-family="Pretendard, sans-serif" font-size="10" font-weight="700" fill="#C05621" text-anchor="middle">서비스 배포</text>
-              <rect x="510" y="27" width="122" height="24" rx="4" fill="#FFFAF0" stroke="#ED8936" stroke-width="0.75" stroke-dasharray="4,2"/>
-              <text x="571" y="43" font-family="Pretendard, sans-serif" font-size="10" font-weight="600" fill="#C05621" text-anchor="middle">10. eval</text>
-              <line x1="571" y1="51" x2="571" y2="55" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="3,2"/>
-              <rect x="510" y="55" width="122" height="24" rx="4" fill="#FFFAF0" stroke="#ED8936" stroke-width="0.75" stroke-dasharray="4,2"/>
-              <text x="571" y="71" font-family="Pretendard, sans-serif" font-size="10" font-weight="600" fill="#C05621" text-anchor="middle">11. autorag_export</text>
-              <line x1="571" y1="79" x2="571" y2="83" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="3,2"/>
-              <rect x="510" y="83" width="122" height="24" rx="4" fill="#FFFAF0" stroke="#ED8936" stroke-width="0.75" stroke-dasharray="4,2"/>
-              <text x="571" y="99" font-family="Pretendard, sans-serif" font-size="10" font-weight="600" fill="#C05621" text-anchor="middle">12. rag_index</text>
+              <rect x="510" y="25" width="122" height="22" rx="4" fill="#FFFAF0" stroke="#ED8936" stroke-width="0.75" stroke-dasharray="4,2"/>
+              <text x="571" y="40" font-family="Pretendard, sans-serif" font-size="9.5" font-weight="600" fill="#C05621" text-anchor="middle">10. eval</text>
+              <line x1="571" y1="47" x2="571" y2="50" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="3,2"/>
+              <rect x="510" y="50" width="122" height="22" rx="4" fill="#FFFAF0" stroke="#ED8936" stroke-width="0.75" stroke-dasharray="4,2"/>
+              <text x="571" y="65" font-family="Pretendard, sans-serif" font-size="9.5" font-weight="600" fill="#C05621" text-anchor="middle">11. refine</text>
+              <line x1="571" y1="72" x2="571" y2="75" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="3,2"/>
+              <rect x="510" y="75" width="122" height="22" rx="4" fill="#FFFAF0" stroke="#ED8936" stroke-width="0.75" stroke-dasharray="4,2"/>
+              <text x="571" y="90" font-family="Pretendard, sans-serif" font-size="9.5" font-weight="600" fill="#C05621" text-anchor="middle">12. autorag_export</text>
+              <line x1="571" y1="97" x2="571" y2="100" stroke="#A0AEC0" stroke-width="1" stroke-dasharray="3,2"/>
+              <rect x="510" y="100" width="122" height="22" rx="4" fill="#FFFAF0" stroke="#ED8936" stroke-width="0.75" stroke-dasharray="4,2"/>
+              <text x="571" y="115" font-family="Pretendard, sans-serif" font-size="9.5" font-weight="600" fill="#C05621" text-anchor="middle">13. rag_index</text>
 
               <!-- Horizontal arrows between groups -->
               <line x1="142" y1="87" x2="170" y2="87" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#pl-arrowhead-gray)"/>
@@ -525,7 +534,7 @@ cp /path/to/docs/*.pdf /path/to/docs/*.txt my-first-project/documents/</code></p
               <rect x="330" y="186" width="14" height="9" rx="3" fill="#FFFAF0" stroke="#ED8936" stroke-width="0.75" stroke-dasharray="3,2"/>
               <text x="350" y="194" font-family="Pretendard, sans-serif" font-size="9" fill="#4A5568">선택 단계</text>
             </svg>
-            <p class="diagram-caption">그림 2. slm-factory 12단계(+1b) 파이프라인 개요 — 필수 단계(navy)와 선택 단계(orange dashed)의 흐름</p>
+            <p class="diagram-caption">그림 2. slm-factory 13단계(+1b) 파이프라인 개요 — 필수 단계(navy)와 선택 단계(orange dashed)의 흐름</p>
           </div>
 
           <hr>

@@ -195,7 +195,7 @@ slf check --config my-first-project/project.yaml
 slf tool wizard --config my-first-project/project.yaml
 ```
 
-wizard는 준비 단계 후 12단계 파이프라인을 순서대로 실행합니다. 단계 번호는 [빠른 참조](quick-reference.md)의 파이프라인 다이어그램과 동일합니다.
+wizard는 준비 단계 후 13단계 파이프라인을 순서대로 실행합니다. 단계 번호는 [빠른 참조](quick-reference.md)의 파이프라인 다이어그램과 동일합니다.
 
 > **단계 유형 안내**
 > - **필수**: 항상 실행되며 건너뛸 수 없습니다.
@@ -854,7 +854,7 @@ slf rag
 slf tune
 ```
 
-12단계 파이프라인을 실행하여 Student 모델을 학습시키고, RAG 인덱스를 구축한 후 웹 채팅을 시작합니다. `project.yaml`의 `rag.ollama_model` 설정에 따라 Teacher 또는 Student 모델을 사용합니다.
+13단계 파이프라인을 실행하여 Student 모델을 학습시키고, RAG 인덱스를 구축한 후 웹 채팅을 시작합니다. `project.yaml`의 `rag.ollama_model` 설정에 따라 Teacher 또는 Student 모델을 사용합니다.
 
 | 소요 시간 | 모델 | 적합한 상황 |
 |-----------|------|------------|
