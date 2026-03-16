@@ -29,11 +29,12 @@
 git clone https://github.com/DevDnA/slm-factory.git
 cd slm-factory
 ./setup.sh
-source .venv/bin/activate
 ```
 
-> `setup.sh`가 [uv](https://docs.astral.sh/uv/) 설치, 의존성, Ollama 모델 준비를 한 번에 처리합니다.
-> 새 터미널을 열 때마다 `source .venv/bin/activate`를 실행하세요.
+> 설치 완료 후 가상환경을 활성화하세요 (셸에 따라):
+> - **bash/zsh**: `source .venv/bin/activate`
+> - **fish**: `source .venv/bin/activate.fish`
+> - **Windows**: `.venv\Scripts\activate`
 
 ### 2. 프로젝트 생성 + 문서 추가
 

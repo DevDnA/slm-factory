@@ -89,23 +89,30 @@ fi
 
 # ── 완료 ────────────────────────────────────────────────────────────
 echo ""
+SHELL_NAME="$(basename "${SHELL:-/bin/sh}")"
+
 echo -e "${GREEN}${BOLD}준비 완료!${NC}"
 echo "────────────────────────────────────────"
 echo ""
-echo "  다음 단계:"
+
+case "$SHELL_NAME" in
+  fish)
+    ACTIVATE_CMD="source .venv/bin/activate.fish"
+    ;;
+  csh|tcsh)
+    ACTIVATE_CMD="source .venv/bin/activate.csh"
+    ;;
+  *)
+    ACTIVATE_CMD="source .venv/bin/activate"
+    ;;
+esac
+
+echo -e "  ${CYAN}# 가상환경 활성화${NC}"
+echo "  $ACTIVATE_CMD"
 echo ""
-echo -e "  ${CYAN}# 0. 가상환경 활성화 (터미널마다 한 번)${NC}"
-echo "  source .venv/bin/activate"
-echo ""
-echo -e "  ${CYAN}# 1. 프로젝트 생성${NC}"
-echo "  slm-factory init my-project"
-echo ""
-echo -e "  ${CYAN}# 2. 문서 추가${NC}"
-echo "  cp /path/to/documents/*.pdf my-project/documents/"
-echo ""
-echo -e "  ${CYAN}# 3. 전체 파이프라인 실행${NC}"
-echo "  slm-factory run"
-echo ""
-echo -e "  ${CYAN}# 4. 웹 채팅 서비스만 실행${NC}"
-echo "  slm-factory serve"
+echo -e "  ${CYAN}# 사용법${NC}"
+echo "  slm-factory init my-project          # 프로젝트 생성"
+echo "  cp docs/*.pdf my-project/documents/  # 문서 추가"
+echo "  slm-factory run                      # 전체 파이프라인"
+echo "  slm-factory serve                    # 웹 채팅 서비스"
 echo ""
