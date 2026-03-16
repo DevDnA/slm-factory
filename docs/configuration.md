@@ -407,7 +407,7 @@ student:
 | 필드 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
 | `batch_size` | `int` | `1` | 디바이스당 배치 크기. GPU 메모리에 따라 조정합니다 |
-| `gradient_accumulation_steps` | `int` | `16` | 그래디언트 누적 스텝. 실제 배치 크기는 `batch_size × gradient_accumulation_steps` (기본값: 1×16=16) |
+| `gradient_accumulation_steps` | `int` | `8` | 그래디언트 누적 스텝. 실제 배치 크기는 `batch_size × gradient_accumulation_steps` (기본값: 1×8=8) |
 | `learning_rate` | `float` | `2e-4` | 학습률. LoRA 파인튜닝에는 `1e-5 ~ 5e-5` 범위를 권장합니다 |
 | `lr_scheduler` | `str` | `"cosine"` | 학습률 스케줄러. `"cosine"`, `"linear"`, `"constant"` 등 |
 | `warmup_ratio` | `float` | `0.1` | 워밍업 비율. 전체 학습 스텝의 10%를 워밍업에 사용합니다 (0.0~1.0) |
@@ -427,9 +427,9 @@ student:
 
 | 필드 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
-| `r` | `int` | `16` | LoRA rank. 높을수록 표현력이 증가하지만 메모리 사용량도 증가합니다 (일반적으로 8~64) |
-| `alpha` | `int` | `32` | LoRA scaling factor. 일반적으로 `r`의 2배 값을 사용합니다 |
-| `dropout` | `float` | `0.05` | LoRA 레이어의 드롭아웃 비율. 과적합 방지를 위한 정규화 기법입니다 (0.0~1.0) |
+| `r` | `int` | `8` | LoRA rank. 높을수록 표현력이 증가하지만 메모리 사용량도 증가합니다 (일반적으로 8~64) |
+| `alpha` | `int` | `16` | LoRA scaling factor. 일반적으로 `r`의 2배 값을 사용합니다 |
+| `dropout` | `float` | `0.1` | LoRA 레이어의 드롭아웃 비율. 과적합 방지를 위한 정규화 기법입니다 (0.0~1.0) |
 | `target_modules` | `str \| list[str]` | `"auto"` | LoRA를 적용할 모듈 이름. `"auto"`는 자동 감지, 또는 `["q_proj", "v_proj"]` 같은 리스트로 명시할 수 있습니다 |
 | `use_rslora` | `bool` | `false` | Rank-Stabilized LoRA 사용 여부. 학습 안정성을 높이지만 약간 느려집니다 |
 

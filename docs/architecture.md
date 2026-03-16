@@ -369,7 +369,7 @@ SLMConfig (root)
 │
 ├── training: TrainingConfig
 │   ├── batch_size: int = 1
-│   ├── gradient_accumulation_steps: int = 16
+│   ├── gradient_accumulation_steps: int = 8
 │   ├── learning_rate = 2e-4
 │   ├── lr_scheduler: str = "cosine"
 │   ├── warmup_ratio: float = 0.1
@@ -379,9 +379,9 @@ SLMConfig (root)
 │   ├── train_split: float = 0.9
 │   ├── save_strategy: str = "epoch"
 │   ├── lora: LoraConfig
-│   │   ├── r: int = 16
-│   │   ├── alpha: int = 32
-│   │   ├── dropout: float = 0.05
+│   │   ├── r: int = 8
+│   │   ├── alpha: int = 16
+│   │   ├── dropout: float = 0.1
 │   │   ├── target_modules: str | list[str] = "auto"
 │   │   └── use_rslora: bool = False
 │   ├── early_stopping: EarlyStoppingConfig

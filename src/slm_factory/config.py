@@ -252,9 +252,9 @@ class StudentConfig(BaseModel):
 class LoraConfig(BaseModel):
     """LoRA 어댑터 하이퍼파라미터입니다."""
 
-    r: int = 16
-    alpha: int = 32
-    dropout: float = 0.05
+    r: int = 8
+    alpha: int = 16
+    dropout: float = 0.1
     target_modules: Union[str, list[str]] = "auto"
     use_rslora: bool = False
 
@@ -279,7 +279,7 @@ class TrainingConfig(BaseModel):
 
     lora: LoraConfig = Field(default_factory=LoraConfig)
     batch_size: int = 1
-    gradient_accumulation_steps: int = 16
+    gradient_accumulation_steps: int = 8
     learning_rate: float = 2.0e-4
     lr_scheduler: str = "cosine"
     warmup_ratio: float = 0.1

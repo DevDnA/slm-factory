@@ -223,9 +223,9 @@ class TestLoraConfig:
     def test_기본값(self):
         """LoRA 하이퍼파라미터 기본값을 검증합니다."""
         cfg = LoraConfig()
-        assert cfg.r == 16
-        assert cfg.alpha == 32
-        assert cfg.dropout == 0.05
+        assert cfg.r == 8
+        assert cfg.alpha == 16
+        assert cfg.dropout == 0.1
         assert cfg.target_modules == "auto"
         assert cfg.use_rslora is False
 
@@ -237,7 +237,7 @@ class TestTrainingConfig:
         """훈련 설정의 기본값을 검증합니다."""
         cfg = TrainingConfig()
         assert cfg.batch_size == 1
-        assert cfg.gradient_accumulation_steps == 16
+        assert cfg.gradient_accumulation_steps == 8
         assert cfg.learning_rate == 2e-4
         assert cfg.lr_scheduler == "cosine"
         assert cfg.warmup_ratio == 0.1
