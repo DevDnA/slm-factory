@@ -23,28 +23,29 @@
 
 ## 빠른 시작
 
-### 1. 준비
+### 1. 설치
 
 ```bash
 git clone https://github.com/DevDnA/slm-factory.git
 cd slm-factory
 ./setup.sh
+source .venv/bin/activate
 ```
 
 > `setup.sh`가 [uv](https://docs.astral.sh/uv/) 설치, 의존성, Ollama 모델 준비를 한 번에 처리합니다.
-> Ollama가 설치되어 있지 않다면 먼저 [ollama.com](https://ollama.com)에서 설치하세요.
+> 새 터미널을 열 때마다 `source .venv/bin/activate`를 실행하세요.
 
 ### 2. 프로젝트 생성 + 문서 추가
 
 ```bash
-uv run slm-factory init my-project
+slm-factory init my-project
 cp /path/to/documents/*.pdf my-project/documents/
 ```
 
 ### 3. 실행
 
 ```bash
-uv run slm-factory run
+slm-factory run
 ```
 
 > 11단계 파이프라인이 자동으로 실행되고, 완료 후 웹 채팅 서비스가 시작됩니다.
@@ -53,18 +54,10 @@ uv run slm-factory run
 
 브라우저에서 **http://localhost:8000/chat** 접속
 
-또는 API 호출:
-
-```bash
-curl -X POST http://localhost:8000/v1/query \
-  -H "Content-Type: application/json" \
-  -d '{"query": "우리 회사 휴가 정책은?"}'
-```
-
 ### 5. 서비스만 실행
 
 ```bash
-uv run slm-factory serve
+slm-factory serve
 ```
 
 ## 무엇을 해결하는가

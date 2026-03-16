@@ -434,12 +434,8 @@ def init(
         f"  3. Teacher 모델을 다운로드하세요: [cyan]ollama pull qwen3.5:9b[/cyan]"
     )
     console.print(f"\n[bold]실행:[/bold]")
-    console.print(
-        f"  4. 환경 점검: [cyan]slm-factory check --config {config_path}[/cyan]"
-    )
-    console.print(
-        f"  5. wizard 실행: [cyan]slm-factory tool wizard --config {config_path}[/cyan]\n"
-    )
+    console.print(f"  4. 전체 파이프라인: [cyan]slm-factory run[/cyan]")
+    console.print(f"  5. 웹 채팅 서비스: [cyan]slm-factory serve[/cyan]\n")
 
 
 _STEP_ORDER = [
