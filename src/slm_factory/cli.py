@@ -869,8 +869,13 @@ def tune(
 @app.command(rich_help_panel="🚀 시작하기")
 def rag(
     config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
+    chat: bool = typer.Option(
+        True,
+        "--chat/--no-chat",
+        help="RAG 인덱스 구축 후 웹 채팅을 자동으로 시작합니다",
+    ),
 ) -> None:
-    """RAG 웹 채팅 서비스를 시작합니다. 인덱스가 없으면 자동으로 구축합니다."""
+    """RAG 서비스를 시작합니다. 인덱스가 없으면 자동으로 구축합니다."""
     try:
         pipeline = _load_pipeline(config)
         pipeline.config.paths.ensure_dirs()
@@ -888,6 +893,13 @@ def rag(
             doc_dicts = [asdict(d) for d in docs]
             corpus_path, _ = pipeline.step_autorag_export(doc_dicts, [])
             pipeline.step_rag_index(corpus_path)
+
+        if not chat:
+            console.print(
+                "\n[bold green]RAG 인덱스 구축 완료![/bold green]\n"
+                f"  채팅 시작: [cyan]slf rag[/cyan]\n"
+            )
+            return
 
         _start_rag_server(pipeline.config)
     except FileNotFoundError as e:
