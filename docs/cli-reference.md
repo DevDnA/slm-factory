@@ -176,7 +176,7 @@ slf check --config my-project/project.yaml
 
 ---
 
-### `serve`
+### `rag`
 
 RAG 웹 채팅 서비스를 시작합니다. ChromaDB 인덱스가 없으면 문서를 파싱하고 자동으로 구축합니다.
 
@@ -213,7 +213,7 @@ slf rag --config my-project/project.yaml
 
 ## ⚙️ 파이프라인
 
-### `run`
+### `tune`
 
 문서 파싱부터 모델 배포까지 전체 파이프라인을 실행합니다. `--until` 옵션으로 특정 단계까지만 실행하고 중단할 수 있습니다.
 

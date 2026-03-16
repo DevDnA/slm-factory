@@ -69,13 +69,13 @@
               <ol class="toc-list">
                 <li class="toc-h3"><a href="#init"><code>init</code></a></li>
                 <li class="toc-h3"><a href="#check"><code>check</code></a></li>
-                <li class="toc-h3"><a href="#serve"><code>serve</code></a></li>
+                <li class="toc-h3"><a href="#rag"><code>rag</code></a></li>
               </ol>
             </li>
             <li>
               <a href="#pipeline">파이프라인</a>
               <ol class="toc-list">
-                <li class="toc-h3"><a href="#run"><code>run</code></a></li>
+                <li class="toc-h3"><a href="#tune"><code>tune</code></a></li>
                 <li class="toc-h3"><a href="#train"><code>train</code></a></li>
                 <li class="toc-h3"><a href="#export"><code>export</code></a></li>
               </ol>
@@ -202,12 +202,12 @@
                   <td>설정 파일, 문서 디렉토리, Ollama 연결을 사전 점검합니다</td>
                 </tr>
                 <tr>
-                  <td><code>serve</code></td>
+                  <td><code>rag</code></td>
                   <td><span class="tag tag-required">시작하기</span></td>
                   <td>RAG 웹 채팅 서비스 시작 (인덱스 자동 구축)</td>
                 </tr>
                 <tr>
-                  <td><code>run</code></td>
+                  <td><code>tune</code></td>
                   <td><span class="tag tag-required">파이프라인</span></td>
                   <td>전체 파이프라인 또는 지정 단계까지 실행합니다</td>
                 </tr>
@@ -514,8 +514,8 @@ slf init policy-assistant --path /workspace/projects</code></pre>
           <hr>
 
           <!-- serve -->
-          <article id="serve">
-            <h3><code>serve</code></h3>
+<article id="rag">
+<h3><code>rag</code></h3>
             <p>RAG 웹 채팅 서비스를 시작합니다. ChromaDB 인덱스가 없으면 문서를 파싱하고 자동으로 구축합니다.</p>
 
             <h4>사용법</h4>
@@ -575,8 +575,8 @@ slf rag --config my-project/project.yaml</code></pre>
           <h2>파이프라인</h2>
 
           <!-- run -->
-          <article id="run">
-            <h3><code>run</code></h3>
+<article id="tune">
+<h3><code>tune</code></h3>
             <p>문서 파싱부터 모델 배포까지 전체 파이프라인을 실행합니다. <code>--until</code> 옵션으로 특정 단계까지만 실행하고 중단할 수 있습니다.</p>
 
             <h4>사용법</h4>

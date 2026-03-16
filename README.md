@@ -40,10 +40,7 @@ cd slm-factory
 ./setup.sh
 ```
 
-> 설치 완료 후 가상환경을 활성화하세요:
-> - **bash/zsh**: `source .venv/bin/activate`
-> - **fish**: `source .venv/bin/activate.fish`
-> - **Windows**: `.venv\Scripts\activate`
+> `setup.sh`가 `slf` 명령어를 자동 설치합니다. 설치 후 바로 `slf`를 사용할 수 있습니다.
 
 ### 2. 프로젝트 생성 + 문서 추가
 

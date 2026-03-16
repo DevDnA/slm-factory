@@ -137,7 +137,7 @@ slf tool wizard --config my-project/project.yaml</code></pre>
 
           <h3 id="cli-start">시작하기</h3>
 
-          <blockquote><p>모든 명령어는 가상환경 활성화 후 실행합니다: <code>source .venv/bin/activate</code></p></blockquote>
+          <blockquote><p><code>./setup.sh</code>가 <code>slf</code> 명령어를 자동 설치합니다. 설치 후 바로 사용할 수 있습니다.</p></blockquote>
 
           <div class="table-wrapper">
             <table>
@@ -544,7 +544,7 @@ slf tool wizard --config my-project/project.yaml</code></pre>
 
           <hr>
 
-          <h3 id="workflow-run">2. 수동 전체 실행 (run)</h3>
+          <h3 id="workflow-tune">2. 수동 전체 실행 (tune)</h3>
 
           <p>설정을 직접 제어하고 싶을 때 사용합니다.</p>
 
@@ -552,7 +552,7 @@ slf tool wizard --config my-project/project.yaml</code></pre>
 
           <hr>
 
-          <h3 id="workflow-step-by-step">3. 단계별 실행 (run --until)</h3>
+          <h3 id="workflow-step-by-step">3. 단계별 실행 (tune --until)</h3>
 
           <p>특정 단계까지만 실행하고 결과를 확인한 후 다음 단계로 진행합니다.</p>
 
@@ -597,7 +597,7 @@ slf eval compare \
   --ft my-project-model \
   --config my-project/project.yaml</code></pre>
 
-           <h3 id="workflow-chat">7. 전체 파이프라인 + RAG 서버 (run --chat)</h3>
+           <h3 id="workflow-chat">7. 전체 파이프라인 + RAG 채팅 (tune --chat)</h3>
 
            <p>SLM 학습부터 RAG 인덱싱, API 서버 시작까지 한 번에 실행합니다.</p>
 

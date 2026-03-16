@@ -87,7 +87,7 @@ ollama run qwen3.5:9b "안녕하세요"
 
 ---
 
-> 모든 명령어는 가상환경 활성화 후 실행합니다: `source .venv/bin/activate`
+> `./setup.sh`가 `slf` 명령어를 자동 설치합니다. 설치 후 바로 사용할 수 있습니다.
 
 ### slm-factory 설치
 

@@ -49,7 +49,7 @@ slf tool wizard
 
 ### 🚀 시작하기
 
-> 모든 명령어는 가상환경 활성화 후 실행합니다: `source .venv/bin/activate`
+> `./setup.sh`가 `slf` 명령어를 자동 설치합니다. 설치 후 바로 사용할 수 있습니다.
 
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|-----------|
@@ -131,7 +131,7 @@ slf tool wizard
 slf tool wizard
 ```
 
-### 2. 수동 전체 실행 (run)
+### 2. 수동 전체 실행 (tune)
 
 설정을 직접 제어하고 싶을 때 사용합니다.
 
@@ -139,7 +139,7 @@ slf tool wizard
 slf tune
 ```
 
-### 3. 단계별 실행 (run --until)
+### 3. 단계별 실행 (tune --until)
 
 특정 단계까지만 실행하고 결과를 확인한 후 다음 단계로 진행합니다.
 
@@ -188,7 +188,7 @@ slf eval compare \
   --ft my-project-model
 ```
 
-### 7. 전체 파이프라인 + RAG 서버 (run --chat)
+### 7. 전체 파이프라인 + RAG 채팅 (tune --chat)
 
 SLM 학습부터 RAG 인덱싱, API 서버 시작까지 한 번에 실행합니다.
 
