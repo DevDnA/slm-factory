@@ -136,6 +136,7 @@ def create_app(config: "SLMConfig"):
         _app.state.embedding_model = embedding_model
         _app.state.http_client = http_client
         _app.state.reranker = None
+        _app.state.bm25_index = None
         _app.state.bm25_docs = None
         _app.state.bm25_ids = None
         _app.state.bm25_metadatas = None
@@ -181,8 +182,21 @@ def create_app(config: "SLMConfig"):
                     }
                     for p in all_points
                 ]
+
+                # BM25Okapi 인덱스 구축 (kiwi 형태소 토크나이저)
+                try:
+                    from rank_bm25 import BM25Okapi
+                except ImportError:
+                    raise RuntimeError(
+                        "rank_bm25가 설치되지 않았습니다. "
+                        "uv sync --extra rag 로 설치하세요."
+                    )
+                tokenized_corpus = [
+                    _korean_tokenize(doc) for doc in _app.state.bm25_docs
+                ]
+                _app.state.bm25_index = BM25Okapi(tokenized_corpus)
                 logger.info(
-                    "BM25 인덱스 구축 완료: %d개 문서",
+                    "BM25Okapi 인덱스 구축 완료: %d개 문서 (kiwi 형태소 토크나이저)",
                     len(_app.state.bm25_docs),
                 )
             except Exception:
@@ -273,34 +287,38 @@ def create_app(config: "SLMConfig"):
         return [t.form for t in tokens if len(t.form) > 1 or not t.tag.startswith("J")]
 
     def _bm25_search(query: str, top_k: int) -> list[tuple[str, str, float, dict]]:
-        if not app.state.bm25_docs:
+        """BM25Okapi를 사용한 키워드 기반 문서 검색입니다.
+
+        kiwi 형태소 토크나이저로 쿼리를 분석하고, 사전 구축된
+        BM25Okapi 인덱스에서 TF-IDF 기반 검색을 수행합니다.
+        """
+        bm25_index = app.state.bm25_index
+        if bm25_index is None or not app.state.bm25_docs:
             return []
-        query_morphs = set(_korean_tokenize(query))
-        if not query_morphs:
+        query_tokens = _korean_tokenize(query)
+        if not query_tokens:
             return []
-        scores: list[tuple[float, int]] = []
-        for i, doc in enumerate(app.state.bm25_docs):
-            doc_morphs = set(_korean_tokenize(doc))
-            matched = query_morphs & doc_morphs
-            score = len(matched) / len(query_morphs) if query_morphs else 0
-            scores.append((score, i))
-        scores.sort(reverse=True)
+        scores = bm25_index.get_scores(query_tokens)
+        # 점수 기준 상위 top_k개 추출 (점수 > 0인 것만)
+        top_indices = scores.argsort()[::-1][:top_k]
         results: list[tuple[str, str, float, dict]] = []
-        for score, idx in scores[:top_k]:
-            if score > 0:
-                meta = (
-                    app.state.bm25_metadatas[idx]
-                    if app.state.bm25_metadatas and idx < len(app.state.bm25_metadatas)
-                    else {}
+        for idx in top_indices:
+            score = float(scores[idx])
+            if score <= 0:
+                break
+            meta = (
+                app.state.bm25_metadatas[idx]
+                if app.state.bm25_metadatas and idx < len(app.state.bm25_metadatas)
+                else {}
+            )
+            results.append(
+                (
+                    app.state.bm25_docs[idx],
+                    app.state.bm25_ids[idx],
+                    score,
+                    meta,
                 )
-                results.append(
-                    (
-                        app.state.bm25_docs[idx],
-                        app.state.bm25_ids[idx],
-                        score,
-                        meta,
-                    )
-                )
+            )
         return results
 
     async def _rewrite_query(query: str) -> str:
@@ -386,16 +404,40 @@ def create_app(config: "SLMConfig"):
             distances = distances[:top_k]
             metadatas = metadatas[:top_k]
 
-        if config.rag.hybrid_search and app.state.bm25_docs:
-            bm25_results = _bm25_search(body.query, top_k)
-            seen_ids = set(ids)
-            for doc, doc_id, score, meta in bm25_results:
-                if doc_id not in seen_ids:
-                    seen_ids.add(doc_id)
-                    documents.append(doc)
-                    ids.append(doc_id)
-                    distances.append(1.0 - score)
-                    metadatas.append(meta)
+        if config.rag.hybrid_search and app.state.bm25_index is not None:
+            # Reciprocal Rank Fusion (RRF): 벡터 검색과 BM25 결과를 통합합니다.
+            # RRF 점수 = sum(1 / (k + rank_i)) — k=60이 표준값입니다.
+            rrf_k = 60
+
+            # 벡터 검색 결과에 RRF 점수 부여
+            rrf_scores: dict[str, float] = {}
+            rrf_data: dict[str, tuple[str, dict]] = {}  # doc_id → (doc, meta)
+            for rank, (doc, doc_id, _dist, meta) in enumerate(
+                zip(documents, ids, distances, metadatas)
+            ):
+                rrf_scores[doc_id] = rrf_scores.get(doc_id, 0.0) + 1.0 / (
+                    rrf_k + rank + 1
+                )
+                if doc_id not in rrf_data:
+                    rrf_data[doc_id] = (doc, meta)
+
+            # BM25 검색 결과에 RRF 점수 추가
+            bm25_results = _bm25_search(body.query, top_k * 2)
+            for rank, (doc, doc_id, _score, meta) in enumerate(bm25_results):
+                rrf_scores[doc_id] = rrf_scores.get(doc_id, 0.0) + 1.0 / (
+                    rrf_k + rank + 1
+                )
+                if doc_id not in rrf_data:
+                    rrf_data[doc_id] = (doc, meta)
+
+            # RRF 점수 기준 정렬 후 상위 top_k개 선택
+            sorted_ids = sorted(
+                rrf_scores, key=lambda did: rrf_scores[did], reverse=True
+            )[:top_k]
+            documents = [rrf_data[did][0] for did in sorted_ids]
+            ids = list(sorted_ids)
+            distances = [1.0 - rrf_scores[did] for did in sorted_ids]
+            metadatas = [rrf_data[did][1] for did in sorted_ids]
 
         sources: list[Source] = []
         context_parts: list[str] = []

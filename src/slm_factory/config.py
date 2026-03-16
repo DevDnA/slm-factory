@@ -450,8 +450,10 @@ class RagConfig(BaseModel):
     reranker_enabled: bool = False
     """검색 결과를 cross-encoder로 재정렬하여 정확도를 높입니다."""
 
-    reranker_model: str = "BAAI/bge-reranker-v2-m3"
-    """Reranker 모델명 (sentence-transformers CrossEncoder 호환)."""
+    reranker_model: str = "dragonkue/bge-reranker-v2-m3-ko"
+    """Reranker 모델명 (sentence-transformers CrossEncoder 호환).
+    한국어 파인튜닝된 bge-reranker-v2-m3-ko가 기본값입니다.
+    한국어 금융 벤치마크에서 F1 0.9123 (원본 bge-v2-m3: 0.8772)."""
 
     hybrid_search: bool = False
     """벡터 검색과 키워드 검색(BM25)을 결합하여 검색 재현율을 높입니다."""
