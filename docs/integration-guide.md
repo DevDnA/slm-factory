@@ -83,10 +83,10 @@ export-autorag → corpus.parquet → rag-index → ChromaDB → rag-serve → R
 
 ```bash
 # 1. slm-factory 파이프라인 실행 (파싱 + QA 생성)
-slm-factory run
+slf run
 
 # 2. RAG 인덱싱용 코퍼스 내보내기
-slm-factory tool export-autorag
+slf tool export-autorag
 
 # 결과물:
 #   output/autorag/corpus.parquet  — 코퍼스 데이터 (검색 대상 문서 청크)
@@ -116,20 +116,20 @@ slm-factory에 내장된 **ChromaDB 인덱싱 + FastAPI 서빙**으로 즉시 RA
 
 ```bash
 # 1. corpus.parquet 생성 (코퍼스 내보내기 완료 후)
-slm-factory tool export-autorag
+slf tool export-autorag
 
 # 2. ChromaDB에 벡터 임베딩 적재
-slm-factory tool rag-index
+slf tool rag-index
 
 # 3. RAG API 서버 실행
-slm-factory serve
+slf serve
 # → POST http://localhost:8000/v1/query       질의 엔드포인트
 # → GET  http://localhost:8000/health          기본 헬스체크
 # → GET  http://localhost:8000/health/ready    Ollama+ChromaDB 연결 확인
 # → GET  http://localhost:8000/health/live     라이브니스 체크
 ```
 
-> **팁**: `slm-factory run --serve` 명령으로 전체 파이프라인 실행 후 RAG 서버까지 한 번에 시작할 수 있습니다. 서버는 foreground로 실행되며, `Ctrl+C`로 종료합니다.
+> **팁**: `slf run --serve` 명령으로 전체 파이프라인 실행 후 RAG 서버까지 한 번에 시작할 수 있습니다. 서버는 foreground로 실행되며, `Ctrl+C`로 종료합니다.
 
 ```bash
 # API 호출 테스트
@@ -187,7 +187,7 @@ curl -N -X POST http://localhost:8000/v1/query \
 ### 4.3 구축 단계 요약
 
 ```
-Phase 1: slm-factory run (SLM 학습 + Ollama 배포)
+Phase 1: slf run (SLM 학습 + Ollama 배포)
     ↓
 Phase 2: rag-index → ChromaDB 인덱싱
     ↓
@@ -200,7 +200,7 @@ Phase 3: rag-serve → RAG API 서비스 운영
 | Phase 2 | 1일 | 코퍼스 인덱싱 완료 | ChromaDB 문서 적재 확인 |
 | Phase 3 | 1-2주 | RAG 서비스 배포 | API 응답 품질 + 지연 시간 |
 
-> **Phase 3 시점에서 실체적인 RAG 서비스가 동작합니다.** `slm-factory tool rag-serve` 한 줄로 REST API를 제공하는 도메인 AI 서비스가 완성됩니다.
+> **Phase 3 시점에서 실체적인 RAG 서비스가 동작합니다.** `slf tool rag-serve` 한 줄로 REST API를 제공하는 도메인 AI 서비스가 완성됩니다.
 
 ### 4.4 프로덕션 보완 체크리스트
 

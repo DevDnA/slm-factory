@@ -29,16 +29,16 @@ ollama pull qwen3.5:9b   # Teacher 모델 다운로드 (최초 1회)
 
 ```bash
 # 1. 프로젝트 초기화
-slm-factory init my-project
+slf init my-project
 
 # 2. 학습할 문서 복사
 cp /path/to/documents/*.pdf my-project/documents/
 
 # 3. 환경 점검 (선택 권장)
-slm-factory check
+slf check
 
 # 4. 대화형 파이프라인 실행
-slm-factory tool wizard
+slf tool wizard
 ```
 
 ---
@@ -53,46 +53,47 @@ slm-factory tool wizard
 
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|-----------|
-| `slm-factory init <name>` | 새 프로젝트 초기화 | `--path <디렉토리>` |
-| `slm-factory check` | 설정 및 환경 사전 점검 | `--config <파일>` |
+| `slf init <name>` | 새 프로젝트 초기화 | `--path <디렉토리>` |
+| `slf check` | 설정 및 환경 사전 점검 | `--config <파일>` |
 
 ### ⚙️ 파이프라인
 
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|-----------|
-| `slm-factory run` | 전체 파이프라인 실행 | `--until <단계>`, `--from <단계>`, `--resume` / `-r`, `--serve` / `-s` |
-| `slm-factory train` | LoRA 학습 실행 | `--data <jsonl>`, `--resume` / `-r` |
-| `slm-factory export` | 모델 내보내기 (LoRA 병합 + Modelfile) | `--adapter <경로>` |
+| `slf run` | 전체 파이프라인 실행 | `--until <단계>`, `--from <단계>`, `--resume` / `-r`, `--serve` / `-s` |
+| `slf serve` | RAG 웹 채팅 서비스 (인덱스 자동 구축) | |
+| `slf train` | LoRA 학습 실행 | `--data <jsonl>`, `--resume` / `-r` |
+| `slf export` | 모델 내보내기 (LoRA 병합 + Modelfile) | `--adapter <경로>` |
 
 ### 📊 평가
 
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|-----------|
-| `slm-factory eval run` | BLEU/ROUGE 평가 | `--model <이름>`, `--data` |
-| `slm-factory eval compare` | Base vs Fine-tuned 비교 | `--base-model <이름>`, `--ft <이름>`, `--data` |
+| `slf eval run` | BLEU/ROUGE 평가 | `--model <이름>`, `--data` |
+| `slf eval compare` | Base vs Fine-tuned 비교 | `--base-model <이름>`, `--ft <이름>`, `--data` |
 
 ### 🔧 도구
 
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|-----------|
-| `slm-factory tool wizard` | 대화형 파이프라인 (권장) | `--resume` / `-r` |
-| `slm-factory tool review` | QA 수동 리뷰 TUI | `--data` |
-| `slm-factory tool dashboard` | 파이프라인 대시보드 TUI | |
-| `slm-factory tool evolve` | 자동 진화 (증분→학습→품질게이트→배포) | `--force-update`, `--skip-gate` |
-| `slm-factory tool convert` | QA → JSONL 변환 | `--data` |
-| `slm-factory tool update` | 증분 업데이트 (변경 문서만) | |
-| `slm-factory tool compare-data` | 두 QA 데이터셋 품질 비교 | `--baseline` / `-b`, `--target` / `-t` |
-| `slm-factory tool export-autorag` | RAG 인덱싱용 데이터 내보내기 | `--qa-file` |
-| `slm-factory tool rag-index` | ChromaDB에 임베딩 적재 | `--corpus-dir` |
-| `slm-factory serve` | RAG API 서버 시작 | `--host`, `--port` |
+| `slf tool wizard` | 대화형 파이프라인 (권장) | `--resume` / `-r` |
+| `slf tool review` | QA 수동 리뷰 TUI | `--data` |
+| `slf tool dashboard` | 파이프라인 대시보드 TUI | |
+| `slf tool evolve` | 자동 진화 (증분→학습→품질게이트→배포) | `--force-update`, `--skip-gate` |
+| `slf tool convert` | QA → JSONL 변환 | `--data` |
+| `slf tool update` | 증분 업데이트 (변경 문서만) | |
+| `slf tool compare-data` | 두 QA 데이터셋 품질 비교 | `--baseline` / `-b`, `--target` / `-t` |
+| `slf tool export-autorag` | RAG 인덱싱용 데이터 내보내기 | `--qa-file` |
+| `slf tool rag-index` | ChromaDB에 임베딩 적재 | `--corpus-dir` |
+| `slf tool rag-serve` | RAG API 서버 시작 | `--host`, `--port` |
 
 ### ℹ️ 정보
 
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|-----------|
-| `slm-factory status` | 파이프라인 진행 상태 확인 | |
-| `slm-factory clean` | 중간 파일 정리 | `--all`, `--yes` / `-y` |
-| `slm-factory version` | 버전 정보 출력 | |
+| `slf status` | 파이프라인 진행 상태 확인 | |
+| `slf clean` | 중간 파일 정리 | `--all`, `--yes` / `-y` |
+| `slf version` | 버전 정보 출력 | |
 
 > 각 명령어의 전체 옵션은 [CLI 레퍼런스](cli-reference.md)를 참조하십시오.
 
@@ -100,7 +101,7 @@ slm-factory tool wizard
 
 ## 파이프라인 단계
 
-`slm-factory run` 실행 시 아래 순서로 진행됩니다. wizard(`tool wizard`)에서는 설정 로드와 문서 선택이 앞에 추가되어 번호가 다릅니다. 상세한 wizard 단계는 [사용 가이드](guide.md)를 참조하십시오.
+`slf run` 실행 시 아래 순서로 진행됩니다. wizard(`tool wizard`)에서는 설정 로드와 문서 선택이 앞에 추가되어 번호가 다릅니다. 상세한 wizard 단계는 [사용 가이드](guide.md)를 참조하십시오.
 
 1. **parse** (필수) — PDF/HWPX/HTML/TXT/MD/DOCX/HWP 파싱 → `output/parsed_documents.json`
 1b. **chunking** (선택) — 긴 문서를 청크로 분할하여 QA 생성 범위 확장
@@ -127,7 +128,7 @@ slm-factory tool wizard
 처음 사용자에게 권장합니다. 각 단계를 확인하며 대화형으로 진행합니다.
 
 ```bash
-slm-factory tool wizard
+slf tool wizard
 ```
 
 ### 2. 수동 전체 실행 (run)
@@ -135,7 +136,7 @@ slm-factory tool wizard
 설정을 직접 제어하고 싶을 때 사용합니다.
 
 ```bash
-slm-factory run
+slf run
 ```
 
 ### 3. 단계별 실행 (run --until)
@@ -143,16 +144,16 @@ slm-factory run
 특정 단계까지만 실행하고 결과를 확인한 후 다음 단계로 진행합니다.
 
 ```bash
-slm-factory run --until parse
-slm-factory run --until generate
-slm-factory run --until validate
-slm-factory run --until score
-slm-factory run --until augment
-slm-factory run --until convert
-slm-factory run --until train
-slm-factory run --until export
-slm-factory run --until eval
-slm-factory run --until rag_index
+slf run --until parse
+slf run --until generate
+slf run --until validate
+slf run --until score
+slf run --until augment
+slf run --until convert
+slf run --until train
+slf run --until export
+slf run --until eval
+slf run --until rag_index
 ```
 
 ### 4. 기존 데이터로 학습만 (train --data)
@@ -160,7 +161,7 @@ slm-factory run --until rag_index
 이미 준비된 `training_data.jsonl`이 있거나 하이퍼파라미터를 반복 실험할 때 사용합니다.
 
 ```bash
-slm-factory train --data ./output/training_data.jsonl
+slf train --data ./output/training_data.jsonl
 ```
 
 ### 5. 중단 후 재개 (--resume)
@@ -168,9 +169,9 @@ slm-factory train --data ./output/training_data.jsonl
 파이프라인이 중간에 중단된 경우, 중간 저장 파일에서 자동으로 재개합니다.
 
 ```bash
-slm-factory run --resume
-slm-factory train --resume
-slm-factory tool wizard --resume
+slf run --resume
+slf train --resume
+slf tool wizard --resume
 ```
 
 ### 6. 평가 및 비교 (eval run / eval compare)
@@ -179,10 +180,10 @@ slm-factory tool wizard --resume
 
 ```bash
 # BLEU/ROUGE 평가
-slm-factory eval run --model my-project-model
+slf eval run --model my-project-model
 
 # Base vs Fine-tuned 비교
-slm-factory eval compare \
+slf eval compare \
   --base-model gemma:2b \
   --ft my-project-model
 ```
@@ -192,7 +193,7 @@ slm-factory eval compare \
 SLM 학습부터 RAG 인덱싱, API 서버 시작까지 한 번에 실행합니다.
 
 ```bash
-slm-factory run --serve
+slf run --serve
 ```
 
 > 서버는 foreground로 실행됩니다. `Ctrl+C`로 종료할 수 있습니다.
@@ -256,7 +257,7 @@ export:
 
 chunking:
   enabled: true
-  chunk_size: 10000
+  chunk_size: "auto"      # 또는 정수 (예: 10000)
   overlap_chars: 500
 ```
 

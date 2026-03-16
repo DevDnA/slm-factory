@@ -19,16 +19,16 @@
 
 ```bash
 # 문서 1건부터 — RAG 웹 채팅 즉시 시작 (30초)
-slm-factory serve
+slf serve
 
 # 문서 20건+ — 파인튜닝 + RAG 통합 서비스 (30분)
-slm-factory run
+slf run
 ```
 
 | 모드 | 명령어 | 문서 수 | 소요 시간 | 서비스 모델 |
 |------|--------|---------|-----------|------------|
-| **RAG 전용** | `slm-factory serve` | 1건부터 | 30초 | Teacher (9B) |
-| **파인튜닝 + RAG** | `slm-factory run` | 20건+ 권장 | 30분 | Student (파인튜닝) + RAG |
+| **RAG 전용** | `slf serve` | 1건부터 | 30초 | Teacher (9B) |
+| **파인튜닝 + RAG** | `slf run` | 20건+ 권장 | 30분 | Student (파인튜닝) + RAG |
 
 ## 빠른 시작
 
@@ -48,7 +48,7 @@ cd slm-factory
 ### 2. 프로젝트 생성 + 문서 추가
 
 ```bash
-slm-factory init my-project
+slf init my-project
 cp /path/to/documents/*.pdf my-project/documents/
 ```
 
@@ -57,14 +57,14 @@ cp /path/to/documents/*.pdf my-project/documents/
 ### 3. 서비스 시작
 
 ```bash
-slm-factory serve
+slf serve
 ```
 
 브라우저에서 **http://localhost:8000/chat** 접속
 
 ## 어떻게 동작하는가
 
-### RAG 서비스 (slm-factory serve)
+### RAG 서비스 (slf serve)
 
 ```
 문서 → 섹션 인식 청킹 → 벡터 임베딩(bge-m3) → ChromaDB
@@ -72,7 +72,7 @@ slm-factory serve
 사용자 질문 → 벡터 검색 → 관련 문서 참조 → LLM 답변 생성 → 웹 채팅
 ```
 
-### 파인튜닝 파이프라인 (slm-factory run)
+### 파인튜닝 파이프라인 (slf run)
 
 ```
 문서 → Teacher(9B)가 QA 자동 생성 → 검증/채점 → 증강
