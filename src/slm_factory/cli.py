@@ -811,6 +811,7 @@ def _start_rag_server(config) -> None:
             )
             if kill:
                 import subprocess
+                import time
 
                 result = subprocess.run(
                     ["lsof", "-ti", f":{port}"],
@@ -821,6 +822,21 @@ def _start_rag_server(config) -> None:
                 for pid in pids:
                     if pid:
                         subprocess.run(["kill", "-9", pid], capture_output=True)
+
+                for _ in range(20):
+                    check = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    try:
+                        if check.connect_ex(("localhost", port)) != 0:
+                            break
+                    finally:
+                        check.close()
+                    time.sleep(0.5)
+                else:
+                    console.print(
+                        f"  [red]포트 {port}을(를) 해제하지 못했습니다.[/red]\n"
+                    )
+                    return
+
                 console.print(f"  [green]포트 {port} 해제 완료[/green]\n")
             else:
                 console.print("  서버 시작을 취소했습니다.\n")
