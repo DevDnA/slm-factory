@@ -2,12 +2,12 @@
 
 # slm-factory
 
-### 문서 넣고, 명령어 하나, RAG API 서빙
+### 문서 넣고, 명령어 하나, RAG 웹 채팅 서비스
 
-도메인 문서만 넣으면 **SLM 학습부터 RAG API 서버까지** 한 번에.<br>
+도메인 문서만 넣으면 **SLM 학습부터 RAG 웹 채팅까지** 한 번에.<br>
 할루시네이션 없는 도메인 AI 서비스를 즉시 구축합니다.
 
-<sub>12단계 자동화 파이프라인 · LoRA 파인튜닝 · Ollama 원클릭 배포 · RAG API 서빙</sub>
+<sub>11단계 자동화 파이프라인 · LoRA 파인튜닝 · Ollama 원클릭 배포 · RAG 웹 채팅</sub>
 
 <br>
 
@@ -18,7 +18,7 @@
 <br>
 
 ```
-도메인 문서  →  slm-factory run --serve  →  RAG API 서빙
+도메인 문서  →  slm-factory run  →  http://localhost:8000/chat
 ```
 
 ## 빠른 시작
@@ -41,15 +41,19 @@ uv run slm-factory init my-project
 cp /path/to/documents/*.pdf my-project/documents/
 ```
 
-### 3. 실행 — 명령어 하나로 전체 파이프라인 + RAG 서버
+### 3. 실행
 
 ```bash
-uv run slm-factory run --serve --config my-project/project.yaml
+uv run slm-factory run
 ```
 
-> 12단계 파이프라인(파싱 → QA 생성 → 검증 → 학습 → Ollama 배포 → RAG 인덱싱)이 자동으로 실행되고, 완료 후 RAG API 서버가 시작됩니다. 서버는 foreground로 실행되며, `Ctrl+C`로 종료할 수 있습니다.
+> 11단계 파이프라인이 자동으로 실행되고, 완료 후 웹 채팅 서비스가 시작됩니다.
 
-### 4. 확인 — API로 즉시 질의
+### 4. 채팅
+
+브라우저에서 **http://localhost:8000/chat** 접속
+
+또는 API 호출:
 
 ```bash
 curl -X POST http://localhost:8000/v1/query \
@@ -57,26 +61,20 @@ curl -X POST http://localhost:8000/v1/query \
   -d '{"query": "우리 회사 휴가 정책은?"}'
 ```
 
-```json
-{
-  "answer": "연차 휴가는 입사 1년 후 15일이 부여되며...",
-  "sources": [
-    {"content": "제15조(연차휴가) 입사 1년 후 15일...", "doc_id": "인사규정.pdf-chunk-0", "score": 0.85}
-  ],
-  "query": "우리 회사 휴가 정책은?"
-}
-```
+### 5. 서비스만 실행
 
-> 대화형 설정이 필요하면 `uv run slm-factory tool wizard --config project.yaml`을 사용할 수 있습니다.
+```bash
+uv run slm-factory serve
+```
 
 ## 무엇을 해결하는가
 
-| 문제 | slm-factory + RAG |
-|------|-------------------|
-| 범용 LLM은 도메인을 모른다 | 도메인 문서로 직접 학습한 SLM이 전문 지식을 내재화 |
+| 문제 | slm-factory |
+|------|-------------|
+| 범용 LLM은 도메인을 모른다 | 도메인 문서 기반 RAG + 파인튜닝 SLM |
 | LLM API 비용이 계속 발생 | 로컬 SLM 추론, GPU 서버 한 대면 충분 |
 | 사내 문서가 외부로 유출 | 온프레미스 완전 격리, 데이터 유출 제로 |
-| 할루시네이션이 신뢰를 깎는다 | RAG 검색 근거 + SLM 도메인 지식 = 할루시네이션 차단 |
+| 할루시네이션이 신뢰를 깎는다 | RAG 검색 근거 + 도메인 학습 = 할루시네이션 차단 |
 
 ## 문서
 
