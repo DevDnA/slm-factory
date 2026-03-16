@@ -301,6 +301,7 @@ def create_app(config: "SLMConfig"):
                     "prompt": prompt,
                     "stream": False,
                     "think": False,
+                    "keep_alive": -1,
                     "options": {"num_predict": 100},
                 },
                 timeout=30.0,
@@ -378,7 +379,7 @@ def create_app(config: "SLMConfig"):
         sources: list[Source] = []
         context_parts: list[str] = []
         seen_parents: set[str] = set()
-        max_context_chars = 6000
+        max_context_chars = 3000
 
         for doc, doc_id, distance, metadata in zip(
             documents, ids, distances, metadatas
@@ -427,9 +428,10 @@ def create_app(config: "SLMConfig"):
                         "prompt": prompt,
                         "stream": True,
                         "think": False,
+                        "keep_alive": -1,
                         "options": {
                             "num_predict": config.rag.max_tokens,
-                            "num_ctx": 8192,
+                            "num_ctx": 4096,
                         },
                     },
                 ) as resp:
@@ -469,7 +471,8 @@ def create_app(config: "SLMConfig"):
                 "prompt": prompt,
                 "stream": False,
                 "think": False,
-                "options": {"num_predict": config.rag.max_tokens, "num_ctx": 8192},
+                "keep_alive": -1,
+                "options": {"num_predict": config.rag.max_tokens, "num_ctx": 4096},
             },
         )
         response.raise_for_status()
@@ -561,7 +564,8 @@ def create_app(config: "SLMConfig"):
                     "prompt": prompt,
                     "stream": True,
                     "think": False,
-                    "options": {"num_predict": config.rag.max_tokens},
+                    "keep_alive": -1,
+                    "options": {"num_predict": config.rag.max_tokens, "num_ctx": 4096},
                 },
             ) as resp:
                 resp.raise_for_status()
