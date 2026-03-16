@@ -189,7 +189,7 @@ def get_training_overrides(device: DeviceInfo) -> dict[str, Any]:
 def print_device_summary(device: DeviceInfo) -> None:
     """감지된 디바이스 요약을 Rich 패널로 출력합니다.
 
-    CLI의 ``check`` 명령과 ``wizard`` 시작 시 호출됩니다.
+    CLI의 ``check`` 명령에서 호출됩니다.
     """
     from rich.console import Console
     from rich.table import Table

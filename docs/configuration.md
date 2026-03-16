@@ -789,7 +789,7 @@ dashboard:
 ```bash
 # ./setup.sh가 Ollama 설치·모델 다운로드를 자동 처리합니다
 # documents/ 디렉토리에 PDF 또는 TXT 파일 추가
-slf tool wizard --config my-project/project.yaml
+slf tune --config my-project/project.yaml
 ```
 
 기본 설정은 영어 문서, Ollama 백엔드, Gemma 3 1B 모델을 사용합니다.

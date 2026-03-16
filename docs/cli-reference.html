@@ -90,7 +90,6 @@
             <li>
               <a href="#tools">도구</a>
               <ol class="toc-list">
-                <li class="toc-h3"><a href="#tool-wizard"><code>tool wizard</code></a></li>
                 <li class="toc-h3"><a href="#tool-review"><code>tool review</code></a></li>
                 <li class="toc-h3"><a href="#tool-dashboard"><code>tool dashboard</code></a></li>
                 <li class="toc-h3"><a href="#tool-convert"><code>tool convert</code></a></li>
@@ -230,11 +229,6 @@
                   <td><code>eval compare</code></td>
                   <td><span class="tag tag-optional">평가</span></td>
                   <td>Base 모델과 Fine-tuned 모델의 답변을 나란히 비교합니다</td>
-                </tr>
-                <tr>
-                  <td><code>tool wizard</code></td>
-                  <td><span class="tag tag-new">도구</span></td>
-                  <td>대화형 파이프라인을 단계별로 안내합니다 (권장)</td>
                 </tr>
                 <tr>
                   <td><code>tool review</code></td>
@@ -506,8 +500,7 @@ slf init policy-assistant --path /workspace/projects</code></pre>
                   <tr><td>모델 사용 가능</td><td>OK</td><td>qwen3.5:9b</td></tr>
                 </tbody>
               </table>
-              <p class="terminal-footer">모든 점검 통과!
-  wizard 실행: slf tool wizard --config ./my-project/project.yaml</p>
+              <p class="terminal-footer">모든 점검 통과!</p>
             </div>
           </article>
 
@@ -1110,198 +1103,6 @@ slf eval compare \
         <!-- ============================================================ -->
         <section id="tools">
           <h2>도구</h2>
-
-          <!-- tool wizard -->
-          <article id="tool-wizard">
-            <h3><code>tool wizard</code></h3>
-            <p>전체 파이프라인을 단계별로 안내하는 대화형 인터페이스입니다. 각 단계에서 진행 여부를 확인하며, 선택 단계는 건너뛸 수 있습니다. 처음 사용자에게 권장합니다.</p>
-
-            <h4>사용법</h4>
-            <pre data-lang="bash"><code>slf tool wizard [OPTIONS]</code></pre>
-
-            <h4>옵션</h4>
-            <div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>플래그</th>
-                    <th>단축키</th>
-                    <th>타입</th>
-                    <th>기본값</th>
-                    <th>설명</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td><code>--config</code></td>
-                    <td></td>
-                    <td><code>TEXT</code></td>
-                    <td><code>project.yaml</code></td>
-                    <td>프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다.</td>
-                  </tr>
-                  <tr>
-                    <td><code>--resume</code></td>
-                    <td><code>-r</code></td>
-                    <td><code>FLAG</code></td>
-                    <td><code>False</code></td>
-                    <td>이전 실행의 중간 결과에서 재개합니다.</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <h4>준비 단계 <small>(wizard 전용)</small></h4>
-
-            <div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>단계</th>
-                    <th>유형</th>
-                    <th>설명</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>설정 파일 로드</td>
-                    <td><span class="tag tag-required">필수</span></td>
-                    <td><code>project.yaml</code>을 자동 탐색하거나 경로를 직접 입력합니다</td>
-                  </tr>
-                  <tr>
-                    <td>문서 선택</td>
-                    <td><span class="tag tag-required">필수</span></td>
-                    <td><code>documents/</code> 디렉토리의 파일 목록을 표시하고 전체 또는 개별 선택합니다</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <h4>파이프라인 단계 <small>(1-12)</small></h4>
-
-            <blockquote>
-              <p><strong>단계 유형 안내</strong>: <strong>필수</strong> &mdash; 항상 실행, 건너뛸 수 없음 &middot; <strong>선택</strong> &mdash; 사용자 확인 후 건너뛸 수 있음 (<code>enabled</code> 설정 반영) &middot; <strong>자동</strong> &mdash; 사용자 확인 없이 자동 실행</p>
-            </blockquote>
-
-            <div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>단계</th>
-                    <th>유형</th>
-                    <th>설명</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>1</td>
-                    <td>문서 파싱</td>
-                    <td><span class="tag tag-required">필수</span></td>
-                    <td>선택한 문서를 자동으로 파싱합니다</td>
-                  </tr>
-                  <tr>
-                    <td>1b</td>
-                    <td>문서 청킹</td>
-                    <td><span class="tag tag-optional">선택</span></td>
-                    <td>긴 문서를 청크로 분할하여 QA 생성 범위를 확장합니다 (<code>chunking.enabled</code> 설정 반영)</td>
-                  </tr>
-                  <tr>
-                    <td>2</td>
-                    <td>QA 쌍 생성</td>
-                    <td><span class="tag tag-required">필수</span></td>
-                    <td>Teacher LLM으로 질문-답변 쌍을 생성합니다. 확인 후 진행합니다.</td>
-                  </tr>
-                  <tr>
-                    <td>3</td>
-                    <td>QA 검증</td>
-                    <td><span class="tag tag-required">필수</span></td>
-                    <td>규칙 기반 및 임베딩 기반 검증을 자동으로 실행합니다</td>
-                  </tr>
-                  <tr>
-                    <td>4</td>
-                    <td>품질 점수 평가</td>
-                    <td><span class="tag tag-optional">선택</span></td>
-                    <td>Teacher LLM이 QA 쌍을 1~5점으로 평가합니다. 저품질 QA 재생성 옵션을 포함합니다. 건너뛸 수 있습니다. (<code>scoring.enabled</code> 설정 반영)</td>
-                  </tr>
-                  <tr>
-                    <td>5</td>
-                    <td>데이터 증강</td>
-                    <td><span class="tag tag-optional">선택</span></td>
-                    <td>질문을 다양한 표현으로 변형하여 데이터를 늘립니다. 건너뛸 수 있습니다. (<code>augment.enabled</code> 설정 반영)</td>
-                  </tr>
-                  <tr>
-                    <td>6</td>
-                    <td>통계 분석</td>
-                    <td><span class="tag tag-auto">자동</span></td>
-                    <td>카테고리별 QA 분포, 길이 통계 등 분석 보고서를 생성합니다 (<code>analyzer.enabled</code> 설정 반영)</td>
-                  </tr>
-                  <tr>
-                    <td>7</td>
-                    <td>데이터 변환</td>
-                    <td><span class="tag tag-auto">자동</span></td>
-                    <td>QA 데이터를 채팅 템플릿 적용 JSONL 형식으로 변환합니다</td>
-                  </tr>
-                  <tr>
-                    <td>8</td>
-                    <td>LoRA 학습</td>
-                    <td><span class="tag tag-required">필수</span></td>
-                    <td>Student 모델에 LoRA 어댑터를 적용하여 파인튜닝합니다. 확인 후 진행합니다.</td>
-                  </tr>
-                  <tr>
-                    <td>9</td>
-                    <td>모델 내보내기</td>
-                    <td><span class="tag tag-required">필수</span></td>
-                    <td>LoRA 어댑터를 병합하고 Ollama Modelfile을 생성합니다. 확인 후 진행합니다.</td>
-                  </tr>
-                  <tr>
-                    <td>10</td>
-                    <td>모델 평가</td>
-                    <td><span class="tag tag-optional">선택</span></td>
-                    <td>BLEU/ROUGE 메트릭으로 학습된 모델을 평가합니다. 건너뛸 수 있습니다.</td>
-                  </tr>
-                  <tr>
-                    <td>11</td>
-                    <td>Refinement</td>
-                    <td><span class="tag tag-optional">선택</span></td>
-                    <td>Iterative Refinement — 약점 QA 재생성 + 재학습. 건너뛸 수 있습니다. (<code>refinement.enabled</code> 설정 반영)</td>
-                  </tr>
-                  <tr>
-                    <td>12</td>
-                    <td>코퍼스 내보내기</td>
-                    <td><span class="tag tag-optional">선택</span></td>
-                    <td>QA·문서를 RAG 인덱싱용 parquet으로 내보냅니다. 건너뛸 수 있습니다. (<code>autorag_export.enabled</code> 설정 반영)</td>
-                  </tr>
-                  <tr>
-                    <td>13</td>
-                    <td>RAG 인덱싱</td>
-                    <td><span class="tag tag-optional">선택</span></td>
-                    <td>corpus.parquet을 Qdrant에 임베딩하여 적재합니다. 건너뛸 수 있습니다.</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <p>선택 단계를 건너뛰면 해당 단계를 나중에 실행할 수 있는 CLI 명령어를 안내합니다.</p>
-
-            <h4>예시</h4>
-            <pre data-lang="bash"><code># 처음 실행
-slf tool wizard --config my-project/project.yaml
-
-# 이전 실행에서 재개
-slf tool wizard --resume --config my-project/project.yaml</code></pre>
-
-            <h4>참고</h4>
-            <div class="callout callout-info">
-              <div class="callout-content">
-                <ul>
-                  <li>wizard 실행 전 Ollama 서버와 Teacher 모델이 필요합니다. 자세한 사전 준비는 <a href="guide.html">사용 가이드</a>를 참조하십시오.</li>
-                  <li><code>--resume</code> 사용 시 출력 디렉토리의 중간 파일을 자동으로 감지하여 해당 단계부터 재개합니다.</li>
-                </ul>
-              </div>
-            </div>
-          </article>
-
-          <hr>
 
           <!-- tool review -->
           <article id="tool-review">

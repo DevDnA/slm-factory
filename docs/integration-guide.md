@@ -280,7 +280,7 @@ slm-factory 내장 RAG 서버로 RAG 서비스를 즉시 운영할 수 있지만
 |------|------|
 | [사용 가이드](guide.html) | slm-factory 설치부터 모델 배포까지 단계별 안내 |
 | [설정 레퍼런스](configuration.html) | `rag`, `export.ollama` 설정 상세 |
-| [CLI 레퍼런스](cli-reference.html) | `tool rag-index`, `tool rag-serve`, `tool wizard` 명령어 상세 |
+| [CLI 레퍼런스](cli-reference.html) | `tool rag-index`, `tool rag-serve` 명령어 상세 |
 | [아키텍처 가이드](architecture.html) | 모듈 내부 구조와 설계 원칙 |
 | [개발 가이드](development.html) | 모듈 확장 방법 |
 

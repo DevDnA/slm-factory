@@ -37,8 +37,8 @@ cp /path/to/documents/*.pdf my-project/documents/
 # 3. 환경 점검 (선택 권장)
 slf check
 
-# 4. 대화형 파이프라인 실행
-slf tool wizard
+# 4. 파이프라인 실행
+slf tune
 ```
 
 ---
@@ -76,7 +76,6 @@ slf tool wizard
 
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|-----------|
-| `slf tool wizard` | 대화형 파이프라인 (권장) | `--resume` / `-r` |
 | `slf tool review` | QA 수동 리뷰 TUI | `--data` |
 | `slf tool dashboard` | 파이프라인 대시보드 TUI | |
 | `slf tool evolve` | 자동 진화 (증분→학습→품질게이트→배포) | `--force-update`, `--skip-gate` |
@@ -101,7 +100,7 @@ slf tool wizard
 
 ## 파이프라인 단계
 
-`slf tune` 실행 시 아래 순서로 진행됩니다. wizard(`tool wizard`)에서는 설정 로드와 문서 선택이 앞에 추가되어 번호가 다릅니다. 상세한 wizard 단계는 [사용 가이드](guide.md)를 참조하십시오.
+`slf tune` 실행 시 아래 순서로 진행됩니다. 상세한 단계 설명은 [사용 가이드](guide.md)를 참조하십시오.
 
 1. **parse** (필수) — PDF/HWPX/HTML/TXT/MD/DOCX/HWP 파싱 → `output/parsed_documents.json`
 1b. **chunking** (선택) — 긴 문서를 청크로 분할하여 QA 생성 범위 확장
@@ -124,15 +123,7 @@ slf tool wizard
 
 ## 자주 쓰는 워크플로우
 
-### 1. 전체 자동 실행 (wizard)
-
-처음 사용자에게 권장합니다. 각 단계를 확인하며 대화형으로 진행합니다.
-
-```bash
-slf tool wizard
-```
-
-### 2. 수동 전체 실행 (tune)
+### 1. 전체 자동 실행 (tune)
 
 설정을 직접 제어하고 싶을 때 사용합니다.
 
@@ -172,7 +163,6 @@ slf train --data ./output/training_data.jsonl
 ```bash
 slf tune --resume
 slf train --resume
-slf tool wizard --resume
 ```
 
 ### 6. 평가 및 비교 (eval run / eval compare)
