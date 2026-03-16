@@ -216,7 +216,7 @@ slm-factory run [OPTIONS]
 | `autorag_export` | 기본 활성 | RAG 인덱싱 데이터 내보내기 | `output/autorag/` |
 | `rag_index` | 기본 활성 | ChromaDB 벡터 인덱싱 | `output/chroma_db/` |
 
-`--until`을 생략하면 위 전체 12단계를 순서대로 실행합니다. 각 단계는 해당 설정의 `enabled` 값에 따라 실행 여부가 결정됩니다.
+`--until`을 생략하면 위 전체 11단계를 순서대로 실행합니다. 각 단계는 해당 설정의 `enabled` 값에 따라 실행 여부가 결정됩니다.
 
 **`--resume` 동작 방식**
 
@@ -496,7 +496,7 @@ slm-factory tool wizard [OPTIONS]
 | 설정 파일 로드 | 필수 | `project.yaml`을 자동 탐색하거나 경로를 직접 입력합니다 |
 | 문서 선택 | 필수 | `documents/` 디렉토리의 파일 목록을 표시하고 전체 또는 개별 선택합니다 |
 
-**12단계 파이프라인** (단계 번호는 [빠른 참조](quick-reference.md) 다이어그램과 동일)
+**11단계 파이프라인** (단계 번호는 [빠른 참조](quick-reference.md) 다이어그램과 동일)
 
 > **단계 유형 안내**: **필수** — 항상 실행, 건너뛸 수 없음 · **선택** — 사용자 확인 후 건너뛸 수 있음 (`enabled` 설정 반영) · **자동** — 사용자 확인 없이 자동 실행
 

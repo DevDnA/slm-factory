@@ -195,7 +195,7 @@ slm-factory check --config my-first-project/project.yaml
 slm-factory tool wizard --config my-first-project/project.yaml
 ```
 
-wizard는 준비 단계 후 12단계 파이프라인을 순서대로 실행합니다. 단계 번호는 [빠른 참조](quick-reference.md)의 파이프라인 다이어그램과 동일합니다.
+wizard는 준비 단계 후 11단계 파이프라인을 순서대로 실행합니다. 단계 번호는 [빠른 참조](quick-reference.md)의 파이프라인 다이어그램과 동일합니다.
 
 > **단계 유형 안내**
 > - **필수**: 항상 실행되며 건너뛸 수 없습니다.

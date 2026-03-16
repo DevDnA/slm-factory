@@ -180,9 +180,9 @@ def create_teacher(config: TeacherConfig) -> BaseTeacher:
 
 `ChatFormatter`는 HuggingFace `tokenizer.apply_chat_template()`을 래핑하여 통일된 `QAPair` 형식을 모델별 채팅 형식으로 변환합니다. Gemma처럼 시스템 역할을 지원하지 않는 모델은 시스템 메시지를 제거하고 자동으로 재시도합니다. `max_seq_length` 초과 항목은 자동으로 제외됩니다.
 
-### 3.5 비동기 동시성 패턴 (scorer, augmenter, regeneration)
+### 3.5 비동기 동시성 패턴 (scorer, augmenter)
 
-Scorer, Augmenter, 그리고 저품질 QA 재생성 루프는 `asyncio.Semaphore`로 동시 요청 수를 제한하면서 병렬 처리합니다.
+Scorer와 Augmenter는 `asyncio.Semaphore`로 동시 요청 수를 제한하면서 병렬 처리합니다.
 
 ```python
 semaphore = asyncio.Semaphore(config.max_concurrency)
