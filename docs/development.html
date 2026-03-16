@@ -201,7 +201,6 @@ class CompareResult:
     export: ExportConfig;        eval: EvalConfig
     incremental: IncrementalConfig; review: ReviewConfig
     compare: CompareConfig;      evolve: EvolveConfig
-    dashboard: DashboardConfig
     chunking: ChunkingConfig
     autorag_export: AutoRAGExportConfig
     rag: RagConfig</code></pre>
@@ -751,14 +750,6 @@ class DataAnalyzer:
 
           <hr>
 
-          <h3 id="pipeline-dashboard">PipelineDashboard (dashboard.py)</h3>
-          <p>Textual 기반 파이프라인 모니터링 앱입니다. <code>slf tool dashboard</code> 명령으로 실행됩니다.</p>
-
-          <pre data-lang="python"><code>class PipelineDashboard(App[None]):
-    """파이프라인 진행 상태를 실시간으로 모니터링하는 TUI 앱입니다.
-    표시: 각 단계 출력 파일 존재 여부, 항목 수, 최근 수정 시각, 평가 결과 요약
-    설정: config.dashboard.refresh_interval (기본값: 2.0초)
-    """</code></pre>
         </section>
 
 
@@ -957,7 +948,7 @@ class VLLMExporter:
 ├── test_{scorer,augmenter,analyzer,converter}.py
 ├── test_exporter.py             # HFExporter, OllamaExporter
 ├── test_{evaluator,comparator,incremental}.py
-├── test_{reviewer,dashboard}.py # TUI
+├── test_reviewer.py             # TUI
 ├── test_cli.py                  # CLI 명령어
 └── test_utils.py                # 유틸리티 함수</code></pre>
 

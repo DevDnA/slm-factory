@@ -77,7 +77,6 @@ slf tune
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|-----------|
 | `slf tool review` | QA 수동 리뷰 TUI | `--data` |
-| `slf tool dashboard` | 파이프라인 대시보드 TUI | |
 | `slf tool evolve` | 자동 진화 (증분→학습→품질게이트→배포) | `--force-update`, `--skip-gate` |
 | `slf tool convert` | QA → JSONL 변환 | `--data` |
 | `slf tool update` | 증분 업데이트 (변경 문서만) | |

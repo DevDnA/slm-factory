@@ -753,26 +753,7 @@ review:
 
 ---
 
-## 23. dashboard — 대시보드 설정
-
-> 파이프라인 진행 상태를 실시간 TUI로 모니터링합니다.
-
-| 필드 | 타입 | 기본값 | 설명 |
-|------|------|--------|------|
-| `enabled` | `bool` | `true` | 대시보드 기능 활성화 여부 |
-| `refresh_interval` | `float` | `2.0` | 대시보드 새로고침 간격 (초) |
-| `theme` | `str` | `"dark"` | 대시보드 테마. `"dark"` 또는 `"light"` |
-
-```yaml
-dashboard:
-  enabled: true
-  refresh_interval: 2.0
-  theme: "dark"
-```
-
----
-
-## 24. 설정 레시피
+## 23. 설정 레시피
 
 자주 사용되는 설정 패턴을 레시피 형태로 제공합니다. 각 레시피는 특정 상황에 맞게 최소한의 필드만 변경합니다.
 
@@ -883,7 +864,7 @@ teacher:
 
 ---
 
-## 25. 전체 설정 예시 (한국어 정책 문서 프로젝트)
+## 24. 전체 설정 예시 (한국어 정책 문서 프로젝트)
 
 한국어 회사 정책 문서를 처리하는 완전한 `project.yaml` 예시입니다.
 
@@ -1027,14 +1008,11 @@ export:
       top_p: 0.9
       num_ctx: 4096
 
-# compare, review, dashboard는 수동 조작 또는 추가 설정이 필요하므로 명시적으로 비활성화
+# compare, review는 수동 조작 또는 추가 설정이 필요하므로 명시적으로 비활성화
 compare:
   enabled: false  # base_model 설정 필요
 
 review:
-  enabled: false  # TUI 대화형 실행 전용
-
-dashboard:
   enabled: false  # TUI 대화형 실행 전용
 ```
 
@@ -1048,11 +1026,11 @@ dashboard:
 6. `groundedness.model`을 다국어 지원 모델로 변경했습니다
 7. `student.model: "google/gemma-3-1b-it"` — 소량 데이터에서 파인튜닝이 용이한 경량 Instruct 모델입니다
 8. `export.ollama.parameters.temperature: 0.5` — 정책 문서는 일관성이 중요하므로 낮췄습니다
-9. `compare`, `review`, `dashboard`는 수동 조작이 필요하므로 명시적으로 비활성화합니다. 나머지 선택적 단계는 기본값(`true`)을 그대로 사용합니다
+9. `compare`, `review`는 수동 조작이 필요하므로 명시적으로 비활성화합니다. 나머지 선택적 단계는 기본값(`true`)을 그대로 사용합니다
 
 ---
 
-## 26. 설정 검증 (slf check)
+## 25. 설정 검증 (slf check)
 
 설정 파일이 올바른지 확인하려면 `check` 명령을 사용합니다:
 

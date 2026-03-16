@@ -39,7 +39,6 @@ slf [전역 옵션] <명령어> [옵션]
 | `eval run` | 📊 평가 | 학습된 모델을 BLEU/ROUGE 메트릭으로 평가합니다 |
 | `eval compare` | 📊 평가 | Base 모델과 Fine-tuned 모델의 답변을 나란히 비교합니다 |
 | `tool review` | 🔧 도구 | QA 쌍을 TUI에서 수동으로 승인/거부/편집합니다 |
-| `tool dashboard` | 🔧 도구 | 파이프라인 진행 상태를 실시간 TUI로 모니터링합니다 |
 | `tool convert` | 🔧 도구 | QA 데이터를 훈련용 JSONL 형식으로 변환합니다 |
 | `tool update` | 🔧 도구 | 변경된 문서만 감지하여 증분 처리합니다 |
 | `tool evolve` | 🔧 도구 | 자동 진화 (증분→학습→품질게이트→배포) |
@@ -545,32 +544,6 @@ TUI 종료 후 리뷰 결과를 출력합니다.
 ```
 
 생성 파일: `output/qa_reviewed.json` (승인된 QA 쌍만 포함)
-
----
-
-### `tool dashboard`
-
-파이프라인 각 단계의 진행 상태를 실시간으로 모니터링하는 TUI 대시보드를 실행합니다.
-
-**사용법**
-
-```
-slf tool dashboard [OPTIONS]
-```
-
-**옵션**
-
-| 플래그 | 단축키 | 타입 | 기본값 | 설명 |
-|--------|--------|------|--------|------|
-| `--config` | | `TEXT` | `project.yaml` | 프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다. |
-
-**예시**
-
-```bash
-slf tool dashboard
-```
-
-대시보드는 각 단계의 출력 파일 존재 여부, 항목 수, 최근 수정 시각을 표시하며 설정된 주기(`dashboard.refresh_interval`)로 자동 갱신합니다.
 
 ---
 

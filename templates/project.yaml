@@ -242,12 +242,6 @@ evolve:
   history_file: "evolve_history.json"     # 진화 히스토리 파일명
   keep_previous_versions: 3               # 보관할 이전 버전 수 (초과분 ollama rm)
 
-# -- TUI 대시보드(Dashboard) ------------------------------------------------
-dashboard:
-  enabled: true                         # 터미널 대시보드로 파이프라인 모니터링
-  refresh_interval: 2.0                 # 화면 갱신 주기 (초)
-  theme: "dark"                         # "dark" | "light"
-
 # -- 문서 청킹(Document Chunking) ------------------------------------------
 # 긴 문서를 청크로 분할하여 QA 품질을 향상합니다.
 # 비활성화 시 기존처럼 max_context_chars로 잘라서 단일 QA를 생성합니다.

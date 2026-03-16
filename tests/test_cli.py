@@ -633,47 +633,6 @@ class TestCompareCommand:
 
 
 # ---------------------------------------------------------------------------
-# dashboard
-# ---------------------------------------------------------------------------
-
-
-class TestDashboardCommand:
-    """dashboard 명령어의 테스트입니다."""
-
-    def test_대시보드_실행(self, mocker, tmp_path):
-        """load_config과 PipelineDashboard가 올바르게 호출되는지 확인합니다."""
-        mock_cfg = MagicMock()
-        mock_cfg.paths.output = str(tmp_path / "output")
-        mock_cfg.dashboard.refresh_interval = 5
-        mocker.patch("slm_factory.cli._find_config", return_value="test.yaml")
-        mocker.patch("slm_factory.config.load_config", return_value=mock_cfg)
-
-        mock_dashboard = MagicMock()
-        mocker.patch(
-            "slm_factory.tui.dashboard.PipelineDashboard",
-            return_value=mock_dashboard,
-        )
-
-        result = runner.invoke(app, ["tool", "dashboard", "--config", "test.yaml"])
-
-        assert result.exit_code == 0
-        mock_dashboard.run.assert_called_once()
-
-    def test_존재하지_않는_config(self):
-        """존재하지 않는 설정 파일을 지정하면 exit code 1로 종료하는지 확인합니다."""
-        result = runner.invoke(
-            app,
-            [
-                "tool",
-                "dashboard",
-                "--config",
-                "/nonexistent/path.yaml",
-            ],
-        )
-        assert result.exit_code == 1
-
-
-# ---------------------------------------------------------------------------
 # review
 # ---------------------------------------------------------------------------
 

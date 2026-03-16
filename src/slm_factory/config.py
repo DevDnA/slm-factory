@@ -588,14 +588,6 @@ class EvolveConfig(BaseModel):
         return self
 
 
-class DashboardConfig(BaseModel):
-    """TUI 대시보드 설정입니다."""
-
-    enabled: bool = True
-    refresh_interval: float = 2.0
-    theme: str = "dark"
-
-
 class ChunkingConfig(BaseModel):
     """문서 청킹 설정입니다.
 
@@ -661,7 +653,6 @@ class SLMConfig(BaseModel):
     review: ReviewConfig = Field(default_factory=ReviewConfig)
     compare: CompareConfig = Field(default_factory=CompareConfig)
     evolve: EvolveConfig = Field(default_factory=EvolveConfig)
-    dashboard: DashboardConfig = Field(default_factory=DashboardConfig)
     chunking: ChunkingConfig = Field(default_factory=ChunkingConfig)
 
     @model_validator(mode="before")

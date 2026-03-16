@@ -2247,34 +2247,6 @@ def compare_models(
         raise typer.Exit(code=1)
 
 
-@tool_app.command(name="dashboard")
-def dashboard(
-    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
-) -> None:
-    """파이프라인 모니터링 TUI 대시보드를 실행합니다."""
-    from .config import load_config
-
-    try:
-        cfg = load_config(_find_config(config))
-    except Exception as e:
-        _print_error("설정 로드 실패", e, hints=_get_error_hints(e))
-        raise typer.Exit(code=1)
-
-    output_dir = Path(cfg.paths.output)
-
-    try:
-        from .tui.dashboard import PipelineDashboard
-
-        dash_app = PipelineDashboard(
-            output_dir=output_dir,
-            refresh_interval=cfg.dashboard.refresh_interval,
-        )
-        dash_app.run()
-    except Exception as e:
-        _print_error("대시보드 실행 실패", e, hints=_get_error_hints(e))
-        raise typer.Exit(code=1)
-
-
 @tool_app.command(name="review")
 def review_qa(
     config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),

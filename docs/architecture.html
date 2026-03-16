@@ -190,7 +190,7 @@
         ├─→ calibration.py (auto_chunk_size, auto_num_epochs, section_aware_chunk)
         ├─→ device.py (detect_device)
         ├─→ evolve_history.py (EvolveHistory)
-        └─→ tui/ (QAReviewerApp, PipelineDashboard)
+        └─→ tui/ (QAReviewerApp)
 
 모든 모듈
   ├─→ config.py (SLMConfig + 29개 하위 모델)
@@ -460,10 +460,8 @@ parsed_documents.json   →  generate 단계부터 재개
             <text x="560" y="286" class="s4-item">compare: CompareConfig</text>
             <rect x="550" y="300" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="560" y="318" class="s4-item">evolve: EvolveConfig</text>
-            <rect x="550" y="332" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
-            <text x="560" y="350" class="s4-item">dashboard: DashboardConfig</text>
           </svg>
-          <p class="diagram-caption">그림 5-1. SLMConfig 설정 모델 계층 구조 (29개 하위 모델)</p>
+          <p class="diagram-caption">그림 5-1. SLMConfig 설정 모델 계층 구조 (28개 하위 모델)</p>
         </div>
 
         <!-- Full config field details preserved as code block -->
@@ -617,11 +615,6 @@ parsed_documents.json   →  generate 단계부터 재개
 │   ├── version_format: str = "date"
 │   ├── history_file: str = "evolve_history.json"
 │   └── keep_previous_versions: int = 3
-│
-├── dashboard: DashboardConfig
-│   ├── enabled: bool = True
-│   ├── refresh_interval: float = 2.0
-│   └── theme: str = "dark"
 │
 ├── autorag_export: AutoRAGExportConfig
 │   ├── enabled: bool = True

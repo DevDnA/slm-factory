@@ -57,8 +57,7 @@ src/slm_factory/
 └── tui/
     ├── __init__.py
     ├── widgets.py           # 공유 TUI 위젯 (QACard, StatusBar)
-    ├── reviewer.py          # QAReviewerApp (QA 수동 리뷰)
-    └── dashboard.py         # PipelineDashboard (파이프라인 모니터링)
+    └── reviewer.py          # QAReviewerApp (QA 수동 리뷰)
 ```
 
 ### 모듈 의존성
@@ -126,7 +125,6 @@ class SLMConfig(BaseModel):
     incremental: IncrementalConfig
     review: ReviewConfig
     compare: CompareConfig;      evolve: EvolveConfig
-    dashboard: DashboardConfig
     chunking: ChunkingConfig
     autorag_export: AutoRAGExportConfig
     rag: RagConfig
@@ -588,18 +586,6 @@ class QAReviewerApp(App[None]):
     """
 ```
 
-### PipelineDashboard (dashboard.py)
-
-Textual 기반 파이프라인 모니터링 앱입니다. `slf tool dashboard` 명령으로 실행됩니다.
-
-```python
-class PipelineDashboard(App[None]):
-    """파이프라인 진행 상태를 실시간으로 모니터링하는 TUI 앱입니다.
-    표시: 각 단계 출력 파일 존재 여부, 항목 수, 최근 수정 시각, 평가 결과 요약
-    설정: config.dashboard.refresh_interval (기본값: 2.0초)
-    """
-```
-
 ---
 
 ## 10. 확장 가이드
@@ -787,7 +773,7 @@ tests/
 ├── test_exporter.py             # HFExporter, OllamaExporter
 ├── test_{evaluator,comparator,incremental}.py
 ├── test_integration.py          # 통합 테스트 (청킹, 재생성, 관계 정규화)
-├── test_{reviewer,dashboard}.py # TUI
+├── test_reviewer.py             # TUI
 ├── test_cli.py                  # CLI 명령어
 └── test_utils.py                # 유틸리티 함수
 ```

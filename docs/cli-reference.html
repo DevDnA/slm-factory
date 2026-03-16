@@ -91,7 +91,6 @@
               <a href="#tools">도구</a>
               <ol class="toc-list">
                 <li class="toc-h3"><a href="#tool-review"><code>tool review</code></a></li>
-                <li class="toc-h3"><a href="#tool-dashboard"><code>tool dashboard</code></a></li>
                 <li class="toc-h3"><a href="#tool-convert"><code>tool convert</code></a></li>
                 <li class="toc-h3"><a href="#tool-evolve"><code>tool evolve</code></a></li>
                 <li class="toc-h3"><a href="#tool-update"><code>tool update</code></a></li>
@@ -234,11 +233,6 @@
                   <td><code>tool review</code></td>
                   <td><span class="tag tag-new">도구</span></td>
                   <td>QA 쌍을 TUI에서 수동으로 승인/거부/편집합니다</td>
-                </tr>
-                <tr>
-                  <td><code>tool dashboard</code></td>
-                  <td><span class="tag tag-new">도구</span></td>
-                  <td>파이프라인 진행 상태를 실시간 TUI로 모니터링합니다</td>
                 </tr>
                 <tr>
                   <td><code>tool convert</code></td>
@@ -1157,46 +1151,6 @@ slf tool review --config my-project/project.yaml --data ./my-project/output/qa_a
             <pre><code>리뷰 완료! 승인: 98, 거부: 12, 대기: 5</code></pre>
 
             <p>생성 파일: <code>output/qa_reviewed.json</code> (승인된 QA 쌍만 포함)</p>
-          </article>
-
-          <hr>
-
-          <!-- tool dashboard -->
-          <article id="tool-dashboard">
-            <h3><code>tool dashboard</code></h3>
-            <p>파이프라인 각 단계의 진행 상태를 실시간으로 모니터링하는 TUI 대시보드를 실행합니다.</p>
-
-            <h4>사용법</h4>
-            <pre data-lang="bash"><code>slf tool dashboard [OPTIONS]</code></pre>
-
-            <h4>옵션</h4>
-            <div class="table-wrapper">
-              <table>
-                <thead>
-                  <tr>
-                    <th>플래그</th>
-                    <th>단축키</th>
-                    <th>타입</th>
-                    <th>기본값</th>
-                    <th>설명</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td><code>--config</code></td>
-                    <td></td>
-                    <td><code>TEXT</code></td>
-                    <td><code>project.yaml</code></td>
-                    <td>프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다.</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-
-            <h4>예시</h4>
-            <pre data-lang="bash"><code>slf tool dashboard --config my-project/project.yaml</code></pre>
-
-            <p>대시보드는 각 단계의 출력 파일 존재 여부, 항목 수, 최근 수정 시각을 표시하며 설정된 주기(<code>dashboard.refresh_interval</code>)로 자동 갱신합니다.</p>
           </article>
 
           <hr>

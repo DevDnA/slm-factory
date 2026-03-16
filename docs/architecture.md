@@ -123,7 +123,7 @@ cli.py
         ├─→ calibration.py (auto_chunk_size, auto_num_epochs, section_aware_chunk)
         ├─→ device.py (detect_device)
         ├─→ evolve_history.py (EvolveHistory)
-        └─→ tui/ (QAReviewerApp, PipelineDashboard)
+        └─→ tui/ (QAReviewerApp)
 
 모든 모듈
   ├─→ config.py (SLMConfig + 29개 하위 모델)
@@ -455,11 +455,6 @@ SLMConfig (root)
 │   ├── version_format: str = "date"
 │   ├── history_file: str = "evolve_history.json"
 │   └── keep_previous_versions: int = 3
-│
-├── dashboard: DashboardConfig
-│   ├── enabled: bool = True
-│   ├── refresh_interval: float = 2.0
-│   └── theme: str = "dark"
 │
 ├── autorag_export: AutoRAGExportConfig
 │   ├── enabled: bool = True
