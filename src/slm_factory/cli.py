@@ -119,7 +119,7 @@ def _get_error_hints(error: Exception) -> list[str]:
     ):
         return [
             "Ollama가 실행 중인지 확인하세요: `ollama serve`",
-            "모델이 다운로드되었는지 확인하세요: `ollama pull qwen3.5:9b` (또는 설정한 Teacher 모델)",
+            "모델이 다운로드되었는지 확인하세요: `ollama pull <Teacher 모델명>`",
         ]
 
     if isinstance(error, RuntimeError) and (
@@ -423,19 +423,17 @@ def init(
     console.print(f"  {documents_dir}/")
     console.print(f"  {output_dir}/")
     console.print(f"  {config_path}")
-    console.print(f"\n[bold]사전 준비:[/bold]")
+    console.print(f"\n[bold]다음 단계:[/bold]")
     console.print(
         f"  1. [cyan]{documents_dir}[/cyan] 디렉토리에 학습할 문서(PDF, TXT 등)를 추가하세요"
     )
+    console.print(f"\n[bold]실행 (택 1):[/bold]")
     console.print(
-        f"  2. 별도 터미널에서 Ollama를 실행하세요: [cyan]ollama serve[/cyan]"
+        f"  [bold cyan]slf rag[/bold cyan]               RAG 채팅 즉시 시작 (30초)"
     )
     console.print(
-        f"  3. Teacher 모델을 다운로드하세요: [cyan]ollama pull qwen3.5:9b[/cyan]"
+        f"  [bold cyan]slf tune[/bold cyan]              파인튜닝 + RAG + 채팅 (30분)\n"
     )
-    console.print(f"\n[bold]실행:[/bold]")
-    console.print(f"  4. 전체 파이프라인: [cyan]slm-factory run[/cyan]")
-    console.print(f"  5. 웹 채팅 서비스: [cyan]slm-factory rag[/cyan]\n")
 
 
 _STEP_ORDER = [
@@ -1725,7 +1723,7 @@ def export_autorag(
             _print_error(
                 "파싱 데이터 미발견",
                 f"파일을 찾을 수 없음: {docs_path}",
-                ["먼저 파이프라인을 실행하세요: slm-factory run --config project.yaml"],
+                ["먼저 파이프라인을 실행하세요: slf tune"],
             )
             raise typer.Exit(code=1)
 
@@ -1747,7 +1745,7 @@ def export_autorag(
                     "QA 데이터 미발견",
                     f"QA 파일을 찾을 수 없음: {output_dir}",
                     [
-                        "먼저 파이프라인을 실행하세요: slm-factory run --config project.yaml",
+                        "먼저 파이프라인을 실행하세요: slf tune",
                         "또는 --qa-file 옵션으로 QA 파일 경로를 직접 지정하세요",
                     ],
                 )
