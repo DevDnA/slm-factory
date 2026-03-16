@@ -786,7 +786,7 @@ def _start_rag_server(config) -> None:
     if not db_path.is_dir():
         console.print(
             "\n[yellow]RAG 서버를 시작할 수 없습니다[/yellow] — "
-            "ChromaDB가 없습니다. rag_index 단계를 먼저 실행하세요.\n"
+            "Qdrant DB가 없습니다. rag_index 단계를 먼저 실행하세요.\n"
         )
         return
 
@@ -2120,7 +2120,7 @@ def wizard(
     # ── Step 12: RAG 벡터 인덱싱 (필수) ──────────────────────────
     console.print("\n[bold]━━━ [12/12] RAG 벡터 인덱싱 (필수) ━━━[/bold]")
     console.print(
-        "  [dim]corpus.parquet을 ChromaDB에 임베딩하여 RAG 검색을 준비합니다.[/dim]"
+        "  [dim]corpus.parquet을 Qdrant에 임베딩하여 RAG 검색을 준비합니다.[/dim]"
     )
     _wizard_db_path: Path | None = None
     if _wizard_corpus_path and _wizard_corpus_path.is_file():
@@ -2300,7 +2300,7 @@ def rag_index(
         help="corpus.parquet이 있는 디렉토리 경로 (기본값: output/autorag)",
     ),
 ) -> None:
-    """corpus.parquet을 ChromaDB에 임베딩하여 적재합니다."""
+    """corpus.parquet을 Qdrant에 임베딩하여 적재합니다."""
     try:
         from .rag.indexer import RAGIndexer
 
@@ -2339,14 +2339,14 @@ def rag_index(
 
         console.print(
             f"\n[bold green]인덱싱 완료![/bold green]\n"
-            f"  ChromaDB: [cyan]{db_path}[/cyan]\n\n"
+            f"  Qdrant: [cyan]{db_path}[/cyan]\n\n"
             f"[dim]다음 단계: slm-factory tool rag-serve --config {config}[/dim]\n"
         )
 
     except ImportError:
         _print_error(
             "RAG 의존성 미설치",
-            "chromadb 또는 sentence-transformers가 설치되지 않았습니다",
+            "qdrant-client 또는 sentence-transformers가 설치되지 않았습니다",
             ["uv sync --extra rag --extra validation"],
         )
         raise typer.Exit(code=1)
@@ -2369,7 +2369,7 @@ def rag_serve(
         help="서버 포트 (기본값: 설정 파일 값)",
     ),
 ) -> None:
-    """RAG API 서버를 시작합니다. ChromaDB 검색 + Ollama SLM 생성."""
+    """RAG API 서버를 시작합니다. Qdrant 검색 + Ollama SLM 생성."""
     try:
         from .rag.server import run_server
 
@@ -2384,7 +2384,7 @@ def rag_serve(
         if not db_path.is_dir():
             _print_error(
                 "벡터DB 미발견",
-                f"ChromaDB를 찾을 수 없음: {db_path}",
+                f"Qdrant DB를 찾을 수 없음: {db_path}",
                 [
                     "먼저 인덱싱을 실행하세요: "
                     "slm-factory tool rag-index --config project.yaml",
@@ -2412,7 +2412,7 @@ def rag_serve(
     except ImportError:
         _print_error(
             "RAG 의존성 미설치",
-            "fastapi, uvicorn 또는 chromadb가 설치되지 않았습니다",
+            "fastapi, uvicorn 또는 qdrant-client가 설치되지 않았습니다",
             ["uv sync --extra rag --extra validation"],
         )
         raise typer.Exit(code=1)

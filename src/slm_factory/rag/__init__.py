@@ -1,4 +1,4 @@
-"""RAG 서비스 — ChromaDB 벡터 인덱싱 및 FastAPI 서빙."""
+"""RAG 서비스 — Qdrant 벡터 인덱싱 및 FastAPI 서빙."""
 
 
 def __getattr__(name: str):

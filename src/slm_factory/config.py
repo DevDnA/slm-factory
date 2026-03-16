@@ -404,24 +404,24 @@ class RefinementConfig(BaseModel):
 class RagConfig(BaseModel):
     """RAG 서비스 구축 설정입니다.
 
-    ``corpus.parquet``을 ChromaDB에 임베딩하여 적재하고,
+    ``corpus.parquet``을 Qdrant에 임베딩하여 적재하고,
     Ollama SLM과 연동하는 RAG API 서버를 실행합니다.
     """
 
-    embedding_model: str = "BAAI/bge-m3"
+    embedding_model: str = "Qwen/Qwen3-Embedding-8B"
     """임베딩 모델 이름 (sentence-transformers 호환)."""
 
-    vector_db_path: str = "chroma_db"
-    """ChromaDB 저장 경로. ``paths.output`` 하위에 생성됩니다."""
+    vector_db_path: str = "qdrant_db"
+    """Qdrant 저장 경로. ``paths.output`` 하위에 생성됩니다."""
 
     collection_name: str = "corpus"
-    """ChromaDB 컬렉션 이름."""
+    """Qdrant 컬렉션 이름."""
 
     top_k: int = 5
     """검색 시 반환할 최대 문서 청크 수."""
 
     batch_size: int = 64
-    """ChromaDB 인덱싱 시 배치 크기."""
+    """Qdrant 인덱싱 시 배치 크기."""
 
     server_host: str = "0.0.0.0"
     """RAG API 서버 바인드 호스트."""

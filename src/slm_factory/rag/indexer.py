@@ -1,12 +1,11 @@
-"""ChromaDB 벡터 인덱싱 — corpus.parquet을 임베딩하여 ChromaDB에 적재합니다.
+"""Qdrant 벡터 인덱싱 — corpus.parquet을 임베딩하여 Qdrant에 적재합니다.
 
 ``AutoRAGExporter``가 생성한 ``corpus.parquet`` 파일을 읽어
-sentence-transformers 모델로 임베딩한 뒤 ChromaDB에 upsert합니다.
+sentence-transformers 모델로 임베딩한 뒤 Qdrant에 upsert합니다.
 """
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -19,33 +18,23 @@ logger = get_logger("rag.indexer")
 
 
 def _sanitize_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
-    """ChromaDB 호환 메타데이터로 변환합니다.
+    """None 값을 제거한 메타데이터를 반환합니다.
 
-    ChromaDB는 메타데이터 값으로 str, int, float, bool만 허용합니다.
-    dict/list는 JSON 문자열로 변환하고, None 값은 제거합니다.
+    Qdrant 페이로드는 dict/list를 네이티브로 지원하므로
+    JSON 문자열 변환 없이 그대로 저장합니다.
     """
-    sanitized: dict[str, Any] = {}
-    for key, value in metadata.items():
-        if value is None:
-            continue
-        if isinstance(value, (str, int, float, bool)):
-            sanitized[key] = value
-        elif isinstance(value, (dict, list)):
-            sanitized[key] = json.dumps(value, ensure_ascii=False)
-        else:
-            sanitized[key] = str(value)
-    return sanitized
+    return {k: v for k, v in metadata.items() if v is not None}
 
 
 class RAGIndexer:
-    """corpus.parquet을 ChromaDB 벡터 DB에 임베딩하여 적재합니다."""
+    """corpus.parquet을 Qdrant 벡터 DB에 임베딩하여 적재합니다."""
 
     def __init__(self, config: SLMConfig) -> None:
         self.config = config
         self.db_path = Path(config.paths.output) / config.rag.vector_db_path
 
     def index(self, corpus_path: Path) -> Path:
-        """corpus.parquet을 읽어 ChromaDB에 임베딩 후 upsert합니다.
+        """corpus.parquet을 읽어 Qdrant에 임베딩 후 upsert합니다.
 
         매개변수
         ----------
@@ -55,7 +44,7 @@ class RAGIndexer:
         반환값
         -------
         Path
-            ChromaDB 저장 경로.
+            Qdrant 저장 경로.
         """
         import pandas as pd
 
@@ -68,31 +57,25 @@ class RAGIndexer:
             )
 
         try:
-            import chromadb
+            from qdrant_client import QdrantClient
+            from qdrant_client.models import Distance, PointStruct, VectorParams
         except ImportError:
             raise RuntimeError(
-                "chromadb가 설치되지 않았습니다. uv sync --extra rag 로 설치하세요."
+                "qdrant-client가 설치되지 않았습니다. uv sync --extra rag 로 설치하세요."
             )
 
-        # corpus.parquet 로드
         df = pd.read_parquet(corpus_path)
         logger.info("corpus.parquet 로드 완료 — %d개 청크", len(df))
 
-        # 임베딩 모델 로드
         embedding_model = self.config.rag.embedding_model
         logger.info("임베딩 모델 로드: %s", embedding_model)
         model = SentenceTransformer(embedding_model)
 
-        # ChromaDB 초기화
         self.db_path.mkdir(parents=True, exist_ok=True)
-        client = chromadb.PersistentClient(path=str(self.db_path))
-        collection = client.get_or_create_collection(
-            name=self.config.rag.collection_name,
-            metadata={"hnsw:space": "cosine"},
-        )
-        logger.info("ChromaDB 컬렉션 준비 완료: %s", self.config.rag.collection_name)
+        client = QdrantClient(path=str(self.db_path))
 
-        # 데이터 추출
+        collection_name = self.config.rag.collection_name
+
         doc_ids = df["doc_id"].tolist()
         contents = df["contents"].tolist()
         metadatas_raw = (
@@ -101,6 +84,7 @@ class RAGIndexer:
 
         batch_size = self.config.rag.batch_size
         total = len(contents)
+        collection_created = False
 
         for start in range(0, total, batch_size):
             end = min(start + batch_size, total)
@@ -108,37 +92,44 @@ class RAGIndexer:
             batch_ids = doc_ids[start:end]
             batch_metadatas = metadatas_raw[start:end]
 
-            # 임베딩 생성
             embeddings = model.encode(batch_contents, show_progress_bar=False)
-            embeddings_list = embeddings.tolist()
 
-            sanitized_metadatas = []
-            for meta in batch_metadatas:
+            if not collection_created:
+                dim = embeddings.shape[1]
+                if not client.collection_exists(collection_name):
+                    client.create_collection(
+                        collection_name=collection_name,
+                        vectors_config=VectorParams(size=dim, distance=Distance.COSINE),
+                    )
+                collection_created = True
+                logger.info(
+                    "Qdrant 컬렉션 준비 완료: %s (dim=%d)", collection_name, dim
+                )
+
+            points = []
+            for i, (vec, doc, doc_id, meta) in enumerate(
+                zip(embeddings.tolist(), batch_contents, batch_ids, batch_metadatas)
+            ):
+                payload: dict[str, Any] = {"document": doc, "doc_id": doc_id}
                 if isinstance(meta, dict):
                     sanitized = _sanitize_metadata(meta)
                     if "parent_content" in meta and meta["parent_content"]:
                         sanitized["parent_content"] = str(meta["parent_content"])[
                             :10000
                         ]
-                    sanitized_metadatas.append(sanitized)
-                else:
-                    sanitized_metadatas.append({})
+                    payload.update(sanitized)
+                points.append(PointStruct(id=start + i, vector=vec, payload=payload))
 
-            # ChromaDB upsert
-            collection.upsert(
-                ids=batch_ids,
-                documents=batch_contents,
-                embeddings=embeddings_list,
-                metadatas=sanitized_metadatas,
-            )
+            client.upsert(collection_name=collection_name, points=points)
             logger.info(
                 "임베딩 upsert 진행: %d/%d 청크 완료",
                 end,
                 total,
             )
 
+        client.close()
         logger.info(
-            "ChromaDB 인덱싱 완료 — %d개 청크, 저장 경로: %s",
+            "Qdrant 인덱싱 완료 — %d개 청크, 저장 경로: %s",
             total,
             self.db_path,
         )

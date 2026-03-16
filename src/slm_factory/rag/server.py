@@ -1,6 +1,6 @@
-"""FastAPI RAG 서버 — ChromaDB 검색 + Ollama 생성으로 RAG 응답을 제공합니다.
+"""FastAPI RAG 서버 — Qdrant 검색 + Ollama 생성으로 RAG 응답을 제공합니다.
 
-ChromaDB에 적재된 벡터 DB를 검색하고, Ollama SLM에 컨텍스트와 함께
+Qdrant에 적재된 벡터 DB를 검색하고, Ollama SLM에 컨텍스트와 함께
 질문을 전달하여 문서 기반 답변을 생성하는 REST API 서버입니다.
 """
 
@@ -49,10 +49,10 @@ def create_app(config: "SLMConfig"):
         )
 
     try:
-        import chromadb
+        from qdrant_client import QdrantClient
     except ImportError:
         raise RuntimeError(
-            "chromadb가 설치되지 않았습니다. uv sync --extra rag 로 설치하세요."
+            "qdrant-client가 설치되지 않았습니다. uv sync --extra rag 로 설치하세요."
         )
 
     try:
@@ -105,14 +105,13 @@ def create_app(config: "SLMConfig"):
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI):
-        chroma_client = chromadb.PersistentClient(path=str(db_path))
-        collection = chroma_client.get_collection(
-            name=config.rag.collection_name,
-        )
+        qdrant_client = QdrantClient(path=str(db_path))
+        collection_name = config.rag.collection_name
+        count = qdrant_client.count(collection_name=collection_name).count
         logger.info(
-            "ChromaDB 컬렉션 로드 완료: %s (%d개 문서)",
-            config.rag.collection_name,
-            collection.count(),
+            "Qdrant 컬렉션 로드 완료: %s (%d개 문서)",
+            collection_name,
+            count,
         )
 
         embedding_model = SentenceTransformer(config.rag.embedding_model)
@@ -127,8 +126,8 @@ def create_app(config: "SLMConfig"):
         )
         logger.info("Ollama 모델: %s, API: %s", ollama_model, api_base)
 
-        _app.state.collection = collection
-        _app.state.chroma_client = chroma_client
+        _app.state.qdrant_client = qdrant_client
+        _app.state.collection_name = collection_name
         _app.state.embedding_model = embedding_model
         _app.state.http_client = http_client
         _app.state.reranker = None
@@ -149,10 +148,34 @@ def create_app(config: "SLMConfig"):
 
         if config.rag.hybrid_search:
             try:
-                all_docs = collection.get(include=["documents", "metadatas"])
-                _app.state.bm25_docs = all_docs["documents"] or []
-                _app.state.bm25_ids = all_docs["ids"] or []
-                _app.state.bm25_metadatas = all_docs.get("metadatas") or []
+                all_points = []
+                offset = None
+                while True:
+                    points, next_offset = qdrant_client.scroll(
+                        collection_name=collection_name,
+                        limit=1000,
+                        with_payload=True,
+                        with_vectors=False,
+                        offset=offset,
+                    )
+                    all_points.extend(points)
+                    if next_offset is None:
+                        break
+                    offset = next_offset
+                _app.state.bm25_docs = [
+                    p.payload.get("document", "") for p in all_points
+                ]
+                _app.state.bm25_ids = [
+                    p.payload.get("doc_id", str(p.id)) for p in all_points
+                ]
+                _app.state.bm25_metadatas = [
+                    {
+                        k: v
+                        for k, v in p.payload.items()
+                        if k not in ("document", "doc_id")
+                    }
+                    for p in all_points
+                ]
                 logger.info(
                     "BM25 인덱스 구축 완료: %d개 문서",
                     len(_app.state.bm25_docs),
@@ -163,6 +186,7 @@ def create_app(config: "SLMConfig"):
         yield
 
         await http_client.aclose()
+        qdrant_client.close()
         logger.info("RAG 서버 리소스 정리 완료")
 
     # ------------------------------------------------------------------
@@ -280,7 +304,8 @@ def create_app(config: "SLMConfig"):
         return query
 
     def _search_documents(body: QueryRequest):
-        collection = app.state.collection
+        qdrant_client = app.state.qdrant_client
+        collection_name = app.state.collection_name
         embedding_model = app.state.embedding_model
 
         top_k = body.top_k or config.rag.top_k
@@ -289,16 +314,23 @@ def create_app(config: "SLMConfig"):
         use_reranker = reranker is not None
         initial_k = top_k * 3 if use_reranker else top_k
 
-        query_embedding = embedding_model.encode(body.query).tolist()
-        results = collection.query(
-            query_embeddings=[query_embedding],
-            n_results=initial_k,
+        query_embedding = embedding_model.encode(
+            body.query, prompt_name="query"
+        ).tolist()
+        results = qdrant_client.query_points(
+            collection_name=collection_name,
+            query=query_embedding,
+            limit=initial_k,
+            with_payload=True,
         )
 
-        documents = list(results.get("documents", [[]])[0])
-        ids = list(results.get("ids", [[]])[0])
-        distances = list(results.get("distances", [[]])[0])
-        metadatas = list(results.get("metadatas", [[]])[0])
+        documents = [p.payload.get("document", "") for p in results.points]
+        ids = [p.payload.get("doc_id", str(p.id)) for p in results.points]
+        distances = [1.0 - p.score for p in results.points]
+        metadatas = [
+            {k: v for k, v in p.payload.items() if k not in ("document", "doc_id")}
+            for p in results.points
+        ]
 
         if use_reranker and documents:
             pairs = [(body.query, doc) for doc in documents]
@@ -452,21 +484,23 @@ def create_app(config: "SLMConfig"):
 
     @app.get("/health/ready")
     async def health_ready() -> dict:
-        """준비 상태 프로브 — ChromaDB 및 Ollama 연결을 확인합니다."""
-        collection = app.state.collection
+        """준비 상태 프로브 — Qdrant 및 Ollama 연결을 확인합니다."""
+        qdrant_client = app.state.qdrant_client
+        collection_name = app.state.collection_name
         http_client = app.state.http_client
 
         status: dict = {
             "status": "ok",
-            "chromadb": {"collection": config.rag.collection_name, "count": 0},
+            "qdrant": {"collection": config.rag.collection_name, "count": 0},
             "ollama": {"model": ollama_model, "status": "unknown"},
         }
 
         try:
-            status["chromadb"]["count"] = collection.count()
+            count_result = qdrant_client.count(collection_name=collection_name)
+            status["qdrant"]["count"] = count_result.count
         except Exception:
             status["status"] = "degraded"
-            status["chromadb"]["status"] = "error"
+            status["qdrant"]["status"] = "error"
 
         try:
             resp = await http_client.get(

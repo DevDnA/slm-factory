@@ -560,7 +560,7 @@ class Pipeline:
     # ------------------------------------------------------------------
 
     def step_rag_index(self, corpus_path: Path) -> Path:
-        """corpus.parquet을 ChromaDB에 임베딩하여 적재합니다.
+        """corpus.parquet을 Qdrant에 임베딩하여 적재합니다.
 
         매개변수
         ----------
@@ -570,7 +570,7 @@ class Pipeline:
         반환값
         -------
         Path
-            ChromaDB 저장 경로. 의존성 미설치 시 빈 ``Path()``를 반환합니다.
+            Qdrant 저장 경로. 의존성 미설치 시 빈 ``Path()``를 반환합니다.
         """
         try:
             from .rag.indexer import RAGIndexer
@@ -588,10 +588,10 @@ class Pipeline:
             )
             return Path()
 
-        logger.info("ChromaDB 인덱싱 시작: %s", corpus_path)
+        logger.info("Qdrant 인덱싱 시작: %s", corpus_path)
         indexer = RAGIndexer(self.config)
         db_path = indexer.index(corpus_path)
-        logger.info("ChromaDB 인덱싱 완료: %s", db_path)
+        logger.info("Qdrant 인덱싱 완료: %s", db_path)
         return db_path
 
     # ------------------------------------------------------------------
