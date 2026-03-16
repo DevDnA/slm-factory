@@ -105,7 +105,7 @@ slf init policy-assistant --path /workspace/projects
   3. Teacher 모델을 다운로드하세요: ollama pull qwen3.5:9b  ← ./setup.sh가 자동 처리
 
 실행:
-  4. 전체 파이프라인: slf run
+  4. 전체 파이프라인: slf tune
   5. 웹 채팅 서비스: slf rag
 ```
 
@@ -220,7 +220,7 @@ slf rag --config my-project/project.yaml
 **사용법**
 
 ```
-slf run [OPTIONS]
+slf tune [OPTIONS]
 ```
 
 **옵션**
@@ -270,34 +270,34 @@ slf run [OPTIONS]
 
 ```bash
 # 전체 파이프라인 실행
-slf run
+slf tune
 
 # 문서 파싱만 실행
-slf run --until parse
+slf tune --until parse
 
 # QA 생성까지 실행
-slf run --until generate
+slf tune --until generate
 
 # 검증까지 실행
-slf run --until validate
+slf tune --until validate
 
 # 품질 평가까지 실행
-slf run --until score
+slf tune --until score
 
 # 중단된 지점에서 재개
-slf run --resume
+slf tune --resume
 
 # 특정 단계까지 재개하며 실행
-slf run --until augment --resume
+slf tune --until augment --resume
 
 # 전체 파이프라인 + RAG 서버 자동 시작
-slf run --serve
+slf tune --serve
 
 # RAG 인덱싱까지 실행 (서빙은 별도)
-slf run --until rag_index
+slf tune --until rag_index
 
 # 평가까지만 실행
-slf run --until eval
+slf tune --until eval
 ```
 
 **출력 예시 (전체 파이프라인)**

@@ -653,7 +653,7 @@ wizard
 
 ```
 QA 생성 건너뜀:
-  → "나중에 실행: slf run --until generate --config {config_path}"
+  → "나중에 실행: slf tune --until generate --config {config_path}"
 
 학습 건너뜀:
   → "나중에 실행: slf train --config {config_path} --data {training_data_path}"

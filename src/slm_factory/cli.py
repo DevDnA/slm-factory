@@ -811,7 +811,7 @@ def _start_rag_server(config) -> None:
 
 
 @app.command(rich_help_panel="⚙️ 파이프라인")
-def run(
+def tune(
     config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
     resume: bool = typer.Option(False, "--resume", "-r", help=_RESUME_HELP),
     until: Optional[PipelineStep] = typer.Option(

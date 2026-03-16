@@ -312,10 +312,10 @@ export:
 설정 파일 하나로 문서 파싱부터 모델 배포까지 전체 파이프라인을 한 번에 실행합니다.
 
 ```bash
-slf run
+slf tune
 
 # 전체 파이프라인 + RAG 서버 자동 시작
-slf run --serve
+slf tune --serve
 ```
 
 > 서버는 foreground로 실행됩니다. `Ctrl+C`로 종료할 수 있습니다.
@@ -328,25 +328,25 @@ slf run --serve
 
 ```bash
 # 문서 파싱만 실행
-slf run --until parse
+slf tune --until parse
 
 # 파싱 + QA 생성
-slf run --until generate
+slf tune --until generate
 
 # + QA 검증
-slf run --until validate
+slf tune --until validate
 
 # + 품질 점수 평가
-slf run --until score
+slf tune --until score
 
 # + 데이터 증강
-slf run --until augment
+slf tune --until augment
 
 # + 평가까지
-slf run --until eval
+slf tune --until eval
 
 # + RAG 인덱싱까지 (서빙 제외)
-slf run --until rag_index
+slf tune --until rag_index
 ```
 
 ---
@@ -356,7 +356,7 @@ slf run --until rag_index
 중간에 중단된 파이프라인은 `--resume` 옵션으로 이어서 실행합니다. 중간 저장 파일을 자동으로 감지하여 가장 최근 완료 단계부터 재개합니다.
 
 ```bash
-slf run --resume
+slf tune --resume
 ```
 
 재개 지점은 다음 순서로 탐색합니다.
@@ -460,7 +460,7 @@ export:
 slf check --config policy-project/project.yaml
 
 # 전체 파이프라인 실행
-slf run --config policy-project/project.yaml
+slf tune --config policy-project/project.yaml
 
 # 모델 배포 및 테스트
 cd policy-project/output/merged_model
@@ -564,7 +564,7 @@ export:
 slf check --config tech-docs/project.yaml
 
 # 전체 파이프라인 실행
-slf run --config tech-docs/project.yaml
+slf tune --config tech-docs/project.yaml
 
 # 모델 배포
 cd tech-docs/output/merged_model
@@ -633,11 +633,11 @@ chunking:
 
 ```bash
 # 청킹 전 QA 생성
-slf run --until generate
+slf tune --until generate
 cp output/qa_alpaca.json output/qa_before_chunking.json
 
 # chunking.enabled: true 변경 후 재생성
-slf run --until generate
+slf tune --until generate
 
 # 비교
 slf tool compare-data -b output/qa_before_chunking.json -t output/qa_alpaca.json
@@ -823,7 +823,7 @@ Teacher는 **학습 데이터 생성용**, Student는 **서비스 배포용**입
 
 ```bash
 # 1단계: 문서 수집 → RAG + Teacher로 즉시 서비스
-slf run
+slf tune
 # project.yaml에서 rag.ollama_model: "qwen3.5:9b"
 
 # 2단계: 문서 20건+ 확보 → Student 파인튜닝 → 경량 모델로 교체
@@ -851,7 +851,7 @@ slf rag
 #### 2. 파인튜닝 + RAG — 전체 파이프라인
 
 ```bash
-slf run
+slf tune
 ```
 
 12단계 파이프라인을 실행하여 Student 모델을 학습시키고, RAG 인덱스를 구축한 후 웹 채팅을 시작합니다. `project.yaml`의 `rag.ollama_model` 설정에 따라 Teacher 또는 Student 모델을 사용합니다.
@@ -867,7 +867,7 @@ slf run
 slf rag
 
 # 터미널 2: 파인튜닝 진행 (30분)
-slf run --no-serve
+slf tune --no-serve
 ```
 
 RAG + Teacher로 즉시 서비스하면서, 동시에 Student 모델을 학습합니다. 학습이 완료되면 `project.yaml`에서 `rag.ollama_model`을 Student 모델로 변경하고 서버를 재시작합니다.

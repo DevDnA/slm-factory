@@ -60,7 +60,7 @@ slf tool wizard
 
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|-----------|
-| `slf run` | 전체 파이프라인 실행 | `--until <단계>`, `--from <단계>`, `--resume` / `-r`, `--serve` / `-s` |
+| `slf tune` | 전체 파이프라인 실행 | `--until <단계>`, `--from <단계>`, `--resume` / `-r`, `--serve` / `-s` |
 | `slf rag` | RAG 웹 채팅 서비스 (인덱스 자동 구축) | |
 | `slf train` | LoRA 학습 실행 | `--data <jsonl>`, `--resume` / `-r` |
 | `slf export` | 모델 내보내기 (LoRA 병합 + Modelfile) | `--adapter <경로>` |
@@ -101,7 +101,7 @@ slf tool wizard
 
 ## 파이프라인 단계
 
-`slf run` 실행 시 아래 순서로 진행됩니다. wizard(`tool wizard`)에서는 설정 로드와 문서 선택이 앞에 추가되어 번호가 다릅니다. 상세한 wizard 단계는 [사용 가이드](guide.md)를 참조하십시오.
+`slf tune` 실행 시 아래 순서로 진행됩니다. wizard(`tool wizard`)에서는 설정 로드와 문서 선택이 앞에 추가되어 번호가 다릅니다. 상세한 wizard 단계는 [사용 가이드](guide.md)를 참조하십시오.
 
 1. **parse** (필수) — PDF/HWPX/HTML/TXT/MD/DOCX/HWP 파싱 → `output/parsed_documents.json`
 1b. **chunking** (선택) — 긴 문서를 청크로 분할하여 QA 생성 범위 확장
@@ -136,7 +136,7 @@ slf tool wizard
 설정을 직접 제어하고 싶을 때 사용합니다.
 
 ```bash
-slf run
+slf tune
 ```
 
 ### 3. 단계별 실행 (run --until)
@@ -144,16 +144,16 @@ slf run
 특정 단계까지만 실행하고 결과를 확인한 후 다음 단계로 진행합니다.
 
 ```bash
-slf run --until parse
-slf run --until generate
-slf run --until validate
-slf run --until score
-slf run --until augment
-slf run --until convert
-slf run --until train
-slf run --until export
-slf run --until eval
-slf run --until rag_index
+slf tune --until parse
+slf tune --until generate
+slf tune --until validate
+slf tune --until score
+slf tune --until augment
+slf tune --until convert
+slf tune --until train
+slf tune --until export
+slf tune --until eval
+slf tune --until rag_index
 ```
 
 ### 4. 기존 데이터로 학습만 (train --data)
@@ -169,7 +169,7 @@ slf train --data ./output/training_data.jsonl
 파이프라인이 중간에 중단된 경우, 중간 저장 파일에서 자동으로 재개합니다.
 
 ```bash
-slf run --resume
+slf tune --resume
 slf train --resume
 slf tool wizard --resume
 ```
@@ -193,7 +193,7 @@ slf eval compare \
 SLM 학습부터 RAG 인덱싱, API 서버 시작까지 한 번에 실행합니다.
 
 ```bash
-slf run --serve
+slf tune --serve
 ```
 
 > 서버는 foreground로 실행됩니다. `Ctrl+C`로 종료할 수 있습니다.

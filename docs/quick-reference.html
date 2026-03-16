@@ -176,7 +176,7 @@ slf tool wizard --config my-project/project.yaml</code></pre>
               </thead>
               <tbody>
                 <tr>
-                  <td><code>slf run</code></td>
+                  <td><code>slf tune</code></td>
                   <td>전체 파이프라인 실행</td>
                   <td><code>--config</code>, <code>--until &lt;단계&gt;</code>, <code>--from &lt;단계&gt;</code>, <code>--resume</code> / <code>-r</code>, <code>--serve</code> / <code>-s</code></td>
                 </tr>
@@ -334,7 +334,7 @@ slf tool wizard --config my-project/project.yaml</code></pre>
         <section id="pipeline-steps">
           <h2>파이프라인 단계</h2>
 
-          <p><code>slf run</code> 실행 시 아래 순서로 진행됩니다. wizard(<code>tool wizard</code>)에서는 설정 로드와 문서 선택이 앞에 추가되어 번호가 다릅니다. 상세한 wizard 단계는 <a href="guide.html">사용 가이드</a>를 참조하십시오.</p>
+          <p><code>slf tune</code> 실행 시 아래 순서로 진행됩니다. wizard(<code>tool wizard</code>)에서는 설정 로드와 문서 선택이 앞에 추가되어 번호가 다릅니다. 상세한 wizard 단계는 <a href="guide.html">사용 가이드</a>를 참조하십시오.</p>
 
           <div class="table-wrapper">
             <table>
@@ -548,7 +548,7 @@ slf tool wizard --config my-project/project.yaml</code></pre>
 
           <p>설정을 직접 제어하고 싶을 때 사용합니다.</p>
 
-          <pre data-lang="bash"><code>slf run --config my-project/project.yaml</code></pre>
+          <pre data-lang="bash"><code>slf tune --config my-project/project.yaml</code></pre>
 
           <hr>
 
@@ -556,11 +556,11 @@ slf tool wizard --config my-project/project.yaml</code></pre>
 
           <p>특정 단계까지만 실행하고 결과를 확인한 후 다음 단계로 진행합니다.</p>
 
-          <pre data-lang="bash"><code>slf run --until parse    --config my-project/project.yaml
-slf run --until generate --config my-project/project.yaml
-slf run --until validate --config my-project/project.yaml
-slf run --until score    --config my-project/project.yaml
-slf run --until augment  --config my-project/project.yaml
+          <pre data-lang="bash"><code>slf tune --until parse    --config my-project/project.yaml
+slf tune --until generate --config my-project/project.yaml
+slf tune --until validate --config my-project/project.yaml
+slf tune --until score    --config my-project/project.yaml
+slf tune --until augment  --config my-project/project.yaml
 slf train                --config my-project/project.yaml
 slf export               --config my-project/project.yaml</code></pre>
 
@@ -578,7 +578,7 @@ slf export               --config my-project/project.yaml</code></pre>
 
           <p>파이프라인이 중간에 중단된 경우, 중간 저장 파일에서 자동으로 재개합니다.</p>
 
-          <pre data-lang="bash"><code>slf run   --config my-project/project.yaml --resume
+          <pre data-lang="bash"><code>slf tune   --config my-project/project.yaml --resume
 slf train --config my-project/project.yaml --resume
 slf tool wizard --config my-project/project.yaml --resume</code></pre>
 
@@ -601,7 +601,7 @@ slf eval compare \
 
            <p>SLM 학습부터 RAG 인덱싱, API 서버 시작까지 한 번에 실행합니다.</p>
 
-           <pre data-lang="bash"><code>slf run --serve --config my-project/project.yaml</code></pre>
+           <pre data-lang="bash"><code>slf tune --serve --config my-project/project.yaml</code></pre>
 
            <p class="note">서버는 foreground로 실행됩니다. <code>Ctrl+C</code>로 종료할 수 있습니다.</p>
          </section>

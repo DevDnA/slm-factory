@@ -83,7 +83,7 @@ export-autorag → corpus.parquet → rag-index → ChromaDB → rag-serve → R
 
 ```bash
 # 1. slm-factory 파이프라인 실행 (파싱 + QA 생성)
-slf run
+slf tune
 
 # 2. RAG 인덱싱용 코퍼스 내보내기
 slf tool export-autorag
@@ -129,7 +129,7 @@ slf rag
 # → GET  http://localhost:8000/health/live     라이브니스 체크
 ```
 
-> **팁**: `slf run --serve` 명령으로 전체 파이프라인 실행 후 RAG 서버까지 한 번에 시작할 수 있습니다. 서버는 foreground로 실행되며, `Ctrl+C`로 종료합니다.
+> **팁**: `slf tune --serve` 명령으로 전체 파이프라인 실행 후 RAG 서버까지 한 번에 시작할 수 있습니다. 서버는 foreground로 실행되며, `Ctrl+C`로 종료합니다.
 
 ```bash
 # API 호출 테스트
@@ -187,7 +187,7 @@ curl -N -X POST http://localhost:8000/v1/query \
 ### 4.3 구축 단계 요약
 
 ```
-Phase 1: slf run (SLM 학습 + Ollama 배포)
+Phase 1: slf tune (SLM 학습 + Ollama 배포)
     ↓
 Phase 2: rag-index → ChromaDB 인덱싱
     ↓

@@ -383,7 +383,7 @@ slf init policy-assistant --path /workspace/projects</code></pre>
   3. Teacher 모델을 다운로드하세요: ollama pull qwen3.5:9b  ← ./setup.sh가 자동 처리
 
 실행:
-  4. 전체 파이프라인: slf run
+  4. 전체 파이프라인: slf tune
   5. 웹 채팅 서비스: slf rag</code></pre>
 
             <h4>참고</h4>
@@ -580,7 +580,7 @@ slf rag --config my-project/project.yaml</code></pre>
             <p>문서 파싱부터 모델 배포까지 전체 파이프라인을 실행합니다. <code>--until</code> 옵션으로 특정 단계까지만 실행하고 중단할 수 있습니다.</p>
 
             <h4>사용법</h4>
-            <pre data-lang="bash"><code>slf run [OPTIONS]</code></pre>
+            <pre data-lang="bash"><code>slf tune [OPTIONS]</code></pre>
 
             <h4>옵션</h4>
             <div class="table-wrapper">
@@ -761,25 +761,25 @@ slf rag --config my-project/project.yaml</code></pre>
 
             <h4>예시</h4>
             <pre data-lang="bash"><code># 전체 파이프라인 실행
-slf run --config my-project/project.yaml
+slf tune --config my-project/project.yaml
 
 # 문서 파싱만 실행
-slf run --until parse --config my-project/project.yaml
+slf tune --until parse --config my-project/project.yaml
 
 # QA 생성까지 실행
-slf run --until generate --config my-project/project.yaml
+slf tune --until generate --config my-project/project.yaml
 
 # 검증까지 실행
-slf run --until validate --config my-project/project.yaml
+slf tune --until validate --config my-project/project.yaml
 
 # 품질 평가까지 실행
-slf run --until score --config my-project/project.yaml
+slf tune --until score --config my-project/project.yaml
 
 # 중단된 지점에서 재개
-slf run --resume --config my-project/project.yaml
+slf tune --resume --config my-project/project.yaml
 
 # 특정 단계까지 재개하며 실행
-slf run --until augment --resume --config my-project/project.yaml</code></pre>
+slf tune --until augment --resume --config my-project/project.yaml</code></pre>
 
             <h4>출력 예시 (전체 파이프라인)</h4>
             <pre><code>slm-factory &mdash; 전체 파이프라인 시작 중...
