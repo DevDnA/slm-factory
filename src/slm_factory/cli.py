@@ -796,14 +796,13 @@ def _start_rag_server(config) -> None:
         return
 
     ollama_model = config.rag.ollama_model or config.export.ollama.model_name
+    port = config.rag.server_port
     console.print(
         f"\n[bold]RAG API 서버 시작[/bold]\n"
         f"  모델:   [cyan]{ollama_model}[/cyan]\n"
         f"  벡터DB: [cyan]{db_path}[/cyan]\n"
-        f"  주소:   [cyan]http://{config.rag.server_host}:{config.rag.server_port}[/cyan]\n\n"
-        f"[dim]API 테스트: curl -X POST http://localhost:{config.rag.server_port}/v1/query "
-        f'-H "Content-Type: application/json" '
-        f'-d \'{{"query": "질문"}}\'[/dim]\n\n'
+        f"  채팅:   [bold cyan]http://localhost:{port}/chat[/bold cyan]\n"
+        f"  API:    [cyan]http://localhost:{port}/v1/query[/cyan]\n\n"
         f"[dim]종료: Ctrl+C[/dim]\n"
     )
     run_server(config)
@@ -820,10 +819,10 @@ def run(
         None, "--from", help="지정된 단계부터 실행 (이전 단계의 출력 파일 필요)"
     ),
     serve: bool = typer.Option(
-        False,
-        "--serve",
+        True,
+        "--serve/--no-serve",
         "-s",
-        help="파이프라인 완료 후 RAG API 서버를 자동으로 시작합니다",
+        help="파이프라인 완료 후 RAG 웹 채팅 서비스를 자동으로 시작합니다",
     ),
 ) -> None:
     """파이프라인을 실행합니다. --serve로 RAG 서버까지 한번에 구동합니다."""
