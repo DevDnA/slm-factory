@@ -19,7 +19,7 @@
 새 프로젝트를 시작할 때는 다음 명령으로 기본 템플릿을 생성합니다:
 
 ```bash
-uv run slm-factory init my-project
+slm-factory init my-project
 ```
 
 이 명령은 `my-project/project.yaml` 파일을 생성하며, 모든 기본값이 주석과 함께 포함되어 있습니다.
@@ -752,14 +752,14 @@ dashboard:
 
 **상황**: 처음 slm-factory를 사용하며 기본 설정으로 빠르게 테스트하고 싶을 때.
 
-`project.yaml`을 수정할 필요가 없습니다. `uv run slm-factory init my-project`로 생성된 기본 템플릿을 그대로 사용하면 됩니다.
+`project.yaml`을 수정할 필요가 없습니다. `slm-factory init my-project`로 생성된 기본 템플릿을 그대로 사용하면 됩니다.
 
 사전 준비:
 
 ```bash
 # ./setup.sh가 Ollama 설치·모델 다운로드를 자동 처리합니다
 # documents/ 디렉토리에 PDF 또는 TXT 파일 추가
-uv run slm-factory tool wizard --config my-project/project.yaml
+slm-factory tool wizard --config my-project/project.yaml
 ```
 
 기본 설정은 영어 문서, Ollama 백엔드, Gemma 3 1B 모델을 사용합니다.
@@ -1027,7 +1027,7 @@ dashboard:
 설정 파일이 올바른지 확인하려면 `check` 명령을 사용합니다:
 
 ```bash
-uv run slm-factory check --config project.yaml
+slm-factory check --config project.yaml
 ```
 
 `--config`를 생략하면 현재 디렉토리와 상위 디렉토리(2단계)에서 `project.yaml`을 자동으로 검색합니다.
@@ -1044,7 +1044,7 @@ uv run slm-factory check --config project.yaml
 ### 예시 출력
 
 ```bash
-$ uv run slm-factory check --config project.yaml
+$ slm-factory check --config project.yaml
 ✓ Config file: Valid
 ✓ Documents directory: Found (5 files)
 ✓ Output directory: Writable
@@ -1055,7 +1055,7 @@ $ uv run slm-factory check --config project.yaml
 
 모든 항목이 통과하면 종료 코드 0, 실패하면 1을 반환합니다. 설정 파일에 오류가 있으면 (YAML 구문 오류, 잘못된 타입, 알 수 없는 필드 등) Pydantic 검증 단계에서 상세한 에러 메시지를 출력합니다.
 
-설정 문제를 진단할 때는 `uv run slm-factory -v check` 명령으로 상세 로그를 확인할 수 있습니다.
+설정 문제를 진단할 때는 `slm-factory -v check` 명령으로 상세 로그를 확인할 수 있습니다.
 
 ---
 

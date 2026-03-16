@@ -29,16 +29,16 @@ ollama pull qwen3.5:9b   # Teacher 모델 다운로드 (최초 1회)
 
 ```bash
 # 1. 프로젝트 초기화
-uv run slm-factory init my-project
+slm-factory init my-project
 
 # 2. 학습할 문서 복사
 cp /path/to/documents/*.pdf my-project/documents/
 
 # 3. 환경 점검 (선택 권장)
-uv run slm-factory check
+slm-factory check
 
 # 4. 대화형 파이프라인 실행
-uv run slm-factory tool wizard
+slm-factory tool wizard
 ```
 
 ---
@@ -49,7 +49,7 @@ uv run slm-factory tool wizard
 
 ### 🚀 시작하기
 
-> 모든 명령어는 `uv run` 접두사를 붙여 실행합니다. (예: `uv run slm-factory run`)
+> 모든 명령어는 가상환경 활성화 후 실행합니다: `source .venv/bin/activate`
 
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|-----------|
@@ -127,7 +127,7 @@ uv run slm-factory tool wizard
 처음 사용자에게 권장합니다. 각 단계를 확인하며 대화형으로 진행합니다.
 
 ```bash
-uv run slm-factory tool wizard
+slm-factory tool wizard
 ```
 
 ### 2. 수동 전체 실행 (run)
@@ -135,7 +135,7 @@ uv run slm-factory tool wizard
 설정을 직접 제어하고 싶을 때 사용합니다.
 
 ```bash
-uv run slm-factory run
+slm-factory run
 ```
 
 ### 3. 단계별 실행 (run --until)
@@ -143,16 +143,16 @@ uv run slm-factory run
 특정 단계까지만 실행하고 결과를 확인한 후 다음 단계로 진행합니다.
 
 ```bash
-uv run slm-factory run --until parse
-uv run slm-factory run --until generate
-uv run slm-factory run --until validate
-uv run slm-factory run --until score
-uv run slm-factory run --until augment
-uv run slm-factory run --until convert
-uv run slm-factory run --until train
-uv run slm-factory run --until export
-uv run slm-factory run --until eval
-uv run slm-factory run --until rag_index
+slm-factory run --until parse
+slm-factory run --until generate
+slm-factory run --until validate
+slm-factory run --until score
+slm-factory run --until augment
+slm-factory run --until convert
+slm-factory run --until train
+slm-factory run --until export
+slm-factory run --until eval
+slm-factory run --until rag_index
 ```
 
 ### 4. 기존 데이터로 학습만 (train --data)
@@ -160,7 +160,7 @@ uv run slm-factory run --until rag_index
 이미 준비된 `training_data.jsonl`이 있거나 하이퍼파라미터를 반복 실험할 때 사용합니다.
 
 ```bash
-uv run slm-factory train --data ./output/training_data.jsonl
+slm-factory train --data ./output/training_data.jsonl
 ```
 
 ### 5. 중단 후 재개 (--resume)
@@ -168,9 +168,9 @@ uv run slm-factory train --data ./output/training_data.jsonl
 파이프라인이 중간에 중단된 경우, 중간 저장 파일에서 자동으로 재개합니다.
 
 ```bash
-uv run slm-factory run --resume
-uv run slm-factory train --resume
-uv run slm-factory tool wizard --resume
+slm-factory run --resume
+slm-factory train --resume
+slm-factory tool wizard --resume
 ```
 
 ### 6. 평가 및 비교 (eval run / eval compare)
@@ -179,10 +179,10 @@ uv run slm-factory tool wizard --resume
 
 ```bash
 # BLEU/ROUGE 평가
-uv run slm-factory eval run --model my-project-model
+slm-factory eval run --model my-project-model
 
 # Base vs Fine-tuned 비교
-uv run slm-factory eval compare \
+slm-factory eval compare \
   --base-model gemma:2b \
   --ft my-project-model
 ```
@@ -192,7 +192,7 @@ uv run slm-factory eval compare \
 SLM 학습부터 RAG 인덱싱, API 서버 시작까지 한 번에 실행합니다.
 
 ```bash
-uv run slm-factory run --serve
+slm-factory run --serve
 ```
 
 > 서버는 foreground로 실행됩니다. `Ctrl+C`로 종료할 수 있습니다.

@@ -571,7 +571,7 @@ class ModelComparator:
 
 ### QAReviewerApp (reviewer.py)
 
-Textual 기반 QA 수동 리뷰 앱입니다. `uv run slm-factory tool review` 명령으로 실행됩니다.
+Textual 기반 QA 수동 리뷰 앱입니다. `slm-factory tool review` 명령으로 실행됩니다.
 
 ```python
 class QAReviewerApp(App[None]):
@@ -583,7 +583,7 @@ class QAReviewerApp(App[None]):
 
 ### PipelineDashboard (dashboard.py)
 
-Textual 기반 파이프라인 모니터링 앱입니다. `uv run slm-factory tool dashboard` 명령으로 실행됩니다.
+Textual 기반 파이프라인 모니터링 앱입니다. `slm-factory tool dashboard` 명령으로 실행됩니다.
 
 ```python
 class PipelineDashboard(App[None]):

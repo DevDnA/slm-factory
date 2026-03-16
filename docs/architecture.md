@@ -517,7 +517,7 @@ def _strip_none_sections(cls, values: dict) -> dict:
 
 ### 5.3 기본값 생성 로직
 
-`create_default_config()`는 `uv run slm-factory init` 명령 실행 시 호출되며, 다음 순서로 기본 YAML 템플릿을 반환합니다.
+`create_default_config()`는 `slm-factory init` 명령 실행 시 호출되며, 다음 순서로 기본 YAML 템플릿을 반환합니다.
 
 ```
 1. 패키지 루트의 templates/project.yaml 읽기 시도
@@ -560,7 +560,7 @@ def _strip_none_sections(cls, values: dict) -> dict:
 | 변환 결과 빈 배치 | `RuntimeError` 발생하여 파이프라인 중단 | `ChatFormatter.format_batch()` |
 | JSON 파일 손상 | 빈 기본값으로 복구 후 로그 출력 | `EvolveHistory`, `IncrementalTracker` |
 | 진화 품질 게이트 실패 | 생성된 Ollama 모델 자동 삭제 후 이전 모델 유지 | `cli.py` evolve 명령 |
-| 설정 파일 없음 | 기본 설정 생성 제안 (`uv run slm-factory init`) | `cli.py` |
+| 설정 파일 없음 | 기본 설정 생성 제안 (`slm-factory init`) | `cli.py` |
 | 파이프라인 중단 | `--resume`으로 중간 파일에서 재개 | `cli.py` + 중간 파일 체인 |
 
 ---
@@ -636,13 +636,13 @@ wizard
 
 ```
 QA 생성 건너뜀:
-  → "나중에 실행: uv run slm-factory run --until generate --config {config_path}"
+  → "나중에 실행: slm-factory run --until generate --config {config_path}"
 
 학습 건너뜀:
-  → "나중에 실행: uv run slm-factory train --config {config_path} --data {training_data_path}"
+  → "나중에 실행: slm-factory train --config {config_path} --data {training_data_path}"
 
 내보내기 건너뜀:
-  → "나중에 실행: uv run slm-factory export --config {config_path} --adapter {adapter_path}"
+  → "나중에 실행: slm-factory export --config {config_path} --adapter {adapter_path}"
 ```
 
 중간 결과 파일은 보존되므로 `--resume` 옵션 또는 개별 명령어로 이어서 진행할 수 있습니다.
