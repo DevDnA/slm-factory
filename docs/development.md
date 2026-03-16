@@ -24,6 +24,9 @@ src/slm_factory/
 ├── comparator.py            # Base vs Fine-tuned 모델 비교
 ├── incremental.py           # 문서 해시 기반 증분 변경 추적
 ├── converter.py             # QA → 채팅 템플릿 JSONL 변환
+├── calibration.py           # Auto 캘리브레이션 (chunk_size, num_epochs, 섹션 인식 청킹)
+├── device.py                # GPU/MPS/CPU 자동 감지
+├── evolve_history.py        # 자동 진화 히스토리 관리
 ├── utils.py                 # 로깅, 비동기 유틸리티, 파일 해시
 ├── parsers/
 │   ├── __init__.py          # ParserRegistry 인스턴스 및 파서 등록
@@ -32,7 +35,8 @@ src/slm_factory/
 │   ├── hwpx.py              # HWPX 파서 (한글 문서, lxml)
 │   ├── html.py              # HTML 파서 (BeautifulSoup4)
 │   ├── text.py              # TXT/MD 파서
-│   └── docx.py              # DOCX 파서 (python-docx, 선택적)
+│   ├── docx.py              # DOCX 파서 (python-docx, 선택적)
+│   └── hwp.py               # HWP 파서 (olefile, 선택적)
 ├── teacher/
 │   ├── __init__.py          # create_teacher() 팩토리 함수
 │   ├── base.py              # BaseTeacher ABC
@@ -170,7 +174,9 @@ class Pipeline:
     ) -> list[QAPair]:
         """규칙 기반 + 선택적 임베딩 검증으로 QA를 필터링합니다."""
 
-    def step_score(self, pairs: list[QAPair]) -> list[QAPair]:
+    def step_score(
+        self, pairs: list[QAPair], docs: list[ParsedDocument] | None = None,
+    ) -> list[QAPair]:
         """Teacher LLM으로 1~5점 품질 평가 후 threshold 필터링합니다."""
 
     def step_augment(self, pairs: list[QAPair]) -> list[QAPair]:
@@ -273,8 +279,9 @@ from slm_factory.parsers import registry
 | `HTMLParser` | `html.py` | `.html`, `.htm` | BeautifulSoup4 (lxml 백엔드), charset-normalizer |
 | `TextParser` | `text.py` | `.txt`, `.md` | charset-normalizer |
 | `DOCXParser` | `docx.py` | `.docx` | python-docx (선택적) |
+| `HWPParser` | `hwp.py` | `.hwp` | olefile (선택적) |
 
-`DOCXParser`는 `python-docx`가 설치되지 않은 경우 자동으로 비활성화됩니다. 레지스트리는 `parsers/__init__.py`에서 모든 파서를 자동 등록합니다.
+`DOCXParser`는 `python-docx`가, `HWPParser`는 `olefile`이 설치되지 않은 경우 자동으로 비활성화됩니다. 레지스트리는 `parsers/__init__.py`에서 모든 파서를 자동 등록합니다.
 
 `parsers/base.py`의 `detect_encoding()` 함수는 HTML 파서와 텍스트 파서가 공유하는 유틸리티입니다. charset-normalizer를 사용하여 EUC-KR, CP949 등 한국어 인코딩을 정확하게 감지합니다.
 
@@ -494,9 +501,9 @@ class LoRATrainer:
 
 | 파라미터 | 기본값 | 설명 |
 |---------|--------|------|
-| `num_epochs` | 5 | 학습 에포크 수 |
-| `learning_rate` | 2.0e-5 | 학습률 |
-| `batch_size` | 2 | 디바이스당 배치 크기 |
+| `num_epochs` | `"auto"` | 학습 에포크 수 (`"auto"`: 데이터 양에 따라 3~5 자동 결정) |
+| `learning_rate` | 2.0e-4 | 학습률 |
+| `batch_size` | 1 | 디바이스당 배치 크기 |
 | `lora.r` / `lora.alpha` | 16 / 32 | LoRA 랭크 / 스케일링 |
 | `early_stopping.patience` | 3 | 조기 종료 인내 에포크 수 |
 
@@ -571,7 +578,7 @@ class ModelComparator:
 
 ### QAReviewerApp (reviewer.py)
 
-Textual 기반 QA 수동 리뷰 앱입니다. `slm-factory tool review` 명령으로 실행됩니다.
+Textual 기반 QA 수동 리뷰 앱입니다. `slf tool review` 명령으로 실행됩니다.
 
 ```python
 class QAReviewerApp(App[None]):
@@ -583,7 +590,7 @@ class QAReviewerApp(App[None]):
 
 ### PipelineDashboard (dashboard.py)
 
-Textual 기반 파이프라인 모니터링 앱입니다. `slm-factory tool dashboard` 명령으로 실행됩니다.
+Textual 기반 파이프라인 모니터링 앱입니다. `slf tool dashboard` 명령으로 실행됩니다.
 
 ```python
 class PipelineDashboard(App[None]):

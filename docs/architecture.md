@@ -90,8 +90,9 @@ cli.py
         │     ├─→ pdf.py (PDFParser)
         │     ├─→ hwpx.py (HWPXParser)
         │     ├─→ html.py (HTMLParser)
-        │     ├─→ text.py (TextParser)
-        │     └─→ docx.py (DOCXParser)
+│     ├─→ text.py (TextParser)
+│     ├─→ docx.py (DOCXParser)
+│     └─→ hwp.py (HWPParser)
         │
         ├─→ teacher/
         │     ├─→ base.py (BaseTeacher)
@@ -113,15 +114,19 @@ cli.py
         │
         ├─→ exporter/
         │     ├─→ hf_export.py (HFExporter)
-        │     └─→ ollama_export.py (OllamaExporter)
+        │     ├─→ ollama_export.py (OllamaExporter)
+        │     └─→ autorag_export.py (AutoRAGExporter)
         │
         ├─→ evaluator.py (ModelEvaluator)
         ├─→ comparator.py (ModelComparator)
         ├─→ incremental.py (IncrementalTracker)
+        ├─→ calibration.py (auto_chunk_size, auto_num_epochs, section_aware_chunk)
+        ├─→ device.py (detect_device)
+        ├─→ evolve_history.py (EvolveHistory)
         └─→ tui/ (QAReviewerApp, PipelineDashboard)
 
 모든 모듈
-  ├─→ config.py (SLMConfig + 20개 하위 모델)
+  ├─→ config.py (SLMConfig + 29개 하위 모델)
   ├─→ models.py (ParsedDocument, QAPair, EvalResult, CompareResult)
   └─→ utils.py (setup_logging, get_logger)
 ```
@@ -143,7 +148,7 @@ class CSVParser(BaseParser):
         ...
 ```
 
-`parsers/__init__.py`에서 전역 `registry` 인스턴스를 생성하고 5개 파서(PDF, HWPX, HTML, Text, DOCX)를 자동 등록합니다. 새 파서를 `@registry.register`로 등록하면 즉시 파이프라인에서 처리됩니다.
+`parsers/__init__.py`에서 전역 `registry` 인스턴스를 생성하고 6개 파서(PDF, HWPX, HWP, HTML, Text, DOCX)를 자동 등록합니다. 새 파서를 `@registry.register`로 등록하면 즉시 파이프라인에서 처리됩니다.
 
 `parsers/base.py`의 `detect_encoding()` 함수는 HTML 파서와 텍스트 파서가 공유하는 인코딩 감지 유틸리티입니다. charset-normalizer를 사용하여 EUC-KR, CP949 등 한국어 인코딩을 정확하게 감지합니다. `HTMLParser`는 BeautifulSoup4의 lxml 백엔드를 사용하며, h1–h6 헤딩 태그를 마크다운 헤딩으로 변환하여 문서 구조를 보존합니다.
 
@@ -228,7 +233,7 @@ results = await asyncio.gather(*tasks, return_exceptions=True)
 
 ```
 documents/
-  (PDF, HWPX, HTML, TXT, DOCX)
+  (PDF, HWPX, HWP, HTML, TXT, MD, DOCX)
         │
         ▼ step_parse()
   parsed_documents.json
@@ -286,7 +291,7 @@ parsed_documents.json    →  generate 단계부터 재개
 없음                     →  처음부터 실행
 ```
 
-`slm-factory status` 명령으로 각 중간 파일의 존재 여부와 항목 수를 확인할 수 있습니다.
+`slf status` 명령으로 각 중간 파일의 존재 여부와 항목 수를 확인할 수 있습니다.
 
 → 각 단계 사용법은 [사용 가이드](guide.md) 참조  
 → 각 단계 API는 [개발자 가이드](development.md) 참조
@@ -329,7 +334,9 @@ SLMConfig (root)
 │   ├── categories: dict[str, list[str]] = {}
 │   ├── file: Path | None = None
 │   ├── system_prompt: str = "You are a helpful..."
-│   └── output_format: str = "alpaca"
+│   ├── output_format: str = "alpaca"
+│   ├── auto_generate: bool = False
+│   └── questions_per_chunk: int | "auto" = "auto"
 │
 ├── validation: ValidationConfig
 │   ├── enabled: bool = True
@@ -345,18 +352,18 @@ SLMConfig (root)
 │
 ├── chunking: ChunkingConfig
 │   ├── enabled: bool = True
-│   ├── chunk_size: int = 10000
+│   ├── chunk_size: int | "auto" = "auto"
 │   └── overlap_chars: int = 500
 │
 ├── scoring: ScoringConfig
 │   ├── enabled: bool = True
 │   ├── threshold: float = 3.0
-│   └── max_concurrency: int = 2
+│   └── max_concurrency: int = 3
 │
 ├── augment: AugmentConfig
 │   ├── enabled: bool = True
 │   ├── num_variants: int = 2
-│   ├── max_concurrency: int = 2
+│   ├── max_concurrency: int = 3
 │   └── min_similarity: float = 0.3
 │
 ├── analyzer: AnalyzerConfig
@@ -373,7 +380,7 @@ SLMConfig (root)
 │   ├── learning_rate = 2e-4
 │   ├── lr_scheduler: str = "cosine"
 │   ├── warmup_ratio: float = 0.1
-│   ├── num_epochs: int = 5
+│   ├── num_epochs: int | "auto" = "auto"
 │   ├── optimizer: str = "adamw_torch_fused"
 │   ├── bf16: bool = True
 │   ├── train_split: float = 0.9
@@ -405,12 +412,18 @@ SLMConfig (root)
 ├── eval: EvalConfig
 │   ├── enabled: bool = True
 │   ├── test_split: float = 0.1
-│   ├── metrics: list[str] = ["bleu", "rouge"]
-│   ├── max_samples: int = 50
+│   ├── metrics: list[str] = ["bleu", "rouge", "llm_judge"]
+│   ├── max_samples: int = 20
 │   ├── max_tokens: int = 512
 │   ├── output_file: str = "eval_results.json"
 │   ├── quality_gate: bool = True
-│   └── quality_thresholds: dict = {"bleu": 0.1, "rougeL": 0.2}
+│   ├── quality_thresholds: dict = {"bleu": 0.1, "rougeL": 0.2}
+│   └── llm_judge_model: str = ""
+│
+├── refinement: RefinementConfig
+│   ├── enabled: bool = False
+│   ├── max_rounds: int = 1
+│   └── llm_judge_threshold: float = 0.6
 │
 ├── incremental: IncrementalConfig
 │   ├── enabled: bool = True
@@ -464,7 +477,11 @@ SLMConfig (root)
     ├── cors_origins: list[str] = ["*"]
     ├── batch_size: int = 64
     ├── request_timeout: float = 120.0
-    └── max_tokens: int = 512
+    ├── max_tokens: int = 512
+    ├── reranker_enabled: bool = False
+    ├── reranker_model: str = "BAAI/bge-reranker-v2-m3"
+    ├── hybrid_search: bool = False
+    └── query_rewriting: bool = False
 ```
 
 → 각 필드의 상세 설명은 [설정 레퍼런스](configuration.md) 참조
@@ -517,7 +534,7 @@ def _strip_none_sections(cls, values: dict) -> dict:
 
 ### 5.3 기본값 생성 로직
 
-`create_default_config()`는 `slm-factory init` 명령 실행 시 호출되며, 다음 순서로 기본 YAML 템플릿을 반환합니다.
+`create_default_config()`는 `slf init` 명령 실행 시 호출되며, 다음 순서로 기본 YAML 템플릿을 반환합니다.
 
 ```
 1. 패키지 루트의 templates/project.yaml 읽기 시도
@@ -560,7 +577,7 @@ def _strip_none_sections(cls, values: dict) -> dict:
 | 변환 결과 빈 배치 | `RuntimeError` 발생하여 파이프라인 중단 | `ChatFormatter.format_batch()` |
 | JSON 파일 손상 | 빈 기본값으로 복구 후 로그 출력 | `EvolveHistory`, `IncrementalTracker` |
 | 진화 품질 게이트 실패 | 생성된 Ollama 모델 자동 삭제 후 이전 모델 유지 | `cli.py` evolve 명령 |
-| 설정 파일 없음 | 기본 설정 생성 제안 (`slm-factory init`) | `cli.py` |
+| 설정 파일 없음 | 기본 설정 생성 제안 (`slf init`) | `cli.py` |
 | 파이프라인 중단 | `--resume`으로 중간 파일에서 재개 | `cli.py` + 중간 파일 체인 |
 
 ---
@@ -636,13 +653,13 @@ wizard
 
 ```
 QA 생성 건너뜀:
-  → "나중에 실행: slm-factory run --until generate --config {config_path}"
+  → "나중에 실행: slf run --until generate --config {config_path}"
 
 학습 건너뜀:
-  → "나중에 실행: slm-factory train --config {config_path} --data {training_data_path}"
+  → "나중에 실행: slf train --config {config_path} --data {training_data_path}"
 
 내보내기 건너뜀:
-  → "나중에 실행: slm-factory export --config {config_path} --adapter {adapter_path}"
+  → "나중에 실행: slf export --config {config_path} --adapter {adapter_path}"
 ```
 
 중간 결과 파일은 보존되므로 `--resume` 옵션 또는 개별 명령어로 이어서 진행할 수 있습니다.
