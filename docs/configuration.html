@@ -89,12 +89,13 @@
           <li><a href="#evolve">16. evolve &mdash; 자동 진화 설정</a></li>
           <li><a href="#autorag-export">17. autorag_export &mdash; RAG 데이터 내보내기 설정</a></li>
           <li><a href="#rag">18. rag &mdash; RAG 서비스 설정</a></li>
-          <li><a href="#incremental">19. incremental &mdash; 증분 학습 설정</a></li>
-          <li><a href="#review">20. review &mdash; QA 리뷰 설정</a></li>
-          <li><a href="#dashboard">21. dashboard &mdash; 대시보드 설정</a></li>
-          <li><a href="#recipes">22. 설정 레시피</a></li>
-          <li><a href="#full-example">23. 전체 설정 예시</a></li>
-          <li><a href="#check">25. 설정 검증 (slm-factory check)</a></li>
+          <li><a href="#refinement">20. refinement &mdash; Iterative Refinement 설정</a></li>
+          <li><a href="#incremental">21. incremental &mdash; 증분 학습 설정</a></li>
+          <li><a href="#review">22. review &mdash; QA 리뷰 설정</a></li>
+          <li><a href="#dashboard">23. dashboard &mdash; 대시보드 설정</a></li>
+          <li><a href="#recipes">24. 설정 레시피</a></li>
+          <li><a href="#full-example">25. 전체 설정 예시</a></li>
+          <li><a href="#check">26. 설정 검증 (slf check)</a></li>
         </ol>
       </nav>
 
@@ -113,7 +114,7 @@
 
         <h3 id="config-create">설정 파일 생성</h3>
         <p>새 프로젝트를 시작할 때는 다음 명령으로 기본 템플릿을 생성합니다:</p>
-        <pre data-lang="bash"><code>uv run slm-factory init my-project</code></pre>
+        <pre data-lang="bash"><code>slf init my-project</code></pre>
         <p>이 명령은 <code>my-project/project.yaml</code> 파일을 생성하며, 모든 기본값이 주석과 함께 포함되어 있습니다.</p>
 
         <h3 id="file-location">파일 위치</h3>
@@ -325,7 +326,8 @@
             </thead>
             <tbody>
               <tr><td><code>pdf</code></td><td><code>.pdf</code></td><td><code>pymupdf</code> (기본 포함)</td></tr>
-              <tr><td><code>hwpx</code></td><td><code>.hwpx</code></td><td><code>beautifulsoup4</code>, <code>lxml</code> (기본 포함), <code>pykospacing</code> (선택)</td></tr>
+              <tr><td><code>hwpx</code></td><td><code>.hwpx</code></td><td><code>beautifulsoup4</code>, <code>lxml</code> (기본 포함), <code>kiwipiepy</code> (선택)</td></tr>
+              <tr><td><code>hwp</code></td><td><code>.hwp</code></td><td><code>olefile</code> (<code>uv sync --extra hwp</code>)</td></tr>
               <tr><td><code>html</code></td><td><code>.html</code>, <code>.htm</code></td><td><code>beautifulsoup4</code> (기본 포함)</td></tr>
               <tr><td><code>txt</code></td><td><code>.txt</code></td><td>없음</td></tr>
               <tr><td><code>md</code></td><td><code>.md</code></td><td>없음</td></tr>
@@ -433,6 +435,8 @@
               <tr><td><code>file</code></td><td><code>Path | None</code></td><td><code>null</code></td><td>외부 질문 파일 경로. 한 줄에 하나씩 질문을 작성합니다. 이 필드가 설정되면 <code>categories</code>는 무시됩니다</td></tr>
               <tr><td><code>system_prompt</code></td><td><code>str</code></td><td>(하위 참조)</td><td>Teacher 모델에게 전달되는 시스템 프롬프트. 답변 스타일과 제약 조건을 정의합니다</td></tr>
               <tr><td><code>output_format</code></td><td><code>str</code></td><td><code>"alpaca"</code></td><td>QA 데이터셋 출력 형식. 현재는 <code>"alpaca"</code> 형식만 지원합니다</td></tr>
+              <tr><td><code>auto_generate</code></td><td><code>bool</code></td><td><code>false</code></td><td>Teacher LLM이 각 청크를 분석하여 질문-답변 쌍을 자동으로 생성합니다. <code>categories</code> 고정질문이 있으면 자동생성 QA가 추가됩니다. <code>categories</code>가 비어있으면 자동생성만 수행합니다</td></tr>
+              <tr><td><code>questions_per_chunk</code></td><td><code>int | "auto"</code></td><td><code>"auto"</code></td><td>청크당 생성할 질문 수. <code>"auto"</code>이면 청크의 정보 밀도(길이, 숫자, 목록 항목)를 분석하여 3~15개 범위에서 자동 결정됩니다</td></tr>
             </tbody>
           </table>
         </div>
@@ -585,7 +589,7 @@ If the document does not contain relevant information, say "The document does no
             <tbody>
               <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>true</code></td><td>품질 점수 평가 기능 활성화 여부</td></tr>
               <tr><td><code>threshold</code></td><td><code>float</code></td><td><code>3.0</code></td><td>QA 쌍 최소 합격 점수 (1.0~5.0). 이 점수 미만의 QA 쌍은 데이터셋에서 제거됩니다</td></tr>
-              <tr><td><code>max_concurrency</code></td><td><code>int</code></td><td><code>4</code></td><td>비동기 점수 평가 시 최대 동시 요청 수</td></tr>
+              <tr><td><code>max_concurrency</code></td><td><code>int</code></td><td><code>3</code></td><td>비동기 점수 평가 시 최대 동시 요청 수</td></tr>
               <tr><td><code>regenerate</code></td><td><code>bool</code></td><td><code>true</code></td><td>저품질 QA 쌍을 피드백 기반으로 재생성하여 복구</td></tr>
               <tr><td><code>max_regenerate_rounds</code></td><td><code>int</code></td><td><code>2</code></td><td>재생성 최대 반복 횟수 (1 이상)</td></tr>
             </tbody>
@@ -595,7 +599,7 @@ If the document does not contain relevant information, say "The document does no
         <pre data-lang="yaml"><code>scoring:
   enabled: true
   threshold: 3.5
-  max_concurrency: 4
+  max_concurrency: 3
   regenerate: true
   max_regenerate_rounds: 2</code></pre>
 
@@ -619,7 +623,7 @@ If the document does not contain relevant information, say "The document does no
             <tbody>
               <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>true</code></td><td>데이터 증강 기능 활성화 여부</td></tr>
               <tr><td><code>num_variants</code></td><td><code>int</code></td><td><code>2</code></td><td>각 QA 쌍당 생성할 패러프레이즈 변형 수. 원본 포함 총 <code>num_variants + 1</code>개의 QA 쌍이 생성됩니다</td></tr>
-              <tr><td><code>max_concurrency</code></td><td><code>int</code></td><td><code>4</code></td><td>비동기 증강 시 최대 동시 요청 수</td></tr>
+              <tr><td><code>max_concurrency</code></td><td><code>int</code></td><td><code>3</code></td><td>비동기 증강 시 최대 동시 요청 수</td></tr>
               <tr><td><code>min_similarity</code></td><td><code>float</code></td><td><code>0.3</code></td><td>패러프레이즈된 질문과 원본 질문 간 최소 토큰 겹침 비율. 이 값 미만이면 의미가 변질된 것으로 간주하여 제거합니다 (0.0~1.0)</td></tr>
             </tbody>
           </table>
@@ -628,7 +632,7 @@ If the document does not contain relevant information, say "The document does no
         <pre data-lang="yaml"><code>augment:
   enabled: true
   num_variants: 3
-  max_concurrency: 4
+  max_concurrency: 3
   min_similarity: 0.3</code></pre>
 
         <p><code>num_variants: 3</code>으로 설정하면 100개의 QA 쌍이 400개로 확장됩니다. 데이터가 부족할 때 유용하지만, Teacher LLM 호출 비용이 증가합니다.</p>
@@ -725,7 +729,7 @@ If the document does not contain relevant information, say "The document does no
               <tr><td><code>learning_rate</code></td><td><code>float</code></td><td><code>2e-5</code></td><td>학습률. LoRA 파인튜닝에는 <code>1e-5 ~ 5e-5</code> 범위를 권장합니다</td></tr>
               <tr><td><code>lr_scheduler</code></td><td><code>str</code></td><td><code>"cosine"</code></td><td>학습률 스케줄러. <code>"cosine"</code>, <code>"linear"</code>, <code>"constant"</code> 등</td></tr>
               <tr><td><code>warmup_ratio</code></td><td><code>float</code></td><td><code>0.1</code></td><td>워밍업 비율. 전체 학습 스텝의 10%를 워밍업에 사용합니다 (0.0~1.0)</td></tr>
-              <tr><td><code>num_epochs</code></td><td><code>int</code></td><td><code>20</code></td><td>최대 에포크 수. 조기 종료가 활성화되면 이보다 일찍 멈출 수 있습니다</td></tr>
+              <tr><td><code>num_epochs</code></td><td><code>int | "auto"</code></td><td><code>"auto"</code></td><td>최대 에포크 수. <code>"auto"</code>이면 학습 데이터 양에 따라 자동 결정됩니다 (200개 미만: 3, 200~999개: 5, 1000개+: 3). 정수를 지정하면 해당 에포크 수로 실행됩니다. 조기 종료가 활성화되면 이보다 일찍 멈출 수 있습니다</td></tr>
               <tr><td><code>optimizer</code></td><td><code>str</code></td><td><code>"adamw_torch_fused"</code></td><td>옵티마이저. <code>"adamw_torch_fused"</code>는 PyTorch의 fused AdamW로 가장 빠릅니다</td></tr>
               <tr><td><code>bf16</code></td><td><code>bool</code></td><td><code>true</code></td><td>bfloat16 혼합 정밀도 학습. Ampere 이상 GPU (RTX 30xx, A100 등)에서만 지원됩니다</td></tr>
               <tr><td><code>train_split</code></td><td><code>float</code></td><td><code>0.9</code></td><td>학습 데이터 비율. 0.9는 90% 학습, 10% 검증을 의미합니다 (0.0~1.0)</td></tr>
@@ -883,12 +887,13 @@ If the document does not contain relevant information, say "The document does no
             <tbody>
               <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>true</code></td><td>모델 평가 기능 활성화 여부</td></tr>
               <tr><td><code>test_split</code></td><td><code>float</code></td><td><code>0.1</code></td><td>평가에 사용할 데이터 비율 (0.0~1.0)</td></tr>
-              <tr><td><code>metrics</code></td><td><code>list[str]</code></td><td><code>["bleu", "rouge"]</code></td><td>평가 메트릭 목록</td></tr>
-              <tr><td><code>max_samples</code></td><td><code>int</code></td><td><code>50</code></td><td>평가에 사용할 최대 샘플 수</td></tr>
+              <tr><td><code>metrics</code></td><td><code>list[str]</code></td><td><code>["bleu", "rouge", "llm_judge"]</code></td><td>평가 메트릭 목록</td></tr>
+              <tr><td><code>max_samples</code></td><td><code>int</code></td><td><code>20</code></td><td>평가에 사용할 최대 샘플 수</td></tr>
               <tr><td><code>max_tokens</code></td><td><code>int</code></td><td><code>512</code></td><td>Ollama 생성 최대 토큰 수. 평가 시 무한 생성을 방지합니다</td></tr>
               <tr><td><code>output_file</code></td><td><code>str</code></td><td><code>"eval_results.json"</code></td><td>평가 결과 JSON 파일명. <code>paths.output</code> 디렉토리에 저장됩니다</td></tr>
               <tr><td><code>quality_gate</code></td><td><code>bool</code></td><td><code>true</code></td><td>품질 게이트 활성화 여부. <code>true</code>이면 평가 결과가 임계값 미달 시 경고합니다</td></tr>
               <tr><td><code>quality_thresholds</code></td><td><code>dict</code></td><td><code>{"bleu": 0.1, "rougeL": 0.2}</code></td><td>메트릭별 최소 통과 임계값. 평균 점수가 이 값 미만이면 품질 게이트 실패입니다</td></tr>
+              <tr><td><code>llm_judge_model</code></td><td><code>str</code></td><td><code>""</code></td><td>LLM-as-Judge에 사용할 모델입니다. 빈 문자열이면 <code>teacher.model</code>을 사용합니다</td></tr>
             </tbody>
           </table>
         </div>
@@ -1083,6 +1088,10 @@ If the document does not contain relevant information, say "The document does no
               <tr><td><code>log_level</code></td><td><code>str</code></td><td><code>"info"</code></td><td>uvicorn 로그 레벨</td></tr>
               <tr><td><code>cors_origins</code></td><td><code>list[str]</code></td><td><code>["*"]</code></td><td>CORS 허용 출처 목록</td></tr>
               <tr><td><code>request_timeout</code></td><td><code>float</code></td><td><code>120.0</code></td><td>Ollama 요청 타임아웃 (초)</td></tr>
+              <tr><td><code>reranker_enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>검색 결과를 cross-encoder로 재정렬하여 정확도를 높입니다</td></tr>
+              <tr><td><code>reranker_model</code></td><td><code>str</code></td><td><code>"BAAI/bge-reranker-v2-m3"</code></td><td>Reranker 모델명 (sentence-transformers CrossEncoder 호환)</td></tr>
+              <tr><td><code>hybrid_search</code></td><td><code>bool</code></td><td><code>false</code></td><td>벡터 검색과 키워드 검색(BM25)을 결합하여 검색 재현율을 높입니다</td></tr>
+              <tr><td><code>query_rewriting</code></td><td><code>bool</code></td><td><code>false</code></td><td>짧은 질의를 LLM으로 확장하여 검색 품질을 향상합니다</td></tr>
             </tbody>
           </table>
         </div>
@@ -1107,8 +1116,38 @@ If the document does not contain relevant information, say "The document does no
 
       <hr>
 
+      <!-- ============================================================
+           Section 20: refinement
+           ============================================================ -->
+      <section id="refinement">
+        <h2>20. refinement &mdash; Iterative Refinement 설정</h2>
+        <blockquote><p>학습 후 평가에서 약점이 발견된 QA에 대해 Teacher LLM으로 추가 학습 데이터를 생성하고 재학습합니다.</p></blockquote>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>false</code></td><td>Refinement 활성화 여부. 기본 비활성</td></tr>
+              <tr><td><code>max_rounds</code></td><td><code>int</code></td><td><code>1</code></td><td>최대 Refinement 반복 횟수. 1 이상이어야 합니다</td></tr>
+              <tr><td><code>llm_judge_threshold</code></td><td><code>float</code></td><td><code>0.6</code></td><td>이 점수 미만인 QA를 약점으로 판단합니다 (0.0~1.0)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <pre data-lang="yaml"><code>refinement:
+  enabled: true
+  max_rounds: 2
+  llm_judge_threshold: 0.6</code></pre>
+
+        <p>Refinement가 활성화되면 <code>pipeline.run()</code>에서 평가 후 자동으로 실행됩니다. LLM-as-Judge 점수가 <code>llm_judge_threshold</code> 미만인 QA를 약점으로 판단하고, 해당 질문에 대한 타겟 QA를 Teacher LLM으로 재생성하여 재학습합니다.</p>
+      </section>
+
+      <hr>
+
       <section id="incremental">
-        <h2>19. incremental &mdash; 증분 학습 설정</h2>
+        <h2>21. incremental &mdash; 증분 학습 설정</h2>
         <blockquote><p>문서 추가 시 기존 QA를 유지하면서 새 문서만 처리합니다. 해시 기반으로 변경을 감지합니다.</p></blockquote>
 
         <div class="table-wrapper">
@@ -1135,10 +1174,10 @@ If the document does not contain relevant information, say "The document does no
       <hr>
 
       <!-- ============================================================
-           Section 20: review
+           Section 22: review
            ============================================================ -->
       <section id="review">
-        <h2>20. review &mdash; QA 리뷰 설정</h2>
+        <h2>22. review &mdash; QA 리뷰 설정</h2>
         <blockquote><p>TUI에서 QA 쌍을 수동으로 검토하고 승인/거부/편집합니다.</p></blockquote>
 
         <div class="table-wrapper">
@@ -1163,10 +1202,10 @@ If the document does not contain relevant information, say "The document does no
       <hr>
 
       <!-- ============================================================
-           Section 21: dashboard
+           Section 23: dashboard
            ============================================================ -->
       <section id="dashboard">
-        <h2>21. dashboard &mdash; 대시보드 설정</h2>
+        <h2>23. dashboard &mdash; 대시보드 설정</h2>
         <blockquote><p>파이프라인 진행 상태를 실시간 TUI로 모니터링합니다.</p></blockquote>
 
         <div class="table-wrapper">
@@ -1198,7 +1237,7 @@ If the document does not contain relevant information, say "The document does no
           <thead><tr><th>필드</th><th>타입</th><th>기본값</th><th>설명</th></tr></thead>
           <tbody>
             <tr><td><code>enabled</code></td><td><code>bool</code></td><td><code>true</code></td><td>문서 청킹 활성화 여부</td></tr>
-            <tr><td><code>chunk_size</code></td><td><code>int</code></td><td><code>10000</code></td><td>청크 당 최대 문자 수</td></tr>
+            <tr><td><code>chunk_size</code></td><td><code>int | "auto"</code></td><td><code>"auto"</code></td><td>각 청크의 최대 문자 수. <code>"auto"</code>이면 문서의 단락 밀도와 길이를 분석하여 최적 크기를 자동 결정합니다. 정수를 지정하면 해당 크기를 사용합니다 (최소 1000)</td></tr>
             <tr><td><code>overlap_chars</code></td><td><code>int</code></td><td><code>500</code></td><td>인접 청크 간 겹침 문자 수</td></tr>
           </tbody>
         </table>
@@ -1207,10 +1246,10 @@ If the document does not contain relevant information, say "The document does no
       <hr>
 
       <!-- ============================================================
-           Section 22: 설정 레시피
+           Section 24: 설정 레시피
            ============================================================ -->
       <section id="recipes">
-        <h2>22. 설정 레시피</h2>
+        <h2>24. 설정 레시피</h2>
 
         <p>자주 사용되는 설정 패턴을 레시피 형태로 제공합니다. 각 레시피는 특정 상황에 맞게 최소한의 필드만 변경합니다.</p>
         <p>각 설정을 언제 사용할지에 대한 맥락은 <a href="guide.html">사용 가이드</a>를 참조하십시오.</p>
@@ -1219,11 +1258,11 @@ If the document does not contain relevant information, say "The document does no
         <article class="card">
           <h3 class="card-title">빠른 시작 &mdash; 기본값으로 바로 실행</h3>
           <p class="card-desc"><strong>상황</strong>: 처음 slm-factory를 사용하며 기본 설정으로 빠르게 테스트하고 싶을 때.</p>
-          <p><code>project.yaml</code>을 수정할 필요가 없습니다. <code>uv run slm-factory init my-project</code>로 생성된 기본 템플릿을 그대로 사용하면 됩니다.</p>
+          <p><code>project.yaml</code>을 수정할 필요가 없습니다. <code>slf init my-project</code>로 생성된 기본 템플릿을 그대로 사용하면 됩니다.</p>
           <p>사전 준비:</p>
           <pre data-lang="bash"><code># ./setup.sh가 Ollama 설치·모델 다운로드를 자동 처리합니다
 # documents/ 디렉토리에 PDF 또는 TXT 파일 추가
-uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
+slf tool wizard --config my-project/project.yaml</code></pre>
           <p>기본 설정은 영어 문서, Ollama 백엔드, Gemma 3 1B 모델을 사용합니다.</p>
         </article>
 
@@ -1235,13 +1274,13 @@ uv run slm-factory tool wizard --config my-project/project.yaml</code></pre>
 augment:
   enabled: true
   num_variants: 3
-  max_concurrency: 4
+  max_concurrency: 2
 
 # 저품질 QA 쌍 필터링
 scoring:
   enabled: true
   threshold: 3.5
-  max_concurrency: 4
+  max_concurrency: 2
 
 # 과적합 방지를 위한 학습 설정
 training:
@@ -1301,10 +1340,10 @@ training:
       <hr>
 
       <!-- ============================================================
-           Section 23: 전체 설정 예시
+           Section 25: 전체 설정 예시
            ============================================================ -->
       <section id="full-example">
-        <h2>23. 전체 설정 예시 (한국어 정책 문서 프로젝트)</h2>
+        <h2>25. 전체 설정 예시 (한국어 정책 문서 프로젝트)</h2>
 
         <p>한국어 회사 정책 문서를 처리하는 완전한 <code>project.yaml</code> 예시입니다.</p>
 
@@ -1479,13 +1518,13 @@ dashboard:
       <hr>
 
       <!-- ============================================================
-           Section 25: 설정 검증
+           Section 26: 설정 검증
            ============================================================ -->
       <section id="check">
-        <h2>25. 설정 검증 (slm-factory check)</h2>
+        <h2>26. 설정 검증 (slf check)</h2>
 
         <p>설정 파일이 올바른지 확인하려면 <code>check</code> 명령을 사용합니다:</p>
-        <pre data-lang="bash"><code>uv run slm-factory check --config project.yaml</code></pre>
+        <pre data-lang="bash"><code>slf check --config project.yaml</code></pre>
         <p><code>--config</code>를 생략하면 현재 디렉토리와 상위 디렉토리(2단계)에서 <code>project.yaml</code>을 자동으로 검색합니다.</p>
 
         <h3 id="check-items">검증 항목</h3>
@@ -1504,7 +1543,7 @@ dashboard:
         </div>
 
         <h3 id="check-output">예시 출력</h3>
-        <pre data-lang="bash"><code>$ uv run slm-factory check --config project.yaml
+        <pre data-lang="bash"><code>$ slf check --config project.yaml
 &#10003; Config file: Valid
 &#10003; Documents directory: Found (5 files)
 &#10003; Output directory: Writable
@@ -1513,7 +1552,7 @@ dashboard:
 모든 점검 통과!</code></pre>
 
         <p>모든 항목이 통과하면 종료 코드 0, 실패하면 1을 반환합니다. 설정 파일에 오류가 있으면 (YAML 구문 오류, 잘못된 타입, 알 수 없는 필드 등) Pydantic 검증 단계에서 상세한 에러 메시지를 출력합니다.</p>
-        <p>설정 문제를 진단할 때는 <code>uv run slm-factory -v check</code> 명령으로 상세 로그를 확인할 수 있습니다.</p>
+        <p>설정 문제를 진단할 때는 <code>slf -v check</code> 명령으로 상세 로그를 확인할 수 있습니다.</p>
       </section>
 
       <hr>
