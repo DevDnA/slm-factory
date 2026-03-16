@@ -256,17 +256,33 @@ def create_app(config: "SLMConfig"):
     # 엔드포인트
     # ------------------------------------------------------------------
 
+    _kiwi_instance = None
+
+    def _korean_tokenize(text: str) -> list[str]:
+        nonlocal _kiwi_instance
+        if _kiwi_instance is None:
+            try:
+                from kiwipiepy import Kiwi
+
+                _kiwi_instance = Kiwi()
+            except ImportError:
+                _kiwi_instance = False
+        if _kiwi_instance is False:
+            return text.lower().split()
+        tokens = _kiwi_instance.tokenize(text)  # type: ignore[union-attr]
+        return [t.form for t in tokens if len(t.form) > 1 or not t.tag.startswith("J")]
+
     def _bm25_search(query: str, top_k: int) -> list[tuple[str, str, float, dict]]:
-        """키워드 매칭 기반 검색 (BM25 대용)."""
         if not app.state.bm25_docs:
             return []
-        query_terms = set(query.lower().split())
-        if not query_terms:
+        query_morphs = set(_korean_tokenize(query))
+        if not query_morphs:
             return []
         scores: list[tuple[float, int]] = []
         for i, doc in enumerate(app.state.bm25_docs):
-            doc_lower = doc.lower()
-            score = sum(1 for t in query_terms if t in doc_lower) / len(query_terms)
+            doc_morphs = set(_korean_tokenize(doc))
+            matched = query_morphs & doc_morphs
+            score = len(matched) / len(query_morphs) if query_morphs else 0
             scores.append((score, i))
         scores.sort(reverse=True)
         results: list[tuple[str, str, float, dict]] = []
