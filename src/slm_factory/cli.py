@@ -780,6 +780,8 @@ def _run_until_step(
 
 
 def _start_rag_server(config) -> None:
+    import socket
+
     db_path = Path(config.paths.output) / config.rag.vector_db_path
     if not db_path.is_dir():
         console.print(
@@ -797,8 +799,36 @@ def _start_rag_server(config) -> None:
         )
         return
 
-    ollama_model = config.rag.ollama_model or config.export.ollama.model_name
     port = config.rag.server_port
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        if sock.connect_ex(("localhost", port)) == 0:
+            console.print(f"\n[yellow]포트 {port}이(가) 이미 사용 중입니다.[/yellow]\n")
+            kill = typer.confirm(
+                f"포트 {port}의 기존 프로세스를 종료하고 새로 시작할까요?",
+                default=True,
+            )
+            if kill:
+                import subprocess
+
+                result = subprocess.run(
+                    ["lsof", "-ti", f":{port}"],
+                    capture_output=True,
+                    text=True,
+                )
+                pids = result.stdout.strip().split("\n")
+                for pid in pids:
+                    if pid:
+                        subprocess.run(["kill", "-9", pid], capture_output=True)
+                console.print(f"  [green]포트 {port} 해제 완료[/green]\n")
+            else:
+                console.print("  서버 시작을 취소했습니다.\n")
+                return
+    finally:
+        sock.close()
+
+    ollama_model = config.rag.ollama_model or config.export.ollama.model_name
     console.print(
         f"\n[bold]RAG API 서버 시작[/bold]\n"
         f"  모델:   [cyan]{ollama_model}[/cyan]\n"
