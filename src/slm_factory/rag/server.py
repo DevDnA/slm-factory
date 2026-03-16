@@ -431,7 +431,7 @@ def create_app(config: "SLMConfig"):
                         "keep_alive": -1,
                         "options": {
                             "num_predict": config.rag.max_tokens,
-                            "num_ctx": 4096,
+                            "num_ctx": 8192,
                         },
                     },
                 ) as resp:
@@ -472,7 +472,7 @@ def create_app(config: "SLMConfig"):
                 "stream": False,
                 "think": False,
                 "keep_alive": -1,
-                "options": {"num_predict": config.rag.max_tokens, "num_ctx": 4096},
+                "options": {"num_predict": config.rag.max_tokens, "num_ctx": 8192},
             },
         )
         response.raise_for_status()
@@ -565,7 +565,7 @@ def create_app(config: "SLMConfig"):
                     "stream": True,
                     "think": False,
                     "keep_alive": -1,
-                    "options": {"num_predict": config.rag.max_tokens, "num_ctx": 4096},
+                    "options": {"num_predict": config.rag.max_tokens, "num_ctx": 8192},
                 },
             ) as resp:
                 resp.raise_for_status()
