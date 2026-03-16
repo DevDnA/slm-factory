@@ -315,7 +315,7 @@ export:
 slf tune
 
 # 전체 파이프라인 + RAG 서버 자동 시작
-slf tune --serve
+slf tune --chat
 ```
 
 > 서버는 foreground로 실행됩니다. `Ctrl+C`로 종료할 수 있습니다.
@@ -867,7 +867,7 @@ slf tune
 slf rag
 
 # 터미널 2: 파인튜닝 진행 (30분)
-slf tune --no-serve
+slf tune --no-chat
 ```
 
 RAG + Teacher로 즉시 서비스하면서, 동시에 Student 모델을 학습합니다. 학습이 완료되면 `project.yaml`에서 `rag.ollama_model`을 Student 모델로 변경하고 서버를 재시작합니다.

@@ -178,7 +178,7 @@ slf tool wizard --config my-project/project.yaml</code></pre>
                 <tr>
                   <td><code>slf tune</code></td>
                   <td>전체 파이프라인 실행</td>
-                  <td><code>--config</code>, <code>--until &lt;단계&gt;</code>, <code>--from &lt;단계&gt;</code>, <code>--resume</code> / <code>-r</code>, <code>--serve</code> / <code>-s</code></td>
+                  <td><code>--config</code>, <code>--until &lt;단계&gt;</code>, <code>--from &lt;단계&gt;</code>, <code>--resume</code> / <code>-r</code>, <code>--chat</code></td>
                 </tr>
                 <tr>
                   <td><code>slf rag</code></td>
@@ -597,11 +597,11 @@ slf eval compare \
   --ft my-project-model \
   --config my-project/project.yaml</code></pre>
 
-           <h3 id="workflow-serve">7. 전체 파이프라인 + RAG 서버 (run --serve)</h3>
+           <h3 id="workflow-chat">7. 전체 파이프라인 + RAG 서버 (run --chat)</h3>
 
            <p>SLM 학습부터 RAG 인덱싱, API 서버 시작까지 한 번에 실행합니다.</p>
 
-           <pre data-lang="bash"><code>slf tune --serve --config my-project/project.yaml</code></pre>
+           <pre data-lang="bash"><code>slf tune --chat --config my-project/project.yaml</code></pre>
 
            <p class="note">서버는 foreground로 실행됩니다. <code>Ctrl+C</code>로 종료할 수 있습니다.</p>
          </section>

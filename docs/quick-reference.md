@@ -60,7 +60,7 @@ slf tool wizard
 
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|-----------|
-| `slf tune` | 전체 파이프라인 실행 | `--until <단계>`, `--from <단계>`, `--resume` / `-r`, `--serve` / `-s` |
+| `slf tune` | 전체 파이프라인 실행 | `--until <단계>`, `--from <단계>`, `--resume` / `-r`, `--chat` |
 | `slf rag` | RAG 웹 채팅 서비스 (인덱스 자동 구축) | |
 | `slf train` | LoRA 학습 실행 | `--data <jsonl>`, `--resume` / `-r` |
 | `slf export` | 모델 내보내기 (LoRA 병합 + Modelfile) | `--adapter <경로>` |
@@ -188,12 +188,12 @@ slf eval compare \
   --ft my-project-model
 ```
 
-### 7. 전체 파이프라인 + RAG 서버 (run --serve)
+### 7. 전체 파이프라인 + RAG 서버 (run --chat)
 
 SLM 학습부터 RAG 인덱싱, API 서버 시작까지 한 번에 실행합니다.
 
 ```bash
-slf tune --serve
+slf tune --chat
 ```
 
 > 서버는 foreground로 실행됩니다. `Ctrl+C`로 종료할 수 있습니다.

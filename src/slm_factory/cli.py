@@ -820,14 +820,13 @@ def tune(
     from_step: Optional[PipelineStep] = typer.Option(
         None, "--from", help="지정된 단계부터 실행 (이전 단계의 출력 파일 필요)"
     ),
-    serve: bool = typer.Option(
+    chat: bool = typer.Option(
         True,
-        "--serve/--no-serve",
-        "-s",
-        help="파이프라인 완료 후 RAG 웹 채팅 서비스를 자동으로 시작합니다",
+        "--chat/--no-chat",
+        help="파이프라인 완료 후 RAG 웹 채팅을 자동으로 시작합니다",
     ),
 ) -> None:
-    """파이프라인을 실행합니다. --serve로 RAG 서버까지 한번에 구동합니다."""
+    """파이프라인을 실행합니다. 완료 후 RAG 웹 채팅이 자동 시작됩니다."""
     try:
         pipeline = _load_pipeline(config)
         pipeline.config.paths.ensure_dirs()
@@ -856,7 +855,7 @@ def tune(
                 f"\n[bold green]파이프라인 완료![/bold green] 모델 저장 위치: [cyan]{model_dir}[/cyan]\n"
             )
 
-        if serve:
+        if chat:
             _start_rag_server(pipeline.config)
 
     except FileNotFoundError as e:

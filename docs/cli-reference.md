@@ -229,7 +229,7 @@ slf tune [OPTIONS]
 |--------|--------|------|--------|------|
 | `--config` | | `TEXT` | `project.yaml` | 프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다. |
 | `--resume` | `-r` | `FLAG` | `False` | 중간 저장 파일에서 재개합니다. |
-| `--serve/--no-serve` | `-s` | `BOOL` | `True` | 파이프라인 완료 후 RAG 웹 채팅 서비스를 자동으로 시작합니다. `--no-serve`로 비활성화합니다. 서버는 foreground로 실행되며, `Ctrl+C`로 종료합니다. |
+| `--chat/--no-chat` | | `BOOL` | `True` | 파이프라인 완료 후 RAG 웹 채팅 서비스를 자동으로 시작합니다. `--no-chat`으로 비활성화합니다. 서버는 foreground로 실행되며, `Ctrl+C`로 종료합니다. |
 | `--from` | | `ENUM` | `None` | 지정된 단계부터 실행을 재개합니다. 이전 단계의 출력 파일이 필요합니다. |
 | `--until` | | `ENUM` | `None` | 지정된 단계까지만 실행합니다. 생략하면 전체 파이프라인을 실행합니다. |
 
@@ -291,7 +291,7 @@ slf tune --resume
 slf tune --until augment --resume
 
 # 전체 파이프라인 + RAG 서버 자동 시작
-slf tune --serve
+slf tune --chat
 
 # RAG 인덱싱까지 실행 (서빙은 별도)
 slf tune --until rag_index
