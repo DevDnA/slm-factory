@@ -204,6 +204,10 @@ rag:
   request_timeout: 120.0                # RAG 질의 타임아웃 (초)
   max_tokens: 512                       # 응답 최대 토큰 수. SLM의 반복 생성을 방지합니다
   ollama_model: ""                      # Ollama 모델명 (빈 값이면 export.ollama.model_name 사용)
+  reranker_enabled: false                # 검색 결과를 cross-encoder로 재정렬하여 정확도 향상
+  reranker_model: "BAAI/bge-reranker-v2-m3"  # Reranker 모델 (sentence-transformers CrossEncoder)
+  hybrid_search: true                   # 벡터 + 키워드(BM25) 하이브리드 검색 활성화
+  query_rewriting: true                 # 짧은 질의를 LLM으로 확장하여 검색 품질 향상
 
 # -- 증분 학습(Incremental Learning) ----------------------------------------
 incremental:

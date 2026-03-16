@@ -131,6 +131,34 @@ def create_app(config: "SLMConfig"):
         _app.state.chroma_client = chroma_client
         _app.state.embedding_model = embedding_model
         _app.state.http_client = http_client
+        _app.state.reranker = None
+        _app.state.bm25_docs = None
+        _app.state.bm25_ids = None
+        _app.state.bm25_metadatas = None
+
+        if config.rag.reranker_enabled:
+            try:
+                from sentence_transformers import CrossEncoder
+
+                _app.state.reranker = CrossEncoder(
+                    config.rag.reranker_model, max_length=512
+                )
+                logger.info("Reranker 모델 로드 완료: %s", config.rag.reranker_model)
+            except Exception:
+                logger.warning("Reranker 로드 실패 — 비활성 상태로 계속합니다")
+
+        if config.rag.hybrid_search:
+            try:
+                all_docs = collection.get(include=["documents", "metadatas"])
+                _app.state.bm25_docs = all_docs["documents"] or []
+                _app.state.bm25_ids = all_docs["ids"] or []
+                _app.state.bm25_metadatas = all_docs.get("metadatas") or []
+                logger.info(
+                    "BM25 인덱스 구축 완료: %d개 문서",
+                    len(_app.state.bm25_docs),
+                )
+            except Exception:
+                logger.warning("BM25 인덱스 구축 실패 — 비활성 상태로 계속합니다")
 
         yield
 
@@ -189,26 +217,124 @@ def create_app(config: "SLMConfig"):
     # 엔드포인트
     # ------------------------------------------------------------------
 
+    def _bm25_search(query: str, top_k: int) -> list[tuple[str, str, float, dict]]:
+        """키워드 매칭 기반 검색 (BM25 대용)."""
+        if not app.state.bm25_docs:
+            return []
+        query_terms = set(query.lower().split())
+        if not query_terms:
+            return []
+        scores: list[tuple[float, int]] = []
+        for i, doc in enumerate(app.state.bm25_docs):
+            doc_lower = doc.lower()
+            score = sum(1 for t in query_terms if t in doc_lower) / len(query_terms)
+            scores.append((score, i))
+        scores.sort(reverse=True)
+        results: list[tuple[str, str, float, dict]] = []
+        for score, idx in scores[:top_k]:
+            if score > 0:
+                meta = (
+                    app.state.bm25_metadatas[idx]
+                    if app.state.bm25_metadatas and idx < len(app.state.bm25_metadatas)
+                    else {}
+                )
+                results.append(
+                    (
+                        app.state.bm25_docs[idx],
+                        app.state.bm25_ids[idx],
+                        score,
+                        meta,
+                    )
+                )
+        return results
+
+    async def _rewrite_query(query: str) -> str:
+        """짧은 질의를 검색에 적합한 형태로 확장합니다."""
+        if len(query) > 30:
+            return query
+        http_client = app.state.http_client
+        prompt = (
+            f"다음 질의를 문서 검색에 적합하도록 확장하세요. "
+            f"동의어, 관련 용어, 구체적 표현을 추가하세요. "
+            f"확장된 질의만 반환하세요.\n\n"
+            f"원본: {query}\n확장:"
+        )
+        try:
+            response = await http_client.post(
+                f"{api_base}/api/generate",
+                json={
+                    "model": ollama_model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "think": False,
+                    "options": {"num_predict": 100},
+                },
+                timeout=30.0,
+            )
+            if response.status_code == 200:
+                expanded = response.json().get("response", "").strip()
+                if expanded:
+                    return f"{query} {expanded}"
+        except Exception:
+            logger.debug("Query rewriting 실패 — 원본 질의를 사용합니다")
+        return query
+
     def _search_documents(body: QueryRequest):
         collection = app.state.collection
         embedding_model = app.state.embedding_model
 
         top_k = body.top_k or config.rag.top_k
-        query_embedding = embedding_model.encode(body.query).tolist()
 
+        reranker = app.state.reranker
+        use_reranker = reranker is not None
+        initial_k = top_k * 3 if use_reranker else top_k
+
+        query_embedding = embedding_model.encode(body.query).tolist()
         results = collection.query(
             query_embeddings=[query_embedding],
-            n_results=top_k,
+            n_results=initial_k,
         )
+
+        documents = list(results.get("documents", [[]])[0])
+        ids = list(results.get("ids", [[]])[0])
+        distances = list(results.get("distances", [[]])[0])
+        metadatas = list(results.get("metadatas", [[]])[0])
+
+        if use_reranker and documents:
+            pairs = [(body.query, doc) for doc in documents]
+            rerank_scores = reranker.predict(pairs)
+            ranked = sorted(
+                zip(rerank_scores, documents, ids, distances, metadatas),
+                reverse=True,
+            )
+            ranked = ranked[:top_k]
+            if ranked:
+                _, documents, ids, distances, metadatas = zip(*ranked)
+                documents = list(documents)
+                ids = list(ids)
+                distances = list(distances)
+                metadatas = list(metadatas)
+            else:
+                documents, ids, distances, metadatas = [], [], [], []
+        else:
+            documents = documents[:top_k]
+            ids = ids[:top_k]
+            distances = distances[:top_k]
+            metadatas = metadatas[:top_k]
+
+        if config.rag.hybrid_search and app.state.bm25_docs:
+            bm25_results = _bm25_search(body.query, top_k)
+            seen_ids = set(ids)
+            for doc, doc_id, score, meta in bm25_results:
+                if doc_id not in seen_ids:
+                    seen_ids.add(doc_id)
+                    documents.append(doc)
+                    ids.append(doc_id)
+                    distances.append(1.0 - score)
+                    metadatas.append(meta)
 
         sources: list[Source] = []
         context_parts: list[str] = []
-
-        documents = results.get("documents", [[]])[0]
-        ids = results.get("ids", [[]])[0]
-        distances = results.get("distances", [[]])[0]
-        metadatas = results.get("metadatas", [[]])[0]
-
         seen_parents: set[str] = set()
         max_context_chars = 6000
 
@@ -237,7 +363,15 @@ def create_app(config: "SLMConfig"):
         """
         from fastapi.responses import StreamingResponse
 
-        sources, prompt = _search_documents(body)
+        if config.rag.query_rewriting:
+            expanded = await _rewrite_query(body.query)
+            body_for_search = QueryRequest(
+                query=expanded, top_k=body.top_k, stream=body.stream
+            )
+        else:
+            body_for_search = body
+
+        sources, prompt = _search_documents(body_for_search)
         http_client = app.state.http_client
 
         if body.stream:
@@ -363,7 +497,15 @@ def create_app(config: "SLMConfig"):
 
     @app.post("/v1/stream")
     async def query_stream(body: QueryRequest):
-        sources, prompt = _search_documents(body)
+        if config.rag.query_rewriting:
+            expanded = await _rewrite_query(body.query)
+            body_for_search = QueryRequest(
+                query=expanded, top_k=body.top_k, stream=body.stream
+            )
+        else:
+            body_for_search = body
+
+        sources, prompt = _search_documents(body_for_search)
         http_client = app.state.http_client
 
         async def _generate():
