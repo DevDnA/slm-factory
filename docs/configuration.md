@@ -636,7 +636,7 @@ autorag_export:
 **참고**
 
 - `tool export-autorag` 명령으로 직접 실행할 수 있습니다. CLI 사용법은 [CLI 레퍼런스](cli-reference.md)를 참조하십시오.
-- `run` 명령에서 자동 실행하려면 `enabled: true`로 설정합니다.
+- `tune` 명령에서 자동 실행하려면 `enabled: true`로 설정합니다.
 - 출력 파일: `output/{output_dir}/corpus.parquet` (문서 청크), `output/{output_dir}/qa.parquet` (QA 평가 데이터)
 - 청크 크기는 벡터 검색 성능에 영향을 줍니다. 한국어 문서는 300~600자가 적합합니다.
 
@@ -644,13 +644,13 @@ autorag_export:
 
 ## 19. rag — RAG 서비스 설정
 
-> `corpus.parquet`을 ChromaDB에 임베딩하여 적재하고, Ollama SLM과 연동하는 RAG API 서버를 실행합니다.
+> `corpus.parquet`을 Qdrant에 임베딩하여 적재하고, Ollama SLM과 연동하는 RAG API 서버를 실행합니다.
 
 | 필드 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
-| `embedding_model` | `str` | `"BAAI/bge-m3"` | 임베딩 모델 이름 (sentence-transformers 호환). 한국어는 `bge-m3` 권장 |
-| `vector_db_path` | `str` | `"chroma_db"` | ChromaDB 저장 경로. `paths.output` 하위에 생성됩니다 |
-| `collection_name` | `str` | `"corpus"` | ChromaDB 컬렉션 이름 |
+| `embedding_model` | `str` | `"Qwen/Qwen3-Embedding-0.6B"` | 임베딩 모델 이름 (sentence-transformers 호환). 비대칭 인코딩(`prompt_name="query"`)으로 한국어·다국어 문서에 우수한 성능 |
+| `vector_db_path` | `str` | `"qdrant_db"` | Qdrant 저장 경로 (embedded mode). `paths.output` 하위에 생성됩니다 |
+| `collection_name` | `str` | `"corpus"` | Qdrant 컬렉션 이름 |
 | `top_k` | `int` | `5` | 검색 시 반환할 최대 문서 청크 수. 1 이상이어야 합니다 |
 | `server_host` | `str` | `"0.0.0.0"` | RAG API 서버 바인드 호스트 |
 | `server_port` | `int` | `8000` | RAG API 서버 포트 (1~65535) |
@@ -660,7 +660,7 @@ autorag_export:
 | `cors_origins` | `list[str]` | `["*"]` | CORS 허용 오리진 |
 | `batch_size` | `int` | `64` | 인덱싱 배치 크기 |
 | `request_timeout` | `float` | `120.0` | Ollama 요청 타임아웃 (초) |
-| `max_tokens` | `int` | `512` | 응답 최대 토큰 수. SLM의 반복 생성을 방지합니다 |
+| `max_tokens` | `int` | `-1` | 응답 최대 토큰 수. `-1`이면 모델 기본값을 사용합니다. 양수 지정 시 SLM의 반복 생성을 방지합니다 |
 | `reranker_enabled` | `bool` | `false` | 검색 결과를 cross-encoder로 재정렬하여 정확도를 높입니다 |
 | `reranker_model` | `str` | `"BAAI/bge-reranker-v2-m3"` | Reranker 모델명 (sentence-transformers CrossEncoder 호환) |
 | `hybrid_search` | `bool` | `false` | 벡터 검색과 키워드 검색(BM25)을 결합하여 검색 재현율을 높입니다 |
@@ -668,8 +668,8 @@ autorag_export:
 
 ```yaml
 rag:
-  embedding_model: "BAAI/bge-m3"
-  vector_db_path: "chroma_db"
+  embedding_model: "Qwen/Qwen3-Embedding-0.6B"
+  vector_db_path: "qdrant_db"
   collection_name: "corpus"
   top_k: 5
   server_host: "0.0.0.0"
@@ -680,14 +680,15 @@ rag:
   cors_origins: ["*"]
   batch_size: 64
   request_timeout: 120.0
-  max_tokens: 512
+  max_tokens: -1
 ```
 
 **참고**
 
 - `tool rag-index`로 인덱싱, `tool rag-serve`로 서버를 실행합니다. CLI 사용법은 [CLI 레퍼런스](cli-reference.md)를 참조하십시오.
 - `uv sync --extra rag --extra validation`으로 의존성을 설치하세요.
-- 임베딩 모델은 sentence-transformers 호환 모델이면 모두 사용 가능합니다. 한국어 문서에는 `BAAI/bge-m3`가 권장됩니다.
+- 임베딩 모델은 sentence-transformers 호환 모델이면 모두 사용 가능합니다. 한국어·다국어 문서에는 `Qwen/Qwen3-Embedding-0.6B`가 권장됩니다.
+- `hybrid_search: true` 설정 시 BM25 키워드 검색과 벡터 검색을 결합합니다. 한국어 문서에서는 kiwipiepy 형태소 분석기를 사용하여 정확한 토큰화를 수행합니다 (`uv sync --extra korean` 필요).
 
 ---
 

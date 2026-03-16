@@ -31,12 +31,12 @@ slm-factory는 다음 기술 스택으로 RAG 서비스를 제공합니다.
 
 | 구성 요소 | 기술 | 역할 |
 |-----------|------|------|
-| **벡터 DB** | ChromaDB | 문서 청크 임베딩 저장 및 유사도 검색 |
-| **임베딩 모델** | BAAI/bge-m3 | 다국어(한국어 포함) 문서·질의 벡터 변환 |
+| **벡터 DB** | Qdrant (embedded mode) | 문서 청크 임베딩 저장 및 유사도 검색 (하이브리드 검색 지원) |
+| **임베딩 모델** | Qwen/Qwen3-Embedding-0.6B | 다국어(한국어 포함) 비대칭 인코딩 문서·질의 벡터 변환 |
 | **SLM 추론** | Ollama | 도메인 특화 SLM 서빙 (파인튜닝된 모델) |
 | **API 서버** | FastAPI | REST API 엔드포인트 제공, SSE 스트리밍 지원 |
 
-질의가 들어오면 bge-m3로 임베딩 → ChromaDB에서 유사 문서 검색 → Ollama SLM이 검색 결과를 컨텍스트로 답변을 생성합니다.
+질의가 들어오면 Qwen3-Embedding-0.6B로 임베딩 → Qdrant에서 유사 문서 검색 → Ollama SLM이 검색 결과를 컨텍스트로 답변을 생성합니다.
 
 ---
 
@@ -73,10 +73,10 @@ slm-factory는 다음 기술 스택으로 RAG 서비스를 제공합니다.
 
 ## 4. RAG 서비스 가이드
 
-slm-factory는 문서 파싱 결과를 ChromaDB에 인덱싱하고, FastAPI 기반 RAG API 서버로 즉시 서비스합니다.
+slm-factory는 문서 파싱 결과를 Qdrant에 인덱싱하고, FastAPI 기반 RAG API 서버로 즉시 서비스합니다.
 
 ```
-export-autorag → corpus.parquet → rag-index → ChromaDB → rag-serve → REST API
+export-autorag → corpus.parquet → rag-index → Qdrant → rag-serve → REST API
 ```
 
 ### 4.1 데이터 준비
@@ -112,20 +112,20 @@ slf tool export-autorag
 
 ### 4.2 RAG 서비스 구동
 
-slm-factory에 내장된 **ChromaDB 인덱싱 + FastAPI 서빙**으로 즉시 RAG 서비스를 구동할 수 있습니다.
+slm-factory에 내장된 **Qdrant 인덱싱 + FastAPI 서빙**으로 즉시 RAG 서비스를 구동할 수 있습니다.
 
 ```bash
 # 1. corpus.parquet 생성 (코퍼스 내보내기 완료 후)
 slf tool export-autorag
 
-# 2. ChromaDB에 벡터 임베딩 적재
+# 2. Qdrant에 벡터 임베딩 적재
 slf tool rag-index
 
 # 3. RAG API 서버 실행
 slf rag
 # → POST http://localhost:8000/v1/query       질의 엔드포인트
 # → GET  http://localhost:8000/health          기본 헬스체크
-# → GET  http://localhost:8000/health/ready    Ollama+ChromaDB 연결 확인
+# → GET  http://localhost:8000/health/ready    Ollama+Qdrant 연결 확인
 # → GET  http://localhost:8000/health/live     라이브니스 체크
 ```
 
@@ -144,8 +144,8 @@ curl -N -X POST http://localhost:8000/v1/query \
 ```
 
 **동작 방식:**
-- `rag-index`: `corpus.parquet` 문서를 `BAAI/bge-m3`로 임베딩 → ChromaDB에 적재
-- `serve`: 질의 임베딩 → ChromaDB 유사도 검색 → Ollama SLM 생성 → JSON 응답
+- `rag-index`: `corpus.parquet` 문서를 `Qwen/Qwen3-Embedding-0.6B`로 임베딩 → Qdrant에 적재
+- `serve`: 질의 임베딩 → Qdrant 유사도 검색 → Ollama SLM 생성 → JSON 응답
 - `stream: true` 요청 시 SSE(Server-Sent Events)로 토큰을 실시간 전송 (TTFT < 0.5초)
 
 **질의 → 응답 흐름:**
@@ -157,10 +157,10 @@ curl -N -X POST http://localhost:8000/v1/query \
   ① POST /v1/query ──────── FastAPI (rag-serve)
        │
        ▼
-  ② 질의 임베딩 ─────────── bge-m3로 벡터 변환
+  ② 질의 임베딩 ─────────── Qwen3-Embedding-0.6B로 벡터 변환
        │
        ▼
-  ③ ChromaDB 검색 ────────── cosine 유사도 top_k개 문서 청크 반환
+  ③ Qdrant 검색 ───────────── cosine 유사도 top_k개 문서 청크 반환
        │
        ▼
   ④ 프롬프트 조합 ────────── 시스템 지시 + 검색 문서 + 질문 결합
@@ -189,7 +189,7 @@ curl -N -X POST http://localhost:8000/v1/query \
 ```
 Phase 1: slf tune (SLM 학습 + Ollama 배포)
     ↓
-Phase 2: rag-index → ChromaDB 인덱싱
+Phase 2: rag-index → Qdrant 인덱싱
     ↓
 Phase 3: rag-serve → RAG API 서비스 운영
 ```
@@ -197,7 +197,7 @@ Phase 3: rag-serve → RAG API 서비스 운영
 | 단계 | 기간 | 목표 | 판단 기준 |
 |------|------|------|-----------|
 | Phase 1 | 1-2주 | SLM 학습 완료 | BLEU ≥ 0.3, ROUGE-L ≥ 0.4 |
-| Phase 2 | 1일 | 코퍼스 인덱싱 완료 | ChromaDB 문서 적재 확인 |
+| Phase 2 | 1일 | 코퍼스 인덱싱 완료 | Qdrant 문서 적재 확인 |
 | Phase 3 | 1-2주 | RAG 서비스 배포 | API 응답 품질 + 지연 시간 |
 
 > **Phase 3 시점에서 실체적인 RAG 서비스가 동작합니다.** `slf tool rag-serve` 한 줄로 REST API를 제공하는 도메인 AI 서비스가 완성됩니다.
@@ -213,7 +213,7 @@ slm-factory 내장 RAG 서버로 RAG 서비스를 즉시 운영할 수 있지만
 | **HTTPS/TLS** | API 통신 암호화 | Nginx/Caddy 리버스 프록시로 TLS 종단. `certbot`으로 인증서 자동 발급 |
 | **인증/인가** | 허가된 사용자만 접근 | API 키 기반: Nginx `auth_request` 또는 FastAPI 미들웨어. 기업 환경: SSO/LDAP 연동 |
 | **입력 검증** | 프롬프트 인젝션 방어 | 질의 길이 제한 (예: 2,000자), 금칙어 필터링, 시스템 프롬프트 고정 |
-| **헬스체크** | 서비스 상태 모니터링 | 내장 `/health`(기본), `/health/ready`(Ollama+ChromaDB 연결), `/health/live`(라이브니스 체크, `{"status": "ok"}` 응답) 엔드포인트 제공. 프로덕션에서는 `/health/ready`를 로드밸런서 헬스체크에, `/health/live`를 Kubernetes 라이브니스 프로브에 사용 |
+| **헬스체크** | 서비스 상태 모니터링 | 내장 `/health`(기본), `/health/ready`(Ollama+Qdrant 연결), `/health/live`(라이브니스 체크, `{"status": "ok"}` 응답) 엔드포인트 제공. 프로덕션에서는 `/health/ready`를 로드밸런서 헬스체크에, `/health/live`를 Kubernetes 라이브니스 프로브에 사용 |
 
 #### 운영 안정화 (서비스 공개 후)
 
@@ -223,7 +223,7 @@ slm-factory 내장 RAG 서버로 RAG 서비스를 즉시 운영할 수 있지만
 | **로깅** | 질의/응답 추적 | 구조화 로깅 (JSON). 질의, 검색된 문서 ID, 응답 시간, 에러를 기록 |
 | **모니터링** | 성능·품질 추적 | Prometheus + Grafana: 응답 지연(p50/p95/p99), 에러율, Ollama 추론 시간 |
 | **자동 재시작** | 장애 복구 | systemd `Restart=always` 또는 Docker `restart: unless-stopped` |
-| **백업** | 데이터 보호 | 벡터 DB(ChromaDB) 정기 백업. ChromaDB 벡터 인덱스 버전 관리 |
+| **백업** | 데이터 보호 | 벡터 DB(Qdrant) 정기 백업. Qdrant 벡터 인덱스 버전 관리 |
 
 #### 프로덕션 확장 (사용자 증가 시)
 
@@ -232,7 +232,7 @@ slm-factory 내장 RAG 서버로 RAG 서비스를 즉시 운영할 수 있지만
 | **로드 밸런서** | 수평 확장 | 서버 인스턴스 다중 구동 + Nginx upstream으로 수평 확장 |
 | **GPU 추론 최적화** | 높은 동시성 | Ollama 대신 vLLM 또는 TGI(Text Generation Inference)로 전환. 배치 추론 지원 |
 | **응답 캐싱** | 반복 질의 최적화 | Redis 캐시. 동일 질의 재처리 방지 (TTL 기반) |
-| **벡터 DB 확장** | 대규모 코퍼스 | ChromaDB → Milvus 또는 Weaviate. 분산 인덱싱, 수백만 문서 지원 |
+| **벡터 DB 확장** | 대규모 코퍼스 | Qdrant embedded → Qdrant 서버 모드 또는 Milvus/Weaviate. 분산 인덱싱, 수백만 문서 지원 |
 | **모델 버전 관리** | SLM 업데이트 | `tool evolve`로 SLM 갱신 시, Ollama 모델명에 버전 태그 부여 (`v1`, `v2`). Blue-Green 배포로 무중단 전환 |
 
 #### 프로덕션 확장 판단 기준

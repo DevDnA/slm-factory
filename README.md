@@ -64,7 +64,7 @@ slf rag
 ### RAG 서비스 (slf rag)
 
 ```
-문서 → 섹션 인식 청킹 → 벡터 임베딩(bge-m3) → ChromaDB
+문서 → 섹션 인식 청킹 → 벡터 임베딩(Qwen3-Embedding-0.6B) → Qdrant
                                                     ↓
 사용자 질문 → 벡터 검색 → 관련 문서 참조 → LLM 답변 생성 → 웹 채팅
 ```

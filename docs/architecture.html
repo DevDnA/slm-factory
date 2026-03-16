@@ -142,7 +142,7 @@
   evaluator.py     refinement/      exporter/            rag/
 └──────┬───────┘ └──────┬───────┘ └────────┬─────────┘ └────────┬─────────┘
        ▼                ▼                    ▼                    ▼
-  eval_results.json  (재학습)         autorag/*.parquet    chroma_db/
+  eval_results.json  (재학습)         autorag/*.parquet    qdrant_db/
 
                      ┌─────────────────────────────┐
                        Config (config.py)
@@ -299,7 +299,7 @@ results = await asyncio.gather(*tasks, return_exceptions=True)</code></pre>
               <tr><td>eval</td><td><code>list[QAPair]</code> + 모델 이름</td><td><code>list[EvalResult]</code></td><td><code>eval_results.json</code></td></tr>
               <tr><td>compare</td><td><code>list[QAPair]</code></td><td><code>list[CompareResult]</code></td><td><code>compare_results.json</code></td></tr>
               <tr><td>autorag_export</td><td><code>list[ParsedDocument]</code> + <code>list[QAPair]</code></td><td>parquet files</td><td><code>autorag/corpus.parquet</code>, <code>autorag/qa.parquet</code></td></tr>
-              <tr><td>rag_index</td><td><code>corpus.parquet</code></td><td>ChromaDB collection</td><td><code>chroma_db/</code></td></tr>
+              <tr><td>rag_index</td><td><code>corpus.parquet</code></td><td>Qdrant collection</td><td><code>qdrant_db/</code></td></tr>
             </tbody>
           </table>
         </div>
@@ -353,7 +353,7 @@ merged_model/
   autorag/corpus.parquet + qa.parquet
         │
         ▼ step_rag_index()
-  chroma_db/</code></pre>
+  qdrant_db/</code></pre>
 
         <h3 id="resume">4.3 재개 메커니즘 (--resume)</h3>
         <p><code>--resume</code> 옵션을 사용하면 CLI가 중간 파일의 존재 여부를 확인하여 완료된 단계를 건너뜁니다. 체크포인트 감지 우선순위는 다음과 같습니다.</p>
@@ -631,8 +631,8 @@ parsed_documents.json   →  generate 단계부터 재개
 │   └── overlap_chars: int = 64
 │
 └── rag: RagConfig
-    ├── embedding_model: str = "BAAI/bge-m3"
-    ├── vector_db_path: str = "chroma_db"
+    ├── embedding_model: str = "Qwen/Qwen3-Embedding-0.6B"
+    ├── vector_db_path: str = "qdrant_db"
     ├── collection_name: str = "corpus"
     ├── top_k: int = 5
     ├── server_host: str = "0.0.0.0"

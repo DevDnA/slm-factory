@@ -206,7 +206,7 @@ class Pipeline:
         """파싱·QA 데이터를 RAG 인덱싱용 parquet으로 내보냅니다."""
 
     def step_rag_index(self, corpus_dir: Path | None = None) -> Path:
-        """corpus.parquet을 ChromaDB에 임베딩하여 적재합니다."""
+        """corpus.parquet을 Qdrant에 임베딩하여 적재합니다."""
 
     def run(self) -> Path:
         """전체 파이프라인을 엔드-투-엔드로 실행합니다."""

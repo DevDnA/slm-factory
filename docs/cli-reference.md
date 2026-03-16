@@ -32,8 +32,8 @@ slf [전역 옵션] <명령어> [옵션]
 |--------|------|------|
 | `init` | 🚀 시작하기 | 새 프로젝트 디렉토리와 설정 파일을 생성합니다 |
 | `check` | 🚀 시작하기 | 설정 파일, 문서 디렉토리, Ollama 연결을 사전 점검합니다 |
-| `serve` | 🚀 시작하기 | RAG 웹 채팅 서비스 시작 (인덱스 자동 구축) |
-| `run` | ⚙️ 파이프라인 | 전체 파이프라인 또는 지정 단계까지 실행합니다 |
+| `rag` | 🚀 시작하기 | RAG 웹 채팅 서비스 시작 (인덱스 자동 구축) |
+| `tune` | ⚙️ 파이프라인 | 전체 파이프라인 또는 지정 단계까지 실행합니다 |
 | `train` | ⚙️ 파이프라인 | LoRA 파인튜닝을 실행합니다 |
 | `export` | ⚙️ 파이프라인 | 훈련된 어댑터를 병합하고 Ollama Modelfile을 생성합니다 |
 | `eval run` | 📊 평가 | 학습된 모델을 BLEU/ROUGE 메트릭으로 평가합니다 |
@@ -46,8 +46,8 @@ slf [전역 옵션] <명령어> [옵션]
 | `tool evolve` | 🔧 도구 | 자동 진화 (증분→학습→품질게이트→배포) |
 | `tool compare-data` | 🔧 도구 | 두 QA 데이터셋의 품질 비교 |
 | `tool export-autorag` | 🔧 도구 | RAG 인덱싱용 데이터 내보내기 |
-| `tool rag-index` | 🔧 도구 | corpus.parquet을 ChromaDB에 임베딩 적재 |
-| `tool rag-serve` | 🔧 도구 | RAG API 서버 시작 (ChromaDB 검색 + Ollama 생성) |
+| `tool rag-index` | 🔧 도구 | corpus.parquet을 Qdrant에 임베딩 적재 |
+| `tool rag-serve` | 🔧 도구 | RAG API 서버 시작 (Qdrant 검색 + Ollama 생성) |
 | `status` | ℹ️ 정보 | 각 파이프라인 단계의 진행 상태를 표시합니다 |
 | `clean` | ℹ️ 정보 | 중간 생성 파일을 정리합니다 |
 | `version` | ℹ️ 정보 | slm-factory 버전을 출력합니다 |
@@ -178,7 +178,7 @@ slf check --config my-project/project.yaml
 
 ### `rag`
 
-RAG 웹 채팅 서비스를 시작합니다. ChromaDB 인덱스가 없으면 문서를 파싱하고 자동으로 구축합니다.
+RAG 웹 채팅 서비스를 시작합니다. Qdrant 인덱스가 없으면 문서를 파싱하고 자동으로 구축합니다.
 
 **사용법**
 
@@ -194,8 +194,8 @@ slf rag [OPTIONS]
 
 **동작 방식**
 
-- ChromaDB 인덱스(`output/chroma_db/`)가 이미 존재하면 즉시 서버를 시작합니다.
-- 인덱스가 없으면 문서 파싱 → RAG 데이터 내보내기 → ChromaDB 인덱싱을 자동으로 수행한 후 서버를 시작합니다.
+- Qdrant 인덱스(`output/qdrant_db/`)가 이미 존재하면 즉시 서버를 시작합니다.
+- 인덱스가 없으면 문서 파싱 → RAG 데이터 내보내기 → Qdrant 인덱싱을 자동으로 수행한 후 서버를 시작합니다.
 
 **예시**
 
@@ -251,7 +251,7 @@ slf tune [OPTIONS]
 | `eval` | 기본 활성 | BLEU/ROUGE 평가 | `output/eval_results.json` |
 | `refine` | 기본 비활성 | Iterative Refinement (약점 QA 재생성 + 재학습) | - |
 | `autorag_export` | 기본 활성 | RAG 인덱싱 데이터 내보내기 | `output/autorag/` |
-| `rag_index` | 기본 활성 | ChromaDB 벡터 인덱싱 | `output/chroma_db/` |
+| `rag_index` | 기본 활성 | Qdrant 벡터 인덱싱 | `output/qdrant_db/` |
 
 `--until`을 생략하면 위 전체 13단계를 순서대로 실행합니다. 각 단계는 해당 설정의 `enabled` 값에 따라 실행 여부가 결정됩니다.
 
@@ -552,7 +552,7 @@ slf tool wizard [OPTIONS]
 | 10 | 모델 평가 | 선택 | BLEU/ROUGE 메트릭으로 학습된 모델을 평가합니다. 건너뛸 수 있습니다. |
 | 11 | Refinement | 선택 | Iterative Refinement — 약점 QA 재생성 + 재학습. 건너뛸 수 있습니다. (`refinement.enabled` 설정 반영) |
 | 12 | 코퍼스 내보내기 | 선택 | QA·문서를 RAG 인덱싱용 parquet으로 내보냅니다. 건너뛸 수 있습니다. (`autorag_export.enabled` 설정 반영) |
-| 13 | RAG 인덱싱 | 선택 | corpus.parquet을 ChromaDB에 임베딩하여 적재합니다. 건너뛸 수 있습니다. |
+| 13 | RAG 인덱싱 | 선택 | corpus.parquet을 Qdrant에 임베딩하여 적재합니다. 건너뛸 수 있습니다. |
 
 선택 단계를 건너뛰면 해당 단계를 나중에 실행할 수 있는 CLI 명령어를 안내합니다.
 
@@ -876,7 +876,7 @@ output/autorag/
 
 ### `tool rag-index`
 
-`corpus.parquet`을 sentence-transformers 모델로 임베딩한 뒤 ChromaDB에 적재합니다. `tool export-autorag`로 생성한 코퍼스 데이터를 벡터 검색이 가능한 형태로 변환합니다.
+`corpus.parquet`을 sentence-transformers 모델로 임베딩한 뒤 Qdrant에 적재합니다. `tool export-autorag`로 생성한 코퍼스 데이터를 벡터 검색이 가능한 형태로 변환합니다.
 
 **사용법**
 
@@ -903,12 +903,12 @@ slf tool rag-index --corpus-dir ./output/autorag
 
 **출력**
 
-ChromaDB가 `output/chroma_db/`에 생성됩니다. 임베딩 모델과 벡터DB 경로는 `project.yaml`의 `rag` 섹션에서 설정합니다.
+Qdrant가 `output/qdrant_db/`에 생성됩니다. 임베딩 모델과 벡터DB 경로는 `project.yaml`의 `rag` 섹션에서 설정합니다.
 
 **참고**
 
 - 사전 조건: `tool export-autorag`로 `corpus.parquet`을 먼저 생성해야 합니다.
-- 임베딩 모델 기본값은 `BAAI/bge-m3`입니다. 한국어 문서에 우수한 성능을 보입니다.
+- 임베딩 모델 기본값은 `Qwen/Qwen3-Embedding-0.6B`입니다. 비대칭 인코딩(`prompt_name="query"`)으로 한국어 문서에 우수한 성능을 보입니다.
 - `uv sync --extra rag --extra validation`으로 의존성을 설치하세요.
 - 기존 컬렉션에 재실행하면 upsert(갱신/추가)됩니다.
 
@@ -916,7 +916,7 @@ ChromaDB가 `output/chroma_db/`에 생성됩니다. 임베딩 모델과 벡터DB
 
 ### `tool rag-serve`
 
-ChromaDB 벡터 검색과 Ollama SLM 생성을 결합한 RAG API 서버를 실행합니다. `tool rag-index`로 구축한 벡터 DB에서 관련 문서를 검색하고, SLM이 문서 기반 답변을 생성합니다.
+Qdrant 벡터 검색과 Ollama SLM 생성을 결합한 RAG API 서버를 실행합니다. `tool rag-index`로 구축한 벡터 DB에서 관련 문서를 검색하고, SLM이 문서 기반 답변을 생성합니다.
 
 > 서버는 foreground로 실행됩니다. `Ctrl+C`로 종료할 수 있습니다.
 
@@ -950,7 +950,7 @@ slf tool rag-serve --port 9000
 |--------|------|------|
 | `POST` | `/v1/query` | 질의 → 문서 검색 → SLM 답변 생성 |
 | `GET` | `/health` | 기본 헬스체크 (서버 상태) |
-| `GET` | `/health/ready` | ChromaDB 및 Ollama 연결 상태 확인 |
+| `GET` | `/health/ready` | Qdrant 및 Ollama 연결 상태 확인 |
 | `GET` | `/health/live` | 라이브니스 체크 |
 
 **API 호출 예시**
@@ -990,7 +990,7 @@ data: {"sources": [...], "query": "도메인 질문", "done": true}
 
 **참고**
 
-- 사전 조건: `tool rag-index`로 ChromaDB를 먼저 구축해야 합니다.
+- 사전 조건: `tool rag-index`로 Qdrant를 먼저 구축해야 합니다.
 - Ollama가 실행 중이어야 합니다 (`ollama serve`).
 - SLM 모델은 `rag.ollama_model` 또는 `export.ollama.model_name`에서 결정됩니다.
 - `uv sync --extra rag --extra validation`으로 의존성을 설치하세요.
@@ -1190,8 +1190,8 @@ output/
 ├── autorag/                    # tool export-autorag 출력 (선택)
 │   ├── corpus.parquet          # 문서 청크 (검색 코퍼스)
 │   └── qa.parquet              # QA 평가 데이터
-├── chroma_db/                     # rag_index 단계 출력 (선택)
-│   └── ...                        # ChromaDB 벡터 인덱스
+├── qdrant_db/                     # rag_index 단계 출력 (선택)
+│   └── ...                        # Qdrant 벡터 인덱스
 └── merged_model/               # export 단계 출력
     ├── config.json
     ├── model.safetensors
@@ -1204,10 +1204,10 @@ output/
 
 | 파일 | 생성 명령 | 설명 |
 |------|-----------|------|
-| `parsed_documents.json` | `run --until parse` | 원본 문서에서 추출한 텍스트, 표, 메타데이터입니다. `--resume` 시 파싱 단계를 건너뜁니다. |
-| `qa_alpaca.json` | `run --until generate` | Teacher LLM이 생성한 QA 쌍입니다. Alpaca 형식(`instruction`, `input`, `output`)으로 저장됩니다. |
-| `qa_scored.json` | `run --until score` | 품질 점수 평가를 통과한 QA 쌍입니다. `--resume` 시 `augment`부터 재개합니다. |
-| `qa_augmented.json` | `run --until augment` | 데이터 증강이 완료된 QA 쌍입니다. `--resume` 시 `analyze`부터 재개합니다. |
+| `parsed_documents.json` | `tune --until parse` | 원본 문서에서 추출한 텍스트, 표, 메타데이터입니다. `--resume` 시 파싱 단계를 건너뜁니다. |
+| `qa_alpaca.json` | `tune --until generate` | Teacher LLM이 생성한 QA 쌍입니다. Alpaca 형식(`instruction`, `input`, `output`)으로 저장됩니다. |
+| `qa_scored.json` | `tune --until score` | 품질 점수 평가를 통과한 QA 쌍입니다. `--resume` 시 `augment`부터 재개합니다. |
+| `qa_augmented.json` | `tune --until augment` | 데이터 증강이 완료된 QA 쌍입니다. `--resume` 시 `analyze`부터 재개합니다. |
 | `qa_reviewed.json` | `tool review` | TUI에서 수동 리뷰를 거친 QA 쌍입니다. 승인된 항목만 포함됩니다. |
 | `data_analysis.json` | `run --until analyze` | 카테고리 분포, 길이 통계, 데이터 품질 경고를 포함한 분석 보고서입니다. |
 | `eval_results.json` | `eval run` | BLEU/ROUGE 메트릭별 점수와 평균 점수를 포함한 평가 결과입니다. |
@@ -1215,7 +1215,7 @@ output/
 | `training_data.jsonl` | `tool convert` | Student 모델의 채팅 템플릿이 적용된 학습 데이터입니다. 각 줄은 `{"text": "..."}` 형식입니다. |
 | `checkpoints/adapter/` | `train` | PEFT 형식의 LoRA 어댑터 가중치입니다. `export` 명령으로 기본 모델과 병합합니다. |
 | `autorag/` | `tool export-autorag` | RAG 인덱싱용 parquet 데이터. `corpus.parquet`(문서 청크)과 `qa.parquet`(QA 평가 데이터)을 포함합니다. |
-| `chroma_db/` | `tool rag-index` | ChromaDB 벡터 인덱스입니다. `tool rag-serve`가 이 디렉토리를 참조하여 유사도 검색을 수행합니다. |
+| `qdrant_db/` | `tool rag-index` | Qdrant 벡터 인덱스입니다. `tool rag-serve`가 이 디렉토리를 참조하여 유사도 검색을 수행합니다. |
 | `merged_model/` | `export` | LoRA 어댑터가 병합된 최종 모델입니다. `Modelfile`로 Ollama에 즉시 배포할 수 있습니다. |
 
 ---

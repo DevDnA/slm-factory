@@ -105,15 +105,15 @@
             <table>
               <thead><tr><th>구성 요소</th><th>기술</th><th>역할</th></tr></thead>
               <tbody>
-                <tr><td><strong>벡터 DB</strong></td><td>ChromaDB</td><td>문서 청크 임베딩 저장 및 유사도 검색</td></tr>
-                <tr><td><strong>임베딩 모델</strong></td><td>BAAI/bge-m3</td><td>다국어(한국어 포함) 문서·질의 벡터 변환</td></tr>
+                <tr><td><strong>벡터 DB</strong></td><td>Qdrant</td><td>문서 청크 임베딩 저장 및 유사도 검색</td></tr>
+                <tr><td><strong>임베딩 모델</strong></td><td>Qwen/Qwen3-Embedding-0.6B</td><td>다국어(한국어 포함) 문서·질의 벡터 변환</td></tr>
                 <tr><td><strong>SLM 추론</strong></td><td>Ollama</td><td>도메인 특화 SLM 서빙 (파인튜닝된 모델)</td></tr>
                 <tr><td><strong>API 서버</strong></td><td>FastAPI</td><td>REST API 엔드포인트 제공, SSE 스트리밍 지원</td></tr>
               </tbody>
             </table>
           </div>
 
-          <p>질의가 들어오면 bge-m3로 임베딩 &rarr; ChromaDB에서 유사 문서 검색 &rarr; Ollama SLM이 검색 결과를 컨텍스트로 답변을 생성합니다.</p>
+          <p>질의가 들어오면 Qwen3-Embedding-0.6B로 임베딩 &rarr; Qdrant에서 유사 문서 검색 &rarr; Ollama SLM이 검색 결과를 컨텍스트로 답변을 생성합니다.</p>
         </section>
 
 
@@ -166,9 +166,9 @@
         <section id="section-4">
           <h2>4. RAG 서비스 가이드</h2>
 
-          <p>slm-factory는 문서 파싱 결과를 ChromaDB에 인덱싱하고, FastAPI 기반 RAG API 서버로 즉시 서비스합니다.</p>
+          <p>slm-factory는 문서 파싱 결과를 Qdrant에 인덱싱하고, FastAPI 기반 RAG API 서버로 즉시 서비스합니다.</p>
 
-          <pre><code>export-autorag &rarr; corpus.parquet &rarr; rag-index &rarr; ChromaDB &rarr; rag-serve &rarr; REST API</code></pre>
+          <pre><code>export-autorag &rarr; corpus.parquet &rarr; rag-index &rarr; Qdrant &rarr; rag-serve &rarr; REST API</code></pre>
 
           <hr>
 
@@ -213,19 +213,19 @@ slf tool export-autorag --config project.yaml
 
           <h3 id="section-4-2">4.2 RAG 서비스 구동</h3>
 
-          <p>slm-factory에 내장된 <strong>ChromaDB 인덱싱 + FastAPI 서빙</strong>으로 즉시 RAG 서비스를 구동할 수 있습니다.</p>
+          <p>slm-factory에 내장된 <strong>Qdrant 인덱싱 + FastAPI 서빙</strong>으로 즉시 RAG 서비스를 구동할 수 있습니다.</p>
 
           <pre data-lang="bash"><code># 1. corpus.parquet 생성 (코퍼스 내보내기 완료 후)
 slf tool export-autorag --config project.yaml
 
-# 2. ChromaDB에 벡터 임베딩 적재
+# 2. Qdrant에 벡터 임베딩 적재
 slf tool rag-index --config project.yaml
 
 # 3. RAG API 서버 실행
 slf tool rag-serve --config project.yaml
 # &rarr; POST http://localhost:8000/v1/query       질의 엔드포인트
 # &rarr; GET  http://localhost:8000/health          기본 헬스체크
-# &rarr; GET  http://localhost:8000/health/ready    Ollama+ChromaDB 연결 확인
+# &rarr; GET  http://localhost:8000/health/ready    Ollama+Qdrant 연결 확인
 # &rarr; GET  http://localhost:8000/health/live     라이브니스 체크</code></pre>
 
           <blockquote>
@@ -244,8 +244,8 @@ curl -N -X POST http://localhost:8000/v1/query \
 
           <p><strong>동작 방식:</strong></p>
           <ul>
-            <li><code>rag-index</code>: <code>corpus.parquet</code> 문서를 <code>BAAI/bge-m3</code>로 임베딩 &rarr; ChromaDB에 적재</li>
-            <li><code>rag-serve</code>: 질의 임베딩 &rarr; ChromaDB 유사도 검색 &rarr; Ollama SLM 생성 &rarr; JSON 응답</li>
+            <li><code>rag-index</code>: <code>corpus.parquet</code> 문서를 <code>Qwen/Qwen3-Embedding-0.6B</code>로 임베딩 &rarr; Qdrant에 적재</li>
+            <li><code>rag-serve</code>: 질의 임베딩 &rarr; Qdrant 유사도 검색 &rarr; Ollama SLM 생성 &rarr; JSON 응답</li>
             <li><code>stream: true</code> 요청 시 SSE(Server-Sent Events)로 토큰을 실시간 전송 (TTFT &lt; 0.5초)</li>
           </ul>
 
@@ -266,11 +266,11 @@ curl -N -X POST http://localhost:8000/v1/query \
               <line x1="360" y1="132" x2="360" y2="158" stroke="#868e96" stroke-width="2" marker-end="url(#flow-arrow)"/>
               <rect x="160" y="160" width="400" height="48" rx="10" fill="#fff" stroke="#5c7cfa" stroke-width="1.5"/>
               <text x="360" y="183" text-anchor="middle" font-size="13" fill="#4263eb">&#x2461;</text>
-              <text x="360" y="199" text-anchor="middle" font-size="13" font-weight="600" fill="#364fc7">질의 임베딩 &mdash; bge-m3로 벡터 변환</text>
+              <text x="360" y="199" text-anchor="middle" font-size="13" font-weight="600" fill="#364fc7">질의 임베딩 &mdash; Qwen3-Embedding-0.6B로 벡터 변환</text>
               <line x1="360" y1="208" x2="360" y2="234" stroke="#868e96" stroke-width="2" marker-end="url(#flow-arrow)"/>
               <rect x="160" y="236" width="400" height="48" rx="10" fill="#fff" stroke="#5c7cfa" stroke-width="1.5"/>
               <text x="360" y="259" text-anchor="middle" font-size="13" fill="#4263eb">&#x2462;</text>
-              <text x="360" y="275" text-anchor="middle" font-size="13" font-weight="600" fill="#364fc7">ChromaDB 검색 &mdash; cosine 유사도 top_k개 청크 반환</text>
+              <text x="360" y="275" text-anchor="middle" font-size="13" font-weight="600" fill="#364fc7">Qdrant 검색 &mdash; cosine 유사도 top_k개 청크 반환</text>
               <line x1="360" y1="284" x2="360" y2="310" stroke="#868e96" stroke-width="2" marker-end="url(#flow-arrow)"/>
               <rect x="100" y="312" width="520" height="72" rx="10" fill="#fff4e6" stroke="#e8590c" stroke-width="1.5"/>
               <text x="360" y="335" text-anchor="middle" font-size="13" fill="#e8590c">&#x2463;</text>
@@ -302,7 +302,7 @@ curl -N -X POST http://localhost:8000/v1/query \
 
           <pre><code>Phase 1: slf tune (SLM 학습 + Ollama 배포)
     &darr;
-Phase 2: rag-index &rarr; ChromaDB 인덱싱
+Phase 2: rag-index &rarr; Qdrant 인덱싱
     &darr;
 Phase 3: rag-serve &rarr; RAG API 서비스 운영</code></pre>
 
@@ -311,7 +311,7 @@ Phase 3: rag-serve &rarr; RAG API 서비스 운영</code></pre>
               <thead><tr><th>단계</th><th>기간</th><th>목표</th><th>판단 기준</th></tr></thead>
               <tbody>
                 <tr><td>Phase 1</td><td>1-2주</td><td>SLM 학습 완료</td><td>BLEU &ge; 0.3, ROUGE-L &ge; 0.4</td></tr>
-                <tr><td>Phase 2</td><td>1일</td><td>코퍼스 인덱싱 완료</td><td>ChromaDB 문서 적재 확인</td></tr>
+                <tr><td>Phase 2</td><td>1일</td><td>코퍼스 인덱싱 완료</td><td>Qdrant 문서 적재 확인</td></tr>
                 <tr><td>Phase 3</td><td>1-2주</td><td>RAG 서비스 배포</td><td>API 응답 품질 + 지연 시간</td></tr>
               </tbody>
             </table>
@@ -337,7 +337,7 @@ Phase 3: rag-serve &rarr; RAG API 서비스 운영</code></pre>
                 <tr><td><strong>HTTPS/TLS</strong></td><td>API 통신 암호화</td><td>Nginx/Caddy 리버스 프록시로 TLS 종단. <code>certbot</code>으로 인증서 자동 발급</td></tr>
                 <tr><td><strong>인증/인가</strong></td><td>허가된 사용자만 접근</td><td>API 키 기반: Nginx <code>auth_request</code> 또는 FastAPI 미들웨어. 기업 환경: SSO/LDAP 연동</td></tr>
                 <tr><td><strong>입력 검증</strong></td><td>프롬프트 인젝션 방어</td><td>질의 길이 제한 (예: 2,000자), 금칙어 필터링, 시스템 프롬프트 고정</td></tr>
-                <tr><td><strong>헬스체크</strong></td><td>서비스 상태 모니터링</td><td>내장 <code>/health</code>(기본), <code>/health/ready</code>(Ollama+ChromaDB 연결), <code>/health/live</code>(라이브니스 체크, <code>{"status": "ok"}</code> 응답) 엔드포인트 제공. 프로덕션에서는 <code>/health/ready</code>를 로드밸런서 헬스체크에, <code>/health/live</code>를 Kubernetes 라이브니스 프로브에 사용</td></tr>
+                <tr><td><strong>헬스체크</strong></td><td>서비스 상태 모니터링</td><td>내장 <code>/health</code>(기본), <code>/health/ready</code>(Ollama+Qdrant 연결), <code>/health/live</code>(라이브니스 체크, <code>{"status": "ok"}</code> 응답) 엔드포인트 제공. 프로덕션에서는 <code>/health/ready</code>를 로드밸런서 헬스체크에, <code>/health/live</code>를 Kubernetes 라이브니스 프로브에 사용</td></tr>
               </tbody>
             </table>
           </div>
@@ -351,7 +351,7 @@ Phase 3: rag-serve &rarr; RAG API 서비스 운영</code></pre>
                 <tr><td><strong>로깅</strong></td><td>질의/응답 추적</td><td>구조화 로깅 (JSON). 질의, 검색된 문서 ID, 응답 시간, 에러를 기록</td></tr>
                 <tr><td><strong>모니터링</strong></td><td>성능·품질 추적</td><td>Prometheus + Grafana: 응답 지연(p50/p95/p99), 에러율, Ollama 추론 시간</td></tr>
                 <tr><td><strong>자동 재시작</strong></td><td>장애 복구</td><td>systemd <code>Restart=always</code> 또는 Docker <code>restart: unless-stopped</code></td></tr>
-                <tr><td><strong>백업</strong></td><td>데이터 보호</td><td>벡터 DB(ChromaDB) 정기 백업. ChromaDB 벡터 인덱스 버전 관리</td></tr>
+                <tr><td><strong>백업</strong></td><td>데이터 보호</td><td>벡터 DB(Qdrant) 정기 백업. Qdrant 벡터 인덱스 버전 관리</td></tr>
               </tbody>
             </table>
           </div>
@@ -364,7 +364,7 @@ Phase 3: rag-serve &rarr; RAG API 서비스 운영</code></pre>
                 <tr><td><strong>로드 밸런서</strong></td><td>수평 확장</td><td>서버 인스턴스 다중 구동 + Nginx upstream으로 수평 확장</td></tr>
                 <tr><td><strong>GPU 추론 최적화</strong></td><td>높은 동시성</td><td>Ollama 대신 vLLM 또는 TGI(Text Generation Inference)로 전환. 배치 추론 지원</td></tr>
                 <tr><td><strong>응답 캐싱</strong></td><td>반복 질의 최적화</td><td>Redis 캐시. 동일 질의 재처리 방지 (TTL 기반)</td></tr>
-                <tr><td><strong>벡터 DB 확장</strong></td><td>대규모 코퍼스</td><td>ChromaDB &rarr; Milvus 또는 Weaviate. 분산 인덱싱, 수백만 문서 지원</td></tr>
+                <tr><td><strong>벡터 DB 확장</strong></td><td>대규모 코퍼스</td><td>Qdrant &rarr; Milvus 또는 Weaviate. 분산 인덱싱, 수백만 문서 지원</td></tr>
                 <tr><td><strong>모델 버전 관리</strong></td><td>SLM 업데이트</td><td><code>tool evolve</code>로 SLM 갱신 시, Ollama 모델명에 버전 태그 부여 (<code>v1</code>, <code>v2</code>). Blue-Green 배포로 무중단 전환</td></tr>
               </tbody>
             </table>

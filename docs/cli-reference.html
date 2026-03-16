@@ -274,12 +274,12 @@
                 <tr>
                   <td><code>tool rag-index</code></td>
                   <td>🔧 도구</td>
-                  <td>corpus.parquet을 ChromaDB에 임베딩 적재</td>
+                  <td>corpus.parquet을 Qdrant에 임베딩 적재</td>
                 </tr>
                 <tr>
                   <td><code>tool rag-serve</code></td>
                   <td>🔧 도구</td>
-                  <td>RAG API 서버 시작 (ChromaDB 검색 + Ollama 생성)</td>
+                  <td>RAG API 서버 시작 (Qdrant 검색 + Ollama 생성)</td>
                 </tr>
                 <tr>
                   <td><code>status</code></td>
@@ -516,7 +516,7 @@ slf init policy-assistant --path /workspace/projects</code></pre>
           <!-- serve -->
 <article id="rag">
 <h3><code>rag</code></h3>
-            <p>RAG 웹 채팅 서비스를 시작합니다. ChromaDB 인덱스가 없으면 문서를 파싱하고 자동으로 구축합니다.</p>
+            <p>RAG 웹 채팅 서비스를 시작합니다. Qdrant 인덱스가 없으면 문서를 파싱하고 자동으로 구축합니다.</p>
 
             <h4>사용법</h4>
             <pre data-lang="bash"><code>slf rag [OPTIONS]</code></pre>
@@ -547,8 +547,8 @@ slf init policy-assistant --path /workspace/projects</code></pre>
 
             <h4>동작 방식</h4>
             <ul>
-              <li>ChromaDB 인덱스(<code>output/chroma_db/</code>)가 이미 존재하면 즉시 서버를 시작합니다.</li>
-              <li>인덱스가 없으면 문서 파싱 &rarr; RAG 데이터 내보내기 &rarr; ChromaDB 인덱싱을 자동으로 수행한 후 서버를 시작합니다.</li>
+              <li>Qdrant 인덱스(<code>output/qdrant_db/</code>)가 이미 존재하면 즉시 서버를 시작합니다.</li>
+              <li>인덱스가 없으면 문서 파싱 &rarr; RAG 데이터 내보내기 &rarr; Qdrant 인덱싱을 자동으로 수행한 후 서버를 시작합니다.</li>
             </ul>
 
             <h4>예시</h4>
@@ -722,8 +722,8 @@ slf rag --config my-project/project.yaml</code></pre>
                   <tr>
                     <td><code>rag_index</code></td>
                     <td><span class="tag tag-optional">기본 활성</span></td>
-                    <td>ChromaDB 벡터 인덱싱</td>
-                    <td><code>output/chroma_db/</code></td>
+                    <td>Qdrant 벡터 인덱싱</td>
+                    <td><code>output/qdrant_db/</code></td>
                   </tr>
                 </tbody>
               </table>
@@ -1275,7 +1275,7 @@ slf eval compare \
                     <td>13</td>
                     <td>RAG 인덱싱</td>
                     <td><span class="tag tag-optional">선택</span></td>
-                    <td>corpus.parquet을 ChromaDB에 임베딩하여 적재합니다. 건너뛸 수 있습니다.</td>
+                    <td>corpus.parquet을 Qdrant에 임베딩하여 적재합니다. 건너뛸 수 있습니다.</td>
                   </tr>
                 </tbody>
               </table>
@@ -1524,7 +1524,7 @@ slf tool export-autorag --config my-project/project.yaml \
           <!-- tool rag-index -->
           <article id="tool-rag-index">
             <h3><code>tool rag-index</code></h3>
-            <p><code>corpus.parquet</code>을 sentence-transformers 모델로 임베딩한 뒤 ChromaDB에 적재합니다. <code>tool export-autorag</code>로 생성한 코퍼스 데이터를 벡터 검색이 가능한 형태로 변환합니다.</p>
+            <p><code>corpus.parquet</code>을 sentence-transformers 모델로 임베딩한 뒤 Qdrant에 적재합니다. <code>tool export-autorag</code>로 생성한 코퍼스 데이터를 벡터 검색이 가능한 형태로 변환합니다.</p>
 
             <h4>사용법</h4>
             <pre data-lang="bash"><code>slf tool rag-index [OPTIONS]</code></pre>
@@ -1547,7 +1547,7 @@ slf tool rag-index --config my-project/project.yaml</code></pre>
             <h4>참고</h4>
             <ul>
               <li>사전 조건: <code>tool export-autorag</code>로 <code>corpus.parquet</code>을 먼저 생성해야 합니다.</li>
-              <li>임베딩 모델 기본값은 <code>BAAI/bge-m3</code>입니다. 한국어 문서에 우수한 성능을 보입니다.</li>
+              <li>임베딩 모델 기본값은 <code>Qwen/Qwen3-Embedding-0.6B</code>입니다. 한국어 문서에 우수한 성능을 보입니다.</li>
               <li><code>uv sync --extra rag --extra validation</code>으로 의존성을 설치하세요.</li>
               <li>기존 컬렉션에 재실행하면 upsert(갱신/추가)됩니다.</li>
             </ul>
@@ -1558,7 +1558,7 @@ slf tool rag-index --config my-project/project.yaml</code></pre>
           <!-- tool rag-serve -->
           <article id="tool-rag-serve">
             <h3><code>tool rag-serve</code></h3>
-            <p>ChromaDB 벡터 검색과 Ollama SLM 생성을 결합한 RAG API 서버를 실행합니다.</p>
+            <p>Qdrant 벡터 검색과 Ollama SLM 생성을 결합한 RAG API 서버를 실행합니다.</p>
             <p class="note">서버는 foreground로 실행됩니다. <code>Ctrl+C</code>로 종료할 수 있습니다.</p>
 
             <h4>사용법</h4>
@@ -1583,7 +1583,7 @@ slf tool rag-index --config my-project/project.yaml</code></pre>
                 <tbody>
                   <tr><td><code>POST</code></td><td><code>/v1/query</code></td><td>질의 &rarr; 문서 검색 &rarr; SLM 답변 생성</td></tr>
                   <tr><td><code>GET</code></td><td><code>/health</code></td><td>기본 헬스체크 (서버 상태)</td></tr>
-                  <tr><td><code>GET</code></td><td><code>/health/ready</code></td><td>ChromaDB 및 Ollama 연결 상태 확인</td></tr>
+                  <tr><td><code>GET</code></td><td><code>/health/ready</code></td><td>Qdrant 및 Ollama 연결 상태 확인</td></tr>
                   <tr><td><code>GET</code></td><td><code>/health/live</code></td><td>라이브니스 체크</td></tr>
                 </tbody>
               </table>
@@ -1602,7 +1602,7 @@ curl -N -X POST http://localhost:8000/v1/query \
 
             <h4>참고</h4>
             <ul>
-              <li>사전 조건: <code>tool rag-index</code>로 ChromaDB를 먼저 구축해야 합니다.</li>
+              <li>사전 조건: <code>tool rag-index</code>로 Qdrant를 먼저 구축해야 합니다.</li>
               <li>Ollama가 실행 중이어야 합니다 (<code>ollama serve</code>).</li>
               <li>SLM 모델은 <code>rag.ollama_model</code> 또는 <code>export.ollama.model_name</code>에서 결정됩니다.</li>
               <li><code>uv sync --extra rag --extra validation</code>으로 의존성을 설치하세요.</li>

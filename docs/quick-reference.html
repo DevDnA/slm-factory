@@ -279,7 +279,7 @@ slf tool wizard --config my-project/project.yaml</code></pre>
                 </tr>
                 <tr>
                   <td><code>slf tool rag-index</code></td>
-                  <td>ChromaDB에 임베딩 적재</td>
+                  <td>Qdrant에 임베딩 적재</td>
                   <td><code>--config</code>, <code>--corpus-dir</code></td>
                 </tr>
                 <tr>
@@ -443,8 +443,8 @@ slf tool wizard --config my-project/project.yaml</code></pre>
                     <td>13</td>
                     <td><strong>rag_index</strong></td>
                    <td><span class="tag tag-optional">선택</span></td>
-                   <td>ChromaDB 벡터 인덱싱 (<code>autorag_export.enabled: true</code>)</td>
-                   <td><code>output/chroma_db/</code></td>
+                   <td>Qdrant 벡터 인덱싱 (<code>autorag_export.enabled: true</code>)</td>
+                   <td><code>output/qdrant_db/</code></td>
                  </tr>
               </tbody>
             </table>
@@ -519,7 +519,7 @@ slf tool wizard --config my-project/project.yaml</code></pre>
               <text x="600" y="109" font-family="JetBrains Mono, Consolas, monospace" font-size="7" fill="#718096" text-anchor="middle">autorag/*.parquet</text>
               <rect x="536" y="113" width="128" height="20" rx="4" fill="#FFFAF0" stroke="#ED8936" stroke-width="0.75" stroke-dasharray="4,2"/>
               <text x="600" y="126" font-family="Pretendard, sans-serif" font-size="9.5" font-weight="600" fill="#C05621" text-anchor="middle">13. rag_index</text>
-              <text x="600" y="140" font-family="JetBrains Mono, Consolas, monospace" font-size="7" fill="#718096" text-anchor="middle">chroma_db/</text>
+              <text x="600" y="140" font-family="JetBrains Mono, Consolas, monospace" font-size="7" fill="#718096" text-anchor="middle">qdrant_db/</text>
 
               <!-- Horizontal arrows between groups -->
               <line x1="152" y1="100" x2="178" y2="100" stroke="#A0AEC0" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#pf-arrow-gray)"/>
