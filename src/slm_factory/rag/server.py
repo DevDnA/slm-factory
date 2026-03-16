@@ -17,8 +17,13 @@ from ..utils import get_logger
 logger = get_logger("rag.server")
 
 _RAG_SYSTEM_PROMPT = (
-    "다음 문서를 참고하여 질문에 답변하십시오. "
-    "문서에 없는 내용은 '해당 정보를 찾을 수 없습니다'라고 답변하십시오."
+    "당신은 문서 기반 전문 어시스턴트입니다. 아래 참고 문서들을 종합하여 질문에 답변하세요.\n\n"
+    "규칙:\n"
+    "1. 여러 문서의 정보를 연결하고 종합하여 포괄적으로 답변하세요.\n"
+    "2. 표, 목록, 소제목 등 마크다운을 활용하여 구조적으로 정리하세요.\n"
+    "3. 문서에 근거한 구체적 수치, 날짜, 명칭을 포함하세요.\n"
+    "4. 문서에 없는 내용은 추측하지 말고 '해당 정보를 찾을 수 없습니다'라고 답변하세요.\n"
+    "5. 답변은 완결성 있게 작성하고 중간에 끊지 마세요."
 )
 
 
@@ -379,7 +384,7 @@ def create_app(config: "SLMConfig"):
         sources: list[Source] = []
         context_parts: list[str] = []
         seen_parents: set[str] = set()
-        max_context_chars = 12000
+        max_context_chars = 8000
 
         for doc, doc_id, distance, metadata in zip(
             documents, ids, distances, metadatas
