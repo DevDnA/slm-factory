@@ -87,32 +87,28 @@ else
     ok "${TEACHER_MODEL} 다운로드 완료"
 fi
 
+# ── 5. slf 간편 명령어 설치 ──────────────────────────────────────────
+info "slf 간편 명령어 설치 중..."
+chmod +x "$PWD/slf"
+
+# ~/.local/bin에 심링크 생성 (uv도 여기에 설치됨)
+mkdir -p "$HOME/.local/bin"
+ln -sf "$PWD/slf" "$HOME/.local/bin/slf"
+
+# PATH에 ~/.local/bin이 없으면 추가 안내
+if ! echo "$PATH" | tr ':' '\n' | grep -qx "$HOME/.local/bin"; then
+    export PATH="$HOME/.local/bin:$PATH"
+fi
+ok "slf 명령어 설치 완료"
+
 # ── 완료 ────────────────────────────────────────────────────────────
 echo ""
-SHELL_NAME="$(basename "${SHELL:-/bin/sh}")"
-
 echo -e "${GREEN}${BOLD}준비 완료!${NC}"
 echo "────────────────────────────────────────"
 echo ""
-
-case "$SHELL_NAME" in
-  fish)
-    ACTIVATE_CMD="source .venv/bin/activate.fish"
-    ;;
-  csh|tcsh)
-    ACTIVATE_CMD="source .venv/bin/activate.csh"
-    ;;
-  *)
-    ACTIVATE_CMD="source .venv/bin/activate"
-    ;;
-esac
-
-echo -e "  ${CYAN}# 가상환경 활성화${NC}"
-echo "  $ACTIVATE_CMD"
-echo ""
 echo -e "  ${CYAN}# 사용법${NC}"
-echo "  slm-factory init my-project          # 프로젝트 생성"
+echo "  slf init my-project          # 프로젝트 생성"
 echo "  cp docs/*.pdf my-project/documents/  # 문서 추가"
-echo "  slm-factory run                      # 전체 파이프라인"
-echo "  slm-factory serve                    # 웹 채팅 서비스"
+echo "  slf run                      # 전체 파이프라인"
+echo "  slf serve                    # 웹 채팅 서비스"
 echo ""
