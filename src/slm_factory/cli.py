@@ -857,6 +857,7 @@ def _start_rag_server(config) -> None:
             ollama_model = config.export.ollama.model_name
         else:
             ollama_model = config.teacher.model
+        config.rag.ollama_model = ollama_model
     console.print(
         f"\n[bold]RAG API 서버 시작[/bold]\n"
         f"  모델:   [cyan]{ollama_model}[/cyan]\n"
