@@ -199,6 +199,12 @@ def _find_config(config_path: str) -> str:
             if parent == Path.cwd().parent.parent:
                 break
 
+        for child in sorted(Path.cwd().iterdir()):
+            if child.is_dir():
+                candidate = child / "project.yaml"
+                if candidate.is_file():
+                    return str(candidate)
+
     return config_path
 
 
@@ -862,6 +868,22 @@ def run(
         raise typer.Exit(code=1)
     except Exception as e:
         _print_error("파이프라인 실패", e, hints=_get_error_hints(e))
+        raise typer.Exit(code=1)
+
+
+@app.command(rich_help_panel="🚀 시작하기")
+def serve(
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
+) -> None:
+    """RAG 웹 채팅 서비스를 시작합니다. http://localhost:8000/chat"""
+    try:
+        pipeline = _load_pipeline(config)
+        _start_rag_server(pipeline.config)
+    except FileNotFoundError as e:
+        _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
+        raise typer.Exit(code=1)
+    except Exception as e:
+        _print_error("서버 시작 실패", e, hints=_get_error_hints(e))
         raise typer.Exit(code=1)
 
 
