@@ -871,9 +871,25 @@ def run(
 def serve(
     config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
 ) -> None:
-    """RAG 웹 채팅 서비스를 시작합니다. http://localhost:8000/chat"""
+    """RAG 웹 채팅 서비스를 시작합니다. 인덱스가 없으면 자동으로 구축합니다."""
     try:
         pipeline = _load_pipeline(config)
+        pipeline.config.paths.ensure_dirs()
+
+        db_path = (
+            Path(pipeline.config.paths.output) / pipeline.config.rag.vector_db_path
+        )
+        if not db_path.is_dir():
+            console.print(
+                "\n[bold blue]slm-factory[/bold blue] — RAG 인덱스 구축 중...\n"
+            )
+            from dataclasses import asdict
+
+            docs = pipeline.step_parse()
+            doc_dicts = [asdict(d) for d in docs]
+            corpus_path, _ = pipeline.step_autorag_export(doc_dicts, [])
+            pipeline.step_rag_index(corpus_path)
+
         _start_rag_server(pipeline.config)
     except FileNotFoundError as e:
         _print_error("설정 파일 오류", e, hints=_get_error_hints(e))
