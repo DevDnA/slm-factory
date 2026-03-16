@@ -234,34 +234,34 @@ uv run slm-factory run [OPTIONS]
 
 ```bash
 # 전체 파이프라인 실행
-uv run slm-factory run --config my-project/project.yaml
+uv run slm-factory run
 
 # 문서 파싱만 실행
-uv run slm-factory run --until parse --config my-project/project.yaml
+uv run slm-factory run --until parse
 
 # QA 생성까지 실행
-uv run slm-factory run --until generate --config my-project/project.yaml
+uv run slm-factory run --until generate
 
 # 검증까지 실행
-uv run slm-factory run --until validate --config my-project/project.yaml
+uv run slm-factory run --until validate
 
 # 품질 평가까지 실행
-uv run slm-factory run --until score --config my-project/project.yaml
+uv run slm-factory run --until score
 
 # 중단된 지점에서 재개
-uv run slm-factory run --resume --config my-project/project.yaml
+uv run slm-factory run --resume
 
 # 특정 단계까지 재개하며 실행
-uv run slm-factory run --until augment --resume --config my-project/project.yaml
+uv run slm-factory run --until augment --resume
 
 # 전체 파이프라인 + RAG 서버 자동 시작
-uv run slm-factory run --serve --config my-project/project.yaml
+uv run slm-factory run --serve
 
 # RAG 인덱싱까지 실행 (서빙은 별도)
-uv run slm-factory run --until rag_index --config my-project/project.yaml
+uv run slm-factory run --until rag_index
 
 # 평가까지만 실행
-uv run slm-factory run --until eval --config my-project/project.yaml
+uv run slm-factory run --until eval
 ```
 
 **출력 예시 (전체 파이프라인)**
@@ -309,16 +309,16 @@ uv run slm-factory train [OPTIONS]
 
 ```bash
 # 전체 전처리 후 학습
-uv run slm-factory train --config my-project/project.yaml
+uv run slm-factory train
 
 # 기존 학습 데이터로 학습만 실행
-uv run slm-factory train --config my-project/project.yaml --data ./my-project/output/training_data.jsonl
+uv run slm-factory train --data ./my-project/output/training_data.jsonl
 
 # 외부에서 준비한 데이터로 학습
-uv run slm-factory train --config my-project/project.yaml --data ./custom_data.jsonl
+uv run slm-factory train --data ./custom_data.jsonl
 
 # 중단된 전처리부터 재개하여 학습
-uv run slm-factory train --resume --config my-project/project.yaml
+uv run slm-factory train --resume
 ```
 
 **출력**
@@ -355,10 +355,10 @@ uv run slm-factory export [OPTIONS]
 
 ```bash
 # 기본 어댑터 경로로 내보내기
-uv run slm-factory export --config my-project/project.yaml
+uv run slm-factory export
 
 # 특정 어댑터 경로 지정
-uv run slm-factory export --config my-project/project.yaml --adapter ./my-project/output/checkpoints/adapter
+uv run slm-factory export --adapter ./my-project/output/checkpoints/adapter
 ```
 
 **출력**
@@ -403,10 +403,10 @@ uv run slm-factory eval run [OPTIONS]
 
 ```bash
 # 기본 설정으로 평가
-uv run slm-factory eval run --model my-project-model --config my-project/project.yaml
+uv run slm-factory eval run --model my-project-model
 
 # 특정 QA 데이터로 평가
-uv run slm-factory eval run --model my-project-model --config my-project/project.yaml --data ./my-project/output/qa_alpaca.json
+uv run slm-factory eval run --model my-project-model --data ./my-project/output/qa_alpaca.json
 ```
 
 **출력**
@@ -451,14 +451,12 @@ uv run slm-factory eval compare [OPTIONS]
 # Base 모델과 파인튜닝 모델 비교
 uv run slm-factory eval compare \
   --base-model gemma:2b \
-  --ft my-project-model \
-  --config my-project/project.yaml
+  --ft my-project-model
 
 # 특정 QA 데이터로 비교
 uv run slm-factory eval compare \
   --base-model gemma:2b \
   --ft my-project-model \
-  --config my-project/project.yaml \
   --data ./my-project/output/qa_alpaca.json
 ```
 
@@ -524,10 +522,10 @@ uv run slm-factory tool wizard [OPTIONS]
 
 ```bash
 # 처음 실행
-uv run slm-factory tool wizard --config my-project/project.yaml
+uv run slm-factory tool wizard
 
 # 이전 실행에서 재개
-uv run slm-factory tool wizard --resume --config my-project/project.yaml
+uv run slm-factory tool wizard --resume
 ```
 
 **참고**
@@ -560,10 +558,10 @@ uv run slm-factory tool review [OPTIONS]
 
 ```bash
 # 자동 감지된 QA 데이터로 리뷰 시작
-uv run slm-factory tool review --config my-project/project.yaml
+uv run slm-factory tool review
 
 # 특정 파일로 리뷰 시작
-uv run slm-factory tool review --config my-project/project.yaml --data ./my-project/output/qa_alpaca.json
+uv run slm-factory tool review --data ./my-project/output/qa_alpaca.json
 ```
 
 **출력**
@@ -597,7 +595,7 @@ uv run slm-factory tool dashboard [OPTIONS]
 **예시**
 
 ```bash
-uv run slm-factory tool dashboard --config my-project/project.yaml
+uv run slm-factory tool dashboard
 ```
 
 대시보드는 각 단계의 출력 파일 존재 여부, 항목 수, 최근 수정 시각을 표시하며 설정된 주기(`dashboard.refresh_interval`)로 자동 갱신합니다.
@@ -633,10 +631,10 @@ uv run slm-factory tool convert [OPTIONS]
 
 ```bash
 # 자동 감지된 QA 데이터로 변환
-uv run slm-factory tool convert --config my-project/project.yaml
+uv run slm-factory tool convert
 
 # 특정 파일로 변환
-uv run slm-factory tool convert --config my-project/project.yaml --data ./my-project/output/qa_augmented.json
+uv run slm-factory tool convert --data ./my-project/output/qa_augmented.json
 ```
 
 **출력**
@@ -681,16 +679,16 @@ uv run slm-factory tool evolve [OPTIONS]
 
 ```bash
 # 기본 진화 (변경 감지 + 품질 게이트 적용)
-uv run slm-factory tool evolve --config my-project/project.yaml
+uv run slm-factory tool evolve
 
 # 모든 문서 재처리 (변경 감지 건너뜀)
-uv run slm-factory tool evolve --config my-project/project.yaml --force-update
+uv run slm-factory tool evolve --force-update
 
 # 품질 게이트 건너뜀 (무조건 배포)
-uv run slm-factory tool evolve --config my-project/project.yaml --skip-gate
+uv run slm-factory tool evolve --skip-gate
 
 # 모든 옵션 적용
-uv run slm-factory tool evolve --config my-project/project.yaml --force-update --skip-gate
+uv run slm-factory tool evolve --force-update --skip-gate
 ```
 
 **출력 예시 (성공)**
@@ -815,10 +813,10 @@ uv run slm-factory tool export-autorag [OPTIONS]
 
 ```bash
 # 기본 실행 (QA 파일 자동 탐색)
-uv run slm-factory tool export-autorag --config my-project/project.yaml
+uv run slm-factory tool export-autorag
 
 # QA 파일 직접 지정
-uv run slm-factory tool export-autorag --config my-project/project.yaml \
+uv run slm-factory tool export-autorag \
   --qa-file ./output/qa_scored.json
 ```
 
@@ -859,10 +857,10 @@ uv run slm-factory tool rag-index [OPTIONS]
 
 ```bash
 # 기본 실행
-uv run slm-factory tool rag-index --config my-project/project.yaml
+uv run slm-factory tool rag-index
 
 # 코퍼스 디렉토리 직접 지정
-uv run slm-factory tool rag-index --config my-project/project.yaml --corpus-dir ./output/autorag
+uv run slm-factory tool rag-index --corpus-dir ./output/autorag
 ```
 
 **출력**
@@ -902,10 +900,10 @@ uv run slm-factory tool rag-serve [OPTIONS]
 
 ```bash
 # 기본 실행
-uv run slm-factory tool rag-serve --config my-project/project.yaml
+uv run slm-factory serve
 
 # 포트 지정
-uv run slm-factory tool rag-serve --config my-project/project.yaml --port 9000
+uv run slm-factory serve --port 9000
 ```
 
 **API 엔드포인트**
@@ -988,7 +986,7 @@ uv run slm-factory tool update [OPTIONS]
 
 ```bash
 # 변경된 문서만 증분 처리
-uv run slm-factory tool update --config my-project/project.yaml
+uv run slm-factory tool update
 ```
 
 **출력**
@@ -1028,7 +1026,7 @@ uv run slm-factory status [OPTIONS]
 **예시**
 
 ```bash
-uv run slm-factory status --config my-project/project.yaml
+uv run slm-factory status
 ```
 
 **출력 예시**
@@ -1087,10 +1085,10 @@ uv run slm-factory clean [OPTIONS]
 
 ```bash
 # 중간 파일만 정리
-uv run slm-factory clean --config my-project/project.yaml
+uv run slm-factory clean
 
 # 모든 출력 파일 정리 (학습 결과 포함)
-uv run slm-factory clean --all --config my-project/project.yaml
+uv run slm-factory clean --all
 ```
 
 **출력**

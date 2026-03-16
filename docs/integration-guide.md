@@ -83,10 +83,10 @@ export-autorag → corpus.parquet → rag-index → ChromaDB → rag-serve → R
 
 ```bash
 # 1. slm-factory 파이프라인 실행 (파싱 + QA 생성)
-uv run slm-factory run --config project.yaml
+uv run slm-factory run
 
 # 2. RAG 인덱싱용 코퍼스 내보내기
-uv run slm-factory tool export-autorag --config project.yaml
+uv run slm-factory tool export-autorag
 
 # 결과물:
 #   output/autorag/corpus.parquet  — 코퍼스 데이터 (검색 대상 문서 청크)
@@ -116,20 +116,20 @@ slm-factory에 내장된 **ChromaDB 인덱싱 + FastAPI 서빙**으로 즉시 RA
 
 ```bash
 # 1. corpus.parquet 생성 (코퍼스 내보내기 완료 후)
-uv run slm-factory tool export-autorag --config project.yaml
+uv run slm-factory tool export-autorag
 
 # 2. ChromaDB에 벡터 임베딩 적재
-uv run slm-factory tool rag-index --config project.yaml
+uv run slm-factory tool rag-index
 
 # 3. RAG API 서버 실행
-uv run slm-factory tool rag-serve --config project.yaml
+uv run slm-factory serve
 # → POST http://localhost:8000/v1/query       질의 엔드포인트
 # → GET  http://localhost:8000/health          기본 헬스체크
 # → GET  http://localhost:8000/health/ready    Ollama+ChromaDB 연결 확인
 # → GET  http://localhost:8000/health/live     라이브니스 체크
 ```
 
-> **팁**: `uv run slm-factory run --serve --config project.yaml` 명령으로 전체 파이프라인 실행 후 RAG 서버까지 한 번에 시작할 수 있습니다. 서버는 foreground로 실행되며, `Ctrl+C`로 종료합니다.
+> **팁**: `uv run slm-factory run --serve` 명령으로 전체 파이프라인 실행 후 RAG 서버까지 한 번에 시작할 수 있습니다. 서버는 foreground로 실행되며, `Ctrl+C`로 종료합니다.
 
 ```bash
 # API 호출 테스트
@@ -145,7 +145,7 @@ curl -N -X POST http://localhost:8000/v1/query \
 
 **동작 방식:**
 - `rag-index`: `corpus.parquet` 문서를 `BAAI/bge-m3`로 임베딩 → ChromaDB에 적재
-- `rag-serve`: 질의 임베딩 → ChromaDB 유사도 검색 → Ollama SLM 생성 → JSON 응답
+- `serve`: 질의 임베딩 → ChromaDB 유사도 검색 → Ollama SLM 생성 → JSON 응답
 - `stream: true` 요청 시 SSE(Server-Sent Events)로 토큰을 실시간 전송 (TTFT < 0.5초)
 
 **질의 → 응답 흐름:**

@@ -310,10 +310,10 @@ export:
 설정 파일 하나로 문서 파싱부터 모델 배포까지 전체 파이프라인을 한 번에 실행합니다.
 
 ```bash
-uv run slm-factory run --config project.yaml
+uv run slm-factory run
 
 # 전체 파이프라인 + RAG 서버 자동 시작
-uv run slm-factory run --serve --config project.yaml
+uv run slm-factory run --serve
 ```
 
 > 서버는 foreground로 실행됩니다. `Ctrl+C`로 종료할 수 있습니다.
@@ -326,25 +326,25 @@ uv run slm-factory run --serve --config project.yaml
 
 ```bash
 # 문서 파싱만 실행
-uv run slm-factory run --until parse --config project.yaml
+uv run slm-factory run --until parse
 
 # 파싱 + QA 생성
-uv run slm-factory run --until generate --config project.yaml
+uv run slm-factory run --until generate
 
 # + QA 검증
-uv run slm-factory run --until validate --config project.yaml
+uv run slm-factory run --until validate
 
 # + 품질 점수 평가
-uv run slm-factory run --until score --config project.yaml
+uv run slm-factory run --until score
 
 # + 데이터 증강
-uv run slm-factory run --until augment --config project.yaml
+uv run slm-factory run --until augment
 
 # + 평가까지
-uv run slm-factory run --until eval --config project.yaml
+uv run slm-factory run --until eval
 
 # + RAG 인덱싱까지 (서빙 제외)
-uv run slm-factory run --until rag_index --config project.yaml
+uv run slm-factory run --until rag_index
 ```
 
 ---
@@ -354,7 +354,7 @@ uv run slm-factory run --until rag_index --config project.yaml
 중간에 중단된 파이프라인은 `--resume` 옵션으로 이어서 실행합니다. 중간 저장 파일을 자동으로 감지하여 가장 최근 완료 단계부터 재개합니다.
 
 ```bash
-uv run slm-factory run --resume --config project.yaml
+uv run slm-factory run --resume
 ```
 
 재개 지점은 다음 순서로 탐색합니다.
@@ -466,6 +466,8 @@ ollama create policy-assistant-ko -f Modelfile
 ollama run policy-assistant-ko
 ```
 
+> 다른 프로젝트 경로(`policy-project/`)는 `--config` 옵션을 유지합니다.
+
 ---
 
 ### 영문 기술 문서 (PDF) → API 문서 전문 모델
@@ -568,6 +570,8 @@ ollama create api-assistant -f Modelfile
 ollama run api-assistant
 ```
 
+> 다른 프로젝트 경로(`tech-docs/`)는 `--config` 옵션을 유지합니다.
+
 ---
 
 ### 기존 QA 데이터로 학습만 실행
@@ -584,7 +588,7 @@ ollama run api-assistant
 **실행**:
 
 ```bash
-uv run slm-factory train --config project.yaml --data ./custom_qa.jsonl
+uv run slm-factory train --data ./custom_qa.jsonl
 ```
 
 ---
@@ -598,10 +602,10 @@ uv run slm-factory train --config project.yaml --data ./custom_qa.jsonl
 cp /path/to/new-documents/*.pdf my-project/documents/
 
 # 변경된 문서만 처리하여 QA 업데이트
-uv run slm-factory tool update --config my-project/project.yaml
+uv run slm-factory tool update
 
 # 업데이트된 데이터로 재학습
-uv run slm-factory train --config my-project/project.yaml
+uv run slm-factory train
 ```
 
 ---
@@ -627,11 +631,11 @@ chunking:
 
 ```bash
 # 청킹 전 QA 생성
-uv run slm-factory run --until generate --config project.yaml
+uv run slm-factory run --until generate
 cp output/qa_alpaca.json output/qa_before_chunking.json
 
 # chunking.enabled: true 변경 후 재생성
-uv run slm-factory run --until generate --config project.yaml
+uv run slm-factory run --until generate
 
 # 비교
 uv run slm-factory tool compare-data -b output/qa_before_chunking.json -t output/qa_alpaca.json
@@ -728,7 +732,7 @@ TUI에서 각 QA 카드를 확인하며 다음 작업을 수행합니다.
 > **한국어 프로젝트 참고**: `project.language`가 `"ko"`이고 `kiwipiepy`가 설치되어 있으면, 형태소 단위로 BLEU/ROUGE를 계산합니다. 한국어의 교착어 특성을 반영하여 더 정확한 점수를 얻을 수 있습니다. `uv sync --extra korean`으로 설치하세요.
 
 ```bash
-uv run slm-factory eval run --model my-project-model --config project.yaml
+uv run slm-factory eval run --model my-project-model
 ```
 
 결과는 `output/eval_results.json`에 저장됩니다.
@@ -744,8 +748,7 @@ uv run slm-factory eval run --model my-project-model --config project.yaml
 ```bash
 uv run slm-factory eval compare \
   --base-model gemma:2b \
-  --ft my-project-model \
-  --config project.yaml
+  --ft my-project-model
 ```
 
 결과는 `output/compare_results.json`에 저장됩니다. 각 질문에 대한 Base 모델과 Fine-tuned 모델의 답변을 나란히 확인할 수 있습니다.
@@ -818,7 +821,7 @@ Teacher는 **학습 데이터 생성용**, Student는 **서비스 배포용**입
 
 ```bash
 # 1단계: 문서 수집 → RAG + Teacher로 즉시 서비스
-uv run slm-factory run --config project.yaml
+uv run slm-factory run
 # project.yaml에서 rag.ollama_model: "qwen3.5:9b"
 
 # 2단계: 문서 20건+ 확보 → Student 파인튜닝 → 경량 모델로 교체

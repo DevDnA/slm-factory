@@ -35,10 +35,10 @@ uv run slm-factory init my-project
 cp /path/to/documents/*.pdf my-project/documents/
 
 # 3. 환경 점검 (선택 권장)
-uv run slm-factory check --config my-project/project.yaml
+uv run slm-factory check
 
 # 4. 대화형 파이프라인 실행
-uv run slm-factory tool wizard --config my-project/project.yaml
+uv run slm-factory tool wizard
 ```
 
 ---
@@ -60,38 +60,38 @@ uv run slm-factory tool wizard --config my-project/project.yaml
 
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|-----------|
-| `slm-factory run` | 전체 파이프라인 실행 | `--config`, `--until <단계>`, `--from <단계>`, `--resume` / `-r`, `--serve` / `-s` |
-| `slm-factory train` | LoRA 학습 실행 | `--config`, `--data <jsonl>`, `--resume` / `-r` |
-| `slm-factory export` | 모델 내보내기 (LoRA 병합 + Modelfile) | `--config`, `--adapter <경로>` |
+| `slm-factory run` | 전체 파이프라인 실행 | `--until <단계>`, `--from <단계>`, `--resume` / `-r`, `--serve` / `-s` |
+| `slm-factory train` | LoRA 학습 실행 | `--data <jsonl>`, `--resume` / `-r` |
+| `slm-factory export` | 모델 내보내기 (LoRA 병합 + Modelfile) | `--adapter <경로>` |
 
 ### 📊 평가
 
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|-----------|
-| `slm-factory eval run` | BLEU/ROUGE 평가 | `--model <이름>`, `--config`, `--data` |
-| `slm-factory eval compare` | Base vs Fine-tuned 비교 | `--base-model <이름>`, `--ft <이름>`, `--config`, `--data` |
+| `slm-factory eval run` | BLEU/ROUGE 평가 | `--model <이름>`, `--data` |
+| `slm-factory eval compare` | Base vs Fine-tuned 비교 | `--base-model <이름>`, `--ft <이름>`, `--data` |
 
 ### 🔧 도구
 
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|-----------|
-| `slm-factory tool wizard` | 대화형 파이프라인 (권장) | `--config`, `--resume` / `-r` |
-| `slm-factory tool review` | QA 수동 리뷰 TUI | `--config`, `--data` |
-| `slm-factory tool dashboard` | 파이프라인 대시보드 TUI | `--config` |
-| `slm-factory tool evolve` | 자동 진화 (증분→학습→품질게이트→배포) | `--config`, `--force-update`, `--skip-gate` |
-| `slm-factory tool convert` | QA → JSONL 변환 | `--config`, `--data` |
-| `slm-factory tool update` | 증분 업데이트 (변경 문서만) | `--config` |
+| `slm-factory tool wizard` | 대화형 파이프라인 (권장) | `--resume` / `-r` |
+| `slm-factory tool review` | QA 수동 리뷰 TUI | `--data` |
+| `slm-factory tool dashboard` | 파이프라인 대시보드 TUI | |
+| `slm-factory tool evolve` | 자동 진화 (증분→학습→품질게이트→배포) | `--force-update`, `--skip-gate` |
+| `slm-factory tool convert` | QA → JSONL 변환 | `--data` |
+| `slm-factory tool update` | 증분 업데이트 (변경 문서만) | |
 | `slm-factory tool compare-data` | 두 QA 데이터셋 품질 비교 | `--baseline` / `-b`, `--target` / `-t` |
-| `slm-factory tool export-autorag` | RAG 인덱싱용 데이터 내보내기 | `--config`, `--qa-file` |
-| `slm-factory tool rag-index` | ChromaDB에 임베딩 적재 | `--config`, `--corpus-dir` |
-| `slm-factory tool rag-serve` | RAG API 서버 시작 | `--config`, `--host`, `--port` |
+| `slm-factory tool export-autorag` | RAG 인덱싱용 데이터 내보내기 | `--qa-file` |
+| `slm-factory tool rag-index` | ChromaDB에 임베딩 적재 | `--corpus-dir` |
+| `slm-factory serve` | RAG API 서버 시작 | `--host`, `--port` |
 
 ### ℹ️ 정보
 
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|-----------|
-| `slm-factory status` | 파이프라인 진행 상태 확인 | `--config` |
-| `slm-factory clean` | 중간 파일 정리 | `--config`, `--all`, `--yes` / `-y` |
+| `slm-factory status` | 파이프라인 진행 상태 확인 | |
+| `slm-factory clean` | 중간 파일 정리 | `--all`, `--yes` / `-y` |
 | `slm-factory version` | 버전 정보 출력 | |
 
 > 각 명령어의 전체 옵션은 [CLI 레퍼런스](cli-reference.md)를 참조하십시오.
@@ -127,7 +127,7 @@ uv run slm-factory tool wizard --config my-project/project.yaml
 처음 사용자에게 권장합니다. 각 단계를 확인하며 대화형으로 진행합니다.
 
 ```bash
-uv run slm-factory tool wizard --config my-project/project.yaml
+uv run slm-factory tool wizard
 ```
 
 ### 2. 수동 전체 실행 (run)
@@ -135,7 +135,7 @@ uv run slm-factory tool wizard --config my-project/project.yaml
 설정을 직접 제어하고 싶을 때 사용합니다.
 
 ```bash
-uv run slm-factory run --config my-project/project.yaml
+uv run slm-factory run
 ```
 
 ### 3. 단계별 실행 (run --until)
@@ -143,16 +143,16 @@ uv run slm-factory run --config my-project/project.yaml
 특정 단계까지만 실행하고 결과를 확인한 후 다음 단계로 진행합니다.
 
 ```bash
-uv run slm-factory run --until parse     --config my-project/project.yaml
-uv run slm-factory run --until generate  --config my-project/project.yaml
-uv run slm-factory run --until validate  --config my-project/project.yaml
-uv run slm-factory run --until score     --config my-project/project.yaml
-uv run slm-factory run --until augment   --config my-project/project.yaml
-uv run slm-factory run --until convert   --config my-project/project.yaml
-uv run slm-factory run --until train     --config my-project/project.yaml
-uv run slm-factory run --until export    --config my-project/project.yaml
-uv run slm-factory run --until eval      --config my-project/project.yaml
-uv run slm-factory run --until rag_index --config my-project/project.yaml
+uv run slm-factory run --until parse
+uv run slm-factory run --until generate
+uv run slm-factory run --until validate
+uv run slm-factory run --until score
+uv run slm-factory run --until augment
+uv run slm-factory run --until convert
+uv run slm-factory run --until train
+uv run slm-factory run --until export
+uv run slm-factory run --until eval
+uv run slm-factory run --until rag_index
 ```
 
 ### 4. 기존 데이터로 학습만 (train --data)
@@ -160,7 +160,7 @@ uv run slm-factory run --until rag_index --config my-project/project.yaml
 이미 준비된 `training_data.jsonl`이 있거나 하이퍼파라미터를 반복 실험할 때 사용합니다.
 
 ```bash
-uv run slm-factory train --config my-project/project.yaml --data ./output/training_data.jsonl
+uv run slm-factory train --data ./output/training_data.jsonl
 ```
 
 ### 5. 중단 후 재개 (--resume)
@@ -168,9 +168,9 @@ uv run slm-factory train --config my-project/project.yaml --data ./output/traini
 파이프라인이 중간에 중단된 경우, 중간 저장 파일에서 자동으로 재개합니다.
 
 ```bash
-uv run slm-factory run   --config my-project/project.yaml --resume
-uv run slm-factory train --config my-project/project.yaml --resume
-uv run slm-factory tool wizard --config my-project/project.yaml --resume
+uv run slm-factory run --resume
+uv run slm-factory train --resume
+uv run slm-factory tool wizard --resume
 ```
 
 ### 6. 평가 및 비교 (eval run / eval compare)
@@ -179,13 +179,12 @@ uv run slm-factory tool wizard --config my-project/project.yaml --resume
 
 ```bash
 # BLEU/ROUGE 평가
-uv run slm-factory eval run --model my-project-model --config my-project/project.yaml
+uv run slm-factory eval run --model my-project-model
 
 # Base vs Fine-tuned 비교
 uv run slm-factory eval compare \
   --base-model gemma:2b \
-  --ft my-project-model \
-  --config my-project/project.yaml
+  --ft my-project-model
 ```
 
 ### 7. 전체 파이프라인 + RAG 서버 (run --serve)
@@ -193,7 +192,7 @@ uv run slm-factory eval compare \
 SLM 학습부터 RAG 인덱싱, API 서버 시작까지 한 번에 실행합니다.
 
 ```bash
-uv run slm-factory run --serve --config my-project/project.yaml
+uv run slm-factory run --serve
 ```
 
 > 서버는 foreground로 실행됩니다. `Ctrl+C`로 종료할 수 있습니다.
