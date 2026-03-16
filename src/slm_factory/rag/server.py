@@ -183,6 +183,16 @@ def create_app(config: "SLMConfig"):
             except Exception:
                 logger.warning("BM25 인덱스 구축 실패 — 비활성 상태로 계속합니다")
 
+        port = config.rag.server_port
+        logger.info(
+            "\n\n"
+            "  ╔══════════════════════════════════════════╗\n"
+            "  ║  RAG 채팅 서비스 준비 완료!              ║\n"
+            "  ║  http://localhost:%d/chat              ║\n"
+            "  ╚══════════════════════════════════════════╝\n",
+            port,
+        )
+
         yield
 
         await http_client.aclose()
