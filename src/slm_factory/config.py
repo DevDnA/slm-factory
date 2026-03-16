@@ -453,10 +453,10 @@ class RagConfig(BaseModel):
     reranker_model: str = "BAAI/bge-reranker-v2-m3"
     """Reranker 모델명 (sentence-transformers CrossEncoder 호환)."""
 
-    hybrid_search: bool = True
+    hybrid_search: bool = False
     """벡터 검색과 키워드 검색(BM25)을 결합하여 검색 재현율을 높입니다."""
 
-    query_rewriting: bool = True
+    query_rewriting: bool = False
     """짧은 질의를 LLM으로 확장하여 검색 품질을 향상합니다."""
 
     @model_validator(mode="after")
