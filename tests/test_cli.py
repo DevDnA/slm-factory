@@ -77,7 +77,7 @@ class TestRunCommand:
 
     def test_존재하지_않는_config_exit_code_1(self):
         """존재하지 않는 설정 파일을 지정하면 exit code 1로 종료하는지 확인합니다."""
-        result = runner.invoke(app, ["run", "--config", "/nonexistent/path.yaml"])
+        result = runner.invoke(app, ["tune", "--config", "/nonexistent/path.yaml"])
 
         assert result.exit_code == 1
 
@@ -99,7 +99,7 @@ class TestParseCommand:
         mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
 
         result = runner.invoke(
-            app, ["run", "--until", "parse", "--config", "test.yaml"]
+            app, ["tune", "--until", "parse", "--config", "test.yaml"]
         )
 
         assert result.exit_code == 0
@@ -140,7 +140,7 @@ class TestGenerateCommand:
         mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
 
         result = runner.invoke(
-            app, ["run", "--until", "generate", "--config", "test.yaml"]
+            app, ["tune", "--until", "generate", "--config", "test.yaml"]
         )
 
         assert result.exit_code == 0
@@ -269,7 +269,7 @@ class TestScoreCommand:
         mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
 
         result = runner.invoke(
-            app, ["run", "--until", "score", "--config", "test.yaml"]
+            app, ["tune", "--until", "score", "--config", "test.yaml"]
         )
         assert result.exit_code == 0
         mock_pipeline.step_score.assert_called_once()
@@ -294,7 +294,7 @@ class TestAugmentCommand:
         mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
 
         result = runner.invoke(
-            app, ["run", "--until", "augment", "--config", "test.yaml"]
+            app, ["tune", "--until", "augment", "--config", "test.yaml"]
         )
         assert result.exit_code == 0
         mock_pipeline.step_augment.assert_called_once()
@@ -320,7 +320,7 @@ class TestAnalyzeCommand:
         mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
 
         result = runner.invoke(
-            app, ["run", "--until", "analyze", "--config", "test.yaml"]
+            app, ["tune", "--until", "analyze", "--config", "test.yaml"]
         )
         assert result.exit_code == 0
         mock_pipeline.step_analyze.assert_called_once()
