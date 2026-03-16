@@ -191,7 +191,7 @@ autorag_export:
 # 파이프라인 기본 실행 시 인덱싱까지 자동 수행됩니다.
 # 서버 실행: slf tool rag-serve --config project.yaml
 rag:
-  embedding_model: "Qwen/Qwen3-Embedding-8B"  # 임베딩 모델 (sentence-transformers 호환)
+  embedding_model: "Qwen/Qwen3-Embedding-0.6B"  # 임베딩 모델 (sentence-transformers 호환)
   vector_db_path: "qdrant_db"           # Qdrant 저장 경로 (output/ 하위)
   collection_name: "corpus"             # Qdrant 컬렉션 이름
   top_k: 5                              # 검색 시 반환할 최대 청크 수

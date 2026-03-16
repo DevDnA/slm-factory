@@ -408,7 +408,7 @@ class RagConfig(BaseModel):
     Ollama SLM과 연동하는 RAG API 서버를 실행합니다.
     """
 
-    embedding_model: str = "Qwen/Qwen3-Embedding-8B"
+    embedding_model: str = "Qwen/Qwen3-Embedding-0.6B"
     """임베딩 모델 이름 (sentence-transformers 호환)."""
 
     vector_db_path: str = "qdrant_db"
