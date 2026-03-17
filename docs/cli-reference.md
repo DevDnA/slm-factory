@@ -46,7 +46,7 @@ slf [전역 옵션] <명령어> [옵션]
 | `tool export-autorag` | 🔧 도구 | RAG 인덱싱용 데이터 내보내기 |
 | `tool rag-index` | 🔧 도구 | corpus.parquet을 Qdrant에 임베딩 적재 |
 | `tool rag-serve` | 🔧 도구 | RAG API 서버 시작 (Qdrant 검색 + Ollama 생성) |
-| `tool eval-retrieval` | 🔧 도구 | RAG 검색 품질 평가 (Hit Rate, MRR, nDCG) |
+| `tool eval-retrieval` | 🔧 도구 | RAG 검색 품질 평가 (Hit Rate, MRR, Recall@K) |
 | `status` | ℹ️ 정보 | 각 파이프라인 단계의 진행 상태를 표시합니다 |
 | `clean` | ℹ️ 정보 | 중간 생성 파일을 정리합니다 |
 | `version` | ℹ️ 정보 | slm-factory 버전을 출력합니다 |
@@ -98,14 +98,12 @@ slf init policy-assistant --path /workspace/projects
   ./my-project/output/
   ./my-project/project.yaml
 
-사전 준비:
+다음 단계:
   1. ./my-project/documents 디렉토리에 학습할 문서(PDF, TXT 등)를 추가하세요
-  2. Ollama를 실행하세요: ollama serve  ← ./setup.sh가 자동 처리
-  3. Teacher 모델을 다운로드하세요: ollama pull <teacher-model>  ← ./setup.sh가 자동 처리
 
-실행:
-  4. 전체 파이프라인: slf tune
-  5. 웹 채팅 서비스: slf rag
+실행 (택 1):
+  slf rag               RAG 채팅 즉시 시작 (30초)
+  slf tune              파인튜닝 + RAG + 채팅 (30분)
 ```
 
 **참고**
@@ -141,6 +139,10 @@ slf check [OPTIONS]
 | 출력 디렉토리 | `paths.output` 디렉토리 쓰기 권한 확인 |
 | Ollama 연결 | `teacher.backend == "ollama"`일 때 서버 연결 상태 확인 |
 | 모델 사용 가능 | `teacher.model`이 Ollama에 다운로드되어 있는지 확인 |
+| 학생 모델 | `student.model`이 HuggingFace Hub에서 접근 가능한지 확인 (게이트 모델인 경우 로그인 필요 안내) |
+| 컴퓨팅 디바이스 | GPU(CUDA/MPS) 또는 CPU 감지. GPU 미사용 시 경고 |
+| 학습 정밀도 | bfloat16/float16/float32 지원 여부 확인 |
+| 4bit 양자화 | CUDA 환경에서 `bitsandbytes` 설치 여부 확인 (MPS는 N/A) |
 
 **종료 코드**
 
@@ -159,15 +161,19 @@ slf check --config my-project/project.yaml
 
 ```
                 slm-factory 환경 점검
-┌──────────────┬────────┬──────────────────────────────┐
-│ 항목         │ 상태   │ 상세                         │
-├──────────────┼────────┼──────────────────────────────┤
-│ 설정 파일    │ OK     │ ./my-project/project.yaml    │
-│ 문서 디렉토리│ OK     │ 3개 파일 (./documents)       │
-│ 출력 디렉토리│ OK     │ 쓰기 가능 (./output)         │
-│ Ollama 연결  │ OK     │ v0.3.12 (http://localhost:11434) │
-│ 모델 사용 가능│ OK    │ qwen3.5:9b                     │
-└──────────────┴────────┴──────────────────────────────┘
+┌────────────────┬────────┬────────────────────────────────┐
+│ 항목           │ 상태   │ 상세                           │
+├────────────────┼────────┼────────────────────────────────┤
+│ 설정 파일      │ OK     │ ./my-project/project.yaml      │
+│ 문서 디렉토리  │ OK     │ 3개 파일 (./documents)         │
+│ 출력 디렉토리  │ OK     │ 쓰기 가능 (./output)           │
+│ Ollama 연결    │ OK     │ v0.3.12 (http://localhost:11434)│
+│ 모델 사용 가능 │ OK     │ qwen3.5:9b                     │
+│ 학생 모델      │ OK     │ google/gemma-3-1b-it           │
+│ 컴퓨팅 디바이스│ NVIDIA GPU (CUDA) │ NVIDIA RTX 4090       │
+│ 학습 정밀도    │ OK     │ bfloat16 (bf16)                │
+│ 4bit 양자화    │ OK     │ 사용 가능                      │
+└────────────────┴────────┴────────────────────────────────┘
 
 모든 점검 통과!
 ```
@@ -189,17 +195,22 @@ slf rag [OPTIONS]
 | 플래그 | 단축키 | 타입 | 기본값 | 설명 |
 |--------|--------|------|--------|------|
 | `--config` | | `TEXT` | `project.yaml` | 프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다. |
+| `--chat/--no-chat` | | `BOOL` | `True` | RAG 인덱스 구축 후 웹 채팅 서비스를 자동으로 시작합니다. `--no-chat`으로 인덱스 구축만 수행합니다. |
 
 **동작 방식**
 
 - Qdrant 인덱스(`output/qdrant_db/`)가 이미 존재하면 즉시 서버를 시작합니다.
 - 인덱스가 없으면 문서 파싱 → RAG 데이터 내보내기 → Qdrant 인덱싱을 자동으로 수행한 후 서버를 시작합니다.
+- `--no-chat` 사용 시 인덱스 구축만 수행하고 서버를 시작하지 않습니다.
 
 **예시**
 
 ```bash
 # 기본 실행 (인덱스 자동 구축 + 서버 시작)
 slf rag
+
+# 인덱스 구축만 수행 (서버 미시작)
+slf rag --no-chat
 
 # 특정 설정 파일 사용
 slf rag --config my-project/project.yaml
@@ -247,11 +258,10 @@ slf tune [OPTIONS]
 | `train` | 필수 | LoRA 파인튜닝 | `output/checkpoints/adapter/` |
 | `export` | 필수 | 모델 병합 + Ollama Modelfile 생성 | `output/merged_model/` |
 | `eval` | 기본 활성 | BLEU/ROUGE 평가 | `output/eval_results.json` |
-| `refine` | 기본 비활성 | Iterative Refinement (약점 QA 재생성 + 재학습) | - |
 | `autorag_export` | 기본 활성 | RAG 인덱싱 데이터 내보내기 | `output/autorag/` |
 | `rag_index` | 기본 활성 | Qdrant 벡터 인덱싱 | `output/qdrant_db/` |
 
-`--until`을 생략하면 위 전체 13단계를 순서대로 실행합니다. 각 단계는 해당 설정의 `enabled` 값에 따라 실행 여부가 결정됩니다.
+`--until`을 생략하면 위 전체 12단계를 순서대로 실행합니다. 각 단계는 해당 설정의 `enabled` 값에 따라 실행 여부가 결정됩니다. Iterative Refinement(`refine`)는 `--until`로 지정할 수 없으며, `pipeline.run()` 내부에서 `eval` 단계 이후 `refinement.enabled` 설정에 따라 자동 실행됩니다.
 
 **`--resume` 동작 방식**
 
@@ -856,10 +866,12 @@ slf tool rag-serve --port 9000
 
 | 메서드 | 경로 | 설명 |
 |--------|------|------|
-| `POST` | `/v1/query` | 질의 → 문서 검색 → SLM 답변 생성 |
-| `GET` | `/health` | 기본 헬스체크 (서버 상태) |
-| `GET` | `/health/ready` | Qdrant 및 Ollama 연결 상태 확인 |
-| `GET` | `/health/live` | 라이브니스 체크 |
+| `POST` | `/v1/query` | 질의 → 문서 검색 → SLM 답변 생성 (`stream: true`로 SSE 스트리밍 가능) |
+| `POST` | `/v1/stream` | 웹 채팅 UI 전용 SSE 스트리밍 엔드포인트 |
+| `GET` | `/chat` | 내장 웹 채팅 UI (HTML 페이지) |
+| `GET` | `/health` | `/health/ready`의 별칭 — Qdrant 및 Ollama 연결 상태 확인 |
+| `GET` | `/health/ready` | Qdrant 및 Ollama 연결 상태 확인 (로드밸런서 헬스체크용) |
+| `GET` | `/health/live` | 라이브니스 체크 — 서버 실행 중이면 항상 200 응답 |
 
 **API 호출 예시**
 
@@ -902,6 +914,44 @@ data: {"sources": [...], "query": "도메인 질문", "done": true}
 - Ollama가 실행 중이어야 합니다 (`ollama serve`).
 - SLM 모델은 `rag.ollama_model` 또는 `export.ollama.model_name`에서 결정됩니다.
 - `uv sync --extra rag --extra validation`으로 의존성을 설치하세요.
+
+---
+
+### `tool eval-retrieval`
+
+RAG 검색 품질을 평가합니다. `qa.parquet`의 질문으로 Qdrant를 검색하고, 검색된 결과가 원본 문서를 얼마나 정확하게 찾아내는지 Hit@1, Hit@K, MRR(Mean Reciprocal Rank), Recall@K 메트릭으로 측정합니다.
+
+**사용법**
+
+```
+slf tool eval-retrieval [OPTIONS]
+```
+
+**옵션**
+
+| 플래그 | 타입 | 기본값 | 설명 |
+|--------|------|--------|------|
+| `--config` | `TEXT` | `project.yaml` | 프로젝트 설정 파일 경로입니다. 현재 디렉토리부터 상위까지 자동 탐색합니다. |
+| `--top-k` | `INT` | `5` | 검색 결과 상위 K개를 평가 기준으로 사용합니다. |
+| `--qa-file` | `TEXT` | (자동 감지) | `qa.parquet` 파일 경로입니다. 미지정 시 `output/autorag/qa.parquet`을 자동으로 사용합니다. |
+
+**예시**
+
+```bash
+# 기본 실행 (qa.parquet 자동 감지)
+slf tool eval-retrieval
+
+# 상위 10개 결과로 평가
+slf tool eval-retrieval --top-k 10
+
+# QA 파일 직접 지정
+slf tool eval-retrieval --qa-file ./output/autorag/qa.parquet
+```
+
+**참고**
+
+- 사전 조건: `tool export-autorag`로 `qa.parquet`을 생성하고, `tool rag-index`로 Qdrant를 구축해야 합니다.
+- `slf rag` 실행 시 `qa.parquet`이 존재하면 자동으로 검색 평가를 수행하고 결과를 출력합니다.
 
 ---
 

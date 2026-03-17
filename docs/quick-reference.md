@@ -61,7 +61,7 @@ slf tune
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|-----------|
 | `slf tune` | 전체 파이프라인 실행 | `--until <단계>`, `--from <단계>`, `--resume` / `-r`, `--chat` |
-| `slf rag` | RAG 웹 채팅 서비스 (인덱스 자동 구축) | |
+| `slf rag` | RAG 웹 채팅 서비스 (인덱스 자동 구축) | `--chat/--no-chat` |
 | `slf train` | LoRA 학습 실행 | `--data <jsonl>`, `--resume` / `-r` |
 | `slf export` | 모델 내보내기 (LoRA 병합 + Modelfile) | `--adapter <경로>` |
 
@@ -84,7 +84,7 @@ slf tune
 | `slf tool export-autorag` | RAG 인덱싱용 데이터 내보내기 | `--qa-file` |
 | `slf tool rag-index` | Qdrant에 임베딩 적재 | `--corpus-dir` |
 | `slf tool rag-serve` | RAG API 서버 시작 | `--host`, `--port` |
-| `slf tool eval-retrieval` | RAG 검색 품질 평가 | `--config` |
+| `slf tool eval-retrieval` | RAG 검색 품질 평가 | `--top-k`, `--qa-file` |
 
 ### ℹ️ 정보
 
@@ -131,7 +131,7 @@ slf tune
 slf tune
 ```
 
-### 3. 단계별 실행 (tune --until)
+### 2. 단계별 실행 (tune --until)
 
 특정 단계까지만 실행하고 결과를 확인한 후 다음 단계로 진행합니다.
 
@@ -148,7 +148,7 @@ slf tune --until eval
 slf tune --until rag_index
 ```
 
-### 4. 기존 데이터로 학습만 (train --data)
+### 3. 기존 데이터로 학습만 (train --data)
 
 이미 준비된 `training_data.jsonl`이 있거나 하이퍼파라미터를 반복 실험할 때 사용합니다.
 
@@ -156,7 +156,7 @@ slf tune --until rag_index
 slf train --data ./output/training_data.jsonl
 ```
 
-### 5. 중단 후 재개 (--resume)
+### 4. 중단 후 재개 (--resume)
 
 파이프라인이 중간에 중단된 경우, 중간 저장 파일에서 자동으로 재개합니다.
 
@@ -165,7 +165,7 @@ slf tune --resume
 slf train --resume
 ```
 
-### 6. 평가 및 비교 (eval run / eval compare)
+### 5. 평가 및 비교 (eval run / eval compare)
 
 학습 완료 후 모델 성능을 측정하고 Base 모델과 비교합니다.
 
@@ -179,7 +179,7 @@ slf eval compare \
   --ft my-project-model
 ```
 
-### 7. 전체 파이프라인 + RAG 채팅 (tune --chat)
+### 6. 전체 파이프라인 + RAG 채팅 (tune --chat)
 
 SLM 학습부터 RAG 인덱싱, API 서버 시작까지 한 번에 실행합니다.
 
@@ -269,7 +269,7 @@ chunking:
 | `model not found` (Ollama) | Teacher 모델 미다운로드 | `ollama pull <teacher-model>` (기본값: `qwen3.5:9b`) |
 | `externally-managed-environment` (pip) | 환경 미설정 | `./setup.sh` 실행 후 재시도 |
 
-> 상세 해결 방법은 [사용 가이드](guide.md#7-트러블슈팅)를 참조하십시오.
+> 상세 해결 방법은 [사용 가이드](guide.md#8-트러블슈팅)를 참조하십시오.
 
 ---
 

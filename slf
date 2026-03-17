@@ -4,8 +4,8 @@
 #
 # 사용법:
 #   slf init my-project
-#   slf run
-#   slf serve
+#   slf tune
+#   slf rag
 #
 # 내부적으로 uv run slm-factory를 호출합니다.
 
