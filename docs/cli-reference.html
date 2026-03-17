@@ -469,7 +469,7 @@ slf init policy-assistant --path /workspace/projects</code></pre>
 모든 점검 통과!</code></pre>
 <hr>
 <h3 id="rag"><code>rag</code></h3>
-<p>RAG 웹 채팅 서비스를 시작합니다. Qdrant 인덱스가 없으면 문서를 파싱하고 자동으로 구축합니다.</p>
+<p>RAG 웹 채팅 서비스를 시작합니다. Qdrant 인덱스가 없으면 문서를 파싱하고 자동으로 구축합니다. 파인튜닝된 Student 모델이 Ollama에 등록되어 있으면 자동으로 해당 모델을 사용하고, 없으면 Teacher 모델(기본값: <code>qwen3.5:9b</code>)로 폴백합니다.</p>
 <p><strong>사용법</strong></p>
 <pre><code>slf rag [OPTIONS]</code></pre>
 <p><strong>옵션</strong></p>
@@ -504,6 +504,7 @@ slf init policy-assistant --path /workspace/projects</code></pre>
 </div>
 <p><strong>동작 방식</strong></p>
 <ul>
+<li><strong>모델 자동 선택</strong>: ① <code>rag.ollama_model</code> 설정값 &rarr; ② Ollama에 등록된 파인튜닝 모델(<code>export.ollama.model_name</code>) &rarr; ③ Teacher 모델(<code>teacher.model</code>) 순으로 사용합니다.</li>
 <li>Qdrant 인덱스(<code>output/qdrant_db/</code>)가 이미 존재하면 즉시 서버를 시작합니다.</li>
 <li>인덱스가 없으면 문서 파싱 &rarr; RAG 데이터 내보내기 &rarr; Qdrant 인덱싱을 자동으로 수행한 후 서버를 시작합니다.</li>
 <li><code>--no-chat</code> 사용 시 인덱스 구축만 수행하고 서버를 시작하지 않습니다.</li>

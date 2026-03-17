@@ -182,7 +182,7 @@ slf check --config my-project/project.yaml
 
 ### `rag`
 
-RAG 웹 채팅 서비스를 시작합니다. Qdrant 인덱스가 없으면 문서를 파싱하고 자동으로 구축합니다.
+RAG 웹 채팅 서비스를 시작합니다. Qdrant 인덱스가 없으면 문서를 파싱하고 자동으로 구축합니다. 파인튜닝된 Student 모델이 Ollama에 등록되어 있으면 자동으로 해당 모델을 사용하고, 없으면 Teacher 모델(기본값: `qwen3.5:9b`)로 폴백합니다.
 
 **사용법**
 
@@ -199,6 +199,7 @@ slf rag [OPTIONS]
 
 **동작 방식**
 
+- **모델 자동 선택**: ① `rag.ollama_model` 설정값 → ② Ollama에 등록된 파인튜닝 모델(`export.ollama.model_name`) → ③ Teacher 모델(`teacher.model`) 순으로 사용합니다.
 - Qdrant 인덱스(`output/qdrant_db/`)가 이미 존재하면 즉시 서버를 시작합니다.
 - 인덱스가 없으면 문서 파싱 → RAG 데이터 내보내기 → Qdrant 인덱싱을 자동으로 수행한 후 서버를 시작합니다.
 - `--no-chat` 사용 시 인덱스 구축만 수행하고 서버를 시작하지 않습니다.

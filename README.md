@@ -38,20 +38,21 @@ slf rag
 
 > `setup.sh`가 Python 환경, 의존성, Ollama 모델을 한 번에 준비합니다. PDF, HWP, HWPX, DOCX, HTML, TXT, MD 7개 포맷을 자동 감지합니다.
 
-## 두 가지 모드
+## 세 가지 패턴
 
-| | `slf rag` | `slf tune` |
-|---|---|---|
-| **용도** | 문서 기반 RAG 채팅 | 파인튜닝 + RAG 채팅 |
-| **문서 수** | 제한 없음 | 20건 이상 권장 |
-| **소요 시간** | 첫 실행 2~5분, 이후 30초 | 30분~1시간 |
-| **모델** | Teacher(9B)가 직접 답변 | Student(1B)가 답변 — 9배 빠르고 1/9 비용 |
+| 패턴 | 명령어 | LLM | 적합한 경우 |
+|------|--------|-----|-------------|
+| **RAG + 베이스 모델** | `slf rag` | Teacher(9B) — 파인튜닝 없이 즉시 | 문서 20건 미만, 빠른 검증 |
+| **RAG + 파인튜닝 SLM** | `slf tune` | Student(1B) — 9배 빠르고 1/9 비용 | 문서 20건+, 프로덕션 |
+| **파인튜닝 SLM 단독** | `slf tune --no-chat` | Student(1B) — RAG 없이 모델만 | 오프라인, 변하지 않는 지식 |
 
 ```bash
-slf rag                # RAG 채팅 즉시 시작
-slf tune               # 파인튜닝 + RAG + 채팅
-slf tune --no-chat     # 파인튜닝만 (서버 미시작)
+slf rag                # RAG + Teacher 즉시 시작 (30초)
+slf tune               # 파인튜닝 + RAG + 채팅 (30분)
+slf tune --no-chat     # 파인튜닝만 (Ollama에 모델 등록)
 ```
+
+> `slf rag`는 파인튜닝된 Student 모델이 Ollama에 있으면 자동으로 사용합니다. 패턴 1에서 시작하고, 문서가 쌓이면 패턴 2로 자연스럽게 전환됩니다.
 
 ### RAG 서비스 — `slf rag`
 

@@ -37,8 +37,9 @@ cp /path/to/documents/*.pdf my-project/documents/
 # 3. 환경 점검 (선택 권장)
 slf check
 
-# 4. 파이프라인 실행
-slf tune
+# 4. 실행 (택 1)
+slf rag                # RAG + Teacher(9B) 즉시 시작 — 문서 적을 때
+slf tune               # 파인튜닝 + RAG + Student(1B) — 문서 20건+
 ```
 
 ---
@@ -60,8 +61,8 @@ slf tune
 
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|-----------|
-| `slf tune` | 전체 파이프라인 실행 | `--until <단계>`, `--from <단계>`, `--resume` / `-r`, `--chat` |
-| `slf rag` | RAG 웹 채팅 서비스 (인덱스 자동 구축) | `--chat/--no-chat` |
+| `slf tune` | 파인튜닝 + RAG (Student 모델 학습 후 RAG 서비스) | `--until <단계>`, `--from <단계>`, `--resume` / `-r`, `--chat` |
+| `slf rag` | RAG 웹 채팅 (Student 자동 감지, 없으면 Teacher 폴백) | `--chat/--no-chat` |
 | `slf train` | LoRA 학습 실행 | `--data <jsonl>`, `--resume` / `-r` |
 | `slf export` | 모델 내보내기 (LoRA 병합 + Modelfile) | `--adapter <경로>` |
 

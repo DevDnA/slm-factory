@@ -122,8 +122,9 @@ cp /path/to/documents/*.pdf my-project/documents/
 # 3. 환경 점검 (선택 권장)
 slf check
 
-# 4. 파이프라인 실행
-slf tune</code></pre>
+# 4. 실행 (택 1)
+slf rag                # RAG + Teacher(9B) 즉시 시작 — 문서 적을 때
+slf tune               # 파인튜닝 + RAG + Student(1B) — 문서 20건+</code></pre>
 <hr>
 </section>
 
@@ -168,12 +169,12 @@ slf tune</code></pre>
 <tbody>
 <tr>
 <td><code>slf tune</code></td>
-<td>전체 파이프라인 실행</td>
+<td>파인튜닝 + RAG (Student 모델 학습 후 RAG 서비스)</td>
 <td><code>--until &lt;단계&gt;</code>, <code>--from &lt;단계&gt;</code>, <code>--resume</code> / <code>-r</code>, <code>--chat</code></td>
 </tr>
 <tr>
 <td><code>slf rag</code></td>
-<td>RAG 웹 채팅 서비스 (인덱스 자동 구축)</td>
+<td>RAG 웹 채팅 (Student 자동 감지, 없으면 Teacher 폴백)</td>
 <td><code>--chat/--no-chat</code></td>
 </tr>
 <tr>
