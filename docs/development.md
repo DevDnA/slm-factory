@@ -53,7 +53,8 @@ src/slm_factory/
 ├── exporter/
 │   ├── __init__.py
 │   ├── hf_export.py         # HFExporter (LoRA 병합 및 저장)
-│   └── ollama_export.py     # OllamaExporter (Modelfile 생성)
+│   ├── ollama_export.py     # OllamaExporter (Modelfile 생성)
+│   └── autorag_export.py    # AutoRAGExporter (RAG용 parquet 내보내기)
 └── tui/
     ├── __init__.py
     ├── widgets.py           # 공유 TUI 위젯 (QACard, StatusBar)
@@ -122,6 +123,7 @@ class SLMConfig(BaseModel):
     augment: AugmentConfig;      analyzer: AnalyzerConfig
     student: StudentConfig;      training: TrainingConfig
     export: ExportConfig;        eval: EvalConfig
+    refinement: RefinementConfig
     incremental: IncrementalConfig
     review: ReviewConfig
     compare: CompareConfig;      evolve: EvolveConfig
@@ -200,10 +202,14 @@ class Pipeline:
     def step_compare(self, pairs: list[QAPair]) -> list[CompareResult]:
         """Base 모델과 Fine-tuned 모델의 답변을 비교합니다."""
 
-    def step_autorag_export(self, docs: list[ParsedDocument], pairs: list[QAPair]) -> Path:
-        """파싱·QA 데이터를 RAG 인덱싱용 parquet으로 내보냅니다."""
+    def step_autorag_export(
+        self, parsed_docs: list[dict], qa_pairs: list[dict],
+    ) -> tuple[Path, Path]:
+        """파싱·QA 데이터를 RAG 인덱싱용 parquet으로 내보냅니다.
+        반환값: (corpus.parquet 경로, qa.parquet 경로) 튜플
+        """
 
-    def step_rag_index(self, corpus_dir: Path | None = None) -> Path:
+    def step_rag_index(self, corpus_path: Path) -> Path:
         """corpus.parquet을 Qdrant에 임베딩하여 적재합니다."""
 
     def run(self) -> Path:
@@ -502,7 +508,7 @@ class LoRATrainer:
 | `num_epochs` | `"auto"` | 학습 에포크 수 (`"auto"`: 데이터 양에 따라 3~5 자동 결정) |
 | `learning_rate` | 2.0e-4 | 학습률 |
 | `batch_size` | 1 | 디바이스당 배치 크기 |
-| `lora.r` / `lora.alpha` | 16 / 32 | LoRA 랭크 / 스케일링 |
+| `lora.r` / `lora.alpha` | 8 / 16 | LoRA 랭크 / 스케일링 |
 | `early_stopping.patience` | 3 | 조기 종료 인내 에포크 수 |
 
 ```python
@@ -536,9 +542,13 @@ class OllamaExporter:
     def __init__(self, config: SLMConfig) -> None: ...
     def generate_modelfile(self, model_dir: str | Path, output_path=None) -> Path:
         """Ollama Modelfile을 생성합니다 (기본 위치: model_dir/Modelfile)."""
-    def create_model(self, modelfile_path: str | Path) -> bool:
+    def create_model(
+        self, modelfile_path: str | Path, model_name_override: str | None = None,
+    ) -> bool:
         """ollama create 명령으로 모델을 생성합니다. 성공 여부를 반환합니다."""
-    def export(self, model_dir: str | Path, output_dir=None) -> Path:
+    def export(
+        self, model_dir: str | Path, output_dir=None, model_name_override: str | None = None,
+    ) -> Path:
         """Modelfile을 생성하고 Ollama가 감지되면 모델을 자동 생성합니다."""
 ```
 
@@ -557,7 +567,7 @@ class ModelEvaluator:
     def print_summary(self, results: list[EvalResult]) -> None: ...
 ```
 
-지원 메트릭: `bleu`, `rouge` (ROUGE-1, ROUGE-2, ROUGE-L)
+지원 메트릭: `bleu`, `rouge` (ROUGE-1, ROUGE-2, ROUGE-L), `llm_judge` (Teacher LLM 의미적 정확성 평가, 0~1 정규화)
 
 ### ModelComparator (comparator.py)
 
