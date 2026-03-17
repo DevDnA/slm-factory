@@ -447,7 +447,7 @@ class RagConfig(BaseModel):
     ollama_model: str = ""
     """Ollama 모델명. 빈 문자열이면 ``export.ollama.model_name``을 사용합니다."""
 
-    reranker_enabled: bool = False
+    reranker_enabled: bool = True
     """검색 결과를 cross-encoder로 재정렬하여 정확도를 높입니다."""
 
     reranker_model: str = "dragonkue/bge-reranker-v2-m3-ko"
@@ -455,7 +455,7 @@ class RagConfig(BaseModel):
     한국어 파인튜닝된 bge-reranker-v2-m3-ko가 기본값입니다.
     한국어 금융 벤치마크에서 F1 0.9123 (원본 bge-v2-m3: 0.8772)."""
 
-    hybrid_search: bool = False
+    hybrid_search: bool = True
     """벡터 검색과 키워드 검색(BM25)을 결합하여 검색 재현율을 높입니다."""
 
     query_rewriting: bool = False
