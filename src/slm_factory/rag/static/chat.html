@@ -894,23 +894,18 @@ body {
   }
 
   function renderMermaid(el) {
-    el.querySelectorAll('code.language-mermaid, code.hljs.language-mermaid').forEach(function(codeEl) {
+    var found = el.querySelectorAll('code.language-mermaid');
+    if (!found.length) return;
+    found.forEach(function(codeEl) {
       var pre = codeEl.parentElement;
-      if (!pre || pre.tagName !== 'PRE') return;
-      if (pre.getAttribute('data-mermaid-done')) return;
+      if (!pre || pre.tagName !== 'PRE' || pre.getAttribute('data-mermaid-done')) return;
       pre.setAttribute('data-mermaid-done', '1');
-      var source = codeEl.textContent.trim();
-      mermaidCounter++;
-      var id = 'mermaid-' + mermaidCounter;
-      var container = document.createElement('div');
-      container.className = 'mermaid-container';
-      pre.replaceWith(container);
-      mermaid.render(id, source).then(function(result) {
-        container.innerHTML = result.svg;
-      }).catch(function() {
-        container.textContent = source;
-      });
+      var div = document.createElement('div');
+      div.className = 'mermaid';
+      div.textContent = codeEl.textContent;
+      pre.replaceWith(div);
     });
+    mermaid.run({ querySelector: '.mermaid' });
   }
 
   // ─── Auto-resize textarea ───
