@@ -491,9 +491,7 @@ def create_app(config: "SLMConfig"):
             f"[참고 문서]\n{context}\n\n"
             f"질문: {body.query}\n답변:"
         )
-        num_ctx = len(prompt) // 2 + 1024
-        num_ctx = max(2048, min(num_ctx, 32768))
-        return sources, prompt, num_ctx
+        return sources, prompt
 
     @app.post("/v1/query")
     async def query_rag(body: QueryRequest):
@@ -511,7 +509,7 @@ def create_app(config: "SLMConfig"):
         else:
             body_for_search = body
 
-        sources, prompt, num_ctx = _search_documents(body_for_search)
+        sources, prompt = _search_documents(body_for_search)
         http_client = app.state.http_client
 
         if body.stream:
@@ -528,7 +526,6 @@ def create_app(config: "SLMConfig"):
                         "keep_alive": -1,
                         "options": {
                             "num_predict": config.rag.max_tokens,
-                            "num_ctx": num_ctx,
                         },
                     },
                 ) as resp:
@@ -569,7 +566,7 @@ def create_app(config: "SLMConfig"):
                 "stream": False,
                 "think": False,
                 "keep_alive": -1,
-                "options": {"num_predict": config.rag.max_tokens, "num_ctx": num_ctx},
+                "options": {"num_predict": config.rag.max_tokens},
             },
         )
         response.raise_for_status()
@@ -649,7 +646,7 @@ def create_app(config: "SLMConfig"):
         else:
             body_for_search = body
 
-        sources, prompt, num_ctx = _search_documents(body_for_search)
+        sources, prompt = _search_documents(body_for_search)
         http_client = app.state.http_client
 
         async def _generate():
@@ -664,7 +661,6 @@ def create_app(config: "SLMConfig"):
                     "keep_alive": -1,
                     "options": {
                         "num_predict": config.rag.max_tokens,
-                        "num_ctx": num_ctx,
                     },
                 },
             ) as resp:
