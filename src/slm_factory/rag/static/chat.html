@@ -982,6 +982,7 @@ body {
     var contentEl = null;
     var bodyEl = null;
     var sources = [];
+    var renderTimer = null;
 
     try {
       var response = await fetch('/v1/stream', {
@@ -1026,8 +1027,13 @@ body {
 
           if (data.type === 'token') {
             answer += data.content;
-            contentEl.innerHTML = marked.parse(answer);
-            scrollToBottom();
+            if (!renderTimer) {
+              renderTimer = requestAnimationFrame(function() {
+                contentEl.innerHTML = marked.parse(answer);
+                scrollToBottom();
+                renderTimer = null;
+              });
+            }
           } else if (data.type === 'sources') {
             sources = data.sources || [];
           } else if (data.type === 'done') {
@@ -1036,7 +1042,15 @@ body {
         }
       }
 
-      // Append sources after stream is done
+      if (renderTimer) {
+        cancelAnimationFrame(renderTimer);
+        renderTimer = null;
+      }
+      if (answer && contentEl) {
+        contentEl.innerHTML = marked.parse(answer);
+        scrollToBottom();
+      }
+
       if (sources.length > 0) {
         buildSources(sources, bodyEl);
       }
