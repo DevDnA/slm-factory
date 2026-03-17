@@ -106,6 +106,136 @@ def _preprocess_for_metrics(text: str, korean_tokenizer=None) -> str:
     return text
 
 
+class RetrievalEvaluator:
+    """AutoRAG qa.parquet의 retrieval_gt 기준으로 검색 품질을 평가합니다."""
+
+    def __init__(self, config: SLMConfig) -> None:
+        self.config = config
+        self.db_path = Path(config.paths.output) / config.rag.vector_db_path
+
+    def evaluate(self, qa_path: Path, top_k: int = 5) -> dict[str, float]:
+        """Qdrant 벡터 검색의 Recall@K, MRR, Hit@K를 계산합니다."""
+        import pandas as pd
+
+        try:
+            from qdrant_client import QdrantClient
+        except ImportError:
+            raise RuntimeError(
+                "qdrant-client가 설치되지 않았습니다. uv sync --extra rag 로 설치하세요."
+            )
+        try:
+            from sentence_transformers import SentenceTransformer
+        except ImportError:
+            raise RuntimeError(
+                "sentence-transformers가 설치되지 않았습니다. "
+                "uv sync --extra rag 로 설치하세요."
+            )
+
+        qa_df = pd.read_parquet(qa_path)
+        if "retrieval_gt" not in qa_df.columns:
+            raise ValueError(f"{qa_path}에 retrieval_gt 컬럼이 없습니다")
+
+        logger.info("검색 평가 시작 — %d개 QA, top_k=%d", len(qa_df), top_k)
+
+        model = SentenceTransformer(self.config.rag.embedding_model)
+        client = QdrantClient(path=str(self.db_path))
+        collection = self.config.rag.collection_name
+
+        hits_at_1 = 0
+        hits_at_k = 0
+        reciprocal_ranks: list[float] = []
+        recall_at_k_list: list[float] = []
+        total = 0
+
+        for _, row in qa_df.iterrows():
+            query = str(row["query"])
+            gt_lists = row["retrieval_gt"]
+            gt_ids: set[str] = set()
+            for gt_group in gt_lists:
+                if isinstance(gt_group, list):
+                    gt_ids.update(gt_group)
+                else:
+                    gt_ids.add(str(gt_group))
+
+            if not gt_ids:
+                continue
+
+            query_vec = model.encode(query).tolist()
+            results = client.query_points(
+                collection_name=collection,
+                query=query_vec,
+                limit=top_k,
+                with_payload=True,
+            ).points
+
+            retrieved_ids = [p.payload.get("doc_id", "") for p in results if p.payload]
+
+            if retrieved_ids and retrieved_ids[0] in gt_ids:
+                hits_at_1 += 1
+
+            if gt_ids & set(retrieved_ids):
+                hits_at_k += 1
+
+            rr = 0.0
+            for rank, rid in enumerate(retrieved_ids, 1):
+                if rid in gt_ids:
+                    rr = 1.0 / rank
+                    break
+            reciprocal_ranks.append(rr)
+
+            found = len(gt_ids & set(retrieved_ids))
+            recall_at_k_list.append(found / len(gt_ids))
+
+            total += 1
+
+        client.close()
+
+        if total == 0:
+            logger.warning("평가할 QA 쌍이 없습니다")
+            return {}
+
+        metrics = {
+            "hit@1": round(hits_at_1 / total, 4),
+            f"hit@{top_k}": round(hits_at_k / total, 4),
+            "mrr": round(sum(reciprocal_ranks) / total, 4),
+            f"recall@{top_k}": round(sum(recall_at_k_list) / total, 4),
+        }
+
+        logger.info("검색 평가 완료 — %d건: %s", total, metrics)
+        return metrics
+
+    def print_summary(self, metrics: dict[str, float]) -> None:
+        from rich.console import Console
+
+        con = Console()
+        if not metrics:
+            con.print("[yellow]검색 평가 결과가 없습니다[/yellow]")
+            return
+
+        table = Table(title="검색 품질 평가 결과")
+        table.add_column("메트릭", style="cyan")
+        table.add_column("점수", justify="right", style="bold")
+        table.add_column("설명")
+
+        descriptions = {
+            "hit@1": "Top-1에 정답 문서가 있는 비율",
+            "mrr": "정답 문서의 평균 역순위 (Mean Reciprocal Rank)",
+        }
+
+        for key, value in metrics.items():
+            if key.startswith("hit@"):
+                k = key.split("@")[1]
+                desc = descriptions.get(key, f"Top-{k}에 정답 문서가 있는 비율")
+            elif key.startswith("recall@"):
+                k = key.split("@")[1]
+                desc = f"Top-{k}에서 정답 문서를 찾은 비율"
+            else:
+                desc = descriptions.get(key, "")
+            table.add_row(key, f"{value:.4f}", desc)
+
+        con.print(table)
+
+
 class ModelEvaluator:
     """Ollama 모델을 QA 쌍으로 평가합니다."""
 

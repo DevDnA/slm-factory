@@ -1786,6 +1786,72 @@ def export_autorag(
         raise typer.Exit(code=1)
 
 
+@tool_app.command(name="eval-retrieval")
+def eval_retrieval(
+    config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
+    top_k: int = typer.Option(5, "--top-k", help="검색 결과 상위 K개 기준"),
+    qa_file: Optional[str] = typer.Option(
+        None, "--qa-file", help="qa.parquet 경로 (미지정 시 자동 감지)"
+    ),
+) -> None:
+    """검색 품질을 Recall@K, MRR, Hit@K 메트릭으로 평가합니다."""
+    try:
+        from .evaluator import RetrievalEvaluator
+
+        pipeline = _load_pipeline(config)
+        pipeline.config.paths.ensure_dirs()
+
+        if qa_file:
+            qa_path = Path(qa_file)
+        else:
+            qa_path = (
+                Path(pipeline.config.paths.output)
+                / pipeline.config.autorag_export.output_dir
+                / "qa.parquet"
+            )
+
+        if not qa_path.is_file():
+            _print_error(
+                "QA 데이터 미발견",
+                f"파일을 찾을 수 없음: {qa_path}",
+                [
+                    "먼저 AutoRAG 내보내기를 실행하세요: slf tool export-autorag",
+                ],
+            )
+            raise typer.Exit(code=1)
+
+        db_path = (
+            Path(pipeline.config.paths.output) / pipeline.config.rag.vector_db_path
+        )
+        if not db_path.exists():
+            _print_error(
+                "벡터 DB 미발견",
+                f"Qdrant 인덱스를 찾을 수 없음: {db_path}",
+                ["먼저 인덱싱을 실행하세요: slf tool rag-index"],
+            )
+            raise typer.Exit(code=1)
+
+        console.print(
+            f"\n[bold]검색 품질 평가[/bold]\n"
+            f"  QA 데이터: [cyan]{qa_path}[/cyan]\n"
+            f"  벡터 DB:   [cyan]{db_path}[/cyan]\n"
+            f"  top_k:     [cyan]{top_k}[/cyan]\n"
+        )
+
+        evaluator = RetrievalEvaluator(pipeline.config)
+        metrics = evaluator.evaluate(qa_path, top_k=top_k)
+        evaluator.print_summary(metrics)
+
+        console.print(f"\n[bold green]검색 평가 완료![/bold green]\n")
+
+    except FileNotFoundError as e:
+        _print_error("파일 오류", e, hints=_get_error_hints(e))
+        raise typer.Exit(code=1)
+    except Exception as e:
+        _print_error("검색 평가 실패", e, hints=_get_error_hints(e))
+        raise typer.Exit(code=1)
+
+
 @tool_app.command(name="rag-index")
 def rag_index(
     config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
