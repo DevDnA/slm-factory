@@ -123,10 +123,11 @@ cli.py
         ├─→ calibration.py (auto_chunk_size, auto_num_epochs, section_aware_chunk)
         ├─→ device.py (detect_device)
         ├─→ evolve_history.py (EvolveHistory)
+        ├─→ rag/ (RAGIndexer, RAG 서버)
         └─→ tui/ (QAReviewerApp)
 
 모든 모듈
-  ├─→ config.py (SLMConfig + 29개 하위 모델)
+  ├─→ config.py (SLMConfig + 28개 하위 모델)
   ├─→ models.py (ParsedDocument, QAPair, EvalResult, CompareResult)
   └─→ utils.py (setup_logging, get_logger)
 ```
@@ -148,7 +149,7 @@ class CSVParser(BaseParser):
         ...
 ```
 
-`parsers/__init__.py`에서 전역 `registry` 인스턴스를 생성하고 6개 파서(PDF, HWPX, HWP, HTML, Text, DOCX)를 자동 등록합니다. 새 파서를 `@registry.register`로 등록하면 즉시 파이프라인에서 처리됩니다.
+`parsers/__init__.py`에서 전역 `registry` 인스턴스를 생성하고 4개 기본 파서(PDF, HWPX, HTML, Text)를 무조건 등록하며, 2개 선택적 파서(DOCX, HWP)는 해당 패키지가 설치된 경우에만 등록합니다. 새 파서를 `@registry.register`로 등록하면 즉시 파이프라인에서 처리됩니다.
 
 `parsers/base.py`의 `detect_encoding()` 함수는 HTML 파서와 텍스트 파서가 공유하는 인코딩 감지 유틸리티입니다. charset-normalizer를 사용하여 EUC-KR, CP949 등 한국어 인코딩을 정확하게 감지합니다. `HTMLParser`는 BeautifulSoup4의 lxml 백엔드를 사용하며, h1–h6 헤딩 태그를 마크다운 헤딩으로 변환하여 문서 구조를 보존합니다.
 
@@ -317,7 +318,7 @@ SLMConfig (root)
 │   └── output: Path = "./output"
 │
 ├── parsing: ParsingConfig
-│   ├── formats: list[str] = ["pdf", "txt", "html"]
+│   ├── formats: list[str] = ["pdf", "txt", "html", "md", "hwpx", "hwp", "docx"]
 │   ├── pdf: PdfOptions
 │   │   └── extract_tables: bool = True
 │   └── hwpx: HwpxOptions
