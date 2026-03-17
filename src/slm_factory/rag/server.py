@@ -471,7 +471,6 @@ def create_app(config: "SLMConfig"):
         sources: list[Source] = []
         context_parts: list[str] = []
         seen_parents: set[str] = set()
-        max_context_chars = config.rag.max_context_chars
 
         doc_num = 0
         for doc, doc_id, distance, metadata in zip(
@@ -487,12 +486,6 @@ def create_app(config: "SLMConfig"):
                 context_parts.append(f"[문서 {doc_num}]\n{parent}")
 
         context = "\n\n---\n\n".join(context_parts)
-        if len(context) > max_context_chars:
-            last_period = context.rfind(".", 0, max_context_chars)
-            if last_period > max_context_chars * 0.7:
-                context = context[: last_period + 1]
-            else:
-                context = context[:max_context_chars]
         prompt = (
             f"{_RAG_SYSTEM_PROMPT}\n\n"
             f"[참고 문서]\n{context}\n\n"

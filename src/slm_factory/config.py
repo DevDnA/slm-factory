@@ -465,9 +465,6 @@ class RagConfig(BaseModel):
     """검색 결과 최소 유사도 점수 (0.0~1.0). 이 값 미만의 문서는 컨텍스트에서 제외됩니다.
     0.0으로 설정하면 필터링을 비활성화합니다."""
 
-    max_context_chars: int = 8000
-    """LLM에 전달할 참고 문서의 최대 문자 수."""
-
     @model_validator(mode="after")
     def _check_rag_params(self) -> "RagConfig":
         """RAG 설정의 유효성을 검증합니다."""
