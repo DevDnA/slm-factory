@@ -57,8 +57,9 @@ def _chunk_for_retrieval(content: str, chunk_size: int, overlap: int) -> list[st
     return chunks
 
 
-def _char_ngram_cosine(query: str, texts: list[str], n: int = 3) -> list[float]:
-    """character n-gram 코사인 유사도를 계산합니다. sklearn 없이 numpy만 사용."""
+def _tfidf_char_ngram_cosine(query: str, texts: list[str], n: int = 3) -> list[float]:
+    """TF-IDF char n-gram 코사인 유사도. sklearn 없이 직접 구현."""
+    import math
     from collections import Counter
 
     import numpy as np
@@ -67,22 +68,33 @@ def _char_ngram_cosine(query: str, texts: list[str], n: int = 3) -> list[float]:
         t = text.lower()
         return Counter(t[i : i + n] for i in range(max(0, len(t) - n + 1)))
 
-    query_ng = _ngrams(query)
-    if not query_ng:
-        return [0.0] * len(texts)
+    all_docs = texts + [query]
+    doc_ngrams = [_ngrams(d) for d in all_docs]
+    num_docs = len(all_docs)
 
-    query_norm = np.sqrt(sum(v * v for v in query_ng.values()))
-    scores: list[float] = []
-    for text in texts:
-        text_ng = _ngrams(text)
-        common = set(query_ng) & set(text_ng)
+    # IDF: log(N / df) — 공통 n-gram을 억제하여 희귀 n-gram에 가중치 부여
+    df: Counter = Counter()
+    for ng in doc_ngrams:
+        df.update(ng.keys())
+    idf = {term: math.log(num_docs / freq) for term, freq in df.items()}
+
+    def _tfidf_vector(ng: Counter) -> dict[str, float]:
+        total = sum(ng.values()) or 1
+        return {term: (count / total) * idf.get(term, 0) for term, count in ng.items()}
+
+    def _cosine(a: dict[str, float], b: dict[str, float]) -> float:
+        common = set(a) & set(b)
         if not common:
-            scores.append(0.0)
-            continue
-        dot = sum(query_ng[k] * text_ng[k] for k in common)
-        text_norm = np.sqrt(sum(v * v for v in text_ng.values()))
-        scores.append(dot / (query_norm * text_norm))
-    return scores
+            return 0.0
+        dot = sum(a[k] * b[k] for k in common)
+        norm_a = np.sqrt(sum(v * v for v in a.values()))
+        norm_b = np.sqrt(sum(v * v for v in b.values()))
+        if norm_a == 0 or norm_b == 0:
+            return 0.0
+        return dot / (norm_a * norm_b)
+
+    query_vec = _tfidf_vector(doc_ngrams[-1])
+    return [_cosine(query_vec, _tfidf_vector(ng)) for ng in doc_ngrams[:-1]]
 
 
 def _find_best_chunks(
@@ -115,8 +127,8 @@ def _find_best_chunks(
     if bm25_max > 0:
         bm25_scores = bm25_scores / bm25_max
 
-    # char n-gram 코사인 유사도 (패러프레이즈 대응)
-    ngram_scores = np.array(_char_ngram_cosine(query, chunk_texts))
+    # TF-IDF char n-gram 코사인 유사도 (패러프레이즈 대응, IDF로 공통 n-gram 억제)
+    ngram_scores = np.array(_tfidf_char_ngram_cosine(query, chunk_texts))
 
     # 가중 합산: n-gram 60%, BM25 40%
     hybrid_scores = 0.4 * bm25_scores + 0.6 * ngram_scores
