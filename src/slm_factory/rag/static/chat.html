@@ -1170,6 +1170,7 @@ body {
             if (!renderTimer) {
               renderTimer = requestAnimationFrame(function() {
                 contentEl.innerHTML = marked.parse(answer);
+                renderKatex(contentEl);
                 var cursorEl = document.createElement('span');
                 cursorEl.className = 'typing-cursor';
                 var lastEl = contentEl;
