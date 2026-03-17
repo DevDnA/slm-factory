@@ -867,21 +867,9 @@ body {
 
   mermaid.initialize({ startOnLoad: false, theme: 'dark' });
 
-  var renderer = new marked.Renderer();
-  var originalCode = renderer.code.bind(renderer);
-  renderer.code = function(code, lang, escaped) {
-    if (lang === 'mermaid') {
-      mermaidCounter++;
-      var id = 'mermaid-' + mermaidCounter;
-      return '<div class="mermaid-container" data-mermaid-id="' + id + '">' + code + '</div>';
-    }
-    return originalCode(code, lang, escaped);
-  };
-
   marked.setOptions({
     breaks: true,
     gfm: true,
-    renderer: renderer,
     highlight: function(code, lang) {
       if (lang === 'mermaid') return code;
       if (lang && hljs.getLanguage(lang)) {
@@ -906,14 +894,22 @@ body {
   }
 
   function renderMermaid(el) {
-    el.querySelectorAll('.mermaid-container').forEach(function(container) {
-      var id = container.getAttribute('data-mermaid-id');
-      if (container.querySelector('svg')) return;
-      try {
-        mermaid.render(id, container.textContent.trim()).then(function(result) {
-          container.innerHTML = result.svg;
-        });
-      } catch(e) {}
+    el.querySelectorAll('code.language-mermaid, code.hljs.language-mermaid').forEach(function(codeEl) {
+      var pre = codeEl.parentElement;
+      if (!pre || pre.tagName !== 'PRE') return;
+      if (pre.getAttribute('data-mermaid-done')) return;
+      pre.setAttribute('data-mermaid-done', '1');
+      var source = codeEl.textContent.trim();
+      mermaidCounter++;
+      var id = 'mermaid-' + mermaidCounter;
+      var container = document.createElement('div');
+      container.className = 'mermaid-container';
+      pre.replaceWith(container);
+      mermaid.render(id, source).then(function(result) {
+        container.innerHTML = result.svg;
+      }).catch(function() {
+        container.textContent = source;
+      });
     });
   }
 
