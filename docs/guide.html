@@ -114,7 +114,7 @@
 <li class="toc-h3"><a href="#왜-문서가-적으면-증류가-안-되는가">왜 문서가 적으면 증류가 안 되는가</a></li>
 <li class="toc-h3"><a href="#프로덕션에서-증류가-필요한-이유">프로덕션에서 증류가 필요한 이유</a></li>
 <li class="toc-h3"><a href="#실전-워크플로">실전 워크플로</a></li>
-<li class="toc-h3"><a href="#3가지-활용-패턴">3가지 활용 패턴</a></li>
+<li class="toc-h3"><a href="#두-가지-활용-패턴">두 가지 활용 패턴</a></li>
 </ol>
 </li>
 <li><a href="#8-트러블슈팅">8. 트러블슈팅</a>
@@ -1030,7 +1030,7 @@ slf tune
 # 3단계: slf rag를 다시 실행하면 Student를 자동 감지하여 사용
 slf rag
 # rag.ollama_model 미설정 시: Student 있으면 Student, 없으면 Teacher 폴백</code></pre>
-<h3 id="3가지-활용-패턴">3가지 활용 패턴</h3>
+<h3 id="두-가지-활용-패턴">두 가지 활용 패턴</h3>
 <div class="table-wrapper">
 <table>
 <thead>
@@ -1057,23 +1057,16 @@ slf rag
 <td>30분~1시간</td>
 <td>문서 20건+, 프로덕션</td>
 </tr>
-<tr>
-<td><strong>파인튜닝 SLM 단독</strong></td>
-<td><code>slf tune --no-chat</code></td>
-<td>Student(1B)</td>
-<td>30분~1시간</td>
-<td>오프라인, 변하지 않는 지식</td>
-</tr>
 </tbody>
 </table>
 </div>
 <h4 id="rag-베이스-모델-slf-rag">RAG + 베이스 모델 (<code>slf rag</code>)</h4>
 <p>문서를 파싱하고 벡터 인덱스를 구축한 후 바로 웹 채팅을 시작합니다. 파인튜닝 없이 Teacher 모델(qwen3.5:9b)이 검색된 문서를 참조하여 답변합니다. 파인튜닝된 Student 모델이 Ollama에 있으면 자동으로 해당 모델을 사용합니다.</p>
 <h4 id="rag-파인튜닝-slm-slf-tune">RAG + 파인튜닝 SLM (<code>slf tune</code>)</h4>
-<p>13단계 파이프라인을 실행하여 Student 모델을 학습시키고, RAG 인덱스를 구축한 후 웹 채팅을 시작합니다. 도메인 지식이 내재화된 경량 모델(1B)이 답변하므로 Teacher(9B) 대비 9배 빠르고 1/9 비용입니다.</p>
-<h4 id="파인튜닝-slm-단독-rag-없음">파인튜닝 SLM 단독 (RAG 없음)</h4>
-<p><code>slf tune --no-chat</code>으로 파인튜닝만 수행하고, Ollama에 등록된 모델을 직접 사용합니다. RAG 없이 학습된 지식만으로 답변하므로, 변하지 않는 도메인 지식과 오프라인 환경에 적합합니다. 문서 50건 이상에서 실용적입니다.</p>
+<p>13단계 파이프라인을 실행하여 Student 모델을 학습시키고, RAG 인덱스를 구축한 후 웹 채팅을 시작합니다. 파인튜닝된 경량 모델(1B)이 도메인에 맞는 어투로 답변하며, Teacher(9B) 대비 9배 빠르고 1/9 비용입니다. 두 패턴 모두 RAG 검색 결과를 근거로 답변하므로 할루시네이션이 억제됩니다.</p>
 <blockquote><p><strong>팁</strong>: 두 모드를 병렬로 실행할 수도 있습니다. 터미널 1에서 <code>slf rag</code>로 즉시 서비스하면서, 터미널 2에서 <code>slf tune --no-chat</code>으로 파인튜닝을 진행합니다.</p></blockquote>
+<h4 id="slm-단독-사용에-대하여">⚠️ SLM 단독 사용에 대하여</h4>
+<p><code>slf tune --no-chat</code>으로 파인튜닝 후 <code>ollama run</code>으로 모델을 직접 사용할 수 있지만, <strong>프로덕션에서는 권장하지 않습니다.</strong> 1B 모델의 파인튜닝은 답변 스타일(어투, 형식)을 학습시키는 것이지, 도메인 지식을 안정적으로 내재화하는 것이 아닙니다. RAG 없이는 할루시네이션율이 50%를 초과합니다. 오프라인·격리 환경에서 불가피한 경우에만 고려하되, 문서 50건 이상(QA 3,000개+)으로 학습하고 <code>slf eval run</code>으로 품질을 반드시 검증하십시오.</p>
 <hr>
 </section>
 
