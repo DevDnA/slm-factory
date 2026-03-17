@@ -55,6 +55,10 @@ src/slm_factory/
 │   ├── hf_export.py         # HFExporter (LoRA 병합 및 저장)
 │   ├── ollama_export.py     # OllamaExporter (Modelfile 생성)
 │   └── autorag_export.py    # AutoRAGExporter (RAG용 parquet 내보내기)
+├── rag/
+│   ├── __init__.py
+│   ├── indexer.py           # RAGIndexer (Qdrant 벡터 인덱싱)
+│   └── server.py            # FastAPI RAG 서버 (/v1/query, /chat)
 └── tui/
     ├── __init__.py
     ├── widgets.py           # 공유 TUI 위젯 (QACard, StatusBar)

@@ -1,6 +1,6 @@
 # slm-factory 프로젝트 설정 파일
 # 전체 파이프라인: parse → generate QA → validate → convert → train → export
-# 이 파일은 slm-factory의 파이프라인 설정입니다. 수정 없이도 기본값으로 wizard를 실행할 수 있습니다.
+# 이 파일은 slm-factory의 파이프라인 설정입니다. 수정 없이도 기본값으로 실행할 수 있습니다.
 
 project:
   name: "my-project"
@@ -150,7 +150,7 @@ training:
   quantization:
     enabled: true                        # true로 바꾸면 모델을 4비트로 압축 로드하여 VRAM 크게 절약
                                          # → VRAM 8GB 이하에서 학습해야 할 때 활성화 (속도는 다소 감소)
-    bits: 4                              # 양자화 비트 수. 4가 기본 (4 | 8)
+    bits: 4                              # 양자화 비트 수. 현재 4비트만 지원
 
   # neftune_noise_alpha: 5.0            # NEFTune 임베딩 노이즈. 활성화 시 일반화 성능 5~15% 향상
                                          # → 권장값: 5.0 (2B 이하), 10.0 (4B 이상). 미설정 시 비활성
