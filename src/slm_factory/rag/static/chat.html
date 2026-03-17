@@ -10,6 +10,9 @@
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/highlight.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11/build/styles/github-dark.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
 <style>
 /* ─── Design Tokens ─── */
 :root {
@@ -404,6 +407,20 @@ body {
   padding: var(--spacing-sm) var(--spacing-md);
   border: 1px solid var(--color-border);
   color: var(--color-text-secondary);
+}
+
+.mermaid-container {
+  margin: var(--spacing-sm) 0;
+  padding: var(--spacing-md);
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+  text-align: center;
+}
+
+.mermaid-container svg {
+  max-width: 100%;
+  height: auto;
 }
 
 .message.ai .message-content tbody tr:nth-child(even) {
@@ -846,18 +863,59 @@ body {
   const toast = document.getElementById('toast');
 
   let isStreaming = false;
+  let mermaidCounter = 0;
 
-  // ─── Markdown config ───
+  mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+
+  var renderer = new marked.Renderer();
+  var originalCode = renderer.code.bind(renderer);
+  renderer.code = function(code, lang, escaped) {
+    if (lang === 'mermaid') {
+      mermaidCounter++;
+      var id = 'mermaid-' + mermaidCounter;
+      return '<div class="mermaid-container" data-mermaid-id="' + id + '">' + code + '</div>';
+    }
+    return originalCode(code, lang, escaped);
+  };
+
   marked.setOptions({
     breaks: true,
     gfm: true,
+    renderer: renderer,
     highlight: function(code, lang) {
+      if (lang === 'mermaid') return code;
       if (lang && hljs.getLanguage(lang)) {
         return hljs.highlight(code, { language: lang }).value;
       }
       return hljs.highlightAuto(code).value;
     },
   });
+
+  function renderKatex(el) {
+    if (typeof katex === 'undefined') return;
+    var html = el.innerHTML;
+    html = html.replace(/\$\$([^$]+?)\$\$/g, function(_, tex) {
+      try { return katex.renderToString(tex.trim(), { displayMode: true, throwOnError: false }); }
+      catch(e) { return _; }
+    });
+    html = html.replace(/\$([^$\n]+?)\$/g, function(_, tex) {
+      try { return katex.renderToString(tex.trim(), { displayMode: false, throwOnError: false }); }
+      catch(e) { return _; }
+    });
+    el.innerHTML = html;
+  }
+
+  function renderMermaid(el) {
+    el.querySelectorAll('.mermaid-container').forEach(function(container) {
+      var id = container.getAttribute('data-mermaid-id');
+      if (container.querySelector('svg')) return;
+      try {
+        mermaid.render(id, container.textContent.trim()).then(function(result) {
+          container.innerHTML = result.svg;
+        });
+      } catch(e) {}
+    });
+  }
 
   // ─── Auto-resize textarea ───
   inputField.addEventListener('input', function() {
@@ -1139,6 +1197,8 @@ body {
       }
       if (answer && contentEl) {
         contentEl.innerHTML = marked.parse(answer);
+        renderKatex(contentEl);
+        renderMermaid(contentEl);
         addCopyButtons(contentEl);
         scrollToBottom();
       }
