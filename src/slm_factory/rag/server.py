@@ -17,13 +17,16 @@ from ..utils import get_logger
 logger = get_logger("rag.server")
 
 _RAG_SYSTEM_PROMPT = (
-    "당신은 문서 기반 전문 어시스턴트입니다. 아래 참고 문서들을 종합하여 질문에 답변하세요.\n\n"
+    "당신은 문서 기반 전문 어시스턴트입니다. "
+    "아래 [참고 문서]를 근거로 질문에 답변하세요.\n\n"
     "규칙:\n"
-    "1. 여러 문서의 정보를 연결하고 종합하여 포괄적으로 답변하세요.\n"
-    "2. 표, 목록, 소제목 등 마크다운을 활용하여 구조적으로 정리하세요.\n"
-    "3. 문서에 근거한 구체적 수치, 날짜, 명칭을 포함하세요.\n"
-    "4. 문서에 없는 내용은 추측하지 말고 '해당 정보를 찾을 수 없습니다'라고 답변하세요.\n"
-    "5. 답변은 완결성 있게 작성하고 중간에 끊지 마세요."
+    "1. 답변의 핵심 사실마다 어떤 문서에서 왔는지 명시하세요 (예: '문서 2에 따르면...').\n"
+    "2. 여러 문서의 정보를 종합하되, 문서 간 내용이 상충하면 차이점을 명확히 설명하세요.\n"
+    "3. 문서에 근거한 구체적 수치, 날짜, 명칭을 우선 사용하세요.\n"
+    "4. 문서에 없는 내용은 절대 추측하지 말고 "
+    "'제공된 문서에서 해당 정보를 찾을 수 없습니다'라고 답변하세요.\n"
+    "5. 표, 목록, 소제목 등 마크다운을 활용하여 구조적으로 정리하세요.\n"
+    "6. 답변은 완결성 있게 작성하되 간결하게 핵심만 전달하세요."
 )
 
 
@@ -469,8 +472,9 @@ def create_app(config: "SLMConfig"):
         sources: list[Source] = []
         context_parts: list[str] = []
         seen_parents: set[str] = set()
-        max_context_chars = 8000
+        max_context_chars = config.rag.max_context_chars
 
+        doc_num = 0
         for doc, doc_id, distance, metadata in zip(
             documents, ids, distances, metadatas
         ):
@@ -480,13 +484,24 @@ def create_app(config: "SLMConfig"):
             parent_key = parent[:100]
             if parent_key not in seen_parents:
                 seen_parents.add(parent_key)
-                context_parts.append(parent)
+                doc_num += 1
+                context_parts.append(f"[문서 {doc_num}]\n{parent}")
 
         context = "\n\n---\n\n".join(context_parts)
         if len(context) > max_context_chars:
-            context = context[:max_context_chars]
-        prompt = f"{_RAG_SYSTEM_PROMPT}\n\n{context}\n\n질문: {body.query}\n답변:"
-        return sources, prompt
+            last_period = context.rfind(".", 0, max_context_chars)
+            if last_period > max_context_chars * 0.7:
+                context = context[: last_period + 1]
+            else:
+                context = context[:max_context_chars]
+        prompt = (
+            f"{_RAG_SYSTEM_PROMPT}\n\n"
+            f"[참고 문서]\n{context}\n\n"
+            f"질문: {body.query}\n답변:"
+        )
+        num_ctx = len(prompt) // 2 + 1024
+        num_ctx = max(2048, min(num_ctx, 32768))
+        return sources, prompt, num_ctx
 
     @app.post("/v1/query")
     async def query_rag(body: QueryRequest):
@@ -504,7 +519,7 @@ def create_app(config: "SLMConfig"):
         else:
             body_for_search = body
 
-        sources, prompt = _search_documents(body_for_search)
+        sources, prompt, num_ctx = _search_documents(body_for_search)
         http_client = app.state.http_client
 
         if body.stream:
@@ -521,7 +536,7 @@ def create_app(config: "SLMConfig"):
                         "keep_alive": -1,
                         "options": {
                             "num_predict": config.rag.max_tokens,
-                            "num_ctx": 32768,
+                            "num_ctx": num_ctx,
                         },
                     },
                 ) as resp:
@@ -562,7 +577,7 @@ def create_app(config: "SLMConfig"):
                 "stream": False,
                 "think": False,
                 "keep_alive": -1,
-                "options": {"num_predict": config.rag.max_tokens, "num_ctx": 32768},
+                "options": {"num_predict": config.rag.max_tokens, "num_ctx": num_ctx},
             },
         )
         response.raise_for_status()
@@ -642,7 +657,7 @@ def create_app(config: "SLMConfig"):
         else:
             body_for_search = body
 
-        sources, prompt = _search_documents(body_for_search)
+        sources, prompt, num_ctx = _search_documents(body_for_search)
         http_client = app.state.http_client
 
         async def _generate():
@@ -655,7 +670,10 @@ def create_app(config: "SLMConfig"):
                     "stream": True,
                     "think": False,
                     "keep_alive": -1,
-                    "options": {"num_predict": config.rag.max_tokens, "num_ctx": 32768},
+                    "options": {
+                        "num_predict": config.rag.max_tokens,
+                        "num_ctx": num_ctx,
+                    },
                 },
             ) as resp:
                 resp.raise_for_status()
