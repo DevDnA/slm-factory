@@ -661,9 +661,10 @@ autorag_export:
 | `batch_size` | `int` | `64` | 인덱싱 배치 크기 |
 | `request_timeout` | `float` | `120.0` | Ollama 요청 타임아웃 (초) |
 | `max_tokens` | `int` | `-1` | 응답 최대 토큰 수. `-1`이면 모델 기본값을 사용합니다. 양수 지정 시 SLM의 반복 생성을 방지합니다 |
-| `reranker_enabled` | `bool` | `false` | 검색 결과를 cross-encoder로 재정렬하여 정확도를 높입니다 |
-| `reranker_model` | `str` | `"BAAI/bge-reranker-v2-m3"` | Reranker 모델명 (sentence-transformers CrossEncoder 호환) |
-| `hybrid_search` | `bool` | `false` | 벡터 검색과 키워드 검색(BM25)을 결합하여 검색 재현율을 높입니다 |
+| `reranker_enabled` | `bool` | `true` | 검색 결과를 cross-encoder로 재정렬하여 정확도를 높입니다 |
+| `reranker_model` | `str` | `"dragonkue/bge-reranker-v2-m3-ko"` | Reranker 모델명 (sentence-transformers CrossEncoder 호환) |
+| `hybrid_search` | `bool` | `true` | 벡터 검색과 키워드 검색(BM25Okapi)을 RRF(Reciprocal Rank Fusion)로 결합하여 검색 재현율을 높입니다. `rank_bm25` 패키지 필요 (`uv sync --extra rag`) |
+| `min_score` | `float` | `0.0` | 검색 결과 최소 유사도 점수 (0.0~1.0). 이 점수 미만의 문서는 제외됩니다. `0.0`이면 필터링하지 않습니다 |
 | `query_rewriting` | `bool` | `false` | 짧은 질의를 LLM으로 확장하여 검색 품질을 향상합니다 |
 
 ```yaml
@@ -681,6 +682,10 @@ rag:
   batch_size: 64
   request_timeout: 120.0
   max_tokens: -1
+  reranker_enabled: true
+  reranker_model: "dragonkue/bge-reranker-v2-m3-ko"
+  hybrid_search: true
+  min_score: 0.0
 ```
 
 **참고**
@@ -688,7 +693,7 @@ rag:
 - `tool rag-index`로 인덱싱, `tool rag-serve`로 서버를 실행합니다. CLI 사용법은 [CLI 레퍼런스](cli-reference.md)를 참조하십시오.
 - `uv sync --extra rag --extra validation`으로 의존성을 설치하세요.
 - 임베딩 모델은 sentence-transformers 호환 모델이면 모두 사용 가능합니다. 한국어·다국어 문서에는 `Qwen/Qwen3-Embedding-0.6B`가 권장됩니다.
-- `hybrid_search: true` 설정 시 BM25 키워드 검색과 벡터 검색을 결합합니다. 한국어 문서에서는 kiwipiepy 형태소 분석기를 사용하여 정확한 토큰화를 수행합니다 (`uv sync --extra korean` 필요).
+- `hybrid_search: true` (기본값) 설정 시 BM25Okapi 키워드 검색과 벡터 검색을 RRF(Reciprocal Rank Fusion)로 결합합니다. `rank_bm25` 패키지가 필요합니다 (`uv sync --extra rag`). 한국어 문서에서는 kiwipiepy 형태소 분석기를 사용하여 정확한 토큰화를 수행합니다 (`uv sync --extra korean` 필요). Lost-in-middle 문제를 완화하기 위해 검색된 문서를 관련도 순으로 재정렬합니다.
 
 ---
 

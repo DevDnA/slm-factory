@@ -46,6 +46,7 @@ slf [전역 옵션] <명령어> [옵션]
 | `tool export-autorag` | 🔧 도구 | RAG 인덱싱용 데이터 내보내기 |
 | `tool rag-index` | 🔧 도구 | corpus.parquet을 Qdrant에 임베딩 적재 |
 | `tool rag-serve` | 🔧 도구 | RAG API 서버 시작 (Qdrant 검색 + Ollama 생성) |
+| `tool eval-retrieval` | 🔧 도구 | RAG 검색 품질 평가 (Hit Rate, MRR, nDCG) |
 | `status` | ℹ️ 정보 | 각 파이프라인 단계의 진행 상태를 표시합니다 |
 | `clean` | ℹ️ 정보 | 중간 생성 파일을 정리합니다 |
 | `version` | ℹ️ 정보 | slm-factory 버전을 출력합니다 |
@@ -100,7 +101,7 @@ slf init policy-assistant --path /workspace/projects
 사전 준비:
   1. ./my-project/documents 디렉토리에 학습할 문서(PDF, TXT 등)를 추가하세요
   2. Ollama를 실행하세요: ollama serve  ← ./setup.sh가 자동 처리
-  3. Teacher 모델을 다운로드하세요: ollama pull qwen3.5:9b  ← ./setup.sh가 자동 처리
+  3. Teacher 모델을 다운로드하세요: ollama pull <teacher-model>  ← ./setup.sh가 자동 처리
 
 실행:
   4. 전체 파이프라인: slf tune
@@ -681,7 +682,7 @@ slf tool evolve --force-update --skip-gate
 
 **참고**
 
-- 진화 명령은 `tool update` + `run --until analyze` + `train` + `export` + `eval compare` + 버전 관리를 자동으로 수행합니다.
+- 진화 명령은 `tool update` + `tune --until analyze` + `train` + `export` + `eval compare` + 버전 관리를 자동으로 수행합니다.
 - 품질 게이트 설정(`quality_gate`, `gate_metric`, `gate_min_improvement`)은 `project.yaml`의 `evolve` 섹션에서 설정합니다. [설정 레퍼런스](configuration.md)를 참조하십시오.
 - 진화 히스토리는 `evolve_history.json`에 기록되며, 각 진화 단계의 메트릭과 타임스탬프를 포함합니다.
 - `--force-update` 사용 시 모든 문서를 재처리하므로 처리 시간이 증가합니다.
@@ -1116,7 +1117,7 @@ output/
 | `qa_scored.json` | `tune --until score` | 품질 점수 평가를 통과한 QA 쌍입니다. `--resume` 시 `augment`부터 재개합니다. |
 | `qa_augmented.json` | `tune --until augment` | 데이터 증강이 완료된 QA 쌍입니다. `--resume` 시 `analyze`부터 재개합니다. |
 | `qa_reviewed.json` | `tool review` | TUI에서 수동 리뷰를 거친 QA 쌍입니다. 승인된 항목만 포함됩니다. |
-| `data_analysis.json` | `run --until analyze` | 카테고리 분포, 길이 통계, 데이터 품질 경고를 포함한 분석 보고서입니다. |
+| `data_analysis.json` | `tune --until analyze` | 카테고리 분포, 길이 통계, 데이터 품질 경고를 포함한 분석 보고서입니다. |
 | `eval_results.json` | `eval run` | BLEU/ROUGE 메트릭별 점수와 평균 점수를 포함한 평가 결과입니다. |
 | `compare_results.json` | `eval compare` | 각 질문에 대한 Base 모델과 Fine-tuned 모델의 답변을 나란히 기록한 비교 결과입니다. |
 | `training_data.jsonl` | `tool convert` | Student 모델의 채팅 템플릿이 적용된 학습 데이터입니다. 각 줄은 `{"text": "..."}` 형식입니다. |

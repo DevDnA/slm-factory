@@ -476,9 +476,10 @@ SLMConfig (root)
     ├── batch_size: int = 64
     ├── request_timeout: float = 120.0
     ├── max_tokens: int = -1
-    ├── reranker_enabled: bool = False
-    ├── reranker_model: str = "BAAI/bge-reranker-v2-m3"
-    ├── hybrid_search: bool = False
+    ├── reranker_enabled: bool = True
+    ├── reranker_model: str = "dragonkue/bge-reranker-v2-m3-ko"
+    ├── hybrid_search: bool = True
+    ├── min_score: float = 0.0
     └── query_rewriting: bool = False
 ```
 
