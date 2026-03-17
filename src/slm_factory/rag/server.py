@@ -230,7 +230,7 @@ def create_app(config: "SLMConfig"):
         lifespan=lifespan,
     )
 
-    app.add_middleware(GZipMiddleware, minimum_size=1000000)
+    app.add_middleware(GZipMiddleware, minimum_size=1000)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=config.rag.cors_origins,
