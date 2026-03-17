@@ -951,6 +951,23 @@ def rag(
             corpus_path, _ = pipeline.step_autorag_export(doc_dicts, [])
             pipeline.step_rag_index(corpus_path)
 
+        qa_path = (
+            Path(pipeline.config.paths.output)
+            / pipeline.config.autorag_export.output_dir
+            / "qa.parquet"
+        )
+        if qa_path.is_file():
+            try:
+                from .evaluator import RetrievalEvaluator
+
+                console.print("[bold]검색 품질 평가 중...[/bold]\n")
+                ret_eval = RetrievalEvaluator(pipeline.config)
+                metrics = ret_eval.evaluate(qa_path)
+                ret_eval.print_summary(metrics)
+                console.print()
+            except Exception as e:
+                logger.debug("검색 평가 건너뜀: %s", e)
+
         if not chat:
             console.print(
                 "\n[bold green]RAG 인덱스 구축 완료![/bold green]\n"
