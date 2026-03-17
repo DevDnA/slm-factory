@@ -182,6 +182,10 @@ slf check --config my-first-project/project.yaml
 - 출력 디렉토리 쓰기 권한
 - Ollama 서버 연결 상태
 - Teacher 모델 사용 가능 여부
+- Student 모델 접근 가능 여부 (HuggingFace Hub)
+- 컴퓨팅 디바이스 감지 (CUDA/MPS/CPU)
+- 학습 정밀도 (bfloat16/float16/float32)
+- 4bit 양자화 지원 여부 (CUDA 환경)
 
 모든 항목이 통과되면 `모든 점검 통과!` 메시지가 표시됩니다.
 
@@ -212,8 +216,9 @@ slf tune --config my-first-project/project.yaml
 | 8 | LoRA 학습 | **필수** | Student 모델에 LoRA 어댑터를 적용하여 파인튜닝합니다 |
 | 9 | 모델 내보내기 | **필수** | LoRA 어댑터를 기본 모델에 병합하고 Ollama Modelfile을 생성합니다 |
 | 10 | 모델 평가 | 선택 | BLEU/ROUGE 메트릭으로 학습 결과를 자동 평가합니다 |
-| 11 | 코퍼스 내보내기 | 선택 | QA·문서를 RAG 인덱싱용 parquet으로 내보냅니다 (`autorag_export.enabled` 설정 반영) |
-| 12 | RAG 인덱싱 | 선택 | corpus.parquet을 Qdrant에 임베딩하여 적재합니다 (`rag` 설정 반영) |
+| 11 | Iterative Refinement | 선택 | 평가에서 약점이 발견된 QA를 재생성하고 재학습합니다 (`refinement.enabled` 설정 반영, 기본 비활성) |
+| 12 | 코퍼스 내보내기 | 선택 | QA·문서를 RAG 인덱싱용 parquet으로 내보냅니다 (`autorag_export.enabled` 설정 반영) |
+| 13 | RAG 인덱싱 | 선택 | corpus.parquet을 Qdrant에 임베딩하여 적재합니다 (`rag` 설정 반영) |
 
 선택 단계는 `project.yaml`의 `enabled` 설정에 따라 자동 결정됩니다.
 
@@ -899,7 +904,7 @@ training:
 ```yaml
 training:
   batch_size: 1                    # 기본값
-  gradient_accumulation_steps: 8   # 총 배치 크기 유지 (2×8=16)
+  gradient_accumulation_steps: 8   # 실효 배치 크기: 1×8=8
 ```
 
 방법 3: 시퀀스 길이 감소

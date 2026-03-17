@@ -182,7 +182,7 @@ teacher:
   temperature: 0.3
 ```
 
-권장 Ollama 모델: `qwen3.5:9b` (다국어, 8GB VRAM), `qwen3.5:9b` (고품질, 24GB+), `exaone3.5:7.8b` (한국어 최적화).
+권장 Ollama 모델: `qwen3.5:9b` (다국어, 8GB VRAM), `qwen3.5:27b` (고품질, 24GB+), `exaone3.5:7.8b` (한국어 최적화).
 
 ---
 
@@ -499,7 +499,7 @@ training:
 | `system_prompt` | `str` | `"You are a helpful domain-specific assistant."` | Ollama 모델의 시스템 프롬프트. 모델의 역할과 동작을 정의합니다 |
 | `parameters` | `dict[str, Any]` | (하위 참조) | Ollama 런타임 파라미터 |
 
-`parameters` 기본값: `temperature: 0.7`, `top_p: 0.9`, `num_ctx: 4096`.
+`parameters` 기본값 (Pydantic): `temperature: 0.7`, `top_p: 0.9`, `num_ctx: 4096`. 단, `slf init`으로 생성되는 템플릿에서는 `num_ctx: 32768`로 설정되어 있습니다.
 
 ```yaml
 export:
@@ -1052,16 +1052,30 @@ slf check --config project.yaml
 | 설정 파일 | YAML 로드 및 Pydantic 검증 |
 | 문서 디렉토리 | 존재 여부 및 파일 유무 |
 | 출력 디렉토리 | 쓰기 가능 여부 |
-| Ollama 연결 | 서버 연결 상태 및 모델 존재 여부 (`backend: "ollama"`일 때만) |
+| Ollama 연결 | 서버 연결 상태 (`backend: "ollama"`일 때만) |
+| 모델 사용 가능 | Teacher 모델이 Ollama에 다운로드되어 있는지 확인 |
+| 학생 모델 | HuggingFace Hub 접근 가능 여부 (게이트 모델 시 로그인 필요 안내) |
+| 컴퓨팅 디바이스 | GPU(CUDA/MPS) 또는 CPU 감지. GPU 미사용 시 경고 |
+| 학습 정밀도 | bfloat16/float16/float32 지원 여부 확인 |
+| 4bit 양자화 | CUDA 환경에서 `bitsandbytes` 설치 여부 (MPS는 N/A) |
 
 ### 예시 출력
 
-```bash
-$ slf check --config project.yaml
-✓ Config file: Valid
-✓ Documents directory: Found (5 files)
-✓ Output directory: Writable
-✓ Ollama connection: Connected (model: qwen3.5:9b)
+```
+                slm-factory 환경 점검
+┌────────────────┬────────┬────────────────────────────────┐
+│ 항목           │ 상태   │ 상세                           │
+├────────────────┼────────┼────────────────────────────────┤
+│ 설정 파일      │ OK     │ ./project.yaml                 │
+│ 문서 디렉토리  │ OK     │ 5개 파일 (./documents)         │
+│ 출력 디렉토리  │ OK     │ 쓰기 가능 (./output)           │
+│ Ollama 연결    │ OK     │ v0.3.12 (http://localhost:11434)│
+│ 모델 사용 가능 │ OK     │ qwen3.5:9b                     │
+│ 학생 모델      │ OK     │ google/gemma-3-1b-it           │
+│ 컴퓨팅 디바이스│ Apple Silicon GPU (MPS) │ Apple M3 Pro      │
+│ 학습 정밀도    │ OK     │ float16 (fp16)                 │
+│ 4bit 양자화    │ N/A    │ Apple Silicon — Unified Memory │
+└────────────────┴────────┴────────────────────────────────┘
 
 모든 점검 통과!
 ```

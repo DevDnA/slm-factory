@@ -123,10 +123,12 @@ slf tool rag-index
 
 # 3. RAG API 서버 실행
 slf rag
-# → POST http://localhost:8000/v1/query       질의 엔드포인트
-# → GET  http://localhost:8000/health          기본 헬스체크
-# → GET  http://localhost:8000/health/ready    Ollama+Qdrant 연결 확인
-# → GET  http://localhost:8000/health/live     라이브니스 체크
+# → POST http://localhost:8000/v1/query       질의 엔드포인트 (stream: true로 SSE 가능)
+# → POST http://localhost:8000/v1/stream      웹 채팅 UI 전용 SSE 스트리밍
+# → GET  http://localhost:8000/chat            내장 웹 채팅 UI
+# → GET  http://localhost:8000/health          /health/ready 별칭 (Qdrant+Ollama 연결 확인)
+# → GET  http://localhost:8000/health/ready    Qdrant+Ollama 연결 확인 (로드밸런서용)
+# → GET  http://localhost:8000/health/live     라이브니스 체크 (항상 200)
 ```
 
 > **팁**: `slf tune --chat` 명령으로 전체 파이프라인 실행 후 RAG 서버까지 한 번에 시작할 수 있습니다. 서버는 foreground로 실행되며, `Ctrl+C`로 종료합니다.
@@ -278,10 +280,10 @@ slm-factory 내장 RAG 서버로 RAG 서비스를 즉시 운영할 수 있지만
 
 | 문서 | 내용 |
 |------|------|
-| [사용 가이드](guide.html) | slm-factory 설치부터 모델 배포까지 단계별 안내 |
-| [설정 레퍼런스](configuration.html) | `rag`, `export.ollama` 설정 상세 |
-| [CLI 레퍼런스](cli-reference.html) | `tool rag-index`, `tool rag-serve` 명령어 상세 |
-| [아키텍처 가이드](architecture.html) | 모듈 내부 구조와 설계 원칙 |
-| [개발 가이드](development.html) | 모듈 확장 방법 |
+| [사용 가이드](guide.md) | slm-factory 설치부터 모델 배포까지 단계별 안내 |
+| [설정 레퍼런스](configuration.md) | `rag`, `export.ollama` 설정 상세 |
+| [CLI 레퍼런스](cli-reference.md) | `tool rag-index`, `tool rag-serve` 명령어 상세 |
+| [아키텍처 가이드](architecture.md) | 모듈 내부 구조와 설계 원칙 |
+| [개발 가이드](development.md) | 모듈 확장 방법 |
 
 
