@@ -461,11 +461,11 @@ class RagConfig(BaseModel):
     query_rewriting: bool = False
     """짧은 질의를 LLM으로 확장하여 검색 품질을 향상합니다."""
 
-    min_score: float = 0.3
+    min_score: float = 0.0
     """검색 결과 최소 유사도 점수 (0.0~1.0). 이 값 미만의 문서는 컨텍스트에서 제외됩니다.
     0.0으로 설정하면 필터링을 비활성화합니다."""
 
-    max_context_chars: int = 4000
+    max_context_chars: int = 8000
     """LLM에 전달할 참고 문서의 최대 문자 수."""
 
     @model_validator(mode="after")
