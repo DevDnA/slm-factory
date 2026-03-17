@@ -439,6 +439,33 @@ def create_app(config: "SLMConfig"):
             distances = [1.0 - rrf_scores[did] for did in sorted_ids]
             metadatas = [rrf_data[did][1] for did in sorted_ids]
 
+        # -- 유사도 필터링: min_score 미만 문서 제거 ---
+        min_score = config.rag.min_score
+        if min_score > 0:
+            filtered = [
+                (doc, did, dist, meta)
+                for doc, did, dist, meta in zip(documents, ids, distances, metadatas)
+                if max(0.0, min(1.0, 1.0 - dist)) >= min_score
+            ]
+            if filtered:
+                documents, ids, distances, metadatas = (
+                    [x[0] for x in filtered],
+                    [x[1] for x in filtered],
+                    [x[2] for x in filtered],
+                    [x[3] for x in filtered],
+                )
+
+        # -- Lost-in-the-middle 재정렬: 관련도 높은 문서를 처음과 끝에 배치 ---
+        if len(documents) >= 3:
+            items = list(zip(documents, ids, distances, metadatas))
+            front = [items[i] for i in range(0, len(items), 2)]
+            back = [items[i] for i in range(1, len(items), 2)]
+            reordered = front + list(reversed(back))
+            documents = [x[0] for x in reordered]
+            ids = [x[1] for x in reordered]
+            distances = [x[2] for x in reordered]
+            metadatas = [x[3] for x in reordered]
+
         sources: list[Source] = []
         context_parts: list[str] = []
         seen_parents: set[str] = set()

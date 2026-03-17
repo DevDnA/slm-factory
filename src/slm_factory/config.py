@@ -461,6 +461,10 @@ class RagConfig(BaseModel):
     query_rewriting: bool = False
     """짧은 질의를 LLM으로 확장하여 검색 품질을 향상합니다."""
 
+    min_score: float = 0.3
+    """검색 결과 최소 유사도 점수 (0.0~1.0). 이 값 미만의 문서는 컨텍스트에서 제외됩니다.
+    0.0으로 설정하면 필터링을 비활성화합니다."""
+
     @model_validator(mode="after")
     def _check_rag_params(self) -> "RagConfig":
         """RAG 설정의 유효성을 검증합니다."""
