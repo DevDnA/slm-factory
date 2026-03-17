@@ -807,10 +807,10 @@ uv run pytest tests/test_validator_rules.py::test_validate_batch_rejects_empty
 # 상세 출력
 uv run pytest -v
 
-# 커버리지 측정
+# 커버리지 측정 (pytest-cov 필요: uv add --dev pytest-cov)
 uv run pytest --cov=slm_factory --cov-report=html
 
-# 빠른 실행 (병렬)
+# 빠른 실행 (병렬, pytest-xdist 필요: uv add --dev pytest-xdist)
 uv run pytest -n auto
 ```
 
