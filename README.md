@@ -2,122 +2,101 @@
 
 # slm-factory
 
-### 도메인 문서 → 명령어 하나 → AI 채팅 서비스
+**도메인 문서만 넣으면 AI 채팅 서비스가 만들어집니다.**
 
-도메인 문서만 넣으면 **RAG 웹 채팅 서비스**를 즉시 구축합니다.<br>
-문서가 쌓이면 **SLM 파인튜닝**으로 경량 모델까지 자동 생산합니다.
+문서 넣고, 명령어 하나, 30초 만에 RAG 웹 채팅.<br>
+문서가 쌓이면 SLM 파인튜닝까지 자동으로.
 
-<br>
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://python.org)
+[![Ollama](https://img.shields.io/badge/Ollama-black?logo=ollama&logoColor=white)](https://ollama.com)
 
-[사용 가이드](https://devdna.github.io/slm-factory/guide.html) · [CLI 레퍼런스](https://devdna.github.io/slm-factory/cli-reference.html) · [RAG 서비스 가이드](https://devdna.github.io/slm-factory/integration-guide.html)
+[문서 홈](https://devdna.github.io/slm-factory/) · [사용 가이드](https://devdna.github.io/slm-factory/guide.html) · [CLI 레퍼런스](https://devdna.github.io/slm-factory/cli-reference.html) · [RAG 서비스 가이드](https://devdna.github.io/slm-factory/integration-guide.html)
 
 </div>
 
 <br>
 
-## 어떤 모드를 사용해야 하나요?
+## 왜 필요한가
 
-| 문서 수 | 추천 | 명령어 | 소요 시간 |
-|---------|------|--------|-----------|
-| **20건 미만** | RAG | `slf rag` | 첫 실행 2~5분, 이후 30초 |
-| **20건 이상** | 파인튜닝 + RAG | `slf tune` | 30분~1시간 |
+범용 LLM은 우리 조직의 문서를 모릅니다. ChatGPT에 사내 규정을 물어보면 그럴듯한 거짓말을 합니다.
 
-```bash
-slf rag                # RAG 채팅 즉시 시작 (30초)
-slf rag --no-chat      # RAG 인덱스만 구축
-slf tune               # 파인튜닝 + RAG + 채팅 (30분)
-slf tune --no-chat     # 파인튜닝 + RAG 구축 (채팅 안 띄움)
-```
-
-> 상세 비교는 [사용 가이드 — 2가지 서비스 모드](https://devdna.github.io/slm-factory/guide.html#2가지-서비스-모드)를 참고하세요.
+slm-factory는 **도메인 문서를 넣으면 그 문서만으로 답변하는 AI 채팅 서비스**를 만듭니다. 외부 API 호출이 없고, 사내 문서가 밖으로 나가지 않으며, 문서에 없는 내용은 "없다"고 답합니다.
 
 ## 빠른 시작
 
-### 1. 설치
-
 ```bash
 git clone https://github.com/DevDnA/slm-factory.git
-cd slm-factory
-./setup.sh
-```
+cd slm-factory && ./setup.sh
 
-> `setup.sh`가 `slf` 명령어를 자동 설치합니다. 설치 후 바로 `slf`를 사용할 수 있습니다.
-
-### 2. 프로젝트 생성 + 문서 추가
-
-```bash
 slf init my-project
 cp /path/to/documents/*.pdf my-project/documents/
-```
 
-> PDF, HWP, HWPX, DOCX, HTML, TXT, MD — 7개 포맷을 자동 감지합니다.
-
-### 3. 서비스 시작
-
-```bash
 slf rag
 ```
 
-브라우저에서 **http://localhost:8000/chat** 접속
+브라우저에서 **http://localhost:8000/chat** — 채팅이 시작됩니다.
 
-## 어떻게 동작하는가
+> `setup.sh`가 Python 환경, 의존성, Ollama 모델을 한 번에 준비합니다. PDF, HWP, HWPX, DOCX, HTML, TXT, MD 7개 포맷을 자동 감지합니다.
 
-### RAG 서비스 (slf rag)
+## 두 가지 모드
+
+| | `slf rag` | `slf tune` |
+|---|---|---|
+| **용도** | 문서 기반 RAG 채팅 | 파인튜닝 + RAG 채팅 |
+| **문서 수** | 제한 없음 | 20건 이상 권장 |
+| **소요 시간** | 첫 실행 2~5분, 이후 30초 | 30분~1시간 |
+| **모델** | Teacher(9B)가 직접 답변 | Student(1B)가 답변 — 9배 빠르고 1/9 비용 |
+
+```bash
+slf rag                # RAG 채팅 즉시 시작
+slf tune               # 파인튜닝 + RAG + 채팅
+slf tune --no-chat     # 파인튜닝만 (서버 미시작)
+```
+
+### RAG 서비스 — `slf rag`
 
 ```
-문서 → 섹션 인식 청킹 → 벡터 임베딩(Qwen3-Embedding-0.6B) → Qdrant
-                                                    ↓
-사용자 질문 → 벡터 검색 → 관련 문서 참조 → LLM 답변 생성 → 웹 채팅
+문서 ─→ 섹션 인식 청킹 ─→ 벡터 임베딩 ─→ Qdrant 인덱스
+                                              │
+질문 ─→ 하이브리드 검색(벡터+BM25) ─→ 리랭킹 ─→ LLM 답변 ─→ 웹 채팅
 ```
 
-### 파인튜닝 파이프라인 (slf tune)
+### 파인튜닝 — `slf tune`
 
 ```
-문서 → Teacher(9B)가 QA 자동 생성 → 검증/채점 → 증강
-  → Student(1B) LoRA 학습 → Ollama 모델 등록 → 평가 → RAG 인덱싱 → 웹 채팅
+문서 ─→ Teacher(9B)가 QA 생성 ─→ 검증/채점/증강
+  ─→ Student(1B) LoRA 학습 ─→ 평가 ─→ Ollama 등록 ─→ RAG + 웹 채팅
 ```
 
-## 핵심 기술
+> 두 모드 모두 `--chat` 옵션으로 완료 후 웹 채팅을 자동 시작합니다. 상세 비교는 [사용 가이드](https://devdna.github.io/slm-factory/guide.html#7-지식-증류와-rag--언제-무엇을-쓸-것인가)를 참고하세요.
 
-| 기능 | 설명 |
-|------|------|
-| **섹션 인식 청킹** | 문서의 논리적 구조(장/절/항)를 자동 감지하여 분할 |
-| **부모-자식 청킹** | 작은 청크로 정밀 검색, 큰 부모 청크로 충분한 맥락 전달 |
-| **컨텍스트 프리픽스** | 모든 청크에 섹션 계층 정보 자동 추가 |
-| **Auto 캘리브레이션** | 문서 특성에 따라 chunk_size, 질문 수 자동 최적화 |
-| **Magic bytes 감지** | 파일 확장자가 아닌 실제 내용으로 포맷 자동 판별 |
-| **Teacher-Student 증류** | 대형 모델이 생성한 QA로 소형 모델 학습 |
-| **웹 채팅 UI** | SSE 스트리밍, 참조 문서 표시, 한국어 IME 지원 |
+## 주요 기능
 
-## 무엇을 해결하는가
+**섹션 인식 청킹** — 문서의 장/절/항 구조를 자동 감지하여 논리적 단위로 분할합니다. 작은 청크로 정밀 검색하고, 부모 청크로 충분한 맥락을 전달합니다.
 
-| 문제 | slm-factory |
-|------|-------------|
-| 범용 LLM은 도메인을 모른다 | 도메인 문서 기반 RAG — 문서에 있는 내용만 답변 |
-| LLM API 비용이 계속 발생 | 로컬 실행, 외부 API 호출 없음 |
-| 사내 문서가 외부로 유출 | 온프레미스 완전 격리, 데이터 유출 제로 |
-| 할루시네이션 | RAG 검색 근거 기반 답변, 없는 정보는 "없다"고 답변 |
-| RAG 품질이 낮다 | 섹션 인식 + 부모-자식 청킹 + 컨텍스트 프리픽스 |
-| 파인튜닝이 어렵다 | 명령어 하나로 자동화 (문서 20건+ 필요) |
+**하이브리드 검색 + 리랭킹** — 벡터 검색과 BM25 키워드 검색을 RRF로 결합하고, Cross-Encoder로 최종 순위를 재조정합니다. Lost-in-the-middle 재정렬로 LLM이 관련 문서를 놓치지 않습니다.
+
+**자동 캘리브레이션** — 문서 길이, 밀도, 구조를 분석하여 chunk_size, 에포크 수, 청크당 질문 수를 자동 결정합니다. 설정 없이 바로 실행해도 합리적인 결과를 냅니다.
+
+**Teacher-Student 증류** — 9B Teacher 모델이 문서 기반 QA를 자동 생성하고, 검증·채점·증강을 거쳐 1B Student 모델을 학습시킵니다. 13단계 파이프라인이 명령어 하나로 실행됩니다.
 
 ## 문서
 
 > **[devdna.github.io/slm-factory](https://devdna.github.io/slm-factory/)**
 
-| 문서 | 내용 |
-|------|------|
-| [사용 가이드](https://devdna.github.io/slm-factory/guide.html) | 설치, 서비스 모드, 트러블슈팅 |
-| [RAG 서비스 가이드](https://devdna.github.io/slm-factory/integration-guide.html) | RAG 구축, API, 프로덕션 배포 |
-| [빠른 참조](https://devdna.github.io/slm-factory/quick-reference.html) | 명령어 치트시트 |
+| | |
+|---|---|
+| [사용 가이드](https://devdna.github.io/slm-factory/guide.html) | 설치부터 모델 배포까지 단계별 안내 |
+| [빠른 참조](https://devdna.github.io/slm-factory/quick-reference.html) | 명령어·설정 치트시트 |
 | [CLI 레퍼런스](https://devdna.github.io/slm-factory/cli-reference.html) | 전체 명령어 옵션 |
 | [설정 레퍼런스](https://devdna.github.io/slm-factory/configuration.html) | project.yaml 전체 설정 |
-| [아키텍처](https://devdna.github.io/slm-factory/architecture.html) | 기술 설계, 데이터 흐름 |
+| [RAG 서비스 가이드](https://devdna.github.io/slm-factory/integration-guide.html) | RAG 구축·API·프로덕션 배포 |
+| [아키텍처](https://devdna.github.io/slm-factory/architecture.html) | 기술 설계·데이터 흐름 |
 
 ## 시스템 요구사항
 
-- **Python** 3.11+
-- **Ollama** — [ollama.com](https://ollama.com)
-- **GPU** — Apple Silicon (MPS) / NVIDIA CUDA (8GB+) / CPU 폴백
+- **Python** 3.11+ · **Ollama** — [ollama.com](https://ollama.com)
+- **GPU** — NVIDIA CUDA (8GB+) 또는 Apple Silicon (MPS) 권장. CPU 폴백 가능(느림).
 
 ## 라이선스
 
