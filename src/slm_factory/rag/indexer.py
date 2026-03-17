@@ -67,9 +67,12 @@ class RAGIndexer:
         df = pd.read_parquet(corpus_path)
         logger.info("corpus.parquet 로드 완료 — %d개 청크", len(df))
 
+        import torch
+
         embedding_model = self.config.rag.embedding_model
+        embed_device = "cpu" if torch.cuda.is_available() else None
         logger.info("임베딩 모델 로드: %s", embedding_model)
-        model = SentenceTransformer(embedding_model)
+        model = SentenceTransformer(embedding_model, device=embed_device)
 
         self.db_path.mkdir(parents=True, exist_ok=True)
         client = QdrantClient(path=str(self.db_path))

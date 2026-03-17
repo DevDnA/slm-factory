@@ -121,8 +121,17 @@ def create_app(config: "SLMConfig"):
             count,
         )
 
-        embedding_model = SentenceTransformer(config.rag.embedding_model)
-        logger.info("임베딩 모델 로드 완료: %s", config.rag.embedding_model)
+        import torch
+
+        embed_device = "cpu" if torch.cuda.is_available() else None
+        embedding_model = SentenceTransformer(
+            config.rag.embedding_model, device=embed_device
+        )
+        logger.info(
+            "임베딩 모델 로드 완료: %s (device=%s)",
+            config.rag.embedding_model,
+            embedding_model.device.type,
+        )
 
         http_client = httpx.AsyncClient(
             timeout=httpx.Timeout(config.rag.request_timeout),
@@ -147,8 +156,11 @@ def create_app(config: "SLMConfig"):
             try:
                 from sentence_transformers import CrossEncoder
 
+                reranker_device = "cpu" if torch.cuda.is_available() else None
                 _app.state.reranker = CrossEncoder(
-                    config.rag.reranker_model, max_length=512
+                    config.rag.reranker_model,
+                    max_length=512,
+                    device=reranker_device,
                 )
                 logger.info("Reranker 모델 로드 완료: %s", config.rag.reranker_model)
             except Exception:
