@@ -37,6 +37,8 @@ my-project/
 
 설정 로딩 프로세스 상세는 [아키텍처 가이드](architecture.md)를 참조하십시오.
 
+<!-- diagram: configuration-config-tree -->
+
 ---
 
 ## 2. project — 프로젝트 메타데이터

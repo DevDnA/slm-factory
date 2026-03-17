@@ -119,6 +119,8 @@ slf tune
 
 > 모든 선택 단계는 기본으로 활성화됩니다. 개별 비활성화는 `project.yaml`에서 `enabled: false`로 설정합니다.
 
+<!-- diagram: quick-reference-diagram-pipeline-flow -->
+
 ---
 
 ## 자주 쓰는 워크플로우

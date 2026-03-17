@@ -4,108 +4,130 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>아키텍처 가이드 - slm-factory</title>
-  <meta name="description" content="slm-factory의 내부 설계와 동작 원리를 이해하세요.">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
   <link rel="stylesheet" href="./assets/style.css">
 </head>
 <body>
-<div class="page-wrapper">
+  <div class="page-wrapper">
 
-  <!-- ============ Sidebar ============ -->
-  <nav class="sidebar" aria-label="문서 탐색">
-    <div class="sidebar-header">
-      <a href="index.html" class="sidebar-logo">
-        <svg viewBox="0 0 28 28" fill="none" aria-hidden="true"><rect width="28" height="28" rx="6" fill="#3182CE"/><text x="14" y="19" text-anchor="middle" fill="#fff" font-size="14" font-weight="700" font-family="Pretendard,sans-serif">S</text></svg>
-        slm-factory
-      </a>
-      <span class="sidebar-version">Documentation</span>
-    </div>
-          <ul class="sidebar-nav">
-        <li class="nav-section">시작하기</li>
-        <li><a href="index.html">문서 홈</a></li>
-        <li><a href="guide.html">사용 가이드</a></li>
-<li><a href="integration-guide.html">RAG 서비스 가이드</a></li>
-        <li><a href="quick-reference.html">빠른 참조</a></li>
-        <li class="nav-section">레퍼런스</li>
-        <li><a href="cli-reference.html">CLI 레퍼런스</a></li>
-        <li><a href="configuration.html">설정 레퍼런스</a></li>
-        <li class="nav-section">심화</li>
-        <li><a href="architecture.html" class="active">아키텍처 가이드</a></li>
-        <li><a href="development.html">개발 가이드</a></li>
-      </ul>
-  </nav>
+    <nav class="sidebar" aria-label="문서 탐색">
+  <div class="sidebar-header">
+    <a href="index.html" class="sidebar-logo">
+      <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="28" height="28" rx="6" fill="#3182CE"/>
+        <path d="M7 14h4l2-4 3 8 2-4h3" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      slm-factory
+    </a>
+    <span class="sidebar-version">Documentation</span>
+  </div>
+  <ul class="sidebar-nav">
+    <li class="nav-section">시작하기</li>
+    <li><a href="index.html">문서 홈</a></li>
+    <li><a href="guide.html">사용 가이드</a></li>
+    <li><a href="integration-guide.html">RAG 서비스 가이드</a></li>
+    <li><a href="quick-reference.html">빠른 참조</a></li>
+    <li class="nav-section">레퍼런스</li>
+    <li><a href="cli-reference.html">CLI 레퍼런스</a></li>
+    <li><a href="configuration.html">설정 레퍼런스</a></li>
+    <li class="nav-section">심화</li>
+    <li><a href="architecture.html" class="active">아키텍처 가이드</a></li>
+    <li><a href="development.html">개발 가이드</a></li>
+  </ul>
+</nav>
 
-  <!-- ============ Main Content Area ============ -->
-  <div class="main-content">
+    <div class="main-content">
 
-    <!-- Page Header (Hero) -->
-    <header class="page-header">
+      <header class="page-header">
+        <div class="content-container">
+          <span class="badge">Architecture</span>
+          <h1>아키텍처 가이드</h1>
+          <p class="subtitle">slm-factory의 내부 구조와 설계 원칙을 설명합니다.</p>
+        </div>
+      </header>
+
       <div class="content-container">
-        <span class="badge">Developer Guide</span>
-        <h1>아키텍처 가이드</h1>
-        <p class="subtitle">slm-factory의 내부 설계와 동작 원리를 이해하세요.</p>
-      </div>
-    </header>
 
-    <!-- Content Body -->
-    <div class="content-container">
+        <nav class="breadcrumb" aria-label="경로">
+          <a href="index.html">문서</a>
+          <span class="separator" aria-hidden="true">/</span>
+          <span>아키텍처 가이드</span>
+        </nav>
 
-      <!-- Breadcrumb -->
-      <nav class="breadcrumb" aria-label="현재 위치">
-        <a href="index.html">문서</a>
-        <span class="separator">/</span>
-        <span>아키텍처 가이드</span>
-      </nav>
+        <nav class="toc" aria-label="목차">
+<div class="toc-title">목차</div>
+<ol class="toc-list">
+<li><a href="#1-설계-철학">1. 설계 철학</a>
+<ol class="toc-list">
+<li class="toc-h3"><a href="#11-yaml-중심-설정">1.1 YAML 중심 설정</a></li>
+<li class="toc-h3"><a href="#12-단계별-독립-실행">1.2 단계별 독립 실행</a></li>
+<li class="toc-h3"><a href="#13-지연-임포트-lazy-import">1.3 지연 임포트 (Lazy Import)</a></li>
+<li class="toc-h3"><a href="#14-pydantic-v2-타입-안전">1.4 Pydantic v2 타입 안전</a></li>
+<li class="toc-h3"><a href="#15-실패-격리">1.5 실패 격리</a></li>
+</ol>
+</li>
+<li><a href="#2-전체-아키텍처">2. 전체 아키텍처</a>
+<ol class="toc-list">
+<li class="toc-h3"><a href="#21-컴포넌트-구조-다이어그램">2.1 컴포넌트 구조 다이어그램</a></li>
+<li class="toc-h3"><a href="#22-모듈-의존성-다이어그램">2.2 모듈 의존성 다이어그램</a></li>
+</ol>
+</li>
+<li><a href="#3-핵심-설계-패턴">3. 핵심 설계 패턴</a>
+<ol class="toc-list">
+<li class="toc-h3"><a href="#31-registry-패턴-parsers">3.1 Registry 패턴 (parsers/)</a></li>
+<li class="toc-h3"><a href="#32-factory-패턴-teacher">3.2 Factory 패턴 (teacher/)</a></li>
+<li class="toc-h3"><a href="#33-strategy-패턴-validator">3.3 Strategy 패턴 (validator/)</a></li>
+<li class="toc-h3"><a href="#34-adapter-패턴-converterpy">3.4 Adapter 패턴 (converter.py)</a></li>
+<li class="toc-h3"><a href="#35-비동기-동시성-패턴-scorer-augmenter">3.5 비동기 동시성 패턴 (scorer, augmenter)</a></li>
+<li class="toc-h3"><a href="#36-통계-분석-패턴-analyzer">3.6 통계 분석 패턴 (analyzer)</a></li>
+</ol>
+</li>
+<li><a href="#4-데이터-흐름">4. 데이터 흐름</a>
+<ol class="toc-list">
+<li class="toc-h3"><a href="#41-파이프라인-단계별-입출력">4.1 파이프라인 단계별 입출력</a></li>
+<li class="toc-h3"><a href="#42-중간-파일-체인-다이어그램">4.2 중간 파일 체인 다이어그램</a></li>
+<li class="toc-h3"><a href="#43-재개-메커니즘-resume">4.3 재개 메커니즘 (--resume)</a></li>
+</ol>
+</li>
+<li><a href="#5-설정-시스템-아키텍처">5. 설정 시스템 아키텍처</a>
+<ol class="toc-list">
+<li class="toc-h3"><a href="#51-설정-모델-계층-구조">5.1 설정 모델 계층 구조</a></li>
+<li class="toc-h3"><a href="#52-설정-로드-프로세스">5.2 설정 로드 프로세스</a></li>
+<li class="toc-h3"><a href="#53-기본값-생성-로직">5.3 기본값 생성 로직</a></li>
+</ol>
+</li>
+<li><a href="#6-에러-처리-전략">6. 에러 처리 전략</a>
+<ol class="toc-list">
+<li class="toc-h3"><a href="#61-계층별-에러-처리">6.1 계층별 에러 처리</a></li>
+<li class="toc-h3"><a href="#62-복구-전략">6.2 복구 전략</a></li>
+</ol>
+</li>
+<li><a href="#관련-문서">관련 문서</a>
+</li>
+</ol>
+</nav>
 
-      <!-- Table of Contents -->
-      <div class="toc">
-        <div class="toc-title">목차</div>
-        <ol class="toc-list">
-          <li><a href="#design-philosophy">1. 설계 철학</a></li>
-          <li><a href="#overall-architecture">2. 전체 아키텍처</a></li>
-          <li><a href="#design-patterns">3. 핵심 설계 패턴</a></li>
-          <li><a href="#data-flow">4. 데이터 흐름</a></li>
-          <li><a href="#config-system">5. 설정 시스템 아키텍처</a></li>
-          <li><a href="#error-handling">6. 에러 처리 전략</a></li>
-          <li><a href="#related-docs">관련 문서</a></li>
-        </ol>
-      </div>
+        <section id="1-설계-철학">
+<h2 id="1-설계-철학">1. 설계 철학</h2>
+<p>SLM Factory는 다음 5가지 핵심 원칙을 기반으로 설계되었습니다.</p>
+<h3 id="11-yaml-중심-설정">1.1 YAML 중심 설정</h3>
+<p>모든 파이프라인 동작은 <code>project.yaml</code> 파일 하나로 제어됩니다. 코드 수정 없이 문서 파싱 옵션, Teacher 모델, 질문 카테고리, 검증 규칙, Student 모델, 학습 하이퍼파라미터, 내보내기 형식을 변경할 수 있습니다.</p>
+<h3 id="12-단계별-독립-실행">1.2 단계별 독립 실행</h3>
+<p>전체 파이프라인은 독립적인 단계(parse, generate, validate, score, augment, analyze, convert, train, export, eval, refine, autorag_export, rag_index)로 구성됩니다. CLI에서 <code>--until</code>로 지정 가능한 12단계와 자동 실행되는 refine 단계를 포함하여 총 13단계입니다. 각 단계는 이전 단계의 출력 파일을 입력으로 사용합니다. 특정 단계만 재실행하거나 중간 결과를 검토할 수 있습니다. chunking은 generate 단계에 통합되어 <code>chunking.enabled</code> 설정에 따라 자동으로 수행됩니다.</p>
+<h3 id="13-지연-임포트-lazy-import">1.3 지연 임포트 (Lazy Import)</h3>
+<p><code>torch</code>, <code>transformers</code>, <code>peft</code>, <code>sentence-transformers</code> 등 무거운 라이브러리는 실제 사용 시점에만 로드됩니다. CLI 초기 응답 속도를 빠르게 유지하고, 특정 단계만 실행할 때 불필요한 의존성을 로드하지 않습니다. <code>parse</code> 명령어는 딥러닝 라이브러리를 전혀 로드하지 않습니다.</p>
+<h3 id="14-pydantic-v2-타입-안전">1.4 Pydantic v2 타입 안전</h3>
+<p>모든 설정은 Pydantic v2 모델로 정의되어 YAML 로드 시 자동으로 타입 검증이 수행됩니다. 기본값, 필수 필드, 값 범위 제약이 명시적으로 정의되어 있어 오타나 잘못된 값이 입력되면 즉시 에러 메시지를 출력합니다.</p>
+<h3 id="15-실패-격리">1.5 실패 격리</h3>
+<p>개별 파일 파싱 실패, 특정 문서의 QA 생성 실패, 단일 QA 쌍의 검증 실패 등은 전체 파이프라인을 중단시키지 않습니다. 실패한 항목은 로그에 기록되고 건너뛰며, 나머지 항목은 정상적으로 처리됩니다.</p>
+<hr>
+</section>
 
-      <!-- ======================================================
-           Section 1: 설계 철학
-           ====================================================== -->
-      <section id="design-philosophy">
-        <h2>1. 설계 철학</h2>
-        <p>SLM Factory는 다음 5가지 핵심 원칙을 기반으로 설계되었습니다.</p>
-
-        <h3 id="yaml-config">1.1 YAML 중심 설정</h3>
-        <p>모든 파이프라인 동작은 <code>project.yaml</code> 파일 하나로 제어됩니다. 코드 수정 없이 문서 파싱 옵션, Teacher 모델, 질문 카테고리, 검증 규칙, Student 모델, 학습 하이퍼파라미터, 내보내기 형식을 변경할 수 있습니다.</p>
-
-        <h3 id="step-independence">1.2 단계별 독립 실행</h3>
-        <p>전체 파이프라인은 독립적인 단계(parse, chunking, generate, validate, score, augment, analyze, convert, train, export, eval, refine, autorag_export, rag_index)로 구성됩니다. 각 단계는 CLI 명령어로 개별 실행 가능하며, 이전 단계의 출력 파일을 입력으로 사용합니다. 특정 단계만 재실행하거나 중간 결과를 검토할 수 있습니다.</p>
-
-        <h3 id="lazy-import">1.3 지연 임포트 (Lazy Import)</h3>
-        <p><code>torch</code>, <code>transformers</code>, <code>peft</code>, <code>sentence-transformers</code> 등 무거운 라이브러리는 실제 사용 시점에만 로드됩니다. CLI 초기 응답 속도를 빠르게 유지하고, 특정 단계만 실행할 때 불필요한 의존성을 로드하지 않습니다. <code>parse</code> 명령어는 딥러닝 라이브러리를 전혀 로드하지 않습니다.</p>
-
-        <h3 id="pydantic-safety">1.4 Pydantic v2 타입 안전</h3>
-        <p>모든 설정은 Pydantic v2 모델로 정의되어 YAML 로드 시 자동으로 타입 검증이 수행됩니다. 기본값, 필수 필드, 값 범위 제약이 명시적으로 정의되어 있어 오타나 잘못된 값이 입력되면 즉시 에러 메시지를 출력합니다.</p>
-
-        <h3 id="failure-isolation">1.5 실패 격리</h3>
-        <p>개별 파일 파싱 실패, 특정 문서의 QA 생성 실패, 단일 QA 쌍의 검증 실패 등은 전체 파이프라인을 중단시키지 않습니다. 실패한 항목은 로그에 기록되고 건너뛰며, 나머지 항목은 정상적으로 처리됩니다.</p>
-      </section>
-
-      <hr>
-
-      <!-- ======================================================
-           Section 2: 전체 아키텍처
-           ====================================================== -->
-      <section id="overall-architecture">
-        <h2>2. 전체 아키텍처</h2>
-
-        <h3 id="component-structure">2.1 컴포넌트 구조 다이어그램</h3>
-
-        <div style="overflow-x:auto;">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 680" role="img" aria-labelledby="cd-title cd-desc" style="max-width:820px;width:100%;height:auto;display:block;margin:0 auto;">
+<section id="2-전체-아키텍처">
+<h2 id="2-전체-아키텍처">2. 전체 아키텍처</h2>
+<h3 id="21-컴포넌트-구조-다이어그램">2.1 컴포넌트 구조 다이어그램</h3>
+<div class="diagram">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 680" role="img" aria-labelledby="cd-title cd-desc" style="max-width:820px;width:100%;height:auto;display:block;margin:0 auto;">
           <title id="cd-title">slm-factory 컴포넌트 구조 다이어그램</title>
           <desc id="cd-desc">CLI → Pipeline → 13단계 파이프라인 → Config 구조</desc>
           <defs>
@@ -245,20 +267,61 @@
           <line x1="640" y1="550" x2="790" y2="550" stroke="#475569" stroke-width="0.5" stroke-dasharray="4,4" opacity="0.4"/>
           <line x1="790" y1="550" x2="790" y2="130" stroke="#475569" stroke-width="0.5" stroke-dasharray="4,4" opacity="0.4"/>
         </svg>
-        </div>
+</div>
+<pre><code>                     ┌─────────────────────────────┐
+                       CLI (cli.py)
+                       Entry Point (Typer)
+                     └──────────────┬──────────────┘
+                                    ▼
+                     ┌─────────────────────────────┐
+                         Pipeline (pipeline.py)
+                          Orchestrator (13 steps, --until 12)
+                     └──────────────┬──────────────┘
+                                    ▼
 
-        <h3 id="module-dependencies">2.2 모듈 의존성 다이어그램</h3>
+┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+  1. Parse             2. Generate          3. Validate
+  parsers/             teacher/             validator/
+└────────┬─────────┘ └────────┬─────────┘ └────────┬─────────┘
+         ▼                    ▼                    ▼
+  parsed_documents.json qa_alpaca.json       (filtered pairs)
 
-        <pre data-lang="text"><code>cli.py
+┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+  4. Score             5. Augment           6. Analyze
+  scorer.py            augmenter.py         analyzer.py
+└────────┬─────────┘ └────────┬─────────┘ └────────┬─────────┘
+         ▼                    ▼                    ▼
+  qa_scored.json       qa_augmented.json   data_analysis.json
+
+┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+  7. Convert           8. Train             9. Export
+  converter.py         trainer/             exporter/
+└────────┬─────────┘ └────────┬─────────┘ └────────┬─────────┘
+         ▼                    ▼                    ▼
+  training_data.jsonl  adapter/            merged_model/ Modelfile
+
+┌──────────────┐ ┌──────────────┐ ┌──────────────────┐ ┌──────────────────┐
+  10. Eval         11. Refine       12. Autorag Export   13. RAG Index
+  evaluator.py     pipeline.py      exporter/            rag/
+└──────┬───────┘ └──────┬───────┘ └────────┬─────────┘ └────────┬─────────┘
+       ▼                ▼                    ▼                    ▼
+  eval_results.json  (재학습)         autorag/*.parquet    qdrant_db/
+
+                     ┌─────────────────────────────┐
+                       Config (config.py)
+                       Injected into all components
+                     └─────────────────────────────┘</code></pre>
+<h3 id="22-모듈-의존성-다이어그램">2.2 모듈 의존성 다이어그램</h3>
+<pre><code>cli.py
   └─→ pipeline.py
         ├─→ parsers/
         │     ├─→ base.py (BaseParser, ParserRegistry)
         │     ├─→ pdf.py (PDFParser)
         │     ├─→ hwpx.py (HWPXParser)
         │     ├─→ html.py (HTMLParser)
-        │     ├─→ text.py (TextParser)
-        │     ├─→ docx.py (DOCXParser)
-        │     └─→ hwp.py (HWPParser)
+│     ├─→ text.py (TextParser)
+│     ├─→ docx.py (DOCXParser)
+│     └─→ hwp.py (HWPParser)
         │
         ├─→ teacher/
         │     ├─→ base.py (BaseTeacher)
@@ -289,41 +352,32 @@
         ├─→ calibration.py (auto_chunk_size, auto_num_epochs, section_aware_chunk)
         ├─→ device.py (detect_device)
         ├─→ evolve_history.py (EvolveHistory)
+        ├─→ rag/ (RAGIndexer, RAG 서버)
         └─→ tui/ (QAReviewerApp)
 
 모든 모듈
-  ├─→ config.py (SLMConfig + 29개 하위 모델)
+  ├─→ config.py (SLMConfig + 28개 하위 모델)
   ├─→ models.py (ParsedDocument, QAPair, EvalResult, CompareResult)
   └─→ utils.py (setup_logging, get_logger)</code></pre>
+<hr>
+</section>
 
-      </section>
-
-      <hr>
-
-      <!-- ======================================================
-           Section 3: 핵심 설계 패턴
-           ====================================================== -->
-      <section id="design-patterns">
-        <h2>3. 핵심 설계 패턴</h2>
-
-        <h3 id="registry-pattern">3.1 Registry 패턴 (parsers/)</h3>
-        <p>파서 시스템은 Registry 패턴으로 확장 가능한 파일 형식 지원을 제공합니다. <code>ParserRegistry</code>가 <code>BaseParser</code> 인스턴스 목록을 관리하며, <code>get_parser(path)</code>는 등록된 파서를 순회하여 <code>can_parse(path)</code>를 만족하는 첫 번째 파서를 반환합니다.</p>
-
-        <pre data-lang="python"><code>@registry.register
+<section id="3-핵심-설계-패턴">
+<h2 id="3-핵심-설계-패턴">3. 핵심 설계 패턴</h2>
+<h3 id="31-registry-패턴-parsers">3.1 Registry 패턴 (parsers/)</h3>
+<p>파서 시스템은 Registry 패턴으로 확장 가능한 파일 형식 지원을 제공합니다. <code>ParserRegistry</code>가 <code>BaseParser</code> 인스턴스 목록을 관리하며, <code>get_parser(path)</code>는 등록된 파서를 순회하여 <code>can_parse(path)</code>를 만족하는 첫 번째 파서를 반환합니다.</p>
+<pre data-lang="python"><code>@registry.register
 class CSVParser(BaseParser):
     extensions = [".csv"]
 
     def parse(self, path: Path) -&gt; ParsedDocument:
         ...</code></pre>
-
-        <p><code>parsers/__init__.py</code>에서 전역 <code>registry</code> 인스턴스를 생성하고 6개 파서(PDF, HWPX, HWP, HTML, Text, DOCX)를 자동 등록합니다. 새 파서를 <code>@registry.register</code>로 등록하면 즉시 파이프라인에서 처리됩니다.</p>
-        <p><code>parsers/base.py</code>의 <code>detect_encoding()</code> 함수는 HTML 파서와 텍스트 파서가 공유하는 인코딩 감지 유틸리티입니다. charset-normalizer를 사용하여 EUC-KR, CP949 등 한국어 인코딩을 정확하게 감지합니다. <code>HTMLParser</code>는 BeautifulSoup4의 lxml 백엔드를 사용하며, h1–h6 헤딩 태그를 마크다운 헤딩으로 변환하여 문서 구조를 보존합니다.</p>
-        <p>커스텀 파서 구현 전체 예제는 <a href="development.html">개발자 가이드</a> 참조</p>
-
-        <h3 id="factory-pattern">3.2 Factory 패턴 (teacher/)</h3>
-        <p>Teacher 백엔드 생성은 Factory 패턴으로 설정 기반의 적절한 구현체를 반환합니다.</p>
-
-        <pre data-lang="python"><code>def create_teacher(config: TeacherConfig) -&gt; BaseTeacher:
+<p><code>parsers/__init__.py</code>에서 전역 <code>registry</code> 인스턴스를 생성하고 4개 기본 파서(PDF, HWPX, HTML, Text)를 무조건 등록하며, 2개 선택적 파서(DOCX, HWP)는 해당 패키지가 설치된 경우에만 등록합니다. 새 파서를 <code>@registry.register</code>로 등록하면 즉시 파이프라인에서 처리됩니다.</p>
+<p><code>parsers/base.py</code>의 <code>detect_encoding()</code> 함수는 HTML 파서와 텍스트 파서가 공유하는 인코딩 감지 유틸리티입니다. charset-normalizer를 사용하여 EUC-KR, CP949 등 한국어 인코딩을 정확하게 감지합니다. <code>HTMLParser</code>는 BeautifulSoup4의 lxml 백엔드를 사용하며, h1–h6 헤딩 태그를 마크다운 헤딩으로 변환하여 문서 구조를 보존합니다.</p>
+<p>→ 커스텀 파서 구현 전체 예제는 <a href="development.html">개발자 가이드</a> 참조</p>
+<h3 id="32-factory-패턴-teacher">3.2 Factory 패턴 (teacher/)</h3>
+<p>Teacher 백엔드 생성은 Factory 패턴으로 설정 기반의 적절한 구현체를 반환합니다.</p>
+<pre data-lang="python"><code>def create_teacher(config: TeacherConfig) -&gt; BaseTeacher:
     if config.backend == "ollama":
         from .ollama import OllamaTeacher
         return OllamaTeacher(config)
@@ -331,80 +385,130 @@ class CSVParser(BaseParser):
         from .openai_compat import OpenAICompatTeacher
         return OpenAICompatTeacher(config)
     raise ValueError(f"Unknown backend: {config.backend}")</code></pre>
-
-        <p><code>BaseTeacher</code>는 <code>generate(prompt, **kwargs) → str</code>와 <code>health_check() → bool</code>을 추상 메서드로 정의합니다.</p>
-        <p>새 백엔드 추가 방법은 <a href="development.html">개발자 가이드</a> 참조</p>
-
-        <h3 id="strategy-pattern">3.3 Strategy 패턴 (validator/)</h3>
-        <p>검증 시스템은 Strategy 패턴으로 여러 검증 전략을 조합합니다.</p>
-        <ul>
-          <li><code>RuleValidator</code>: empty → length → pattern → dedup 순서로 4개 규칙을 체인 적용합니다.</li>
-          <li><code>GroundednessChecker</code>: sentence-transformers 임베딩 기반 코사인 유사도 검증을 수행합니다.</li>
-          <li>두 검증기 모두 <code>(accepted, rejected)</code> 튜플을 반환하며, <code>step_validate()</code>에서 순차 적용됩니다.</li>
-        </ul>
-
-        <h3 id="adapter-pattern">3.4 Adapter 패턴 (converter.py)</h3>
-        <p><code>ChatFormatter</code>는 HuggingFace <code>tokenizer.apply_chat_template()</code>을 래핑하여 통일된 <code>QAPair</code> 형식을 모델별 채팅 형식으로 변환합니다. Gemma처럼 시스템 역할을 지원하지 않는 모델은 시스템 메시지를 제거하고 자동으로 재시도합니다. <code>max_seq_length</code> 초과 항목은 자동으로 제외됩니다.</p>
-
-        <h3 id="async-pattern">3.5 비동기 동시성 패턴 (scorer, augmenter)</h3>
-        <p>Scorer와 Augmenter는 <code>asyncio.Semaphore</code>로 동시 요청 수를 제한하면서 병렬 처리합니다.</p>
-
-        <pre data-lang="python"><code>semaphore = asyncio.Semaphore(config.max_concurrency)
+<p><code>BaseTeacher</code>는 <code>generate(prompt, **kwargs) → str</code>와 <code>health_check() → bool</code>을 추상 메서드로 정의합니다.</p>
+<p>→ 새 백엔드 추가 방법은 <a href="development.html">개발자 가이드</a> 참조</p>
+<h3 id="33-strategy-패턴-validator">3.3 Strategy 패턴 (validator/)</h3>
+<p>검증 시스템은 Strategy 패턴으로 여러 검증 전략을 조합합니다.</p>
+<ul>
+<li><code>RuleValidator</code>: empty &rarr; length &rarr; pattern &rarr; dedup 순서로 4개 규칙을 체인 적용합니다.</li>
+<li><code>GroundednessChecker</code>: sentence-transformers 임베딩 기반 코사인 유사도 검증을 수행합니다.</li>
+<li>두 검증기 모두 <code>(accepted, rejected)</code> 튜플을 반환하며, <code>step_validate()</code>에서 순차 적용됩니다.</li>
+</ul>
+<h3 id="34-adapter-패턴-converterpy">3.4 Adapter 패턴 (converter.py)</h3>
+<p><code>ChatFormatter</code>는 HuggingFace <code>tokenizer.apply_chat_template()</code>을 래핑하여 통일된 <code>QAPair</code> 형식을 모델별 채팅 형식으로 변환합니다. Gemma처럼 시스템 역할을 지원하지 않는 모델은 시스템 메시지를 제거하고 자동으로 재시도합니다. <code>max_seq_length</code> 초과 항목은 자동으로 제외됩니다.</p>
+<h3 id="35-비동기-동시성-패턴-scorer-augmenter">3.5 비동기 동시성 패턴 (scorer, augmenter)</h3>
+<p>Scorer와 Augmenter는 <code>asyncio.Semaphore</code>로 동시 요청 수를 제한하면서 병렬 처리합니다.</p>
+<pre data-lang="python"><code>semaphore = asyncio.Semaphore(config.max_concurrency)
 
 async def _bounded_task(item):
     async with semaphore:
         return await process(item)
 
 results = await asyncio.gather(*tasks, return_exceptions=True)</code></pre>
+<p><code>return_exceptions=True</code>로 개별 실패를 허용하며, Rich Progress 바로 실시간 진행 상황을 표시합니다.</p>
+<h3 id="36-통계-분석-패턴-analyzer">3.6 통계 분석 패턴 (analyzer)</h3>
+<p><code>DataAnalyzer</code>는 LLM 의존성 없이 순수 통계 분석을 수행합니다. <code>Counter</code>로 분포를 계산하고, <code>statistics</code> 모듈로 기초 통계를 산출합니다. 데이터 불균형, 이상치 등을 자동으로 감지하여 경고를 생성하고 Rich 콘솔로 시각적 보고서를 출력합니다.</p>
+<p>→ 각 패턴의 실제 API는 <a href="development.html">개발자 가이드</a> 참조</p>
+<hr>
+</section>
 
-        <p><code>return_exceptions=True</code>로 개별 실패를 허용하며, Rich Progress 바로 실시간 진행 상황을 표시합니다.</p>
-
-        <h3 id="analyzer-pattern">3.6 통계 분석 패턴 (analyzer)</h3>
-        <p><code>DataAnalyzer</code>는 LLM 의존성 없이 순수 통계 분석을 수행합니다. <code>Counter</code>로 분포를 계산하고, <code>statistics</code> 모듈로 기초 통계를 산출합니다. 데이터 불균형, 이상치 등을 자동으로 감지하여 경고를 생성하고 Rich 콘솔로 시각적 보고서를 출력합니다.</p>
-        <p>각 패턴의 실제 API는 <a href="development.html">개발자 가이드</a> 참조</p>
-      </section>
-
-      <hr>
-
-      <!-- ======================================================
-           Section 4: 데이터 흐름
-           ====================================================== -->
-      <section id="data-flow">
-        <h2>4. 데이터 흐름</h2>
-
-        <h3 id="pipeline-io">4.1 파이프라인 단계별 입출력</h3>
-
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>단계</th>
-                <th>입력 타입</th>
-                <th>출력 타입</th>
-                <th>저장 파일</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr><td>parse</td><td>파일 시스템 (PDF/HWPX/HTML/TXT/MD/DOCX/HWP)</td><td><code>list[ParsedDocument]</code></td><td><code>parsed_documents.json</code></td></tr>
-              <tr><td>generate</td><td><code>list[ParsedDocument]</code></td><td><code>list[QAPair]</code></td><td><code>qa_alpaca.json</code></td></tr>
-              <tr><td>validate</td><td><code>list[QAPair]</code></td><td><code>list[QAPair]</code> (필터링)</td><td>없음 (메모리 전달)</td></tr>
-              <tr><td>score</td><td><code>list[QAPair]</code></td><td><code>list[QAPair]</code> (필터링)</td><td><code>qa_scored.json</code></td></tr>
-              <tr><td>augment</td><td><code>list[QAPair]</code></td><td><code>list[QAPair]</code> (원본+증강)</td><td><code>qa_augmented.json</code></td></tr>
-              <tr><td>analyze</td><td><code>list[QAPair]</code></td><td>보고서 (JSON)</td><td><code>data_analysis.json</code></td></tr>
-              <tr><td>convert</td><td><code>list[QAPair]</code></td><td>JSONL 파일 경로</td><td><code>training_data.jsonl</code></td></tr>
-              <tr><td>train</td><td>JSONL 파일 경로</td><td>어댑터 디렉토리 경로</td><td><code>checkpoints/adapter/</code></td></tr>
-              <tr><td>export</td><td>어댑터 디렉토리 경로</td><td>병합 모델 디렉토리 경로</td><td><code>merged_model/</code> + <code>Modelfile</code></td></tr>
-              <tr><td>eval</td><td><code>list[QAPair]</code> + 모델 이름</td><td><code>list[EvalResult]</code></td><td><code>eval_results.json</code></td></tr>
-              <tr><td>compare</td><td><code>list[QAPair]</code></td><td><code>list[CompareResult]</code></td><td><code>compare_results.json</code></td></tr>
-              <tr><td>autorag_export</td><td><code>list[ParsedDocument]</code> + <code>list[QAPair]</code></td><td>parquet files</td><td><code>autorag/corpus.parquet</code>, <code>autorag/qa.parquet</code></td></tr>
-              <tr><td>rag_index</td><td><code>corpus.parquet</code></td><td>Qdrant collection</td><td><code>qdrant_db/</code></td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <h3 id="file-chain">4.2 중간 파일 체인 다이어그램</h3>
-
-        <pre data-lang="text"><code>documents/
+<section id="4-데이터-흐름">
+<h2 id="4-데이터-흐름">4. 데이터 흐름</h2>
+<h3 id="41-파이프라인-단계별-입출력">4.1 파이프라인 단계별 입출력</h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr>
+<th>단계</th>
+<th>입력 타입</th>
+<th>출력 타입</th>
+<th>저장 파일</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>parse</td>
+<td>파일 시스템 (PDF/HWPX/HTML/TXT/MD/DOCX/HWP)</td>
+<td><code>list[ParsedDocument]</code></td>
+<td><code>parsed_documents.json</code></td>
+</tr>
+<tr>
+<td>generate</td>
+<td><code>list[ParsedDocument]</code></td>
+<td><code>list[QAPair]</code></td>
+<td><code>qa_alpaca.json</code></td>
+</tr>
+<tr>
+<td>validate</td>
+<td><code>list[QAPair]</code></td>
+<td><code>list[QAPair]</code> (필터링)</td>
+<td>없음 (메모리 전달)</td>
+</tr>
+<tr>
+<td>score</td>
+<td><code>list[QAPair]</code></td>
+<td><code>list[QAPair]</code> (필터링)</td>
+<td><code>qa_scored.json</code></td>
+</tr>
+<tr>
+<td>augment</td>
+<td><code>list[QAPair]</code></td>
+<td><code>list[QAPair]</code> (원본+증강)</td>
+<td><code>qa_augmented.json</code></td>
+</tr>
+<tr>
+<td>analyze</td>
+<td><code>list[QAPair]</code></td>
+<td>보고서 (JSON)</td>
+<td><code>data_analysis.json</code></td>
+</tr>
+<tr>
+<td>convert</td>
+<td><code>list[QAPair]</code></td>
+<td>JSONL 파일 경로</td>
+<td><code>training_data.jsonl</code></td>
+</tr>
+<tr>
+<td>train</td>
+<td>JSONL 파일 경로</td>
+<td>어댑터 디렉토리 경로</td>
+<td><code>checkpoints/adapter/</code></td>
+</tr>
+<tr>
+<td>export</td>
+<td>어댑터 디렉토리 경로</td>
+<td>병합 모델 디렉토리 경로</td>
+<td><code>merged_model/</code> + <code>Modelfile</code></td>
+</tr>
+<tr>
+<td>eval</td>
+<td><code>list[QAPair]</code> + 모델 이름</td>
+<td><code>list[EvalResult]</code></td>
+<td><code>eval_results.json</code></td>
+</tr>
+<tr>
+<td>compare</td>
+<td><code>list[QAPair]</code></td>
+<td><code>list[CompareResult]</code></td>
+<td><code>compare_results.json</code></td>
+</tr>
+<tr>
+<td>autorag_export</td>
+<td><code>list[ParsedDocument]</code> + <code>list[QAPair]</code></td>
+<td>parquet files</td>
+<td><code>autorag/corpus.parquet</code>, <code>autorag/qa.parquet</code></td>
+</tr>
+<tr>
+<td>rag_index</td>
+<td><code>corpus.parquet</code></td>
+<td>Qdrant collection</td>
+<td><code>qdrant_db/</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="42-중간-파일-체인-다이어그램">4.2 중간 파일 체인 다이어그램</h3>
+<pre><code>documents/
   (PDF, HWPX, HWP, HTML, TXT, MD, DOCX)
         │
         ▼ step_parse()
@@ -452,34 +556,23 @@ merged_model/
         │
         ▼ step_rag_index()
   qdrant_db/</code></pre>
+<h3 id="43-재개-메커니즘-resume">4.3 재개 메커니즘 (--resume)</h3>
+<p><code>--resume</code> 옵션을 사용하면 CLI가 중간 파일의 존재 여부를 확인하여 완료된 단계를 건너뜁니다. 체크포인트 감지 우선순위는 다음과 같습니다.</p>
+<pre><code>qa_augmented.json 존재   →  analyze 단계부터 재개
+qa_scored.json 존재      →  augment 단계부터 재개
+qa_alpaca.json 존재      →  validate 단계부터 재개
+parsed_documents.json    →  generate 단계부터 재개
+없음                     →  처음부터 실행</code></pre>
+<p><code>slf status</code> 명령으로 각 중간 파일의 존재 여부와 항목 수를 확인할 수 있습니다.</p>
+<p>→ 각 단계 사용법은 <a href="guide.html">사용 가이드</a> 참조   &rarr; 각 단계 API는 <a href="development.html">개발자 가이드</a> 참조</p>
+<hr>
+</section>
 
-        <h3 id="resume">4.3 재개 메커니즘 (--resume)</h3>
-        <p><code>--resume</code> 옵션을 사용하면 CLI가 중간 파일의 존재 여부를 확인하여 완료된 단계를 건너뜁니다. 체크포인트 감지 우선순위는 다음과 같습니다.</p>
-
-        <pre data-lang="text"><code>qa_augmented.json 존재  →  analyze 단계부터 재개
-qa_scored.json 존재     →  augment 단계부터 재개
-qa_alpaca.json 존재     →  validate 단계부터 재개
-parsed_documents.json   →  generate 단계부터 재개
-없음                    →  처음부터 실행</code></pre>
-
-        <p><code>slf status</code> 명령으로 각 중간 파일의 존재 여부와 항목 수를 확인할 수 있습니다.</p>
-        <p>각 단계 사용법은 <a href="guide.html">사용 가이드</a> 참조<br>
-        각 단계 API는 <a href="development.html">개발자 가이드</a> 참조</p>
-      </section>
-
-      <hr>
-
-      <!-- ======================================================
-           Section 5: 설정 시스템 아키텍처
-           ====================================================== -->
-      <section id="config-system">
-        <h2>5. 설정 시스템 아키텍처</h2>
-
-        <h3 id="config-hierarchy">5.1 설정 모델 계층 구조</h3>
-
-        <!-- SVG 4: Config Hierarchy Diagram -->
-        <div class="diagram">
-          <svg role="img" aria-labelledby="svg4-title svg4-desc" viewBox="0 0 780 500" xmlns="http://www.w3.org/2000/svg">
+<section id="5-설정-시스템-아키텍처">
+<h2 id="5-설정-시스템-아키텍처">5. 설정 시스템 아키텍처</h2>
+<h3 id="51-설정-모델-계층-구조">5.1 설정 모델 계층 구조</h3>
+<div class="diagram">
+<svg role="img" aria-labelledby="svg4-title svg4-desc" viewBox="0 0 780 500" xmlns="http://www.w3.org/2000/svg">
             <title id="svg4-title">설정 모델 계층 구조 다이어그램</title>
             <desc id="svg4-desc">SLMConfig 루트 모델에서 29개 하위 설정 모델(ProjectConfig, PathsConfig, ParsingConfig 등)로 이어지는 계층 구조를 Core, Pipeline, Advanced 세 그룹으로 나누어 보여주는 다이어그램</desc>
             <defs>
@@ -560,12 +653,8 @@ parsed_documents.json   →  generate 단계부터 재개
             <rect x="550" y="300" width="200" height="26" rx="4" fill="#EBF8FF" stroke="#2C5282" stroke-width="1"/>
             <text x="560" y="318" class="s4-item">evolve: EvolveConfig</text>
           </svg>
-          <p class="diagram-caption">그림 5-1. SLMConfig 설정 모델 계층 구조 (28개 하위 모델)</p>
-        </div>
-
-        <!-- Full config field details preserved as code block -->
-        <h4>상세 필드 정보</h4>
-        <pre data-lang="text"><code>SLMConfig (root)
+</div>
+<pre><code>SLMConfig (root)
 ├── project: ProjectConfig
 │   ├── name: str = "my-project"
 │   ├── version: str = "1.0.0"
@@ -576,7 +665,7 @@ parsed_documents.json   →  generate 단계부터 재개
 │   └── output: Path = "./output"
 │
 ├── parsing: ParsingConfig
-│   ├── formats: list[str] = ["pdf", "txt", "html"]
+│   ├── formats: list[str] = ["pdf", "txt", "html", "md", "hwpx", "hwp", "docx"]
 │   ├── pdf: PdfOptions
 │   │   └── extract_tables: bool = True
 │   └── hwpx: HwpxOptions
@@ -734,23 +823,18 @@ parsed_documents.json   →  generate 단계부터 재개
     ├── cors_origins: list[str] = ["*"]
     ├── batch_size: int = 64
     ├── request_timeout: float = 120.0
-    ├── max_tokens: int = 512
-    ├── reranker_enabled: bool = False
-    ├── reranker_model: str = "BAAI/bge-reranker-v2-m3"
-    ├── hybrid_search: bool = False
-    └── query_rewriting: bool = False
-</code></pre>
-
-        <p>각 필드의 상세 설명은 <a href="configuration.html">설정 레퍼런스</a> 참조</p>
-
-        <h3 id="config-load">5.2 설정 로드 프로세스</h3>
-        <p>CLI에서 <code>--config</code> 옵션으로 경로를 지정하거나, 지정하지 않으면 <code>_find_config()</code>가 현재 디렉토리부터 상위 디렉토리를 순회하며 <code>project.yaml</code>을 자동 탐색합니다.</p>
-
-        <h4><code>load_config()</code> 흐름</h4>
-
-        <!-- SVG 5: Config Load Process Diagram -->
-        <div class="diagram">
-          <svg role="img" aria-labelledby="svg5-title svg5-desc" viewBox="0 0 720 400" xmlns="http://www.w3.org/2000/svg">
+    ├── max_tokens: int = -1
+    ├── reranker_enabled: bool = True
+    ├── reranker_model: str = "dragonkue/bge-reranker-v2-m3-ko"
+    ├── hybrid_search: bool = True
+    ├── min_score: float = 0.0
+    └── query_rewriting: bool = False</code></pre>
+<p>→ 각 필드의 상세 설명은 <a href="configuration.html">설정 레퍼런스</a> 참조</p>
+<h3 id="52-설정-로드-프로세스">5.2 설정 로드 프로세스</h3>
+<p>CLI에서 <code>--config</code> 옵션으로 경로를 지정하거나, 지정하지 않으면 <code>_find_config()</code>가 현재 디렉토리부터 상위 디렉토리를 순회하며 <code>project.yaml</code>을 자동 탐색합니다.</p>
+<p>**<code>load_config()</code> 흐름:**</p>
+<div class="diagram">
+<svg role="img" aria-labelledby="svg5-title svg5-desc" viewBox="0 0 720 400" xmlns="http://www.w3.org/2000/svg">
             <title id="svg5-title">설정 로드 프로세스 다이어그램</title>
             <desc id="svg5-desc">CLI에서 --config 옵션으로 시작하여 _find_config 자동 탐색, load_config 함수의 4단계 처리(절대 경로 변환, YAML 파싱, Pydantic 검증, 경로 변환)를 거쳐 SLMConfig 객체를 반환하는 흐름을 보여주는 다이어그램</desc>
             <defs>
@@ -807,162 +891,240 @@ parsed_documents.json   →  generate 단계부터 재개
             <rect x="220" y="350" width="280" height="36" rx="6" fill="#F0FFF4" stroke="#2F855A" stroke-width="1"/>
             <text x="360" y="373" text-anchor="middle" class="s5-out">SLMConfig 객체 반환</text>
           </svg>
-          <p class="diagram-caption">그림 5-2. 설정 로드 프로세스</p>
-        </div>
-
-        <h4><code>_strip_none_sections</code> 검증기</h4>
-        <p>YAML에서 섹션을 생략하거나 <code>null</code>로 설정하면, 이 <code>model_validator</code>가 <code>None</code> 키를 제거하여 Pydantic 기본값이 자동으로 적용되도록 합니다.</p>
-
-        <pre data-lang="python"><code>@model_validator(mode="before")
+</div>
+<pre><code>CLI --config project.yaml
+        │
+        ▼ _find_config() (자동 탐색 시)
+        │  현재 디렉토리 → 상위 디렉토리 순회
+        │
+        ▼ load_config(path)
+        │  1. Path(path).resolve()          — 절대 경로 변환
+        │  2. yaml.safe_load()              — YAML 파싱
+        │  3. SLMConfig.model_validate(raw) — Pydantic 검증
+        │     └─ _strip_none_sections()     — None 키 제거 (기본값 적용)
+        │  4. 상대 경로 → 절대 경로 변환
+        │     (paths.documents, paths.output)
+        │
+        ▼ SLMConfig 객체 반환</code></pre>
+<p>**<code>_strip_none_sections</code> 검증기:**</p>
+<p>YAML에서 섹션을 생략하거나 <code>null</code>로 설정하면, 이 <code>model_validator</code>가 <code>None</code> 키를 제거하여 Pydantic 기본값이 자동으로 적용되도록 합니다.</p>
+<pre data-lang="python"><code>@model_validator(mode="before")
 @classmethod
 def _strip_none_sections(cls, values: dict) -&gt; dict:
     if isinstance(values, dict):
         return {k: v for k, v in values.items() if v is not None}
     return values</code></pre>
-
-        <p>예를 들어 <code>project.yaml</code>에 <code>parsing</code> 섹션이 없으면 <code>ParsingConfig()</code>의 기본값이 그대로 적용됩니다.</p>
-
-        <h4>에러 처리</h4>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr><th>상황</th><th>발생 예외</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>파일 없음</td><td><code>FileNotFoundError</code></td></tr>
-              <tr><td>유효하지 않은 YAML</td><td><code>yaml.YAMLError</code></td></tr>
-              <tr><td>스키마 불일치</td><td><code>pydantic.ValidationError</code></td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <h3 id="default-config">5.3 기본값 생성 로직</h3>
-        <p><code>create_default_config()</code>는 <code>slf init</code> 명령 실행 시 호출되며, 다음 순서로 기본 YAML 템플릿을 반환합니다.</p>
-
-        <pre data-lang="text"><code>1. 패키지 루트의 templates/project.yaml 읽기 시도
+<p>예를 들어 <code>project.yaml</code>에 <code>parsing</code> 섹션이 없으면 <code>ParsingConfig()</code>의 기본값이 그대로 적용됩니다.</p>
+<p><strong>에러 처리:</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr>
+<th>상황</th>
+<th>발생 예외</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>파일 없음</td>
+<td><code>FileNotFoundError</code></td>
+</tr>
+<tr>
+<td>유효하지 않은 YAML</td>
+<td><code>yaml.YAMLError</code></td>
+</tr>
+<tr>
+<td>스키마 불일치</td>
+<td><code>pydantic.ValidationError</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="53-기본값-생성-로직">5.3 기본값 생성 로직</h3>
+<p><code>create_default_config()</code>는 <code>slf init</code> 명령 실행 시 호출되며, 다음 순서로 기본 YAML 템플릿을 반환합니다.</p>
+<pre><code>1. 패키지 루트의 templates/project.yaml 읽기 시도
         │ 실패 시
         ▼
 2. importlib.resources로 설치된 wheel에서 읽기 시도
         │ 실패 시
         ▼
 3. yaml.dump(SLMConfig().model_dump(), ...) — 최소 기본값을 YAML 형식으로 반환</code></pre>
+<p>개발 환경(편집 가능 설치)과 배포된 wheel 모두에서 동일하게 동작합니다.</p>
+<hr>
+</section>
 
-        <p>개발 환경(편집 가능 설치)과 배포된 wheel 모두에서 동일하게 동작합니다.</p>
-      </section>
+<section id="6-에러-처리-전략">
+<h2 id="6-에러-처리-전략">6. 에러 처리 전략</h2>
+<h3 id="61-계층별-에러-처리">6.1 계층별 에러 처리</h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr>
+<th>계층</th>
+<th>에러 타입</th>
+<th>처리 방식</th>
+<th>사용자 영향</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CLI</td>
+<td><code>FileNotFoundError</code>, <code>ValidationError</code>, 기타</td>
+<td>Rich 포맷 에러 출력 + <code>typer.Exit(1)</code></td>
+<td>명확한 에러 메시지, 비정상 종료</td>
+</tr>
+<tr>
+<td>Pipeline</td>
+<td>모든 예외</td>
+<td><code>logger.exception()</code> 후 예외 전파</td>
+<td>단계 실패 시 파이프라인 중단</td>
+</tr>
+<tr>
+<td>Parser</td>
+<td>개별 파일 파싱 예외</td>
+<td><code>logger.exception()</code> 후 해당 파일 건너뜀</td>
+<td>나머지 파일 계속 처리</td>
+</tr>
+<tr>
+<td>Teacher</td>
+<td><code>httpx.TimeoutException</code>, <code>ConnectError</code>, <code>HTTPStatusError</code></td>
+<td>분류된 <code>RuntimeError</code>로 변환, 지수 백오프 재시도 (3회)</td>
+<td>명확한 연결/타임아웃 안내</td>
+</tr>
+<tr>
+<td>Validator</td>
+<td>규칙 위반</td>
+<td><code>ValidationResult.reasons</code> 리스트에 기록</td>
+<td>거부 사유 추적 가능</td>
+</tr>
+<tr>
+<td>Trainer</td>
+<td><code>RuntimeError</code> (CUDA OOM 등)</td>
+<td>OOM 감지 시 권장 사항 출력 후 재발생</td>
+<td>배치 크기/양자화 조정 안내</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="62-복구-전략">6.2 복구 전략</h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr>
+<th>상황</th>
+<th>전략</th>
+<th>구현 위치</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>개별 파일 파싱 실패</td>
+<td>로그 후 건너뜀, 나머지 계속 처리</td>
+<td><code>ParserRegistry.parse_directory()</code></td>
+</tr>
+<tr>
+<td>QA 생성 JSON 파싱 실패</td>
+<td>원본 응답 로그 출력 후 건너뜀</td>
+<td><code>QAGenerator.parse_response()</code></td>
+</tr>
+<tr>
+<td>시스템 역할 미지원 모델</td>
+<td>시스템 메시지 제거 후 재시도</td>
+<td><code>ChatFormatter.format_one()</code></td>
+</tr>
+<tr>
+<td>Teacher 타임아웃</td>
+<td>설정 값 증가 권장 메시지 출력 후 실패</td>
+<td><code>BaseTeacher.generate()</code></td>
+</tr>
+<tr>
+<td>Ollama 응답 실패</td>
+<td>지수 백오프로 최대 3회 재시도 후 최종 예외 발생</td>
+<td><code>ollama_generate()</code></td>
+</tr>
+<tr>
+<td>CUDA OOM</td>
+<td>배치 크기/양자화 권장 후 예외 재발생</td>
+<td><code>LoRATrainer.train()</code></td>
+</tr>
+<tr>
+<td>QA 생성 결과 0건</td>
+<td><code>RuntimeError</code> 발생하여 파이프라인 중단</td>
+<td><code>Pipeline.step_generate()</code></td>
+</tr>
+<tr>
+<td>변환 결과 빈 배치</td>
+<td><code>RuntimeError</code> 발생하여 파이프라인 중단</td>
+<td><code>ChatFormatter.format_batch()</code></td>
+</tr>
+<tr>
+<td>JSON 파일 손상</td>
+<td>빈 기본값으로 복구 후 로그 출력</td>
+<td><code>EvolveHistory</code>, <code>IncrementalTracker</code></td>
+</tr>
+<tr>
+<td>진화 품질 게이트 실패</td>
+<td>생성된 Ollama 모델 자동 삭제 후 이전 모델 유지</td>
+<td><code>cli.py</code> evolve 명령</td>
+</tr>
+<tr>
+<td>설정 파일 없음</td>
+<td>기본 설정 생성 제안 (<code>slf init</code>)</td>
+<td><code>cli.py</code></td>
+</tr>
+<tr>
+<td>파이프라인 중단</td>
+<td><code>--resume</code>으로 중간 파일에서 재개</td>
+<td><code>cli.py</code> + 중간 파일 체인</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</section>
 
-      <hr>
+<section id="관련-문서">
+<h2 id="관련-문서">관련 문서</h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr>
+<th>문서</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="../README.html">README</a></td>
+<td>프로젝트 소개, 설치, 빠른 시작</td>
+</tr>
+<tr>
+<td><a href="guide.html">사용 가이드</a></td>
+<td>단계별 사용법, 예제, 트러블슈팅</td>
+</tr>
+<tr>
+<td><a href="cli-reference.html">CLI 레퍼런스</a></td>
+<td>모든 명령어와 옵션 상세 설명</td>
+</tr>
+<tr>
+<td><a href="configuration.html">설정 레퍼런스</a></td>
+<td><code>project.yaml</code> 모든 필드 상세 설명</td>
+</tr>
+<tr>
+<td><a href="development.html">개발자 가이드</a></td>
+<td>커스텀 파서/백엔드 추가, 모듈 API</td>
+</tr>
+</tbody>
+</table>
+</div></section>
 
-      <!-- ======================================================
-           Section 6: 에러 처리 전략
-           ====================================================== -->
-      <section id="error-handling">
-        <h2>6. 에러 처리 전략</h2>
+      </div>
+    </div>
 
-        <h3 id="error-by-layer">6.1 계층별 에러 처리</h3>
-
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr><th>계층</th><th>에러 타입</th><th>처리 방식</th><th>사용자 영향</th></tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>CLI</td>
-                <td><code>FileNotFoundError</code>, <code>ValidationError</code>, 기타</td>
-                <td>Rich 포맷 에러 출력 + <code>typer.Exit(1)</code></td>
-                <td>명확한 에러 메시지, 비정상 종료</td>
-              </tr>
-              <tr>
-                <td>Pipeline</td>
-                <td>모든 예외</td>
-                <td><code>logger.exception()</code> 후 예외 전파</td>
-                <td>단계 실패 시 파이프라인 중단</td>
-              </tr>
-              <tr>
-                <td>Parser</td>
-                <td>개별 파일 파싱 예외</td>
-                <td><code>logger.exception()</code> 후 해당 파일 건너뜀</td>
-                <td>나머지 파일 계속 처리</td>
-              </tr>
-              <tr>
-                <td>Teacher</td>
-                <td><code>httpx.TimeoutException</code>, <code>ConnectError</code>, <code>HTTPStatusError</code></td>
-                <td>분류된 <code>RuntimeError</code>로 변환, 지수 백오프 재시도 (3회)</td>
-                <td>명확한 연결/타임아웃 안내</td>
-              </tr>
-              <tr>
-                <td>Validator</td>
-                <td>규칙 위반</td>
-                <td><code>ValidationResult.reasons</code> 리스트에 기록</td>
-                <td>거부 사유 추적 가능</td>
-              </tr>
-              <tr>
-                <td>Trainer</td>
-                <td><code>RuntimeError</code> (CUDA OOM 등)</td>
-                <td>OOM 감지 시 권장 사항 출력 후 재발생</td>
-                <td>배치 크기/양자화 조정 안내</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <h3 id="recovery-strategy">6.2 복구 전략</h3>
-
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr><th>상황</th><th>전략</th><th>구현 위치</th></tr>
-            </thead>
-            <tbody>
-              <tr><td>개별 파일 파싱 실패</td><td>로그 후 건너뜀, 나머지 계속 처리</td><td><code>ParserRegistry.parse_directory()</code></td></tr>
-              <tr><td>QA 생성 JSON 파싱 실패</td><td>원본 응답 로그 출력 후 건너뜀</td><td><code>QAGenerator.parse_response()</code></td></tr>
-              <tr><td>시스템 역할 미지원 모델</td><td>시스템 메시지 제거 후 재시도</td><td><code>ChatFormatter.format_one()</code></td></tr>
-              <tr><td>Teacher 타임아웃</td><td>설정 값 증가 권장 메시지 출력 후 실패</td><td><code>BaseTeacher.generate()</code></td></tr>
-              <tr><td>Ollama 응답 실패</td><td>지수 백오프로 최대 3회 재시도 후 최종 예외 발생</td><td><code>ollama_generate()</code></td></tr>
-              <tr><td>CUDA OOM</td><td>배치 크기/양자화 권장 후 예외 재발생</td><td><code>LoRATrainer.train()</code></td></tr>
-              <tr><td>QA 생성 결과 0건</td><td><code>RuntimeError</code> 발생하여 파이프라인 중단</td><td><code>Pipeline.step_generate()</code></td></tr>
-              <tr><td>변환 결과 빈 배치</td><td><code>RuntimeError</code> 발생하여 파이프라인 중단</td><td><code>ChatFormatter.format_batch()</code></td></tr>
-              <tr><td>JSON 파일 손상</td><td>빈 기본값으로 복구 후 로그 출력</td><td><code>EvolveHistory</code>, <code>IncrementalTracker</code></td></tr>
-              <tr><td>진화 품질 게이트 실패</td><td>생성된 Ollama 모델 자동 삭제 후 이전 모델 유지</td><td><code>cli.py</code> evolve 명령</td></tr>
-              <tr><td>설정 파일 없음</td><td>기본 설정 생성 제안 (<code>slf init</code>)</td><td><code>cli.py</code></td></tr>
-              <tr><td>파이프라인 중단</td><td><code>--resume</code>으로 중간 파일에서 재개</td><td><code>cli.py</code> + 중간 파일 체인</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <hr>
-
-      <!-- ======================================================
-           관련 문서
-           ====================================================== -->
-      <section id="related-docs">
-        <h2>관련 문서</h2>
-
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr><th>문서</th><th>내용</th></tr>
-            </thead>
-            <tbody>
-              <tr><td><a href="../README.md">README</a></td><td>프로젝트 소개, 설치, 빠른 시작</td></tr>
-              <tr><td><a href="guide.html">사용 가이드</a></td><td>단계별 사용법, 예제, 트러블슈팅</td></tr>
-              <tr><td><a href="cli-reference.html">CLI 레퍼런스</a></td><td>모든 명령어와 옵션 상세 설명</td></tr>
-              <tr><td><a href="configuration.html">설정 레퍼런스</a></td><td><code>project.yaml</code> 모든 필드 상세 설명</td></tr>
-              <tr><td><a href="development.html">개발자 가이드</a></td><td>커스텀 파서/백엔드 추가, 모듈 API</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      </div><!-- /.content-container -->
-    </div><!-- /.main-content -->
-
-    <!-- Footer -->
     <footer class="page-footer">
-      <p>slm-factory Documentation &middot; <a href="index.html">홈으로 돌아가기</a></p>
+      <p>slm-factory Documentation</p>
     </footer>
 
-  </div><!-- /.page-wrapper -->
+  </div>
 </body>
 </html>

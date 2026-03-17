@@ -3,166 +3,250 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="slm-factory 개발자 가이드 - 소스 코드 구조, 모듈 API, 확장 방법 안내">
-  <title>개발자 가이드 - slm-factory</title>
+  <title>개발 가이드 - slm-factory</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
   <link rel="stylesheet" href="./assets/style.css">
 </head>
 <body>
   <div class="page-wrapper">
 
-    <!-- ============================================================
-         Sidebar Navigation
-         ============================================================ -->
     <nav class="sidebar" aria-label="문서 탐색">
-      <div class="sidebar-header">
-        <a href="index.html" class="sidebar-logo">
-          <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <rect width="28" height="28" rx="6" fill="#3182CE"/>
-            <path d="M7 14h4l2-4 3 8 2-4h3" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          slm-factory
-        </a>
-        <span class="sidebar-version">Documentation</span>
-      </div>
-            <ul class="sidebar-nav">
-        <li class="nav-section">시작하기</li>
-        <li><a href="index.html">문서 홈</a></li>
-        <li><a href="guide.html">사용 가이드</a></li>
-<li><a href="integration-guide.html">RAG 서비스 가이드</a></li>
-        <li><a href="quick-reference.html">빠른 참조</a></li>
-        <li class="nav-section">레퍼런스</li>
-        <li><a href="cli-reference.html">CLI 레퍼런스</a></li>
-        <li><a href="configuration.html">설정 레퍼런스</a></li>
-        <li class="nav-section">심화</li>
-        <li><a href="architecture.html">아키텍처 가이드</a></li>
-        <li><a href="development.html" class="active">개발 가이드</a></li>
-      </ul>
-    </nav>
+  <div class="sidebar-header">
+    <a href="index.html" class="sidebar-logo">
+      <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="28" height="28" rx="6" fill="#3182CE"/>
+        <path d="M7 14h4l2-4 3 8 2-4h3" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      slm-factory
+    </a>
+    <span class="sidebar-version">Documentation</span>
+  </div>
+  <ul class="sidebar-nav">
+    <li class="nav-section">시작하기</li>
+    <li><a href="index.html">문서 홈</a></li>
+    <li><a href="guide.html">사용 가이드</a></li>
+    <li><a href="integration-guide.html">RAG 서비스 가이드</a></li>
+    <li><a href="quick-reference.html">빠른 참조</a></li>
+    <li class="nav-section">레퍼런스</li>
+    <li><a href="cli-reference.html">CLI 레퍼런스</a></li>
+    <li><a href="configuration.html">설정 레퍼런스</a></li>
+    <li class="nav-section">심화</li>
+    <li><a href="architecture.html">아키텍처 가이드</a></li>
+    <li><a href="development.html" class="active">개발 가이드</a></li>
+  </ul>
+</nav>
 
-    <!-- ============================================================
-         Main Content Area
-         ============================================================ -->
     <div class="main-content">
 
-      <!-- Page Header (Hero) -->
       <header class="page-header">
         <div class="content-container">
           <span class="badge">Developer</span>
-          <h1>개발자 가이드</h1>
-          <p class="subtitle">slm-factory의 소스 코드 구조, 모듈 API, 확장 방법을 안내합니다.</p>
+          <h1>개발 가이드</h1>
+          <p class="subtitle">모듈 구조, API 레퍼런스, 확장 가이드</p>
         </div>
       </header>
 
-      <!-- Content Body -->
       <div class="content-container">
 
-        <!-- Breadcrumb -->
         <nav class="breadcrumb" aria-label="경로">
           <a href="index.html">문서</a>
-          <span class="separator">/</span>
-          <span>개발자 가이드</span>
+          <span class="separator" aria-hidden="true">/</span>
+          <span>개발 가이드</span>
         </nav>
 
-        <p>기여자(Contributor)와 확장 개발자를 대상으로 합니다. 사용자 튜토리얼은 <a href="guide.html">사용 가이드</a>를, 설정 레퍼런스는 <a href="configuration.html">설정 레퍼런스</a>를 참조하십시오.</p>
-
-        <!-- Table of Contents -->
         <nav class="toc" aria-label="목차">
-          <div class="toc-title">목차</div>
-          <ol class="toc-list">
-            <li><a href="#section-1">1. 프로젝트 구조</a></li>
-            <li><a href="#section-2">2. 핵심 모듈</a></li>
-            <li><a href="#section-3">3. 파서 모듈 (parsers/)</a></li>
-            <li><a href="#section-4">4. Teacher LLM 모듈 (teacher/)</a></li>
-            <li><a href="#section-5">5. 검증 모듈 (validator/)</a></li>
-            <li><a href="#section-6">6. 데이터 처리 모듈</a></li>
-            <li><a href="#section-7">7. 학습 및 내보내기 모듈</a></li>
-            <li><a href="#section-8">8. 평가 및 비교 모듈</a></li>
-            <li><a href="#section-9">9. TUI 모듈 (tui/)</a></li>
-            <li><a href="#section-10">10. 확장 가이드</a></li>
-            <li><a href="#section-11">11. 테스트</a></li>
-            <li><a href="#related-docs">관련 문서</a></li>
-          </ol>
-        </nav>
+<div class="toc-title">목차</div>
+<ol class="toc-list">
+<li><a href="#1-프로젝트-구조">1. 프로젝트 구조</a>
+<ol class="toc-list">
+<li class="toc-h3"><a href="#디렉토리-구조">디렉토리 구조</a></li>
+<li class="toc-h3"><a href="#모듈-의존성">모듈 의존성</a></li>
+</ol>
+</li>
+<li><a href="#2-핵심-모듈">2. 핵심 모듈</a>
+<ol class="toc-list">
+<li class="toc-h3"><a href="#modelspy-공유-데이터-모델">models.py — 공유 데이터 모델</a></li>
+<li class="toc-h3"><a href="#configpy-설정-시스템">config.py — 설정 시스템</a></li>
+<li class="toc-h3"><a href="#pipelinepy-오케스트레이터">pipeline.py — 오케스트레이터</a></li>
+<li class="toc-h3"><a href="#utilspy-유틸리티">utils.py — 유틸리티</a></li>
+</ol>
+</li>
+<li><a href="#3-파서-모듈-parsers">3. 파서 모듈 (parsers/)</a>
+<ol class="toc-list">
+<li class="toc-h3"><a href="#baseparser-인터페이스">BaseParser 인터페이스</a></li>
+<li class="toc-h3"><a href="#파서-레지스트리">파서 레지스트리</a></li>
+<li class="toc-h3"><a href="#개별-파서">개별 파서</a></li>
+</ol>
+</li>
+<li><a href="#4-teacher-llm-모듈-teacher">4. Teacher LLM 모듈 (teacher/)</a>
+<ol class="toc-list">
+<li class="toc-h3"><a href="#baseteacher-인터페이스">BaseTeacher 인터페이스</a></li>
+<li class="toc-h3"><a href="#ollamateacher-openaicompatteacher">OllamaTeacher / OpenAICompatTeacher</a></li>
+<li class="toc-h3"><a href="#qagenerator">QAGenerator</a></li>
+</ol>
+</li>
+<li><a href="#5-검증-모듈-validator">5. 검증 모듈 (validator/)</a>
+<ol class="toc-list">
+<li class="toc-h3"><a href="#rulevalidator">RuleValidator</a></li>
+<li class="toc-h3"><a href="#groundednesschecker">GroundednessChecker</a></li>
+</ol>
+</li>
+<li><a href="#6-데이터-처리-모듈">6. 데이터 처리 모듈</a>
+<ol class="toc-list">
+<li class="toc-h3"><a href="#qualityscorer-scorerpy">QualityScorer (scorer.py)</a></li>
+<li class="toc-h3"><a href="#dataaugmenter-augmenterpy">DataAugmenter (augmenter.py)</a></li>
+<li class="toc-h3"><a href="#dataanalyzer-analyzerpy">DataAnalyzer (analyzer.py)</a></li>
+<li class="toc-h3"><a href="#chatformatter-converterpy">ChatFormatter (converter.py)</a></li>
+</ol>
+</li>
+<li><a href="#7-학습-및-내보내기-모듈">7. 학습 및 내보내기 모듈</a>
+<ol class="toc-list">
+<li class="toc-h3"><a href="#loratrainer-trainerlora_trainerpy">LoRATrainer (trainer/lora_trainer.py)</a></li>
+<li class="toc-h3"><a href="#hfexporter-exporterhf_exportpy">HFExporter (exporter/hf_export.py)</a></li>
+<li class="toc-h3"><a href="#ollamaexporter-exporterollama_exportpy">OllamaExporter (exporter/ollama_export.py)</a></li>
+</ol>
+</li>
+<li><a href="#8-평가-및-비교-모듈">8. 평가 및 비교 모듈</a>
+<ol class="toc-list">
+<li class="toc-h3"><a href="#modelevaluator-evaluatorpy">ModelEvaluator (evaluator.py)</a></li>
+<li class="toc-h3"><a href="#modelcomparator-comparatorpy">ModelComparator (comparator.py)</a></li>
+</ol>
+</li>
+<li><a href="#9-tui-모듈-tui">9. TUI 모듈 (tui/)</a>
+<ol class="toc-list">
+<li class="toc-h3"><a href="#qareviewerapp-reviewerpy">QAReviewerApp (reviewer.py)</a></li>
+</ol>
+</li>
+<li><a href="#10-확장-가이드">10. 확장 가이드</a>
+<ol class="toc-list">
+<li class="toc-h3"><a href="#새-파서-추가">새 파서 추가</a></li>
+<li class="toc-h3"><a href="#새-teacher-백엔드-추가">새 Teacher 백엔드 추가</a></li>
+<li class="toc-h3"><a href="#커스텀-검증-규칙-추가">커스텀 검증 규칙 추가</a></li>
+<li class="toc-h3"><a href="#새-내보내기-형식-추가">새 내보내기 형식 추가</a></li>
+</ol>
+</li>
+<li><a href="#11-테스트">11. 테스트</a>
+<ol class="toc-list">
+<li class="toc-h3"><a href="#테스트-구조">테스트 구조</a></li>
+<li class="toc-h3"><a href="#테스트-실행">테스트 실행</a></li>
+<li class="toc-h3"><a href="#테스트-작성-가이드">테스트 작성 가이드</a></li>
+</ol>
+</li>
+<li><a href="#관련-문서">관련 문서</a>
+</li>
+</ol>
+</nav>
 
+        <section id="1-프로젝트-구조">
+<h2 id="1-프로젝트-구조">1. 프로젝트 구조</h2>
+<h3 id="디렉토리-구조">디렉토리 구조</h3>
+<pre><code>src/slm_factory/
+├── __init__.py              # 패키지 초기화 및 버전 정보
+├── __main__.py              # python -m slm_factory 진입점
+├── cli.py                   # Typer 기반 CLI 명령어 정의
+├── config.py                # Pydantic v2 설정 스키마 및 load_config()
+├── models.py                # 공유 데이터 모델 (QAPair, ParsedDocument 등)
+├── pipeline.py              # 파이프라인 오케스트레이터 (Pipeline 클래스)
+├── scorer.py                # Teacher LLM 기반 QA 품질 점수 평가
+├── augmenter.py             # 질문 패러프레이즈 데이터 증강
+├── analyzer.py              # QA 데이터 통계 분석 및 보고서 생성
+├── evaluator.py             # 학습된 모델 자동 평가 (BLEU/ROUGE)
+├── comparator.py            # Base vs Fine-tuned 모델 비교
+├── incremental.py           # 문서 해시 기반 증분 변경 추적
+├── converter.py             # QA → 채팅 템플릿 JSONL 변환
+├── calibration.py           # Auto 캘리브레이션 (chunk_size, num_epochs, 섹션 인식 청킹)
+├── device.py                # GPU/MPS/CPU 자동 감지
+├── evolve_history.py        # 자동 진화 히스토리 관리
+├── utils.py                 # 로깅, 비동기 유틸리티, 파일 해시
+├── parsers/
+│   ├── __init__.py          # ParserRegistry 인스턴스 및 파서 등록
+│   ├── base.py              # BaseParser ABC, ParserRegistry 클래스
+│   ├── pdf.py               # PDF 파서 (PyMuPDF)
+│   ├── hwpx.py              # HWPX 파서 (한글 문서, lxml)
+│   ├── html.py              # HTML 파서 (BeautifulSoup4)
+│   ├── text.py              # TXT/MD 파서
+│   ├── docx.py              # DOCX 파서 (python-docx, 선택적)
+│   └── hwp.py               # HWP 파서 (olefile, 선택적)
+├── teacher/
+│   ├── __init__.py          # create_teacher() 팩토리 함수
+│   ├── base.py              # BaseTeacher ABC
+│   ├── ollama.py            # OllamaTeacher (로컬 Ollama REST API)
+│   ├── openai_compat.py     # OpenAICompatTeacher (OpenAI 호환 API)
+│   └── qa_generator.py      # QAGenerator (문서 → QA 쌍)
+├── validator/
+│   ├── __init__.py
+│   ├── rules.py             # RuleValidator (규칙 기반 필터링)
+│   └── similarity.py        # GroundednessChecker (임베딩 유사도 검증)
+├── trainer/
+│   ├── __init__.py
+│   └── lora_trainer.py      # LoRATrainer, DataLoader
+├── exporter/
+│   ├── __init__.py
+│   ├── hf_export.py         # HFExporter (LoRA 병합 및 저장)
+│   ├── ollama_export.py     # OllamaExporter (Modelfile 생성)
+│   └── autorag_export.py    # AutoRAGExporter (RAG용 parquet 내보내기)
+├── rag/
+│   ├── __init__.py
+│   ├── indexer.py           # RAGIndexer (Qdrant 벡터 인덱싱)
+│   └── server.py            # FastAPI RAG 서버 (/v1/query, /chat)
+└── tui/
+    ├── __init__.py
+    ├── widgets.py           # 공유 TUI 위젯 (QACard, StatusBar)
+    └── reviewer.py          # QAReviewerApp (QA 수동 리뷰)</code></pre>
+<h3 id="모듈-의존성">모듈 의존성</h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr>
+<th>모듈</th>
+<th>의존하는 모듈</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pipeline.py</code></td>
+<td>모든 하위 모듈 (오케스트레이터)</td>
+</tr>
+<tr>
+<td><code>scorer.py</code>, <code>augmenter.py</code></td>
+<td><code>teacher/</code>, <code>models.py</code>, <code>utils.py</code></td>
+</tr>
+<tr>
+<td><code>analyzer.py</code>, <code>evaluator.py</code>, <code>incremental.py</code></td>
+<td><code>models.py</code>, <code>utils.py</code></td>
+</tr>
+<tr>
+<td><code>comparator.py</code></td>
+<td><code>evaluator.py</code>, <code>models.py</code>, <code>utils.py</code></td>
+</tr>
+<tr>
+<td><code>converter.py</code>, <code>validator/*.py</code></td>
+<td><code>models.py</code>, <code>config.py</code></td>
+</tr>
+<tr>
+<td><code>teacher/qa_generator.py</code></td>
+<td><code>teacher/base.py</code>, <code>models.py</code></td>
+</tr>
+<tr>
+<td><code>trainer/lora_trainer.py</code>, <code>exporter/*.py</code></td>
+<td><code>config.py</code> (ML 라이브러리는 지연 임포트)</td>
+</tr>
+<tr>
+<td><code>tui/*.py</code></td>
+<td><code>models.py</code>, <code>config.py</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<blockquote><p>설계 원칙과 레이어 구조는 <a href="architecture.html#3-핵심-설계-패턴">아키텍처 가이드</a>를 참조하십시오.</p></blockquote>
+<hr>
+</section>
 
-        <!-- ============================================================
-             Section 1: 프로젝트 구조
-             ============================================================ -->
-        <section id="section-1">
-          <h2>1. 프로젝트 구조</h2>
-
-          <h3 id="directory-structure">디렉토리 구조</h3>
-
-          <!-- SVG Diagram: Directory Structure -->
-          <div class="diagram">
-          </div>
-
-          <hr>
-
-          <h3 id="module-deps">모듈 의존성</h3>
-
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>모듈</th>
-                  <th>의존하는 모듈</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><code>pipeline.py</code></td>
-                  <td>모든 하위 모듈 (오케스트레이터)</td>
-                </tr>
-                 <tr>
-                   <td><code>scorer.py</code>, <code>augmenter.py</code></td>
-                   <td><code>teacher/</code>, <code>models.py</code>, <code>utils.py</code></td>
-                 </tr>
-                <tr>
-                  <td><code>analyzer.py</code>, <code>evaluator.py</code>, <code>incremental.py</code></td>
-                  <td><code>models.py</code>, <code>utils.py</code></td>
-                </tr>
-                <tr>
-                  <td><code>comparator.py</code></td>
-                  <td><code>evaluator.py</code>, <code>models.py</code>, <code>utils.py</code></td>
-                </tr>
-                <tr>
-                  <td><code>converter.py</code>, <code>validator/*.py</code></td>
-                  <td><code>models.py</code>, <code>config.py</code></td>
-                </tr>
-                <tr>
-                  <td><code>teacher/qa_generator.py</code></td>
-                  <td><code>teacher/base.py</code>, <code>models.py</code></td>
-                </tr>
-                <tr>
-                  <td><code>trainer/lora_trainer.py</code>, <code>exporter/*.py</code></td>
-                  <td><code>config.py</code> (ML 라이브러리는 지연 임포트)</td>
-                </tr>
-                <tr>
-                  <td><code>tui/*.py</code></td>
-                  <td><code>models.py</code>, <code>config.py</code></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <blockquote>
-            <p>설계 원칙과 레이어 구조는 <a href="architecture.html#3-핵심-설계-패턴">아키텍처 가이드</a>를 참조하십시오.</p>
-          </blockquote>
-        </section>
-
-
-        <!-- ============================================================
-             Section 2: 핵심 모듈
-             ============================================================ -->
-        <section id="section-2">
-          <h2>2. 핵심 모듈</h2>
-
-          <h3 id="models-py">models.py &mdash; 공유 데이터 모델</h3>
-          <p>모든 모듈이 공유하는 데이터 클래스입니다. 의존성 순환을 방지하기 위해 외부 라이브러리에 의존하지 않습니다.</p>
-
-          <pre data-lang="python"><code>@dataclass
+<section id="2-핵심-모듈">
+<h2 id="2-핵심-모듈">2. 핵심 모듈</h2>
+<h3 id="modelspy-공유-데이터-모델">models.py — 공유 데이터 모델</h3>
+<p>모든 모듈이 공유하는 데이터 클래스입니다. 의존성 순환을 방지하기 위해 외부 라이브러리에 의존하지 않습니다.</p>
+<pre data-lang="python"><code>@dataclass
 class ParsedDocument:
     doc_id: str; title: str; content: str
     tables: list[str]; metadata: dict
@@ -183,13 +267,9 @@ class CompareResult:
     question: str; reference_answer: str
     base_answer: str; finetuned_answer: str
     scores: dict  # {"base_bleu": 0.1, "finetuned_bleu": 0.4, ...}</code></pre>
-
-          <hr>
-
-          <h3 id="config-py">config.py &mdash; 설정 시스템</h3>
-          <p><code>SLMConfig</code>는 <code>project.yaml</code> 전체 스키마를 반영하는 루트 설정 객체입니다.</p>
-
-          <pre data-lang="python"><code>class SLMConfig(BaseModel):
+<h3 id="configpy-설정-시스템">config.py — 설정 시스템</h3>
+<p><code>SLMConfig</code>는 <code>project.yaml</code> 전체 스키마를 반영하는 루트 설정 객체입니다.</p>
+<pre data-lang="python"><code>class SLMConfig(BaseModel):
     project: ProjectConfig      # 이름, 버전, 언어
     paths: PathsConfig          # documents, output 경로
     parsing: ParsingConfig      # 형식, PDF/HWPX 옵션
@@ -199,17 +279,16 @@ class CompareResult:
     augment: AugmentConfig;      analyzer: AnalyzerConfig
     student: StudentConfig;      training: TrainingConfig
     export: ExportConfig;        eval: EvalConfig
-    incremental: IncrementalConfig; review: ReviewConfig
+    refinement: RefinementConfig
+    incremental: IncrementalConfig
+    review: ReviewConfig
     compare: CompareConfig;      evolve: EvolveConfig
     chunking: ChunkingConfig
     autorag_export: AutoRAGExportConfig
     rag: RagConfig</code></pre>
-
-          <p>각 서브 모델의 필드 상세는 <a href="configuration.html">설정 레퍼런스</a>를 참조하십시오.</p>
-
-          <h4>공개 API:</h4>
-
-          <pre data-lang="python"><code>def load_config(path: str | Path) -&gt; SLMConfig:
+<p>각 서브 모델의 필드 상세는 <a href="configuration.html">configuration.md</a>를 참조하십시오.</p>
+<p><strong>공개 API:</strong></p>
+<pre data-lang="python"><code>def load_config(path: str | Path) -&gt; SLMConfig:
     """YAML 파일을 로드하고 Pydantic으로 검증합니다.
     상대 경로는 설정 파일 위치 기준으로 절대 경로로 변환됩니다.
 
@@ -218,13 +297,9 @@ class CompareResult:
 
 def create_default_config() -&gt; str:
     """기본 project.yaml 템플릿을 문자열로 반환합니다."""</code></pre>
-
-          <hr>
-
-          <h3 id="pipeline-py">pipeline.py &mdash; 오케스트레이터</h3>
-          <p><code>Pipeline</code>은 모든 단계를 순서대로 연결하는 파사드(Facade)입니다. 각 <code>step_*</code> 메서드는 독립적으로 호출할 수 있습니다.</p>
-
-          <pre data-lang="python"><code>class Pipeline:
+<h3 id="pipelinepy-오케스트레이터">pipeline.py — 오케스트레이터</h3>
+<p><code>Pipeline</code>은 모든 단계를 순서대로 연결하는 파사드(Facade)입니다. 각 <code>step_*</code> 메서드는 독립적으로 호출할 수 있습니다.</p>
+<pre data-lang="python"><code>class Pipeline:
     def __init__(self, config: SLMConfig) -&gt; None: ...
 
     # 단계별 메서드
@@ -273,20 +348,20 @@ def create_default_config() -&gt; str:
     def step_compare(self, pairs: list[QAPair]) -&gt; list[CompareResult]:
         """Base 모델과 Fine-tuned 모델의 답변을 비교합니다."""
 
-    def step_autorag_export(self, docs: list[ParsedDocument], pairs: list[QAPair]) -&gt; Path:
-        """파싱·QA 데이터를 RAG 인덱싱용 parquet으로 내보냅니다."""
+    def step_autorag_export(
+        self, parsed_docs: list[dict], qa_pairs: list[dict],
+    ) -&gt; tuple[Path, Path]:
+        """파싱·QA 데이터를 RAG 인덱싱용 parquet으로 내보냅니다.
+        반환값: (corpus.parquet 경로, qa.parquet 경로) 튜플
+        """
 
-    def step_rag_index(self, corpus_dir: Path | None = None) -&gt; Path:
+    def step_rag_index(self, corpus_path: Path) -&gt; Path:
         """corpus.parquet을 Qdrant에 임베딩하여 적재합니다."""
 
     def run(self) -&gt; Path:
         """전체 파이프라인을 엔드-투-엔드로 실행합니다."""</code></pre>
-
-          <hr>
-
-          <h3 id="utils-py">utils.py &mdash; 유틸리티</h3>
-
-          <pre data-lang="python"><code>def setup_logging(level: str = "INFO") -&gt; logging.Logger: ...
+<h3 id="utilspy-유틸리티">utils.py — 유틸리티</h3>
+<pre data-lang="python"><code>def setup_logging(level: str = "INFO") -&gt; logging.Logger: ...
     # Rich 핸들러로 루트 slm-factory 로거를 구성합니다.
 def get_logger(name: str) -&gt; logging.Logger: ...
     # slm_factory.&lt;name&gt; 네임스페이스 로거를 반환합니다.
@@ -294,22 +369,17 @@ def compute_file_hash(path: str | Path, algorithm: str = "sha256") -&gt; str: ..
     # 파일의 해시값을 계산합니다.
 async def run_bounded(semaphore, coro, progress, task_id) -&gt; T: ...
     # 세마포어 제한 하에 코루틴을 실행하고 진행률을 갱신합니다.
-async def ollama_generate(client, api_base, model_name, question, timeout, *, max_tokens=512, max_retries=3) -&gt; str: ...
+async def ollama_generate(client, api_base, model_name, question, timeout, *, max_tokens=512, max_retries=3, format=None, think=None) -&gt; str: ...
     # Ollama /api/generate 엔드포인트로 답변을 생성합니다.
     # 일시적 오류(HTTP 5xx, 타임아웃, 연결 오류)에 대해 지수 백오프로 재시도합니다.
     # max_tokens로 응답 길이를 제한하여 무한 생성을 방지합니다.</code></pre>
-        </section>
+<hr>
+</section>
 
-
-        <!-- ============================================================
-             Section 3: 파서 모듈 (parsers/)
-             ============================================================ -->
-        <section id="section-3">
-          <h2>3. 파서 모듈 (parsers/)</h2>
-
-          <h3 id="baseparser">BaseParser 인터페이스</h3>
-
-          <pre data-lang="python"><code>class BaseParser(ABC):
+<section id="3-파서-모듈-parsers">
+<h2 id="3-파서-모듈-parsers">3. 파서 모듈 (parsers/)</h2>
+<h3 id="baseparser-인터페이스">BaseParser 인터페이스</h3>
+<pre data-lang="python"><code>class BaseParser(ABC):
     extensions: ClassVar[list[str]] = []
     # 예: ['.pdf'], ['.hwpx'], ['.html', '.htm']
 
@@ -319,12 +389,8 @@ async def ollama_generate(client, api_base, model_name, question, timeout, *, ma
 
     def can_parse(self, path: Path) -&gt; bool:
         """이 파서가 주어진 파일 확장자를 지원하면 True를 반환합니다."""</code></pre>
-
-          <hr>
-
-          <h3 id="parser-registry">파서 레지스트리</h3>
-
-          <pre data-lang="python"><code>class ParserRegistry:
+<h3 id="파서-레지스트리">파서 레지스트리</h3>
+<pre data-lang="python"><code>class ParserRegistry:
     def register(self, parser_cls: type[BaseParser]) -&gt; type[BaseParser]:
         """파서 클래스를 등록합니다 (데코레이터로도 사용 가능)."""
 
@@ -341,76 +407,66 @@ async def ollama_generate(client, api_base, model_name, question, timeout, *, ma
 
 # parsers/__init__.py에서 전역 레지스트리 인스턴스를 제공합니다
 from slm_factory.parsers import registry</code></pre>
+<h3 id="개별-파서">개별 파서</h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr>
+<th>파서 클래스</th>
+<th>파일</th>
+<th>확장자</th>
+<th>주요 라이브러리</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PDFParser</code></td>
+<td><code>pdf.py</code></td>
+<td><code>.pdf</code></td>
+<td>PyMuPDF (fitz)</td>
+</tr>
+<tr>
+<td><code>HWPXParser</code></td>
+<td><code>hwpx.py</code></td>
+<td><code>.hwpx</code></td>
+<td>lxml, kiwipiepy (선택적)</td>
+</tr>
+<tr>
+<td><code>HTMLParser</code></td>
+<td><code>html.py</code></td>
+<td><code>.html</code>, <code>.htm</code></td>
+<td>BeautifulSoup4 (lxml 백엔드), charset-normalizer</td>
+</tr>
+<tr>
+<td><code>TextParser</code></td>
+<td><code>text.py</code></td>
+<td><code>.txt</code>, <code>.md</code></td>
+<td>charset-normalizer</td>
+</tr>
+<tr>
+<td><code>DOCXParser</code></td>
+<td><code>docx.py</code></td>
+<td><code>.docx</code></td>
+<td>python-docx (선택적)</td>
+</tr>
+<tr>
+<td><code>HWPParser</code></td>
+<td><code>hwp.py</code></td>
+<td><code>.hwp</code></td>
+<td>olefile (선택적)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p><code>DOCXParser</code>는 <code>python-docx</code>가, <code>HWPParser</code>는 <code>olefile</code>이 설치되지 않은 경우 자동으로 비활성화됩니다. 레지스트리는 <code>parsers/__init__.py</code>에서 모든 파서를 자동 등록합니다.</p>
+<p><code>parsers/base.py</code>의 <code>detect_encoding()</code> 함수는 HTML 파서와 텍스트 파서가 공유하는 유틸리티입니다. charset-normalizer를 사용하여 EUC-KR, CP949 등 한국어 인코딩을 정확하게 감지합니다.</p>
+<hr>
+</section>
 
-          <hr>
-
-          <h3 id="individual-parsers">개별 파서</h3>
-
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>파서 클래스</th>
-                  <th>파일</th>
-                  <th>확장자</th>
-                  <th>주요 라이브러리</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><code>PDFParser</code></td>
-                  <td><code>pdf.py</code></td>
-                  <td><code>.pdf</code></td>
-                  <td>PyMuPDF (fitz)</td>
-                </tr>
-                <tr>
-                  <td><code>HWPXParser</code></td>
-                  <td><code>hwpx.py</code></td>
-                  <td><code>.hwpx</code></td>
-                   <td>lxml, kiwipiepy (선택적)</td>
-                </tr>
-                <tr>
-                   <td><code>HTMLParser</code></td>
-                   <td><code>html.py</code></td>
-                   <td><code>.html</code>, <code>.htm</code></td>
-                   <td>BeautifulSoup4 (lxml 백엔드), charset-normalizer</td>
-                 </tr>
-                 <tr>
-                   <td><code>TextParser</code></td>
-                   <td><code>text.py</code></td>
-                   <td><code>.txt</code>, <code>.md</code></td>
-                   <td>charset-normalizer</td>
-                 </tr>
-                <tr>
-                  <td><code>DOCXParser</code></td>
-                  <td><code>docx.py</code></td>
-                  <td><code>.docx</code></td>
-                  <td>python-docx (선택적)</td>
-                </tr>
-                <tr>
-                  <td><code>HWPParser</code></td>
-                  <td><code>hwp.py</code></td>
-                  <td><code>.hwp</code></td>
-                  <td>olefile (선택적)</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <p><code>DOCXParser</code>는 <code>python-docx</code>가, <code>HWPParser</code>는 <code>olefile</code>이 설치되지 않은 경우 자동으로 비활성화됩니다. 레지스트리는 <code>parsers/__init__.py</code>에서 모든 파서를 자동 등록합니다.</p>
-          <p><code>parsers/base.py</code>의 <code>detect_encoding()</code> 함수는 HTML 파서와 텍스트 파서가 공유하는 유틸리티입니다. charset-normalizer를 사용하여 EUC-KR, CP949 등 한국어 인코딩을 정확하게 감지합니다.</p>
-        </section>
-
-
-        <!-- ============================================================
-             Section 4: Teacher LLM 모듈 (teacher/)
-             ============================================================ -->
-        <section id="section-4">
-          <h2>4. Teacher LLM 모듈 (teacher/)</h2>
-
-          <h3 id="baseteacher">BaseTeacher 인터페이스</h3>
-
-          <pre data-lang="python"><code>class BaseTeacher(ABC):
+<section id="4-teacher-llm-모듈-teacher">
+<h2 id="4-teacher-llm-모듈-teacher">4. Teacher LLM 모듈 (teacher/)</h2>
+<h3 id="baseteacher-인터페이스">BaseTeacher 인터페이스</h3>
+<pre data-lang="python"><code>class BaseTeacher(ABC):
     @abstractmethod
     def generate(self, prompt: str, **kwargs: object) -&gt; str:
         """프롬프트를 Teacher LLM에 전송하고 응답 텍스트를 반환합니다.
@@ -424,12 +480,8 @@ from slm_factory.parsers import registry</code></pre>
 
     def health_check(self) -&gt; bool:
         """백엔드에 도달할 수 있는지 확인합니다. 예외를 발생시키지 않습니다."""</code></pre>
-
-          <hr>
-
-          <h3 id="ollama-openai-teacher">OllamaTeacher / OpenAICompatTeacher</h3>
-
-          <pre data-lang="python"><code>class OllamaTeacher(BaseTeacher):
+<h3 id="ollamateacher-openaicompatteacher">OllamaTeacher / OpenAICompatTeacher</h3>
+<pre data-lang="python"><code>class OllamaTeacher(BaseTeacher):
     def __init__(self, config: TeacherConfig) -&gt; None:
         # config.model, config.api_base, config.temperature, config.timeout 사용
         # generate()는 format="json" 지원, 최대 3회 재시도 + 지수 백오프 적용
@@ -445,12 +497,8 @@ def create_teacher(config: TeacherConfig) -&gt; BaseTeacher:
     """config.backend에 따라 OllamaTeacher 또는 OpenAICompatTeacher를 반환합니다.
     Raises: ValueError (알 수 없는 backend)
     """</code></pre>
-
-          <hr>
-
-          <h3 id="qa-generator">QAGenerator</h3>
-
-          <pre data-lang="python"><code>class QAGenerator:
+<h3 id="qagenerator">QAGenerator</h3>
+<pre data-lang="python"><code>class QAGenerator:
     def __init__(self, config: SLMConfig) -&gt; None: ...
 
     def build_prompt(
@@ -474,19 +522,13 @@ def create_teacher(config: TeacherConfig) -&gt; BaseTeacher:
 
     def save_alpaca(self, pairs: list[QAPair], output_path: str | Path) -&gt; Path: ...
     # QA 쌍을 Alpaca 형식 JSON으로 저장합니다.</code></pre>
+<hr>
+</section>
 
-        </section>
-
-
-        <!-- ============================================================
-             Section 5: 검증 모듈 (validator/)
-             ============================================================ -->
-        <section id="section-5">
-          <h2>5. 검증 모듈 (validator/)</h2>
-
-          <h3 id="rule-validator">RuleValidator</h3>
-
-          <pre data-lang="python"><code>class RuleValidator:
+<section id="5-검증-모듈-validator">
+<h2 id="5-검증-모듈-validator">5. 검증 모듈 (validator/)</h2>
+<h3 id="rulevalidator">RuleValidator</h3>
+<pre data-lang="python"><code>class RuleValidator:
     def __init__(self, config: ValidationConfig) -&gt; None: ...
 
     def validate_one(self, pair: QAPair) -&gt; ValidationResult:
@@ -501,20 +543,15 @@ def create_teacher(config: TeacherConfig) -&gt; BaseTeacher:
 
     def reset_dedup(self) -&gt; None:
         """중복 제거 캐시를 초기화합니다."""</code></pre>
-
-          <p>적용되는 규칙 (순서대로):</p>
-          <ol>
-            <li><strong>빈 값 확인</strong>: 질문 또는 답변이 비어있거나 공백이면 거부 (<code>remove_empty: true</code>)</li>
-            <li><strong>길이 확인</strong>: 답변이 <code>min_answer_length</code>보다 짧거나 <code>max_answer_length</code>보다 길면 거부</li>
-            <li><strong>거부 패턴</strong>: 답변이 <code>reject_patterns</code> 정규식과 일치하면 거부 (예: "I don't know")</li>
-            <li><strong>중복 제거</strong>: 동일한 (질문, 답변) 쌍이 이미 처리된 경우 거부 (<code>deduplicate: true</code>)</li>
-          </ol>
-
-          <hr>
-
-          <h3 id="groundedness-checker">GroundednessChecker</h3>
-
-          <pre data-lang="python"><code>class GroundednessChecker:
+<p>적용되는 규칙 (순서대로):</p>
+<ol>
+<li><strong>빈 값 확인</strong>: 질문 또는 답변이 비어있거나 공백이면 거부 (<code>remove_empty: true</code>)</li>
+<li><strong>길이 확인</strong>: 답변이 <code>min_answer_length</code>보다 짧거나 <code>max_answer_length</code>보다 길면 거부</li>
+<li><strong>거부 패턴</strong>: 답변이 <code>reject_patterns</code> 정규식과 일치하면 거부 (예: "I don't know")</li>
+<li><strong>중복 제거</strong>: 동일한 (질문, 답변) 쌍이 이미 처리된 경우 거부 (<code>deduplicate: true</code>)</li>
+</ol>
+<h3 id="groundednesschecker">GroundednessChecker</h3>
+<pre data-lang="python"><code>class GroundednessChecker:
      def __init__(self, config: GroundednessConfig) -&gt; None:
          # sentence-transformers 필요: uv sync --extra validation
          # config.model (기본값: "all-MiniLM-L6-v2"), config.threshold (기본값: 0.3)
@@ -536,44 +573,29 @@ def create_teacher(config: TeacherConfig) -&gt; BaseTeacher:
         source_texts: dict[str, str],  # doc_id → 문서 텍스트
     ) -&gt; tuple[list[QAPair], list[tuple[QAPair, float]]]:
         """QA 쌍 배치의 근거성을 확인합니다."""</code></pre>
-        </section>
+<hr>
+</section>
 
-
-        <!-- ============================================================
-             Section 6: 데이터 처리 모듈
-             ============================================================ -->
-        <section id="section-6">
-          <h2>6. 데이터 처리 모듈</h2>
-
-          <h3 id="quality-scorer">QualityScorer (scorer.py)</h3>
-
-          <pre data-lang="python"><code>class QualityScorer:
+<section id="6-데이터-처리-모듈">
+<h2 id="6-데이터-처리-모듈">6. 데이터 처리 모듈</h2>
+<h3 id="qualityscorer-scorerpy">QualityScorer (scorer.py)</h3>
+<pre data-lang="python"><code>class QualityScorer:
     def __init__(self, teacher: BaseTeacher, config: ScoringConfig, teacher_config: TeacherConfig) -&gt; None: ...
     async def score_one(self, pair: QAPair) -&gt; tuple[QAPair, int, str]: ...
     # 단일 QA 쌍을 1~5점으로 평가합니다. (pair, score, reason) 반환.
     async def score_all(self, pairs: list[QAPair]) -&gt; tuple[list[QAPair], list[tuple[QAPair, int, str]]]: ...
     # config.threshold 이상인 쌍만 반환합니다. (수락된_쌍, 필터링된_쌍_및_점수_이유) 튜플.</code></pre>
-
-          <p>주요 설정: <code>scoring.enabled</code>, <code>scoring.threshold</code> (1.0~5.0, 기본값 3.0), <code>scoring.max_concurrency</code></p>
-
-          <hr>
-
-          <h3 id="data-augmenter">DataAugmenter (augmenter.py)</h3>
-
-          <pre data-lang="python"><code>class DataAugmenter:
+<p>주요 설정: <code>scoring.enabled</code>, <code>scoring.threshold</code> (1.0~5.0, 기본값 3.0), <code>scoring.max_concurrency</code></p>
+<h3 id="dataaugmenter-augmenterpy">DataAugmenter (augmenter.py)</h3>
+<pre data-lang="python"><code>class DataAugmenter:
     def __init__(self, teacher: BaseTeacher, config: AugmentConfig, teacher_config: TeacherConfig) -&gt; None: ...
     async def paraphrase_one(self, pair: QAPair) -&gt; list[QAPair]: ...
     # 단일 QA 쌍의 질문을 패러프레이즈하여 증강된 QA 쌍을 생성합니다.
     async def augment_all(self, pairs: list[QAPair]) -&gt; list[QAPair]: ...
     # 원본 + 증강 쌍을 반환합니다.</code></pre>
-
-          <p>주요 설정: <code>augment.enabled</code>, <code>augment.num_variants</code> (기본값 2), <code>augment.max_concurrency</code></p>
-
-          <hr>
-
-          <h3 id="data-analyzer">DataAnalyzer (analyzer.py)</h3>
-
-          <pre data-lang="python"><code>@dataclass
+<p>주요 설정: <code>augment.enabled</code>, <code>augment.num_variants</code> (기본값 2), <code>augment.max_concurrency</code></p>
+<h3 id="dataanalyzer-analyzerpy">DataAnalyzer (analyzer.py)</h3>
+<pre data-lang="python"><code>@dataclass
 class AnalysisReport:
     total_pairs: int; original_pairs: int; augmented_pairs: int
     category_distribution: dict[str, int]; source_doc_distribution: dict[str, int]
@@ -590,12 +612,8 @@ class DataAnalyzer:
 
     def save_report(self, report: AnalysisReport, path: Path) -&gt; None:
         """분석 보고서를 JSON 파일로 저장합니다."""</code></pre>
-
-          <hr>
-
-          <h3 id="chat-formatter">ChatFormatter (converter.py)</h3>
-
-          <pre data-lang="python"><code>class ChatFormatter:
+<h3 id="chatformatter-converterpy">ChatFormatter (converter.py)</h3>
+<pre data-lang="python"><code>class ChatFormatter:
     def __init__(self, config: SLMConfig) -&gt; None: ...
     def format_one(self, pair: QAPair) -&gt; str | None: ...
     # 단일 QA 쌍을 채팅 템플릿으로 형식화합니다. 시스템 역할 실패 시 자동 fallback.
@@ -603,67 +621,59 @@ class DataAnalyzer:
     # [{"text": "..."}, ...] 형식으로 반환, max_seq_length 초과 항목 제외.
     def save_training_data(self, pairs: list[QAPair], output_path: str | Path) -&gt; Path: ...
     def format_from_alpaca_file(self, input_path: str | Path, output_path: str | Path) -&gt; Path: ...</code></pre>
-        </section>
+<hr>
+</section>
 
-
-        <!-- ============================================================
-             Section 7: 학습 및 내보내기 모듈
-             ============================================================ -->
-        <section id="section-7">
-          <h2>7. 학습 및 내보내기 모듈</h2>
-
-          <h3 id="lora-trainer">LoRATrainer (trainer/lora_trainer.py)</h3>
-
-          <pre data-lang="python"><code>class LoRATrainer:
+<section id="7-학습-및-내보내기-모듈">
+<h2 id="7-학습-및-내보내기-모듈">7. 학습 및 내보내기 모듈</h2>
+<h3 id="loratrainer-trainerlora_trainerpy">LoRATrainer (trainer/lora_trainer.py)</h3>
+<pre data-lang="python"><code>class LoRATrainer:
     def __init__(self, config: SLMConfig) -&gt; None: ...
 
     def train(self, dataset_dict: DatasetDict) -&gt; Path:
         """LoRA 파인튜닝을 실행하고 어댑터 디렉토리 경로를 반환합니다.
         dataset_dict: "train"과 "eval" 분할을 포함하는 DatasetDict
         """</code></pre>
-
-          <p>주요 학습 파라미터 (<code>training.*</code>):</p>
-
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>파라미터</th>
-                  <th>기본값</th>
-                  <th>설명</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><code>num_epochs</code></td>
-                  <td><code>"auto"</code></td>
-                  <td>학습 에포크 수 (<code>"auto"</code>: 데이터 양에 따라 3~5 자동 결정)</td>
-                </tr>
-                <tr>
-                  <td><code>learning_rate</code></td>
-                  <td>2.0e-4</td>
-                  <td>학습률</td>
-                </tr>
-                <tr>
-                  <td><code>batch_size</code></td>
-                  <td>1</td>
-                  <td>디바이스당 배치 크기</td>
-                </tr>
-                <tr>
-                  <td><code>lora.r</code> / <code>lora.alpha</code></td>
-                  <td>16 / 32</td>
-                  <td>LoRA 랭크 / 스케일링</td>
-                </tr>
-                <tr>
-                  <td><code>early_stopping.patience</code></td>
-                  <td>3</td>
-                  <td>조기 종료 인내 에포크 수</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <pre data-lang="python"><code>class DataLoader:
+<p>주요 학습 파라미터 (<code>training.*</code>):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr>
+<th>파라미터</th>
+<th>기본값</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>num_epochs</code></td>
+<td><code>"auto"</code></td>
+<td>학습 에포크 수 (<code>"auto"</code>: 데이터 양에 따라 3~5 자동 결정)</td>
+</tr>
+<tr>
+<td><code>learning_rate</code></td>
+<td>2.0e-4</td>
+<td>학습률</td>
+</tr>
+<tr>
+<td><code>batch_size</code></td>
+<td>1</td>
+<td>디바이스당 배치 크기</td>
+</tr>
+<tr>
+<td><code>lora.r</code> / <code>lora.alpha</code></td>
+<td>8 / 16</td>
+<td>LoRA 랭크 / 스케일링</td>
+</tr>
+<tr>
+<td><code>early_stopping.patience</code></td>
+<td>3</td>
+<td>조기 종료 인내 에포크 수</td>
+</tr>
+</tbody>
+</table>
+</div>
+<pre data-lang="python"><code>class DataLoader:
     def __init__(self, train_split: float = 0.9) -&gt; None: ...
 
     def load_jsonl(self, path: str | Path) -&gt; Dataset:
@@ -671,12 +681,8 @@ class DataAnalyzer:
 
     def load_and_split(self, path: str | Path) -&gt; DatasetDict:
         """JSONL 파일을 로드하고 train/eval로 분할합니다."""</code></pre>
-
-          <hr>
-
-          <h3 id="hf-exporter">HFExporter (exporter/hf_export.py)</h3>
-
-          <pre data-lang="python"><code>class HFExporter:
+<h3 id="hfexporter-exporterhf_exportpy">HFExporter (exporter/hf_export.py)</h3>
+<pre data-lang="python"><code>class HFExporter:
     def __init__(self, config: SLMConfig) -&gt; None: ...
     def merge_and_save(self, adapter_path: str | Path, output_dir=None) -&gt; Path:
         """LoRA 어댑터를 기본 모델에 병합하고 safetensors 형식으로 저장합니다."""
@@ -684,87 +690,59 @@ class DataAnalyzer:
         """병합 없이 LoRA 어댑터만 저장합니다."""
     def export(self, adapter_path: str | Path, output_dir=None) -&gt; Path:
         """config.export.merge_lora에 따라 병합 또는 어댑터만 저장합니다."""</code></pre>
-
-          <hr>
-
-          <h3 id="ollama-exporter">OllamaExporter (exporter/ollama_export.py)</h3>
-
-          <pre data-lang="python"><code>class OllamaExporter:
+<h3 id="ollamaexporter-exporterollama_exportpy">OllamaExporter (exporter/ollama_export.py)</h3>
+<pre data-lang="python"><code>class OllamaExporter:
     def __init__(self, config: SLMConfig) -&gt; None: ...
     def generate_modelfile(self, model_dir: str | Path, output_path=None) -&gt; Path:
         """Ollama Modelfile을 생성합니다 (기본 위치: model_dir/Modelfile)."""
-    def create_model(self, modelfile_path: str | Path) -&gt; bool:
+    def create_model(
+        self, modelfile_path: str | Path, model_name_override: str | None = None,
+    ) -&gt; bool:
         """ollama create 명령으로 모델을 생성합니다. 성공 여부를 반환합니다."""
-    def export(self, model_dir: str | Path, output_dir=None) -&gt; Path:
+    def export(
+        self, model_dir: str | Path, output_dir=None, model_name_override: str | None = None,
+    ) -&gt; Path:
         """Modelfile을 생성하고 Ollama가 감지되면 모델을 자동 생성합니다."""</code></pre>
+<hr>
+</section>
 
-          <hr>
-
-        </section>
-
-
-        <!-- ============================================================
-             Section 8: 평가 및 비교 모듈
-             ============================================================ -->
-        <section id="section-8">
-          <h2>8. 평가 및 비교 모듈</h2>
-
-          <h3 id="model-evaluator">ModelEvaluator (evaluator.py)</h3>
-
-          <pre data-lang="python"><code>class ModelEvaluator:
+<section id="8-평가-및-비교-모듈">
+<h2 id="8-평가-및-비교-모듈">8. 평가 및 비교 모듈</h2>
+<h3 id="modelevaluator-evaluatorpy">ModelEvaluator (evaluator.py)</h3>
+<pre data-lang="python"><code>class ModelEvaluator:
     def __init__(self, config: SLMConfig) -&gt; None: ...
     def evaluate(self, qa_pairs: list[QAPair], model_name: str) -&gt; list[EvalResult]:
         """QA 쌍으로 Ollama 모델을 평가합니다 (config.eval.max_samples 샘플링)."""
     def save_results(self, results: list[EvalResult], path: Path) -&gt; None: ...
     def print_summary(self, results: list[EvalResult]) -&gt; None: ...</code></pre>
-
-          <p>지원 메트릭: <code>bleu</code>, <code>rouge</code> (ROUGE-1, ROUGE-2, ROUGE-L)</p>
-
-          <hr>
-
-          <h3 id="model-comparator">ModelComparator (comparator.py)</h3>
-
-          <pre data-lang="python"><code>class ModelComparator:
+<p>지원 메트릭: <code>bleu</code>, <code>rouge</code> (ROUGE-1, ROUGE-2, ROUGE-L), <code>llm_judge</code> (Teacher LLM 의미적 정확성 평가, 0~1 정규화)</p>
+<h3 id="modelcomparator-comparatorpy">ModelComparator (comparator.py)</h3>
+<pre data-lang="python"><code>class ModelComparator:
     def __init__(self, config: SLMConfig) -&gt; None: ...
     def compare(self, qa_pairs: list[QAPair]) -&gt; list[CompareResult]:
         """config.compare.base_model과 finetuned_model을 비교합니다."""
     def save_results(self, results: list[CompareResult], path: Path) -&gt; None: ...
     def print_summary(self, results: list[CompareResult]) -&gt; None: ...</code></pre>
-        </section>
+<hr>
+</section>
 
-
-        <!-- ============================================================
-             Section 9: TUI 모듈 (tui/)
-             ============================================================ -->
-        <section id="section-9">
-          <h2>9. TUI 모듈 (tui/)</h2>
-
-          <h3 id="qa-reviewer-app">QAReviewerApp (reviewer.py)</h3>
-          <p>Textual 기반 QA 수동 리뷰 앱입니다. <code>slf tool review</code> 명령으로 실행됩니다.</p>
-
-          <pre data-lang="python"><code>class QAReviewerApp(App[None]):
+<section id="9-tui-모듈-tui">
+<h2 id="9-tui-모듈-tui">9. TUI 모듈 (tui/)</h2>
+<h3 id="qareviewerapp-reviewerpy">QAReviewerApp (reviewer.py)</h3>
+<p>Textual 기반 QA 수동 리뷰 앱입니다. <code>slf tool review</code> 명령으로 실행됩니다.</p>
+<pre data-lang="python"><code>class QAReviewerApp(App[None]):
     """QA 쌍을 하나씩 확인하며 승인/거부/편집하는 TUI 앱입니다.
     키 바인딩: a/Enter=승인, r=거부, e=편집, q/Escape=종료
     출력: config.review.output_file (기본값: qa_reviewed.json)
     """</code></pre>
+<hr>
+</section>
 
-          <hr>
-
-        </section>
-
-
-        <!-- ============================================================
-             Section 10: 확장 가이드
-             ============================================================ -->
-        <section id="section-10">
-          <h2>10. 확장 가이드</h2>
-
-          <!-- Extension 1: New Parser -->
-          <article class="card">
-            <h3 id="ext-new-parser" class="card-title">새 파서 추가</h3>
-            <p class="card-desc"><code>BaseParser</code>를 상속하고 <code>extensions</code>와 <code>parse()</code>를 구현한 후 레지스트리에 등록합니다.</p>
-
-            <pre data-lang="python"><code># src/slm_factory/parsers/epub.py
+<section id="10-확장-가이드">
+<h2 id="10-확장-가이드">10. 확장 가이드</h2>
+<h3 id="새-파서-추가">새 파서 추가</h3>
+<p><code>BaseParser</code>를 상속하고 <code>extensions</code>와 <code>parse()</code>를 구현한 후 레지스트리에 등록합니다.</p>
+<pre data-lang="python"><code># src/slm_factory/parsers/epub.py
 from pathlib import Path
 from .base import BaseParser
 from ..models import ParsedDocument
@@ -789,24 +767,15 @@ class EPUBParser(BaseParser):
             content="\n\n".join(parts),
             tables=[], metadata={"format": "epub"},
         )</code></pre>
-
-            <p><code>parsers/__init__.py</code>에 등록합니다:</p>
-
-            <pre data-lang="python"><code>try:
+<p><code>parsers/__init__.py</code>에 등록합니다:</p>
+<pre data-lang="python"><code>try:
     from .epub import EPUBParser
     registry.register(EPUBParser)
 except ImportError:
     pass</code></pre>
-          </article>
-
-          <hr>
-
-          <!-- Extension 2: New Teacher Backend -->
-          <article class="card">
-            <h3 id="ext-new-teacher" class="card-title">새 Teacher 백엔드 추가</h3>
-            <p class="card-desc"><code>BaseTeacher</code>를 상속하고 <code>generate()</code>와 <code>agenerate()</code>를 구현합니다.</p>
-
-            <pre data-lang="python"><code># src/slm_factory/teacher/anthropic_teacher.py
+<h3 id="새-teacher-백엔드-추가">새 Teacher 백엔드 추가</h3>
+<p><code>BaseTeacher</code>를 상속하고 <code>generate()</code>와 <code>agenerate()</code>를 구현합니다.</p>
+<pre data-lang="python"><code># src/slm_factory/teacher/anthropic_teacher.py
 from .base import BaseTeacher
 from ..config import TeacherConfig
 
@@ -834,10 +803,8 @@ class AnthropicTeacher(BaseTeacher):
     def health_check(self) -&gt; bool:
         try: self.generate("ping"); return True
         except Exception: return False</code></pre>
-
-            <p><code>teacher/__init__.py</code>의 <code>create_teacher()</code>에 등록합니다:</p>
-
-            <pre data-lang="python"><code>def create_teacher(config: TeacherConfig) -&gt; BaseTeacher:
+<p><code>teacher/__init__.py</code>의 <code>create_teacher()</code>에 등록합니다:</p>
+<pre data-lang="python"><code>def create_teacher(config: TeacherConfig) -&gt; BaseTeacher:
     if config.backend == "ollama":
         return OllamaTeacher(config)
     elif config.backend == "openai":
@@ -847,18 +814,10 @@ class AnthropicTeacher(BaseTeacher):
         return AnthropicTeacher(config)
     else:
         raise ValueError(f"Unknown teacher backend: {config.backend!r}")</code></pre>
-
-            <p><code>project.yaml</code>에서 사용: <code>teacher.backend: "anthropic"</code>, <code>teacher.model: "claude-3-haiku-20240307"</code></p>
-          </article>
-
-          <hr>
-
-          <!-- Extension 3: Custom Validation -->
-          <article class="card">
-            <h3 id="ext-custom-validation" class="card-title">커스텀 검증 규칙 추가</h3>
-            <p class="card-desc"><code>RuleValidator</code>를 서브클래싱하거나, 파이프라인에서 <code>step_validate()</code> 이후에 커스텀 필터를 적용합니다.</p>
-
-            <pre data-lang="python"><code>from slm_factory.validator.rules import RuleValidator
+<p><code>project.yaml</code>에서 사용: <code>teacher.backend: "anthropic"</code>, <code>teacher.model: "claude-3-haiku-20240307"</code></p>
+<h3 id="커스텀-검증-규칙-추가">커스텀 검증 규칙 추가</h3>
+<p><code>RuleValidator</code>를 서브클래싱하거나, 파이프라인에서 <code>step_validate()</code> 이후에 커스텀 필터를 적용합니다.</p>
+<pre data-lang="python"><code>from slm_factory.validator.rules import RuleValidator
 from slm_factory.models import QAPair
 
 
@@ -886,16 +845,9 @@ pairs = pipeline.step_generate(docs)
 pairs = pipeline.step_validate(pairs, docs=docs)
 pairs = [p for p in pairs if len(p.answer.split()) &gt;= 20]
 pairs = pipeline.step_score(pairs)</code></pre>
-          </article>
-
-          <hr>
-
-          <!-- Extension 4: New Export Format -->
-          <article class="card">
-            <h3 id="ext-new-exporter" class="card-title">새 내보내기 형식 추가</h3>
-            <p class="card-desc"><code>exporter/</code> 디렉토리의 패턴을 따라 새 내보내기 클래스를 작성합니다.</p>
-
-            <pre data-lang="python"><code># src/slm_factory/exporter/vllm_export.py
+<h3 id="새-내보내기-형식-추가">새 내보내기 형식 추가</h3>
+<p><code>exporter/</code> 디렉토리의 패턴을 따라 새 내보내기 클래스를 작성합니다.</p>
+<pre data-lang="python"><code># src/slm_factory/exporter/vllm_export.py
 import json
 from pathlib import Path
 from ..utils import get_logger
@@ -920,23 +872,14 @@ class VLLMExporter:
         output_path.write_text(json.dumps(config_data, indent=2), encoding="utf-8")
         logger.info("vLLM 설정 파일 생성됨: %s", output_path)
         return output_path</code></pre>
+<blockquote><p>설계 패턴 이해는 <a href="architecture.html#3-핵심-설계-패턴">아키텍처 가이드</a>를 참조하십시오.</p></blockquote>
+<hr>
+</section>
 
-            <blockquote>
-              <p>설계 패턴 이해는 <a href="architecture.html#3-핵심-설계-패턴">아키텍처 가이드</a>를 참조하십시오.</p>
-            </blockquote>
-          </article>
-        </section>
-
-
-        <!-- ============================================================
-             Section 11: 테스트
-             ============================================================ -->
-        <section id="section-11">
-          <h2>11. 테스트</h2>
-
-          <h3 id="test-structure">테스트 구조</h3>
-
-          <pre><code>tests/
+<section id="11-테스트">
+<h2 id="11-테스트">11. 테스트</h2>
+<h3 id="테스트-구조">테스트 구조</h3>
+<pre><code>tests/
 ├── conftest.py                  # 공유 fixture 및 ML 라이브러리 mock
 ├── test_models.py               # 데이터 모델
 ├── test_config.py               # 설정 로드 및 검증
@@ -948,15 +891,12 @@ class VLLMExporter:
 ├── test_{scorer,augmenter,analyzer,converter}.py
 ├── test_exporter.py             # HFExporter, OllamaExporter
 ├── test_{evaluator,comparator,incremental}.py
+├── test_integration.py          # 통합 테스트 (청킹, 재생성, 관계 정규화)
 ├── test_reviewer.py             # TUI
 ├── test_cli.py                  # CLI 명령어
 └── test_utils.py                # 유틸리티 함수</code></pre>
-
-          <hr>
-
-          <h3 id="test-execution">테스트 실행</h3>
-
-          <pre data-lang="bash"><code># 전체 테스트 실행
+<h3 id="테스트-실행">테스트 실행</h3>
+<pre data-lang="bash"><code># 전체 테스트 실행
 uv run pytest
 
 # 특정 모듈 테스트
@@ -968,27 +908,21 @@ uv run pytest tests/test_validator_rules.py::test_validate_batch_rejects_empty
 # 상세 출력
 uv run pytest -v
 
-# 커버리지 측정
+# 커버리지 측정 (pytest-cov 필요: uv add --dev pytest-cov)
 uv run pytest --cov=slm_factory --cov-report=html
 
-# 빠른 실행 (병렬)
+# 빠른 실행 (병렬, pytest-xdist 필요: uv add --dev pytest-xdist)
 uv run pytest -n auto</code></pre>
-
-          <hr>
-
-          <h3 id="test-guide">테스트 작성 가이드</h3>
-
-          <h4>핵심 원칙:</h4>
-          <ul>
-            <li><code>conftest.py</code>는 <code>torch</code>, <code>transformers</code>, <code>peft</code>, <code>trl</code>, <code>datasets</code>, <code>sentence_transformers</code>, <code>kiwipiepy</code> 등 무거운 ML 라이브러리를 <code>MagicMock</code>으로 자동 대체합니다. 실제 GPU 없이도 모든 로직을 테스트할 수 있습니다.</li>
-            <li><code>make_config</code> fixture로 <code>SLMConfig</code>를 쉽게 생성합니다: <code>config = make_config(teacher={"model": "test-model"})</code></li>
-            <li>외부 API 호출은 <code>unittest.mock.patch</code>로 mock합니다.</li>
-            <li>파일 I/O 테스트에는 <code>tmp_path</code> fixture를 사용합니다.</li>
-          </ul>
-
-          <h4>파서 테스트 패턴:</h4>
-
-          <pre data-lang="python"><code># tests/test_parsers_epub.py
+<h3 id="테스트-작성-가이드">테스트 작성 가이드</h3>
+<p><strong>핵심 원칙:</strong></p>
+<ul>
+<li><code>conftest.py</code>는 <code>torch</code>, <code>transformers</code>, <code>peft</code>, <code>trl</code>, <code>datasets</code>, <code>sentence_transformers</code>, <code>kiwipiepy</code> 등 무거운 ML 라이브러리를 <code>MagicMock</code>으로 자동 대체합니다. 실제 GPU 없이도 모든 로직을 테스트할 수 있습니다.</li>
+<li><code>make_config</code> fixture로 <code>SLMConfig</code>를 쉽게 생성합니다: <code>config = make_config(teacher={"model": "test-model"})</code></li>
+<li>외부 API 호출은 <code>unittest.mock.patch</code>로 mock합니다.</li>
+<li>파일 I/O 테스트에는 <code>tmp_path</code> fixture를 사용합니다.</li>
+</ul>
+<p><strong>파서 테스트 패턴:</strong></p>
+<pre data-lang="python"><code># tests/test_parsers_epub.py
 from unittest.mock import patch, MagicMock
 from slm_factory.parsers.epub import EPUBParser
 
@@ -1002,10 +936,8 @@ def test_epub_parser_parse(tmp_path):
     with patch("ebooklib.epub.read_epub", return_value=mock_book):
         doc = EPUBParser().parse(tmp_path / "test.epub")
     assert doc.doc_id == "test" and doc.title == "테스트 문서"</code></pre>
-
-          <h4>검증 규칙 테스트 패턴:</h4>
-
-          <pre data-lang="python"><code># tests/test_validator_custom.py
+<p><strong>검증 규칙 테스트 패턴:</strong></p>
+<pre data-lang="python"><code># tests/test_validator_custom.py
 from slm_factory.config import ValidationConfig
 from slm_factory.models import QAPair
 from slm_factory.validator.rules import RuleValidator
@@ -1019,57 +951,26 @@ def test_accepts_valid_pair():
     v = RuleValidator(ValidationConfig(min_answer_length=10))
     r = v.validate_one(QAPair(question="이 정책의 목적은?", answer="국민 복지 향상과 사회적 형평성 제고입니다."))
     assert r.passed</code></pre>
-        </section>
+<hr>
+</section>
 
+<section id="관련-문서">
+<h2 id="관련-문서">관련 문서</h2>
+<ul>
+<li><strong><a href="architecture.html">아키텍처 가이드</a></strong>: 내부 구조, 설계 원칙, 레이어 다이어그램</li>
+<li><strong><a href="configuration.html">설정 레퍼런스</a></strong>: <code>project.yaml</code>의 모든 필드 상세 설명</li>
+<li><strong><a href="cli-reference.html">CLI 레퍼런스</a></strong>: 모든 CLI 명령어와 옵션</li>
+<li><strong><a href="guide.html">사용자 가이드</a></strong>: 엔드-투-엔드 사용 튜토리얼</li>
+<li><strong><a href="quick-reference.html">빠른 참조</a></strong>: 자주 쓰는 명령어 모음</li>
+</ul></section>
 
-        <!-- ============================================================
-             Section: 관련 문서
-             ============================================================ -->
-        <section id="related-docs">
-          <h2>관련 문서</h2>
+      </div>
+    </div>
 
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>문서</th>
-                  <th>내용</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><a href="architecture.html">아키텍처 가이드</a></td>
-                  <td>내부 구조, 설계 원칙, 레이어 다이어그램</td>
-                </tr>
-                <tr>
-                  <td><a href="configuration.html">설정 레퍼런스</a></td>
-                  <td><code>project.yaml</code>의 모든 필드 상세 설명</td>
-                </tr>
-                <tr>
-                  <td><a href="cli-reference.html">CLI 레퍼런스</a></td>
-                  <td>모든 CLI 명령어와 옵션</td>
-                </tr>
-                <tr>
-                  <td><a href="guide.html">사용자 가이드</a></td>
-                  <td>엔드-투-엔드 사용 튜토리얼</td>
-                </tr>
-                <tr>
-                  <td><a href="quick-reference.html">빠른 참조</a></td>
-                  <td>자주 쓰는 명령어 모음</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-      </div><!-- /.content-container -->
-    </div><!-- /.main-content -->
-
-    <!-- Footer -->
     <footer class="page-footer">
       <p>slm-factory Documentation</p>
     </footer>
 
-  </div><!-- /.page-wrapper -->
+  </div>
 </body>
 </html>

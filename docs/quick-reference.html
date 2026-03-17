@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="slm-factory 빠른 참조 - 핵심 명령어와 워크플로우 치트시트">
   <title>빠른 참조 - slm-factory</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
   <link rel="stylesheet" href="./assets/style.css">
@@ -11,438 +10,323 @@
 <body>
   <div class="page-wrapper">
 
-    <!-- ============================================================
-         Sidebar Navigation
-         ============================================================ -->
     <nav class="sidebar" aria-label="문서 탐색">
-      <div class="sidebar-header">
-        <a href="index.html" class="sidebar-logo">
-          <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <rect width="28" height="28" rx="6" fill="#3182CE"/>
-            <path d="M7 14h4l2-4 3 8 2-4h3" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          slm-factory
-        </a>
-        <span class="sidebar-version">Documentation</span>
-      </div>
-            <ul class="sidebar-nav">
-        <li class="nav-section">시작하기</li>
-        <li><a href="index.html">문서 홈</a></li>
-        <li><a href="guide.html">사용 가이드</a></li>
-<li><a href="integration-guide.html">RAG 서비스 가이드</a></li>
-        <li><a href="quick-reference.html" class="active">빠른 참조</a></li>
-        <li class="nav-section">레퍼런스</li>
-        <li><a href="cli-reference.html">CLI 레퍼런스</a></li>
-        <li><a href="configuration.html">설정 레퍼런스</a></li>
-        <li class="nav-section">심화</li>
-        <li><a href="architecture.html">아키텍처 가이드</a></li>
-        <li><a href="development.html">개발 가이드</a></li>
-      </ul>
-    </nav>
+  <div class="sidebar-header">
+    <a href="index.html" class="sidebar-logo">
+      <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect width="28" height="28" rx="6" fill="#3182CE"/>
+        <path d="M7 14h4l2-4 3 8 2-4h3" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      slm-factory
+    </a>
+    <span class="sidebar-version">Documentation</span>
+  </div>
+  <ul class="sidebar-nav">
+    <li class="nav-section">시작하기</li>
+    <li><a href="index.html">문서 홈</a></li>
+    <li><a href="guide.html">사용 가이드</a></li>
+    <li><a href="integration-guide.html">RAG 서비스 가이드</a></li>
+    <li><a href="quick-reference.html" class="active">빠른 참조</a></li>
+    <li class="nav-section">레퍼런스</li>
+    <li><a href="cli-reference.html">CLI 레퍼런스</a></li>
+    <li><a href="configuration.html">설정 레퍼런스</a></li>
+    <li class="nav-section">심화</li>
+    <li><a href="architecture.html">아키텍처 가이드</a></li>
+    <li><a href="development.html">개발 가이드</a></li>
+  </ul>
+</nav>
 
-    <!-- ============================================================
-         Main Content Area
-         ============================================================ -->
     <div class="main-content">
 
-      <!-- Page Header (Hero) -->
       <header class="page-header">
         <div class="content-container">
-          <span class="badge">Quick Reference</span>
+          <span class="badge">Quick Ref</span>
           <h1>빠른 참조</h1>
-          <p class="subtitle">slm-factory의 핵심 명령어와 워크플로우를 한눈에 확인하세요. 도메인 문서를 SLM으로 변환하는 전체 파이프라인을 빠르게 참조하려는 활성 사용자를 위한 치트시트입니다.</p>
+          <p class="subtitle">자주 사용하는 명령어, 워크플로우, 설정 패턴을 한 페이지로 요약합니다.</p>
         </div>
       </header>
 
-      <!-- Content Body -->
       <div class="content-container">
 
-        <!-- Breadcrumb -->
         <nav class="breadcrumb" aria-label="경로">
           <a href="index.html">문서</a>
-          <span class="separator">/</span>
+          <span class="separator" aria-hidden="true">/</span>
           <span>빠른 참조</span>
         </nav>
 
-        <!-- Table of Contents -->
         <nav class="toc" aria-label="목차">
-          <div class="toc-title">목차</div>
-          <ol class="toc-list">
-            <li><a href="#installation">설치</a></li>
-            <li><a href="#prerequisites">사전 준비</a></li>
-            <li><a href="#getting-started">프로젝트 시작</a></li>
-            <li><a href="#cli-summary">CLI 명령어 요약</a></li>
-            <li><a href="#pipeline-steps">파이프라인 단계</a></li>
-            <li><a href="#workflows">자주 쓰는 워크플로우</a></li>
-            <li><a href="#output-structure">출력 파일 구조</a></li>
-            <li><a href="#config-skeleton">설정 파일 골격</a></li>
-            <li><a href="#troubleshooting">트러블슈팅 빠른 해결</a></li>
-            <li><a href="#related-docs">관련 문서</a></li>
-          </ol>
-        </nav>
+<div class="toc-title">목차</div>
+<ol class="toc-list">
+<li><a href="#설치">설치</a>
+</li>
+<li><a href="#사전-준비">사전 준비</a>
+</li>
+<li><a href="#프로젝트-시작">프로젝트 시작</a>
+</li>
+<li><a href="#cli-명령어-요약">CLI 명령어 요약</a>
+<ol class="toc-list">
+<li class="toc-h3"><a href="#시작하기">🚀 시작하기</a></li>
+<li class="toc-h3"><a href="#파이프라인">⚙️ 파이프라인</a></li>
+<li class="toc-h3"><a href="#평가">📊 평가</a></li>
+<li class="toc-h3"><a href="#도구">🔧 도구</a></li>
+<li class="toc-h3"><a href="#ℹ-정보">ℹ️ 정보</a></li>
+</ol>
+</li>
+<li><a href="#파이프라인-단계">파이프라인 단계</a>
+</li>
+<li><a href="#자주-쓰는-워크플로우">자주 쓰는 워크플로우</a>
+<ol class="toc-list">
+<li class="toc-h3"><a href="#1-전체-자동-실행-tune">1. 전체 자동 실행 (tune)</a></li>
+<li class="toc-h3"><a href="#2-단계별-실행-tune-until">2. 단계별 실행 (tune --until)</a></li>
+<li class="toc-h3"><a href="#3-기존-데이터로-학습만-train-data">3. 기존 데이터로 학습만 (train --data)</a></li>
+<li class="toc-h3"><a href="#4-중단-후-재개-resume">4. 중단 후 재개 (--resume)</a></li>
+<li class="toc-h3"><a href="#5-평가-및-비교-eval-run-eval-compare">5. 평가 및 비교 (eval run / eval compare)</a></li>
+<li class="toc-h3"><a href="#6-전체-파이프라인-rag-채팅-tune-chat">6. 전체 파이프라인 + RAG 채팅 (tune --chat)</a></li>
+</ol>
+</li>
+<li><a href="#출력-파일-구조">출력 파일 구조</a>
+</li>
+<li><a href="#설정-파일-골격">설정 파일 골격</a>
+</li>
+<li><a href="#트러블슈팅-빠른-해결">트러블슈팅 빠른 해결</a>
+</li>
+<li><a href="#관련-문서">관련 문서</a>
+</li>
+</ol>
+</nav>
 
-
-        <!-- ============================================================
-             Section: 설치
-             ============================================================ -->
-        <section id="installation">
-          <h2>설치</h2>
-
-          <pre data-lang="bash"><code>git clone https://github.com/DevDnA/slm-factory.git
+        <section id="설치">
+<h2 id="설치">설치</h2>
+<pre data-lang="bash"><code>git clone https://github.com/DevDnA/slm-factory.git
 cd slm-factory
 ./setup.sh                    # uv 설치, 의존성, Ollama 모델 준비를 한 번에 처리</code></pre>
-        </section>
+<hr>
+</section>
 
+<section id="사전-준비">
+<h2 id="사전-준비">사전 준비</h2>
+<p><code>./setup.sh</code>가 Ollama 모델 다운로드를 자동 처리합니다. 수동으로 실행하려면 아래 명령을 사용하세요.</p>
+<pre data-lang="bash"><code>ollama serve           # 별도 터미널에서 실행 (백그라운드 유지)
+ollama pull qwen3.5:9b   # 기본 Teacher 모델 다운로드 (최초 1회, ./setup.sh가 자동 처리)</code></pre>
+<hr>
+</section>
 
-        <!-- ============================================================
-             Section: 사전 준비
-             ============================================================ -->
-        <section id="prerequisites">
-          <h2>사전 준비</h2>
-
-          <p><code>./setup.sh</code>가 Ollama 모델 다운로드를 자동 처리합니다. 수동으로 실행하려면 아래 명령을 사용하세요.</p>
-
-          <pre data-lang="bash"><code>ollama serve           # 별도 터미널에서 실행 (백그라운드 유지)
-ollama pull qwen3.5:9b   # Teacher 모델 다운로드 (최초 1회)</code></pre>
-        </section>
-
-
-        <!-- ============================================================
-             Section: 프로젝트 시작
-             ============================================================ -->
-        <section id="getting-started">
-          <h2>프로젝트 시작</h2>
-
-          <pre data-lang="bash"><code># 1. 프로젝트 초기화
+<section id="프로젝트-시작">
+<h2 id="프로젝트-시작">프로젝트 시작</h2>
+<pre data-lang="bash"><code># 1. 프로젝트 초기화
 slf init my-project
 
 # 2. 학습할 문서 복사
 cp /path/to/documents/*.pdf my-project/documents/
 
 # 3. 환경 점검 (선택 권장)
-slf check --config my-project/project.yaml
+slf check
 
 # 4. 파이프라인 실행
-slf tune --config my-project/project.yaml</code></pre>
-        </section>
+slf tune</code></pre>
+<hr>
+</section>
 
+<section id="cli-명령어-요약">
+<h2 id="cli-명령어-요약">CLI 명령어 요약</h2>
+<p>모든 명령어에 <code>--verbose</code> (<code>-v</code>) 또는 <code>--quiet</code> (<code>-q</code>) 전역 옵션을 사용할 수 있습니다.</p>
+<h3 id="시작하기">🚀 시작하기</h3>
+<blockquote><p><code>./setup.sh</code>가 <code>slf</code> 명령어를 자동 설치합니다. 설치 후 바로 사용할 수 있습니다.</p></blockquote>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr>
+<th>명령어</th>
+<th>설명</th>
+<th>주요 옵션</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>slf init &lt;name&gt;</code></td>
+<td>새 프로젝트 초기화</td>
+<td><code>--path &lt;디렉토리&gt;</code></td>
+</tr>
+<tr>
+<td><code>slf check</code></td>
+<td>설정 및 환경 사전 점검</td>
+<td><code>--config &lt;파일&gt;</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="파이프라인">⚙️ 파이프라인</h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr>
+<th>명령어</th>
+<th>설명</th>
+<th>주요 옵션</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>slf tune</code></td>
+<td>전체 파이프라인 실행</td>
+<td><code>--until &lt;단계&gt;</code>, <code>--from &lt;단계&gt;</code>, <code>--resume</code> / <code>-r</code>, <code>--chat</code></td>
+</tr>
+<tr>
+<td><code>slf rag</code></td>
+<td>RAG 웹 채팅 서비스 (인덱스 자동 구축)</td>
+<td><code>--chat/--no-chat</code></td>
+</tr>
+<tr>
+<td><code>slf train</code></td>
+<td>LoRA 학습 실행</td>
+<td><code>--data &lt;jsonl&gt;</code>, <code>--resume</code> / <code>-r</code></td>
+</tr>
+<tr>
+<td><code>slf export</code></td>
+<td>모델 내보내기 (LoRA 병합 + Modelfile)</td>
+<td><code>--adapter &lt;경로&gt;</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="평가">📊 평가</h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr>
+<th>명령어</th>
+<th>설명</th>
+<th>주요 옵션</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>slf eval run</code></td>
+<td>BLEU/ROUGE 평가</td>
+<td><code>--model &lt;이름&gt;</code>, <code>--data</code></td>
+</tr>
+<tr>
+<td><code>slf eval compare</code></td>
+<td>Base vs Fine-tuned 비교</td>
+<td><code>--base-model &lt;이름&gt;</code>, <code>--ft &lt;이름&gt;</code>, <code>--data</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="도구">🔧 도구</h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr>
+<th>명령어</th>
+<th>설명</th>
+<th>주요 옵션</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>slf tool review</code></td>
+<td>QA 수동 리뷰 TUI</td>
+<td><code>--data</code></td>
+</tr>
+<tr>
+<td><code>slf tool evolve</code></td>
+<td>자동 진화 (증분→학습→품질게이트→배포)</td>
+<td><code>--force-update</code>, <code>--skip-gate</code></td>
+</tr>
+<tr>
+<td><code>slf tool convert</code></td>
+<td>QA &rarr; JSONL 변환</td>
+<td><code>--data</code></td>
+</tr>
+<tr>
+<td><code>slf tool update</code></td>
+<td>증분 업데이트 (변경 문서만)</td>
+<td></td>
+</tr>
+<tr>
+<td><code>slf tool compare-data</code></td>
+<td>두 QA 데이터셋 품질 비교</td>
+<td><code>--baseline</code> / <code>-b</code>, <code>--target</code> / <code>-t</code></td>
+</tr>
+<tr>
+<td><code>slf tool export-autorag</code></td>
+<td>RAG 인덱싱용 데이터 내보내기</td>
+<td><code>--qa-file</code></td>
+</tr>
+<tr>
+<td><code>slf tool rag-index</code></td>
+<td>Qdrant에 임베딩 적재</td>
+<td><code>--corpus-dir</code></td>
+</tr>
+<tr>
+<td><code>slf tool rag-serve</code></td>
+<td>RAG API 서버 시작</td>
+<td><code>--host</code>, <code>--port</code></td>
+</tr>
+<tr>
+<td><code>slf tool eval-retrieval</code></td>
+<td>RAG 검색 품질 평가</td>
+<td><code>--top-k</code>, <code>--qa-file</code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="ℹ-정보">ℹ️ 정보</h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr>
+<th>명령어</th>
+<th>설명</th>
+<th>주요 옵션</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>slf status</code></td>
+<td>파이프라인 진행 상태 확인</td>
+<td></td>
+</tr>
+<tr>
+<td><code>slf clean</code></td>
+<td>중간 파일 정리</td>
+<td><code>--all</code>, <code>--yes</code> / <code>-y</code></td>
+</tr>
+<tr>
+<td><code>slf version</code></td>
+<td>버전 정보 출력</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+<blockquote><p>각 명령어의 전체 옵션은 <a href="cli-reference.html">CLI 레퍼런스</a>를 참조하십시오.</p></blockquote>
+<hr>
+</section>
 
-        <!-- ============================================================
-             Section: CLI 명령어 요약
-             ============================================================ -->
-        <section id="cli-summary">
-          <h2>CLI 명령어 요약</h2>
-
-          <p>모든 명령어에 <code>--verbose</code> (<code>-v</code>) 또는 <code>--quiet</code> (<code>-q</code>) 전역 옵션을 사용할 수 있습니다.</p>
-
-          <h3 id="cli-start">시작하기</h3>
-
-          <blockquote><p><code>./setup.sh</code>가 <code>slf</code> 명령어를 자동 설치합니다. 설치 후 바로 사용할 수 있습니다.</p></blockquote>
-
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>명령어</th>
-                  <th>설명</th>
-                  <th>주요 옵션</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><code>slf init &lt;name&gt;</code></td>
-                  <td>새 프로젝트 초기화</td>
-                  <td><code>--path &lt;디렉토리&gt;</code></td>
-                </tr>
-                <tr>
-                  <td><code>slf check</code></td>
-                  <td>설정 및 환경 사전 점검</td>
-                  <td><code>--config &lt;파일&gt;</code></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <h3 id="cli-pipeline">파이프라인</h3>
-
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>명령어</th>
-                  <th>설명</th>
-                  <th>주요 옵션</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><code>slf tune</code></td>
-                  <td>전체 파이프라인 실행</td>
-                  <td><code>--config</code>, <code>--until &lt;단계&gt;</code>, <code>--from &lt;단계&gt;</code>, <code>--resume</code> / <code>-r</code>, <code>--chat</code></td>
-                </tr>
-                <tr>
-                  <td><code>slf rag</code></td>
-                  <td>RAG 웹 채팅 서비스 (인덱스 자동 구축)</td>
-                  <td></td>
-                </tr>
-                <tr>
-                  <td><code>slf train</code></td>
-                  <td>LoRA 학습 실행</td>
-                  <td><code>--config</code>, <code>--data &lt;jsonl&gt;</code>, <code>--resume</code> / <code>-r</code></td>
-                </tr>
-                <tr>
-                  <td><code>slf export</code></td>
-                  <td>모델 내보내기 (LoRA 병합 + Modelfile)</td>
-                  <td><code>--config</code>, <code>--adapter &lt;경로&gt;</code></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <h3 id="cli-eval">평가</h3>
-
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>명령어</th>
-                  <th>설명</th>
-                  <th>주요 옵션</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><code>slf eval run</code></td>
-                  <td>BLEU/ROUGE 평가</td>
-                  <td><code>--model &lt;이름&gt;</code>, <code>--config</code>, <code>--data</code></td>
-                </tr>
-                <tr>
-                  <td><code>slf eval compare</code></td>
-                  <td>Base vs Fine-tuned 비교</td>
-                  <td><code>--base-model &lt;이름&gt;</code>, <code>--ft &lt;이름&gt;</code>, <code>--config</code>, <code>--data</code></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <h3 id="cli-tools">도구</h3>
-
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>명령어</th>
-                  <th>설명</th>
-                  <th>주요 옵션</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><code>slf tool review</code></td>
-                  <td>QA 수동 리뷰 TUI</td>
-                  <td><code>--config</code>, <code>--data</code></td>
-                </tr>
-                 <tr>
-                   <td><code>slf tool evolve</code></td>
-                   <td>자동 진화 (증분 &rarr; 학습 &rarr; 품질게이트 &rarr; 배포)</td>
-                   <td><code>--config</code>, <code>--force-update</code>, <code>--skip-gate</code></td>
-                 </tr>
-                <tr>
-                  <td><code>slf tool convert</code></td>
-                  <td>QA &rarr; JSONL 변환</td>
-                  <td><code>--config</code>, <code>--data</code></td>
-                </tr>
-                <tr>
-                  <td><code>slf tool update</code></td>
-                  <td>증분 업데이트 (변경 문서만)</td>
-                  <td><code>--config</code></td>
-                </tr>
-                <tr>
-                  <td><code>slf tool compare-data</code></td>
-                  <td>두 QA 데이터셋 품질 비교</td>
-                  <td><code>--baseline</code> / <code>-b</code>, <code>--target</code> / <code>-t</code></td>
-                </tr>
-                <tr>
-                  <td><code>slf tool export-autorag</code></td>
-                  <td>RAG 인덱싱용 데이터 내보내기</td>
-                  <td><code>--config</code>, <code>--qa-file</code></td>
-                </tr>
-                <tr>
-                  <td><code>slf tool rag-index</code></td>
-                  <td>Qdrant에 임베딩 적재</td>
-                  <td><code>--config</code>, <code>--corpus-dir</code></td>
-                </tr>
-                <tr>
-                  <td><code>slf tool rag-serve</code></td>
-                  <td>RAG API 서버 시작</td>
-                  <td><code>--config</code>, <code>--host</code>, <code>--port</code></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <h3 id="cli-info">정보</h3>
-
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>명령어</th>
-                  <th>설명</th>
-                  <th>주요 옵션</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><code>slf status</code></td>
-                  <td>파이프라인 진행 상태 확인</td>
-                  <td><code>--config</code></td>
-                </tr>
-                <tr>
-                  <td><code>slf clean</code></td>
-                  <td>중간 파일 정리</td>
-                  <td><code>--config</code>, <code>--all</code>, <code>--yes</code> / <code>-y</code></td>
-                </tr>
-                <tr>
-                  <td><code>slf version</code></td>
-                  <td>버전 정보 출력</td>
-                  <td></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <blockquote>
-            <p>각 명령어의 전체 옵션은 <a href="cli-reference.html">CLI 레퍼런스</a>를 참조하십시오.</p>
-          </blockquote>
-        </section>
-
-
-        <!-- ============================================================
-             Section: 파이프라인 단계
-             ============================================================ -->
-        <section id="pipeline-steps">
-          <h2>파이프라인 단계</h2>
-
-          <p><code>slf tune</code> 실행 시 아래 순서로 진행됩니다. 상세한 단계 설명은 <a href="guide.html">사용 가이드</a>를 참조하십시오.</p>
-
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>단계</th>
-                  <th>유형</th>
-                  <th>설명</th>
-                  <th>출력 파일</th>
-                </tr>
-              </thead>
-              <tbody>
-                 <tr>
-                   <td>1</td>
-                   <td><strong>parse</strong></td>
-                   <td><span class="tag tag-required">필수</span></td>
-                    <td>PDF/HWPX/HTML/TXT/MD/DOCX/HWP 파싱</td>
-                    <td><code>output/parsed_documents.json</code></td>
-                  </tr>
-                  <tr>
-                    <td>1b</td>
-                    <td><strong>chunking</strong></td>
-                    <td><span class="tag tag-optional">선택</span></td>
-                    <td>긴 문서를 청크로 분할하여 QA 생성 범위 확장 (<code>chunking.enabled: true</code>)</td>
-                    <td><code>(파싱 결과에 통합)</code></td>
-                  </tr>
-                  <tr>
-                    <td>2</td>
-                    <td><strong>generate</strong></td>
-                  <td><span class="tag tag-required">필수</span></td>
-                  <td>Teacher LLM으로 QA 쌍 생성</td>
-                  <td><code>output/qa_alpaca.json</code></td>
-                </tr>
-                <tr>
-                  <td>3</td>
-                  <td><strong>validate</strong></td>
-                  <td><span class="tag tag-required">필수</span></td>
-                  <td>규칙 + 임베딩 기반 QA 검증 및 필터링</td>
-                  <td><code>qa_alpaca.json</code> 갱신</td>
-                </tr>
-                <tr>
-                  <td>4</td>
-                  <td><strong>score</strong></td>
-                  <td><span class="tag tag-optional">선택</span></td>
-                  <td>Teacher LLM 1~5점 품질 평가 (<code>scoring.enabled: true</code>)</td>
-                  <td><code>output/qa_scored.json</code></td>
-                </tr>
-                <tr>
-                  <td>5</td>
-                  <td><strong>augment</strong></td>
-                  <td><span class="tag tag-optional">선택</span></td>
-                  <td>질문 패러프레이즈 데이터 증강 (<code>augment.enabled: true</code>)</td>
-                  <td><code>output/qa_augmented.json</code></td>
-                </tr>
-                <tr>
-                  <td>6</td>
-                  <td><strong>analyze</strong></td>
-                  <td><span class="tag tag-optional">선택</span></td>
-                  <td>통계 분석 보고서 생성 (<code>analyzer.enabled: true</code>)</td>
-                  <td><code>output/data_analysis.json</code></td>
-                </tr>
-                <tr>
-                  <td>7</td>
-                  <td><strong>convert</strong></td>
-                  <td><span class="tag tag-required">필수</span></td>
-                  <td>채팅 템플릿 적용 JSONL 변환</td>
-                  <td><code>output/training_data.jsonl</code></td>
-                </tr>
-                <tr>
-                  <td>8</td>
-                  <td><strong>train</strong></td>
-                  <td><span class="tag tag-required">필수</span></td>
-                  <td>LoRA 파인튜닝</td>
-                  <td><code>output/checkpoints/adapter/</code></td>
-                </tr>
-                <tr>
-                  <td>9</td>
-                  <td><strong>export</strong></td>
-                  <td><span class="tag tag-required">필수</span></td>
-                   <td>모델 병합 + Ollama Modelfile 생성</td>
-                   <td><code>output/merged_model/</code></td>
-                 </tr>
-                 <tr>
-                    <td>10</td>
-                    <td><strong>eval</strong></td>
-                   <td><span class="tag tag-optional">선택</span></td>
-                   <td>BLEU/ROUGE 평가 (<code>eval.enabled: true</code>)</td>
-                   <td><code>output/eval_results.json</code></td>
-                 </tr>
-                 <tr>
-                    <td>11</td>
-                    <td><strong>refine</strong></td>
-                   <td><span class="tag tag-optional">선택</span></td>
-                   <td>Iterative Refinement — 약점 QA 재생성 + 재학습 (<code>refinement.enabled: true</code>)</td>
-                   <td>-</td>
-                 </tr>
-                 <tr>
-                    <td>12</td>
-                    <td><strong>autorag_export</strong></td>
-                   <td><span class="tag tag-optional">선택</span></td>
-                   <td>RAG 인덱싱 데이터 내보내기 (<code>autorag_export.enabled: true</code>)</td>
-                   <td><code>output/autorag/*.parquet</code></td>
-                 </tr>
-                 <tr>
-                    <td>13</td>
-                    <td><strong>rag_index</strong></td>
-                   <td><span class="tag tag-optional">선택</span></td>
-                   <td>Qdrant 벡터 인덱싱 (<code>autorag_export.enabled: true</code>)</td>
-                   <td><code>output/qdrant_db/</code></td>
-                 </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- SVG Diagram: Pipeline Steps Flow -->
-          <div class="diagram">
-            <svg role="img" aria-labelledby="diagram-pipeline-flow-title diagram-pipeline-flow-desc" viewBox="0 0 720 230" xmlns="http://www.w3.org/2000/svg">
+<section id="파이프라인-단계">
+<h2 id="파이프라인-단계">파이프라인 단계</h2>
+<p><code>slf tune</code> 실행 시 아래 순서로 진행됩니다. 상세한 단계 설명은 <a href="guide.html">사용 가이드</a>를 참조하십시오.</p>
+<ol>
+<li><strong>parse</strong> (필수) — PDF/HWPX/HTML/TXT/MD/DOCX/HWP 파싱 &rarr; <code>output/parsed_documents.json</code></li>
+<li><strong>chunking</strong> (선택) — 긴 문서를 청크로 분할하여 QA 생성 범위 확장</li>
+<li><strong>generate</strong> (필수) — Teacher LLM으로 QA 쌍 생성 &rarr; <code>output/qa_alpaca.json</code></li>
+<li><strong>validate</strong> (필수) — 규칙 + 임베딩 기반 QA 검증 및 필터링 &rarr; <code>qa_alpaca.json</code> 갱신</li>
+<li><strong>score</strong> (선택) — Teacher LLM 1~5점 품질 평가 &rarr; <code>output/qa_scored.json</code></li>
+<li><strong>augment</strong> (선택) — 질문 패러프레이즈 데이터 증강 &rarr; <code>output/qa_augmented.json</code></li>
+<li><strong>analyze</strong> (선택) — 통계 분석 보고서 생성 &rarr; <code>output/data_analysis.json</code></li>
+<li><strong>convert</strong> (필수) — 채팅 템플릿 적용 JSONL 변환 &rarr; <code>output/training_data.jsonl</code></li>
+<li><strong>train</strong> (필수) — LoRA 파인튜닝 &rarr; <code>output/checkpoints/adapter/</code></li>
+<li><strong>export</strong> (필수) — 모델 병합 + Ollama Modelfile 생성 &rarr; <code>output/merged_model/</code></li>
+<li><strong>eval</strong> (선택) — BLEU/ROUGE 평가 &rarr; <code>output/eval_results.json</code></li>
+<li><strong>refine</strong> (선택) — Iterative Refinement (약점 QA 재생성 + 재학습)</li>
+<li><strong>autorag_export</strong> (선택) — RAG 인덱싱 데이터 내보내기 &rarr; <code>output/autorag/</code></li>
+<li><strong>rag_index</strong> (선택) — Qdrant 벡터 인덱싱 &rarr; <code>output/qdrant_db/</code></li>
+</ol>
+<blockquote><p>모든 선택 단계는 기본으로 활성화됩니다. 개별 비활성화는 <code>project.yaml</code>에서 <code>enabled: false</code>로 설정합니다.</p></blockquote>
+<div class="diagram">
+<svg role="img" aria-labelledby="diagram-pipeline-flow-title diagram-pipeline-flow-desc" viewBox="0 0 720 230" xmlns="http://www.w3.org/2000/svg">
               <title id="diagram-pipeline-flow-title">파이프라인 단계 흐름도</title>
               <desc id="diagram-pipeline-flow-desc">slm-factory의 13단계(+1b) 파이프라인을 4그룹 가로 흐름으로 표시. 각 단계의 출력 파일명 포함.</desc>
               <defs>
@@ -524,86 +408,53 @@ slf tune --config my-project/project.yaml</code></pre>
               <text x="390" y="218" font-family="JetBrains Mono, Consolas, monospace" font-size="8" fill="#718096">filename</text>
               <text x="435" y="218" font-family="Pretendard, sans-serif" font-size="9" fill="#4A5568">출력 파일</text>
             </svg>
-            <p class="diagram-caption">그림 1. slm-factory 13단계(+1b) 파이프라인 흐름 - 필수 단계(navy)와 선택 단계(orange dashed), 각 단계의 출력 파일</p>
-          </div>
-        </section>
+</div>
+<hr>
+</section>
 
-
-        <!-- ============================================================
-             Section: 자주 쓰는 워크플로우
-             ============================================================ -->
-        <section id="workflows">
-          <h2>자주 쓰는 워크플로우</h2>
-
-          <h3 id="workflow-tune">1. 전체 자동 실행 (tune)</h3>
-
-          <p>설정을 직접 제어하고 싶을 때 사용합니다.</p>
-
-          <pre data-lang="bash"><code>slf tune --config my-project/project.yaml</code></pre>
-
-          <hr>
-
-          <h3 id="workflow-step-by-step">3. 단계별 실행 (tune --until)</h3>
-
-          <p>특정 단계까지만 실행하고 결과를 확인한 후 다음 단계로 진행합니다.</p>
-
-          <pre data-lang="bash"><code>slf tune --until parse    --config my-project/project.yaml
-slf tune --until generate --config my-project/project.yaml
-slf tune --until validate --config my-project/project.yaml
-slf tune --until score    --config my-project/project.yaml
-slf tune --until augment  --config my-project/project.yaml
-slf train                --config my-project/project.yaml
-slf export               --config my-project/project.yaml</code></pre>
-
-          <hr>
-
-          <h3 id="workflow-train-data">4. 기존 데이터로 학습만 (train --data)</h3>
-
-          <p>이미 준비된 <code>training_data.jsonl</code>이 있거나 하이퍼파라미터를 반복 실험할 때 사용합니다.</p>
-
-          <pre data-lang="bash"><code>slf train --config my-project/project.yaml --data ./output/training_data.jsonl</code></pre>
-
-          <hr>
-
-          <h3 id="workflow-resume">5. 중단 후 재개 (--resume)</h3>
-
-          <p>파이프라인이 중간에 중단된 경우, 중간 저장 파일에서 자동으로 재개합니다.</p>
-
-          <pre data-lang="bash"><code>slf tune   --config my-project/project.yaml --resume
-slf train --config my-project/project.yaml --resume</code></pre>
-
-          <hr>
-
-           <h3 id="workflow-eval">6. 평가 및 비교 (eval run / eval compare)</h3>
-
-           <p>학습 완료 후 모델 성능을 측정하고 Base 모델과 비교합니다.</p>
-
-           <pre data-lang="bash"><code># BLEU/ROUGE 평가
-slf eval run --model my-project-model --config my-project/project.yaml
+<section id="자주-쓰는-워크플로우">
+<h2 id="자주-쓰는-워크플로우">자주 쓰는 워크플로우</h2>
+<h3 id="1-전체-자동-실행-tune">1. 전체 자동 실행 (tune)</h3>
+<p>설정을 직접 제어하고 싶을 때 사용합니다.</p>
+<pre data-lang="bash"><code>slf tune</code></pre>
+<h3 id="2-단계별-실행-tune-until">2. 단계별 실행 (tune --until)</h3>
+<p>특정 단계까지만 실행하고 결과를 확인한 후 다음 단계로 진행합니다.</p>
+<pre data-lang="bash"><code>slf tune --until parse
+slf tune --until generate
+slf tune --until validate
+slf tune --until score
+slf tune --until augment
+slf tune --until convert
+slf tune --until train
+slf tune --until export
+slf tune --until eval
+slf tune --until rag_index</code></pre>
+<h3 id="3-기존-데이터로-학습만-train-data">3. 기존 데이터로 학습만 (train --data)</h3>
+<p>이미 준비된 <code>training_data.jsonl</code>이 있거나 하이퍼파라미터를 반복 실험할 때 사용합니다.</p>
+<pre data-lang="bash"><code>slf train --data ./output/training_data.jsonl</code></pre>
+<h3 id="4-중단-후-재개-resume">4. 중단 후 재개 (--resume)</h3>
+<p>파이프라인이 중간에 중단된 경우, 중간 저장 파일에서 자동으로 재개합니다.</p>
+<pre data-lang="bash"><code>slf tune --resume
+slf train --resume</code></pre>
+<h3 id="5-평가-및-비교-eval-run-eval-compare">5. 평가 및 비교 (eval run / eval compare)</h3>
+<p>학습 완료 후 모델 성능을 측정하고 Base 모델과 비교합니다.</p>
+<pre data-lang="bash"><code># BLEU/ROUGE 평가
+slf eval run --model my-project-model
 
 # Base vs Fine-tuned 비교
 slf eval compare \
   --base-model gemma:2b \
-  --ft my-project-model \
-  --config my-project/project.yaml</code></pre>
+  --ft my-project-model</code></pre>
+<h3 id="6-전체-파이프라인-rag-채팅-tune-chat">6. 전체 파이프라인 + RAG 채팅 (tune --chat)</h3>
+<p>SLM 학습부터 RAG 인덱싱, API 서버 시작까지 한 번에 실행합니다.</p>
+<pre data-lang="bash"><code>slf tune --chat</code></pre>
+<blockquote><p>서버는 foreground로 실행됩니다. <code>Ctrl+C</code>로 종료할 수 있습니다.</p></blockquote>
+<hr>
+</section>
 
-           <h3 id="workflow-chat">7. 전체 파이프라인 + RAG 채팅 (tune --chat)</h3>
-
-           <p>SLM 학습부터 RAG 인덱싱, API 서버 시작까지 한 번에 실행합니다.</p>
-
-           <pre data-lang="bash"><code>slf tune --chat --config my-project/project.yaml</code></pre>
-
-           <p class="note">서버는 foreground로 실행됩니다. <code>Ctrl+C</code>로 종료할 수 있습니다.</p>
-         </section>
-
-
-        <!-- ============================================================
-             Section: 출력 파일 구조
-             ============================================================ -->
-        <section id="output-structure">
-          <h2>출력 파일 구조</h2>
-
-          <pre><code>output/
+<section id="출력-파일-구조">
+<h2 id="출력-파일-구조">출력 파일 구조</h2>
+<pre><code>output/
 ├── parsed_documents.json       # 파싱된 문서 텍스트 및 메타데이터
 ├── qa_alpaca.json              # Teacher LLM이 생성한 QA 쌍 (Alpaca 형식)
 ├── qa_scored.json              # 품질 점수 평가를 통과한 QA 쌍
@@ -618,23 +469,19 @@ slf eval compare \
 │       ├── adapter_config.json
 │       └── adapter_model.safetensors
 ├── autorag/                    # RAG 인덱싱용 데이터 (corpus.parquet, qa.parquet)
+├── qdrant_db/                  # RAG 벡터 인덱스 (Qdrant)
 └── merged_model/               # 병합된 최종 모델 (HuggingFace 형식)
     ├── config.json
     ├── model.safetensors
     ├── tokenizer.json
     └── Modelfile               # Ollama 배포용 파일</code></pre>
-        </section>
+<hr>
+</section>
 
-
-        <!-- ============================================================
-             Section: 설정 파일 골격
-             ============================================================ -->
-        <section id="config-skeleton">
-          <h2>설정 파일 골격</h2>
-
-          <p><code>project.yaml</code>의 최소 필수 설정입니다. 나머지는 기본값으로 동작합니다.</p>
-
-          <pre data-lang="yaml"><code>project:
+<section id="설정-파일-골격">
+<h2 id="설정-파일-골격">설정 파일 골격</h2>
+<p><code>project.yaml</code>의 최소 필수 설정입니다. 나머지는 기본값으로 동작합니다.</p>
+<pre data-lang="yaml"><code>project:
   name: "my-project"
   language: "ko"                        # "ko", "en", "ja" 등
 
@@ -660,133 +507,117 @@ chunking:
   enabled: true
   chunk_size: "auto"      # 또는 정수 (예: 10000)
   overlap_chars: 500</code></pre>
+<blockquote><p>전체 설정 옵션(scoring, augment, validation, training, LoRA 등)은 <a href="configuration.html">설정 레퍼런스</a>를 참조하십시오.</p></blockquote>
+<hr>
+</section>
 
-          <blockquote>
-            <p>전체 설정 옵션(scoring, augment, validation, training, LoRA 등)은 <a href="configuration.html">설정 레퍼런스</a>를 참조하십시오.</p>
-          </blockquote>
-        </section>
+<section id="트러블슈팅-빠른-해결">
+<h2 id="트러블슈팅-빠른-해결">트러블슈팅 빠른 해결</h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr>
+<th>증상</th>
+<th>원인</th>
+<th>해결</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Failed to connect to Ollama at http://localhost:11434</code></td>
+<td>Ollama 서버 미실행</td>
+<td><code>ollama serve</code> 실행 후 재시도</td>
+</tr>
+<tr>
+<td><code>CUDA out of memory</code></td>
+<td>GPU VRAM 부족</td>
+<td><code>training.batch_size: 1</code>, <code>quantization.bits: 4</code> 설정</td>
+</tr>
+<tr>
+<td><code>Failed to parse HWPX file - section0.xml not found</code></td>
+<td>HWPX 파일 손상</td>
+<td>한글에서 <code>.hwpx</code>로 다시 저장하거나 <code>.hwp</code> 형식으로 변환</td>
+</tr>
+<tr>
+<td><code>Could not install packages due to an OSError</code> (kiwipiepy)</td>
+<td>Python 버전 미호환</td>
+<td><code>python --version</code> 확인 (3.11+)</td>
+</tr>
+<tr>
+<td><code>Only N QA pairs generated. Recommend at least 100</code></td>
+<td>문서 부족 또는 질문 카테고리 부족</td>
+<td>문서 추가 또는 <code>questions.categories</code> 확장</td>
+</tr>
+<tr>
+<td>대부분의 답변이 "The document does not contain..."</td>
+<td>Teacher 모델 타임아웃 또는 질문 부적합</td>
+<td><code>teacher.timeout: 300</code>, 질문을 문서 내용에 맞게 수정</td>
+</tr>
+<tr>
+<td><code>model not found</code> (Ollama)</td>
+<td>Teacher 모델 미다운로드</td>
+<td><code>ollama pull &lt;teacher-model&gt;</code> (기본값: <code>qwen3.5:9b</code>)</td>
+</tr>
+<tr>
+<td><code>externally-managed-environment</code> (pip)</td>
+<td>환경 미설정</td>
+<td><code>./setup.sh</code> 실행 후 재시도</td>
+</tr>
+</tbody>
+</table>
+</div>
+<blockquote><p>상세 해결 방법은 <a href="guide.html#8-트러블슈팅">사용 가이드</a>를 참조하십시오.</p></blockquote>
+<hr>
+</section>
 
+<section id="관련-문서">
+<h2 id="관련-문서">관련 문서</h2>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr>
+<th>문서</th>
+<th>내용</th>
+<th>대상</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="guide.html">사용 가이드</a></td>
+<td>설치부터 배포까지 단계별 상세 안내</td>
+<td>처음 사용자</td>
+</tr>
+<tr>
+<td><a href="cli-reference.html">CLI 레퍼런스</a></td>
+<td>모든 명령어와 옵션의 완전한 설명</td>
+<td>명령어 확인</td>
+</tr>
+<tr>
+<td><a href="configuration.html">설정 레퍼런스</a></td>
+<td><code>project.yaml</code>의 모든 설정 옵션 상세 설명</td>
+<td>설정 커스터마이징</td>
+</tr>
+<tr>
+<td><a href="architecture.html">아키텍처 가이드</a></td>
+<td>내부 구조, 모듈 설계, 확장 방법</td>
+<td>기여자, 고급 사용자</td>
+</tr>
+<tr>
+<td><a href="development.html">개발 가이드</a></td>
+<td>개발 환경 설정, 테스트, 기여 방법</td>
+<td>기여자</td>
+</tr>
+</tbody>
+</table>
+</div></section>
 
-        <!-- ============================================================
-             Section: 트러블슈팅 빠른 해결
-             ============================================================ -->
-        <section id="troubleshooting">
-          <h2>트러블슈팅 빠른 해결</h2>
+      </div>
+    </div>
 
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>증상</th>
-                  <th>원인</th>
-                  <th>해결</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><code>Failed to connect to Ollama at http://localhost:11434</code></td>
-                  <td>Ollama 서버 미실행</td>
-                  <td><code>ollama serve</code> 실행 후 재시도</td>
-                </tr>
-                <tr>
-                  <td><code>CUDA out of memory</code></td>
-                  <td>GPU VRAM 부족</td>
-                  <td><code>training.batch_size: 1</code>, <code>quantization.bits: 4</code> 설정</td>
-                </tr>
-                <tr>
-                  <td><code>Failed to parse HWPX file - section0.xml not found</code></td>
-                  <td>HWPX 파일 손상 또는 <code>.hwp</code> 형식</td>
-                   <td>한글에서 <code>.hwpx</code>로 다시 저장하거나 <code>.hwp</code> 형식으로 변환</td>
-                </tr>
-                <tr>
-                  <td><code>Could not install packages due to an OSError</code> (kiwipiepy)</td>
-                  <td>Python 버전 미호환</td>
-                  <td><code>python --version</code> 확인 (3.11+)</td>
-                </tr>
-                <tr>
-                  <td><code>Only N QA pairs generated. Recommend at least 100</code></td>
-                  <td>문서 부족 또는 질문 카테고리 부족</td>
-                  <td>문서 추가 또는 <code>questions.categories</code> 확장</td>
-                </tr>
-                <tr>
-                  <td>대부분의 답변이 "The document does not contain..."</td>
-                  <td>Teacher 모델 타임아웃 또는 질문 부적합</td>
-                  <td><code>teacher.timeout: 300</code>, 질문을 문서 내용에 맞게 수정</td>
-                </tr>
-                <tr>
-                  <td><code>model not found</code> (Ollama)</td>
-                  <td>Teacher 모델 미다운로드</td>
-                  <td><code>ollama pull qwen3.5:9b</code></td>
-                </tr>
-                <tr>
-                  <td><code>externally-managed-environment</code> (pip)</td>
-                  <td>환경 미설정</td>
-                  <td><code>./setup.sh</code> 실행 후 재시도</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <blockquote>
-            <p>상세 해결 방법은 <a href="guide.html#section-7">사용 가이드</a>를 참조하십시오.</p>
-          </blockquote>
-        </section>
-
-
-        <!-- ============================================================
-             Section: 관련 문서
-             ============================================================ -->
-        <section id="related-docs">
-          <h2>관련 문서</h2>
-
-          <div class="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>문서</th>
-                  <th>내용</th>
-                  <th>대상</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><a href="guide.html">사용 가이드</a></td>
-                  <td>설치부터 배포까지 단계별 상세 안내</td>
-                  <td>처음 사용자</td>
-                </tr>
-                <tr>
-                  <td><a href="cli-reference.html">CLI 레퍼런스</a></td>
-                  <td>모든 명령어와 옵션의 완전한 설명</td>
-                  <td>명령어 확인</td>
-                </tr>
-                <tr>
-                  <td><a href="configuration.html">설정 레퍼런스</a></td>
-                  <td><code>project.yaml</code>의 모든 설정 옵션 상세 설명</td>
-                  <td>설정 커스터마이징</td>
-                </tr>
-                <tr>
-                  <td><a href="architecture.html">아키텍처 가이드</a></td>
-                  <td>내부 구조, 모듈 설계, 확장 방법</td>
-                  <td>기여자, 고급 사용자</td>
-                </tr>
-                <tr>
-                  <td><a href="development.html">개발 가이드</a></td>
-                  <td>개발 환경 설정, 테스트, 기여 방법</td>
-                  <td>기여자</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-      </div><!-- /.content-container -->
-    </div><!-- /.main-content -->
-
-    <!-- Footer -->
     <footer class="page-footer">
       <p>slm-factory Documentation</p>
     </footer>
 
-  </div><!-- /.page-wrapper -->
+  </div>
 </body>
 </html>

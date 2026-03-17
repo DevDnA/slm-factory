@@ -152,6 +152,8 @@ curl -N -X POST http://localhost:8000/v1/query \
 
 **질의 → 응답 흐름:**
 
+<!-- diagram: integration-guide-diagram-1 -->
+
 ```
 사용자 질의: "이 규정의 예외 조항은?"
        │

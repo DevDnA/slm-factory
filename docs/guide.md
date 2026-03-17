@@ -142,6 +142,8 @@ slf init my-first-project
 
 다음 구조가 생성됩니다.
 
+<!-- diagram: guide-diagram-project -->
+
 ```
 my-first-project/
 ├── documents/      # 학습할 문서를 여기에 넣습니다
@@ -221,6 +223,8 @@ slf tune --config my-first-project/project.yaml
 | 13 | RAG 인덱싱 | 선택 | corpus.parquet을 Qdrant에 임베딩하여 적재합니다 (`rag` 설정 반영) |
 
 선택 단계는 `project.yaml`의 `enabled` 설정에 따라 자동 결정됩니다.
+
+<!-- diagram: guide-diagram-pipeline -->
 
 ---
 
