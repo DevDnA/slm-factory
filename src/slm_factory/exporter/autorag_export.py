@@ -57,38 +57,93 @@ def _chunk_for_retrieval(content: str, chunk_size: int, overlap: int) -> list[st
     return chunks
 
 
+def _char_ngram_cosine(query: str, texts: list[str], n: int = 3) -> list[float]:
+    """character n-gram 코사인 유사도를 계산합니다. sklearn 없이 numpy만 사용."""
+    from collections import Counter
+
+    import numpy as np
+
+    def _ngrams(text: str) -> Counter:
+        t = text.lower()
+        return Counter(t[i : i + n] for i in range(max(0, len(t) - n + 1)))
+
+    query_ng = _ngrams(query)
+    if not query_ng:
+        return [0.0] * len(texts)
+
+    query_norm = np.sqrt(sum(v * v for v in query_ng.values()))
+    scores: list[float] = []
+    for text in texts:
+        text_ng = _ngrams(text)
+        common = set(query_ng) & set(text_ng)
+        if not common:
+            scores.append(0.0)
+            continue
+        dot = sum(query_ng[k] * text_ng[k] for k in common)
+        text_norm = np.sqrt(sum(v * v for v in text_ng.values()))
+        scores.append(dot / (query_norm * text_norm))
+    return scores
+
+
 def _find_best_chunks(
     answer: str,
     chunk_texts: list[str],
     chunk_ids: list[str],
+    question: str = "",
 ) -> list[str]:
-    """답변 텍스트와 가장 많이 겹치는 청크 ID를 찾습니다.
+    """BM25 + char n-gram hybrid로 답변에 가장 관련 높은 청크를 찾습니다.
 
-    단어 수준 겹침과 부분 문자열 포함 여부를 함께 고려하여
-    가장 관련성 높은 청크를 최대 3개까지 반환합니다.
+    question + answer를 결합하여 매칭합니다.
+    질문이 주제를 제한하고, 답변이 구체적 위치를 식별합니다.
     """
     if not chunk_texts:
         return []
 
-    answer_words = set(answer.lower().split())
-    scores: list[tuple[float, str]] = []
+    import numpy as np
+    from rank_bm25 import BM25Okapi
 
-    for chunk_text, chunk_id in zip(chunk_texts, chunk_ids):
-        chunk_words = set(chunk_text.lower().split())
-        word_overlap = len(answer_words & chunk_words)
-        # 답변 앞부분이 청크에 포함되면 보너스 부여
-        containment = 1.0 if answer[:80].lower() in chunk_text.lower() else 0.0
-        scores.append((word_overlap + containment * 20, chunk_id))
+    query = f"{question} {answer}".strip()
+    tokenize = _get_tokenizer()
 
-    scores.sort(reverse=True)
+    tokenized_corpus = [tokenize(t) for t in chunk_texts]
+    tokenized_query = tokenize(query)
 
-    top_score = scores[0][0]
-    if top_score == 0:
-        return [scores[0][1]]
+    # BM25 점수 (TF-IDF + 문서 길이 정규화)
+    bm25 = BM25Okapi(tokenized_corpus)
+    bm25_scores = np.array(bm25.get_scores(tokenized_query))
+    bm25_max = bm25_scores.max()
+    if bm25_max > 0:
+        bm25_scores = bm25_scores / bm25_max
 
-    threshold = top_score * 0.5
-    result = [cid for score, cid in scores if score >= threshold]
-    return result[:3]
+    # char n-gram 코사인 유사도 (패러프레이즈 대응)
+    ngram_scores = np.array(_char_ngram_cosine(query, chunk_texts))
+
+    # 가중 합산: n-gram 60%, BM25 40%
+    hybrid_scores = 0.4 * bm25_scores + 0.6 * ngram_scores
+
+    top_indices = hybrid_scores.argsort()[::-1][:3]
+    threshold = 0.05
+    return [chunk_ids[i] for i in top_indices if hybrid_scores[i] > threshold] or [
+        chunk_ids[top_indices[0]]
+    ]
+
+
+def _get_tokenizer():
+    """kiwi 형태소 토크나이저를 반환합니다. 미설치 시 whitespace 폴백."""
+    try:
+        from kiwipiepy import Kiwi
+
+        kiwi = Kiwi()
+
+        def _tokenize(text: str) -> list[str]:
+            tokens = kiwi.tokenize(text)
+            return [
+                t.form for t in tokens if len(t.form) > 1 or not t.tag.startswith("J")
+            ]
+
+        return _tokenize
+    except ImportError:
+        return lambda text: text.lower().split()
 
 
 class AutoRAGExporter:
@@ -335,9 +390,16 @@ class AutoRAGExporter:
                 entries = doc_chunk_map[source_doc]
                 chunk_ids = [cid for cid, _ in entries]
                 chunk_texts = [ct for _, ct in entries]
-                relevant_ids = _find_best_chunks(answer, chunk_texts, chunk_ids)
+                relevant_ids = _find_best_chunks(
+                    answer, chunk_texts, chunk_ids, question=question
+                )
             else:
-                relevant_ids = [all_chunk_ids[0]] if all_chunk_ids else []
+                logger.debug(
+                    "source_doc '%s' 매핑 없음, QA 건너뜀: %s",
+                    source_doc,
+                    question[:50],
+                )
+                continue
 
             if not relevant_ids:
                 logger.warning(

@@ -340,8 +340,8 @@ class TestBuildQA:
 
         assert len(qa_rows) == 0
 
-    def test_source_doc_미매칭시_폴백(self, make_config):
-        """source_doc가 doc_chunk_map에 없으면 첫 번째 청크로 폴백합니다."""
+    def test_source_doc_미매칭시_건너뜀(self, make_config):
+        """source_doc가 doc_chunk_map에 없으면 해당 QA를 건너뜁니다."""
         exporter = _make_autorag_exporter(make_config, chunk_size=2000)
         docs = _sample_parsed_docs()
         corpus_rows, doc_chunk_map = exporter._build_corpus(docs)
@@ -355,9 +355,7 @@ class TestBuildQA:
         ]
         qa_rows = exporter._build_qa(orphan_qa, doc_chunk_map, corpus_rows)
 
-        assert len(qa_rows) == 1
-        # 첫 번째 코퍼스 청크로 폴백
-        assert qa_rows[0]["retrieval_gt"][0][0] == corpus_rows[0]["doc_id"]
+        assert len(qa_rows) == 0
 
 
 # ---------------------------------------------------------------------------
@@ -371,7 +369,11 @@ class TestExport통합:
     def test_parquet_파일_생성(self, make_config, tmp_path):
         """export()가 corpus.parquet과 qa.parquet 파일을 생성하는지 확인합니다."""
         config = make_config(
-            autorag_export={"enabled": True, "output_dir": "autorag", "chunk_size": 2000},
+            autorag_export={
+                "enabled": True,
+                "output_dir": "autorag",
+                "chunk_size": 2000,
+            },
             paths={"output": str(tmp_path), "documents": str(tmp_path / "docs")},
         )
         exporter = AutoRAGExporter(config)
@@ -390,7 +392,11 @@ class TestExport통합:
         import pandas as pd
 
         config = make_config(
-            autorag_export={"enabled": True, "output_dir": "autorag", "chunk_size": 2000},
+            autorag_export={
+                "enabled": True,
+                "output_dir": "autorag",
+                "chunk_size": 2000,
+            },
             paths={"output": str(tmp_path), "documents": str(tmp_path / "docs")},
         )
         exporter = AutoRAGExporter(config)
