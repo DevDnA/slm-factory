@@ -504,8 +504,7 @@
 </tr>
 <tr>
 <td><code>chunk_size</code></td>
-<td>`int \</td>
-<td>"auto"`</td>
+<td><code>int | "auto"</code></td>
 <td><code>"auto"</code></td>
 <td>각 청크의 최대 문자 수. <code>"auto"</code>이면 문서의 단락 밀도와 길이를 분석하여 최적 크기를 자동 결정합니다. 정수를 지정하면 해당 크기를 사용합니다 (최소 1000)</td>
 </tr>
@@ -543,8 +542,7 @@
 <tbody>
 <tr>
 <td><code>backend</code></td>
-<td><code>"ollama"</code> \</td>
-<td><code>"openai"</code></td>
+<td><code>"ollama"</code> | <code>"openai"</code></td>
 <td><code>"ollama"</code></td>
 <td>사용할 LLM 백엔드. <code>"ollama"</code>는 로컬 Ollama 서버, <code>"openai"</code>는 OpenAI 호환 API입니다</td>
 </tr>
@@ -562,8 +560,7 @@
 </tr>
 <tr>
 <td><code>api_key</code></td>
-<td>`str \</td>
-<td>None`</td>
+<td><code>str | None</code></td>
 <td><code>null</code></td>
 <td>API 키. <code>backend: "openai"</code>일 때 필수입니다. Ollama는 불필요합니다</td>
 </tr>
@@ -635,8 +632,7 @@
 </tr>
 <tr>
 <td><code>file</code></td>
-<td>`Path \</td>
-<td>None`</td>
+<td><code>Path | None</code></td>
 <td><code>null</code></td>
 <td>외부 질문 파일 경로. 한 줄에 하나씩 질문을 작성합니다. 이 필드가 설정되면 <code>categories</code>는 무시됩니다</td>
 </tr>
@@ -660,8 +656,7 @@
 </tr>
 <tr>
 <td><code>questions_per_chunk</code></td>
-<td>`int \</td>
-<td>"auto"`</td>
+<td><code>int | "auto"</code></td>
 <td><code>"auto"</code></td>
 <td>청크당 생성할 질문 수. <code>"auto"</code>이면 청크의 정보 밀도(길이, 숫자, 목록 항목)를 분석하여 3~15개 범위에서 자동 결정됩니다</td>
 </tr>
@@ -1085,8 +1080,7 @@ If the document does not contain relevant information, say "The document does no
 </tr>
 <tr>
 <td><code>num_epochs</code></td>
-<td>`int \</td>
-<td>"auto"`</td>
+<td><code>int | "auto"</code></td>
 <td><code>"auto"</code></td>
 <td>최대 에포크 수. <code>"auto"</code>이면 학습 데이터 양에 따라 자동 결정됩니다 (200개 미만: 3, 200~999개: 5, 1000개+: 3). 정수를 지정하면 해당 에포크 수로 실행됩니다. 조기 종료가 활성화되면 이보다 일찍 멈출 수 있습니다</td>
 </tr>
@@ -1134,8 +1128,7 @@ If the document does not contain relevant information, say "The document does no
 </tr>
 <tr>
 <td><code>neftune_noise_alpha</code></td>
-<td>`float \</td>
-<td>None`</td>
+<td><code>float | None</code></td>
 <td><code>None</code></td>
 <td>NEFTune 임베딩 노이즈 강도. 설정 시 학습 중 임베딩에 노이즈를 주입하여 일반화 성능을 향상시킵니다. 권장값: <code>5.0</code> (2B 이하), <code>10.0</code> (4B 이상)</td>
 </tr>
@@ -1175,8 +1168,7 @@ If the document does not contain relevant information, say "The document does no
 </tr>
 <tr>
 <td><code>target_modules</code></td>
-<td>`str \</td>
-<td>list[str]`</td>
+<td><code>str | list[str]</code></td>
 <td><code>"auto"</code></td>
 <td>LoRA를 적용할 모듈 이름. <code>"auto"</code>는 자동 감지, 또는 <code>["q_proj", "v_proj"]</code> 같은 리스트로 명시할 수 있습니다</td>
 </tr>
@@ -1876,8 +1868,7 @@ If the document does not contain relevant information, say "The document does no
 </tr>
 <tr>
 <td><code>merge_strategy</code></td>
-<td><code>"append"</code> \</td>
-<td><code>"replace"</code></td>
+<td><code>"append"</code> | <code>"replace"</code></td>
 <td><code>"append"</code></td>
 <td>기존 QA와 새 QA의 병합 전략. <code>"append"</code>는 추가, <code>"replace"</code>는 교체</td>
 </tr>

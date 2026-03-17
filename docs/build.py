@@ -397,13 +397,20 @@ class MarkdownConverter:
 
     @staticmethod
     def _split_table_row(line: str) -> list[str]:
-        """Split a table row into cells, handling leading/trailing pipes."""
+        """Split a table row into cells, handling leading/trailing pipes.
+
+        Escaped pipes (``\\|``) inside cells are preserved as literal ``|``.
+        """
         line = line.strip()
         if line.startswith("|"):
             line = line[1:]
         if line.endswith("|"):
             line = line[:-1]
-        return line.split("|")
+        # Replace escaped pipes with placeholder, split, then restore
+        placeholder = "\x00PIPE\x00"
+        line = line.replace("\\|", placeholder)
+        cells = line.split("|")
+        return [cell.replace(placeholder, "|") for cell in cells]
 
     def _parse_blockquote(self, lines: list[str], i: int) -> tuple[int, str]:
         """Parse a blockquote block and return (next_index, html)."""
