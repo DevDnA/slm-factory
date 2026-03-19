@@ -44,6 +44,15 @@ ocr = [
 docx = [
     "python-docx>=1.2.0",
 ]
+pptx = [
+    "python-pptx>=1.0.0",
+]
+xlsx = [
+    "openpyxl>=3.1.0",
+]
+xls = [
+    "xlrd>=2.0.0",
+]
 rag = [
     "qdrant-client>=1.14.0",
     "sentence-transformers>=5.2.0",
@@ -71,6 +80,9 @@ all = [
     "olefile>=0.47",
     "pymupdf4llm>=0.0.17",
     "python-docx>=1.2.0",
+    "python-pptx>=1.0.0",
+    "openpyxl>=3.1.0",
+    "xlrd>=2.0.0",
     "evaluate>=0.4.6",
     "rouge-score>=0.1.2",
     "nltk>=3.9.0",
