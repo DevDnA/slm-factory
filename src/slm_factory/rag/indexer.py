@@ -67,12 +67,10 @@ class RAGIndexer:
         df = pd.read_parquet(corpus_path)
         logger.info("corpus.parquet 로드 완료 — %d개 청크", len(df))
 
-        import torch
-
         embedding_model = self.config.rag.embedding_model
-        embed_device = "cpu" if torch.cuda.is_available() else None
         logger.info("임베딩 모델 로드: %s", embedding_model)
-        model = SentenceTransformer(embedding_model, device=embed_device)
+        model = SentenceTransformer(embedding_model)
+        logger.info("임베딩 모델 로드 완료 (device=%s)", model.device.type)
 
         self.db_path.mkdir(parents=True, exist_ok=True)
         client = QdrantClient(path=str(self.db_path))
@@ -95,7 +93,8 @@ class RAGIndexer:
             batch_ids = doc_ids[start:end]
             batch_metadatas = metadatas_raw[start:end]
 
-            embeddings = model.encode(batch_contents, show_progress_bar=False)
+            logger.info("임베딩 인코딩 중: %d~%d / %d 청크", start + 1, end, total)
+            embeddings = model.encode(batch_contents, show_progress_bar=True)
 
             if not collection_created:
                 dim = embeddings.shape[1]
