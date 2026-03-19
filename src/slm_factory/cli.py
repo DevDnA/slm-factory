@@ -923,6 +923,22 @@ def tune(
         raise typer.Exit(code=1)
 
 
+def _qdrant_collection_ready(db_path: Path, collection_name: str) -> bool:
+    try:
+        from qdrant_client import QdrantClient
+
+        client = QdrantClient(path=str(db_path))
+        try:
+            count = client.count(collection_name=collection_name).count
+            return count > 0
+        except (ValueError, Exception):
+            return False
+        finally:
+            client.close()
+    except ImportError:
+        return False
+
+
 @app.command(rich_help_panel="🚀 시작하기")
 def rag(
     config: str = typer.Option("project.yaml", "--config", help=_CONFIG_HELP),
@@ -940,7 +956,20 @@ def rag(
         db_path = (
             Path(pipeline.config.paths.output) / pipeline.config.rag.vector_db_path
         )
-        if not db_path.is_dir():
+        needs_index = not db_path.is_dir()
+        if not needs_index:
+            needs_index = not _qdrant_collection_ready(
+                db_path, pipeline.config.rag.collection_name
+            )
+            if needs_index:
+                console.print(
+                    "[yellow]기존 인덱스가 손상되었거나 비어 있습니다. "
+                    "재구축합니다...[/yellow]\n"
+                )
+                import shutil
+
+                shutil.rmtree(db_path, ignore_errors=True)
+        if needs_index:
             console.print(
                 "\n[bold blue]slm-factory[/bold blue] — RAG 인덱스 구축 중...\n"
             )

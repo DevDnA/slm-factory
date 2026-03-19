@@ -114,7 +114,21 @@ def create_app(config: "SLMConfig"):
     async def lifespan(_app: FastAPI):
         qdrant_client = QdrantClient(path=str(db_path))
         collection_name = config.rag.collection_name
-        count = qdrant_client.count(collection_name=collection_name).count
+        try:
+            count = qdrant_client.count(collection_name=collection_name).count
+        except (ValueError, Exception):
+            qdrant_client.close()
+            raise RuntimeError(
+                f"Qdrant 컬렉션 '{collection_name}'을(를) 찾을 수 없습니다.\n"
+                f"  인덱스가 손상되었거나 구축이 완료되지 않았을 수 있습니다.\n"
+                f"  해결: rm -rf {db_path} 후 slf rag를 다시 실행하세요."
+            )
+        if count == 0:
+            qdrant_client.close()
+            raise RuntimeError(
+                f"Qdrant 컬렉션 '{collection_name}'이 비어 있습니다.\n"
+                f"  해결: rm -rf {db_path} 후 slf rag를 다시 실행하세요."
+            )
         logger.info(
             "Qdrant 컬렉션 로드 완료: %s (%d개 문서)",
             collection_name,
