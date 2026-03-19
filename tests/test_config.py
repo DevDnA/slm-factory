@@ -223,11 +223,11 @@ class TestLoraConfig:
     def test_기본값(self):
         """LoRA 하이퍼파라미터 기본값을 검증합니다."""
         cfg = LoraConfig()
-        assert cfg.r == 8
-        assert cfg.alpha == 16
+        assert cfg.r == 32
+        assert cfg.alpha == 32
         assert cfg.dropout == 0.1
         assert cfg.target_modules == "auto"
-        assert cfg.use_rslora is False
+        assert cfg.use_rslora is True
 
 
 class TestTrainingConfig:

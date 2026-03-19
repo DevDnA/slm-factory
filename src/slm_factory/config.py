@@ -252,11 +252,11 @@ class StudentConfig(BaseModel):
 class LoraConfig(BaseModel):
     """LoRA 어댑터 하이퍼파라미터입니다."""
 
-    r: int = 8
-    alpha: int = 16
+    r: int = 32
+    alpha: int = 32
     dropout: float = 0.1
     target_modules: Union[str, list[str]] = "auto"
-    use_rslora: bool = False
+    use_rslora: bool = True
 
 
 class EarlyStoppingConfig(BaseModel):
