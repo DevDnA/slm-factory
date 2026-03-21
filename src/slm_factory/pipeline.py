@@ -273,6 +273,22 @@ class Pipeline:
             )
 
         logger.info("Validation complete — %d pairs accepted", len(accepted))
+
+        if not accepted:
+            reasons = {}
+            for r in rejected:
+                for reason in getattr(r, "rejection_reasons", ["unknown"]):
+                    reasons[reason] = reasons.get(reason, 0) + 1
+            reason_summary = ", ".join(
+                f"{k}: {v}건" for k, v in sorted(reasons.items(), key=lambda x: -x[1])
+            )
+            raise RuntimeError(
+                f"검증 후 수락된 QA 쌍이 0건입니다 "
+                f"(전체 {len(pairs)}건 중 {len(rejected)}건 거부).\n"
+                f"  거부 사유: {reason_summary or '알 수 없음'}\n"
+                "  해결: validation 설정을 조정하거나 문서 품질을 확인하세요."
+            )
+
         return accepted
 
     # ------------------------------------------------------------------
@@ -582,11 +598,11 @@ class Pipeline:
             return Path()
 
         if not corpus_path or not corpus_path.is_file():
-            logger.warning(
-                "corpus.parquet을 찾을 수 없음: %s — rag_index 건너뜀",
-                corpus_path,
+            raise RuntimeError(
+                f"corpus.parquet을 찾을 수 없음: {corpus_path}\n"
+                "  autorag_export 단계가 정상적으로 완료되었는지 확인하세요.\n"
+                "  해결: slf tune --from autorag_export 로 재실행하세요."
             )
-            return Path()
 
         logger.info("Qdrant 인덱싱 시작: %s", corpus_path)
         indexer = RAGIndexer(self.config)

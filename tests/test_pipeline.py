@@ -682,3 +682,87 @@ class TestStepScoreRegeneration:
             mock_validated,
             docs=mock_docs,
         )
+
+
+# ---------------------------------------------------------------------------
+# step_rag_index
+# ---------------------------------------------------------------------------
+
+
+class TestStepRagIndex:
+    """Pipeline.step_rag_index 메서드의 에러 처리 테스트입니다."""
+
+    def test_step_rag_index_raises_on_missing_corpus(
+        self, make_config, tmp_path, mocker
+    ):
+        """존재하지 않는 corpus_path가 주어지면 RuntimeError를 발생시키는지 확인합니다."""
+        pipeline = _make_pipeline(make_config, tmp_path)
+
+        # RAGIndexer import를 성공시켜 파일 존재 검사까지 도달하도록 함
+        mock_indexer_cls = MagicMock()
+        mocker.patch.dict(
+            "sys.modules",
+            {"slm_factory.rag.indexer": MagicMock(RAGIndexer=mock_indexer_cls)},
+        )
+
+        missing_path = tmp_path / "nonexistent" / "corpus.parquet"
+
+        with pytest.raises(RuntimeError, match="corpus.parquet을 찾을 수 없음"):
+            pipeline.step_rag_index(missing_path)
+
+    def test_step_rag_index_raises_on_empty_path(
+        self, make_config, tmp_path, mocker
+    ):
+        """빈 Path()가 주어지면 RuntimeError를 발생시키는지 확인합니다."""
+        pipeline = _make_pipeline(make_config, tmp_path)
+
+        mock_indexer_cls = MagicMock()
+        mocker.patch.dict(
+            "sys.modules",
+            {"slm_factory.rag.indexer": MagicMock(RAGIndexer=mock_indexer_cls)},
+        )
+
+        with pytest.raises(RuntimeError):
+            pipeline.step_rag_index(Path())
+
+
+# ---------------------------------------------------------------------------
+# step_validate 에러 처리 추가 테스트
+# ---------------------------------------------------------------------------
+
+
+class TestStepValidateErrorHandling:
+    """Pipeline.step_validate 에러 처리 테스트입니다."""
+
+    def test_step_validate_raises_on_all_rejected(
+        self, make_config, make_qa_pair, tmp_path, mocker
+    ):
+        """모든 QA 쌍이 거부되면 RuntimeError를 발생시키는지 확인합니다."""
+        pipeline = _make_pipeline(make_config, tmp_path)
+        pairs = [make_qa_pair(), make_qa_pair(question="두 번째 질문")]
+
+        rejected_pair = MagicMock()
+        rejected_pair.rejection_reasons = ["too_short"]
+        rejected_pairs = [rejected_pair, rejected_pair]
+
+        mock_validator_cls = mocker.patch("slm_factory.validator.rules.RuleValidator")
+        mock_validator = mock_validator_cls.return_value
+        mock_validator.validate_batch.return_value = ([], rejected_pairs)
+
+        with pytest.raises(RuntimeError, match="수락된 QA 쌍이 0건"):
+            pipeline.step_validate(pairs)
+
+    def test_step_validate_passes_with_accepted(
+        self, make_config, make_qa_pair, tmp_path, mocker
+    ):
+        """수락된 QA 쌍이 있으면 에러 없이 해당 쌍을 반환하는지 확인합니다."""
+        pipeline = _make_pipeline(make_config, tmp_path)
+        accepted_pairs = [make_qa_pair(), make_qa_pair(question="두 번째 질문")]
+
+        mock_validator_cls = mocker.patch("slm_factory.validator.rules.RuleValidator")
+        mock_validator = mock_validator_cls.return_value
+        mock_validator.validate_batch.return_value = (accepted_pairs, [])
+
+        result = pipeline.step_validate(accepted_pairs)
+
+        assert result == accepted_pairs

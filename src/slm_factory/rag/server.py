@@ -577,18 +577,57 @@ def create_app(config: "SLMConfig"):
                 headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
             )
 
-        response = await http_client.post(
-            f"{api_base}/api/generate",
-            json={
-                "model": ollama_model,
-                "prompt": prompt,
-                "stream": False,
-                "think": False,
-                "keep_alive": -1,
-                "options": {"num_predict": config.rag.max_tokens},
-            },
-        )
-        response.raise_for_status()
+        import httpx
+
+        try:
+            response = await http_client.post(
+                f"{api_base}/api/generate",
+                json={
+                    "model": ollama_model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "think": False,
+                    "keep_alive": -1,
+                    "options": {"num_predict": config.rag.max_tokens},
+                },
+            )
+            response.raise_for_status()
+        except httpx.ConnectError:
+            logger.error("Ollama 서버에 연결할 수 없습니다: %s", api_base)
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "error": "ollama_connection_error",
+                    "message": (
+                        f"Ollama 서버({api_base})에 연결할 수 없습니다. "
+                        "Ollama가 실행 중인지 확인하세요."
+                    ),
+                },
+            )
+        except httpx.TimeoutException:
+            logger.error("Ollama 응답 시간 초과 (timeout: %ss)", config.rag.request_timeout)
+            return JSONResponse(
+                status_code=504,
+                content={
+                    "error": "ollama_timeout",
+                    "message": (
+                        "Ollama 응답 시간이 초과되었습니다. "
+                        "project.yaml의 rag.request_timeout 값을 늘려보세요."
+                    ),
+                },
+            )
+        except httpx.HTTPStatusError as exc:
+            logger.error("Ollama HTTP 오류 %d: %s", exc.response.status_code, exc.response.text[:200])
+            return JSONResponse(
+                status_code=502,
+                content={
+                    "error": "ollama_http_error",
+                    "message": (
+                        f"Ollama 서버 오류 (HTTP {exc.response.status_code}). "
+                        f"모델 '{ollama_model}'이 올바르게 로드되었는지 확인하세요."
+                    ),
+                },
+            )
         answer = response.json().get("response", "")
 
         logger.info(
