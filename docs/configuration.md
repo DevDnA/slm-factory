@@ -432,11 +432,11 @@ student:
 
 | 필드 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
-| `r` | `int` | `8` | LoRA rank. 높을수록 표현력이 증가하지만 메모리 사용량도 증가합니다 (일반적으로 8~64) |
-| `alpha` | `int` | `16` | LoRA scaling factor. 일반적으로 `r`의 2배 값을 사용합니다 |
+| `r` | `int` | `32` | LoRA rank. 높을수록 표현력이 증가하지만 메모리 사용량도 증가합니다 (일반적으로 8~64) |
+| `alpha` | `int` | `32` | LoRA scaling factor. rsLoRA 사용 시 `α/√r`로 계산되므로 `r`과 동일한 값을 권장합니다 |
 | `dropout` | `float` | `0.1` | LoRA 레이어의 드롭아웃 비율. 과적합 방지를 위한 정규화 기법입니다 (0.0~1.0) |
 | `target_modules` | `str \| list[str]` | `"auto"` | LoRA를 적용할 모듈 이름. `"auto"`는 자동 감지, 또는 `["q_proj", "v_proj"]` 같은 리스트로 명시할 수 있습니다 |
-| `use_rslora` | `bool` | `false` | Rank-Stabilized LoRA 사용 여부. 학습 안정성을 높이지만 약간 느려집니다 |
+| `use_rslora` | `bool` | `true` | Rank-Stabilized LoRA(rsLoRA) 사용 여부. 일반 LoRA의 scaling `α/r` 대신 `α/√r`을 사용하여 높은 rank에서 학습이 안정적입니다 |
 
 ### early_stopping — 조기 종료
 
@@ -460,7 +460,7 @@ training:
     alpha: 32
     dropout: 0.05
     target_modules: "auto"
-    use_rslora: false
+    use_rslora: true
   batch_size: 4
   gradient_accumulation_steps: 4
   learning_rate: 2.0e-5
@@ -984,7 +984,7 @@ training:
     alpha: 32
     dropout: 0.05
     target_modules: "auto"
-    use_rslora: false
+    use_rslora: true
   batch_size: 4
   gradient_accumulation_steps: 4
   learning_rate: 2.0e-5

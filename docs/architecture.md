@@ -394,11 +394,11 @@ SLMConfig (root)
 │   ├── train_split: float = 0.9
 │   ├── save_strategy: str = "epoch"
 │   ├── lora: LoraConfig
-│   │   ├── r: int = 8
-│   │   ├── alpha: int = 16
+│   │   ├── r: int = 32
+│   │   ├── alpha: int = 32
 │   │   ├── dropout: float = 0.1
 │   │   ├── target_modules: str | list[str] = "auto"
-│   │   └── use_rslora: bool = False
+│   │   └── use_rslora: bool = True
 │   ├── early_stopping: EarlyStoppingConfig
 │   │   ├── enabled: bool = True
 │   │   ├── patience: int = 3

@@ -1151,14 +1151,14 @@ If the document does not contain relevant information, say "The document does no
 <tr>
 <td><code>r</code></td>
 <td><code>int</code></td>
-<td><code>8</code></td>
+<td><code>32</code></td>
 <td>LoRA rank. 높을수록 표현력이 증가하지만 메모리 사용량도 증가합니다 (일반적으로 8~64)</td>
 </tr>
 <tr>
 <td><code>alpha</code></td>
 <td><code>int</code></td>
-<td><code>16</code></td>
-<td>LoRA scaling factor. 일반적으로 <code>r</code>의 2배 값을 사용합니다</td>
+<td><code>32</code></td>
+<td>LoRA scaling factor. rsLoRA 사용 시 <code>α/√r</code>로 계산되므로 <code>r</code>과 동일한 값을 권장합니다</td>
 </tr>
 <tr>
 <td><code>dropout</code></td>
@@ -1175,8 +1175,8 @@ If the document does not contain relevant information, say "The document does no
 <tr>
 <td><code>use_rslora</code></td>
 <td><code>bool</code></td>
-<td><code>false</code></td>
-<td>Rank-Stabilized LoRA 사용 여부. 학습 안정성을 높이지만 약간 느려집니다</td>
+<td><code>true</code></td>
+<td>Rank-Stabilized LoRA(rsLoRA) 사용 여부. 일반 LoRA의 scaling <code>α/r</code> 대신 <code>α/√r</code>을 사용하여 높은 rank에서 학습이 안정적입니다</td>
 </tr>
 </tbody>
 </table>
@@ -1247,7 +1247,7 @@ If the document does not contain relevant information, say "The document does no
     alpha: 32
     dropout: 0.05
     target_modules: "auto"
-    use_rslora: false
+    use_rslora: true
   batch_size: 4
   gradient_accumulation_steps: 4
   learning_rate: 2.0e-5
@@ -2118,7 +2118,7 @@ training:
     alpha: 32
     dropout: 0.05
     target_modules: "auto"
-    use_rslora: false
+    use_rslora: true
   batch_size: 4
   gradient_accumulation_steps: 4
   learning_rate: 2.0e-5
