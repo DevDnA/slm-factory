@@ -282,20 +282,20 @@ class TestAutoNumEpochs:
     def test_소량_데이터_3에포크(self):
         assert auto_num_epochs(50) == 3
 
-    def test_200미만_3에포크(self):
-        assert auto_num_epochs(199) == 3
+    def test_100미만_3에포크(self):
+        assert auto_num_epochs(99) == 3
 
-    def test_200_5에포크(self):
-        assert auto_num_epochs(200) == 5
+    def test_100_2에포크(self):
+        assert auto_num_epochs(100) == 2
 
-    def test_1000미만_5에포크(self):
-        assert auto_num_epochs(999) == 5
+    def test_500미만_2에포크(self):
+        assert auto_num_epochs(499) == 2
 
-    def test_1000이상_3에포크(self):
-        assert auto_num_epochs(1000) == 3
+    def test_500이상_1에포크(self):
+        assert auto_num_epochs(500) == 1
 
-    def test_대량_데이터_3에포크(self):
-        assert auto_num_epochs(10000) == 3
+    def test_대량_데이터_1에포크(self):
+        assert auto_num_epochs(10000) == 1
 
     def test_경계값_0(self):
         assert auto_num_epochs(0) == 3

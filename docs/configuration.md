@@ -413,10 +413,10 @@ student:
 |------|------|--------|------|
 | `batch_size` | `int` | `1` | 디바이스당 배치 크기. GPU 메모리에 따라 조정합니다 |
 | `gradient_accumulation_steps` | `int` | `8` | 그래디언트 누적 스텝. 실제 배치 크기는 `batch_size × gradient_accumulation_steps` (기본값: 1×8=8) |
-| `learning_rate` | `float` | `2e-4` | 학습률. LoRA 파인튜닝에는 `1e-4 ~ 5e-4` 범위가 일반적입니다 |
+| `learning_rate` | `float \| "auto"` | `"auto"` | 학습률. `"auto"`이면 데이터 양에 따라 자동 결정됩니다 (100개 미만: 5e-5, 100~499개: 1e-4, 500개+: 2e-4). 실수를 지정하면 해당 값을 사용합니다 |
 | `lr_scheduler` | `str` | `"cosine"` | 학습률 스케줄러. `"cosine"`, `"linear"`, `"constant"` 등 |
 | `warmup_ratio` | `float` | `0.1` | 워밍업 비율. 전체 학습 스텝의 10%를 워밍업에 사용합니다 (0.0~1.0) |
-| `num_epochs` | `int \| "auto"` | `"auto"` | 최대 에포크 수. `"auto"`이면 학습 데이터 양에 따라 자동 결정됩니다 (200개 미만: 3, 200~999개: 5, 1000개+: 3). 정수를 지정하면 해당 에포크 수로 실행됩니다. 조기 종료가 활성화되면 이보다 일찍 멈출 수 있습니다 |
+| `num_epochs` | `int \| "auto"` | `"auto"` | 최대 에포크 수. `"auto"`이면 학습 데이터 양에 따라 자동 결정됩니다 (100개 미만: 3, 100~499개: 2, 500개+: 1). 정수를 지정하면 해당 에포크 수로 실행됩니다. 조기 종료가 활성화되면 이보다 일찍 멈출 수 있습니다 |
 | `optimizer` | `str` | `"adamw_torch_fused"` | 옵티마이저. `"adamw_torch_fused"`는 PyTorch의 fused AdamW로 가장 빠릅니다 |
 | `bf16` | `bool` | `true` | bfloat16 혼합 정밀도 학습. Ampere 이상 GPU (RTX 30xx, A100 등)에서만 지원됩니다 |
 | `train_split` | `float` | `0.9` | 학습 데이터 비율. 0.9는 90% 학습, 10% 검증을 의미합니다 (0.0~1.0) |
@@ -424,19 +424,21 @@ student:
 | `lora` | `LoraConfig` | (하위 참조) | LoRA 어댑터 설정 |
 | `early_stopping` | `EarlyStoppingConfig` | (하위 참조) | 조기 종료 설정 |
 | `quantization` | `QuantizationConfig` | (하위 참조) | 양자화 설정 |
-| `neftune_noise_alpha` | `float \| None` | `None` | NEFTune 임베딩 노이즈 강도. 설정 시 학습 중 임베딩에 노이즈를 주입하여 일반화 성능을 향상시킵니다. 권장값: `5.0` (2B 이하), `10.0` (4B 이상) |
+| `weight_decay` | `float` | `0.05` | 가중치 감쇠(L2 정규화). 과적합을 억제합니다. 0이면 비활성 |
+| `label_smoothing_factor` | `float` | `0.1` | 라벨 스무딩 계수. 모델이 특정 답변을 과도하게 확신하는 것을 방지합니다. 0이면 비활성 |
+| `neftune_noise_alpha` | `float \| None` | `5.0` | NEFTune 임베딩 노이즈 강도. 학습 중 임베딩에 노이즈를 주입하여 일반화 성능을 5~15% 향상시킵니다. 권장값: `5.0` (2B 이하), `10.0` (4B 이상). `None`이면 비활성 |
 
-**제약조건**: `learning_rate`는 반드시 0보다 커야 합니다. 0 이하로 설정하면 설정 로드 시 오류가 발생합니다.
+**제약조건**: `learning_rate`가 실수인 경우 반드시 0보다 커야 합니다. 0 이하로 설정하면 설정 로드 시 오류가 발생합니다.
 
 ### lora — LoRA 어댑터 설정
 
 | 필드 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
 | `r` | `int` | `32` | LoRA rank. 높을수록 표현력이 증가하지만 메모리 사용량도 증가합니다 (일반적으로 8~64) |
-| `alpha` | `int` | `32` | LoRA scaling factor. rsLoRA 사용 시 `α/√r`로 계산되므로 `r`과 동일한 값을 권장합니다 |
+| `alpha` | `int` | `32` | LoRA scaling factor. scaling은 `α/r`로 계산됩니다. `r`과 동일한 값(1:1 비율)을 권장합니다. `alpha > r`이면 LoRA 업데이트가 증폭되어 소규모 데이터에서 과적합 위험이 높아집니다 |
 | `dropout` | `float` | `0.1` | LoRA 레이어의 드롭아웃 비율. 과적합 방지를 위한 정규화 기법입니다 (0.0~1.0) |
 | `target_modules` | `str \| list[str]` | `"auto"` | LoRA를 적용할 모듈 이름. `"auto"`는 자동 감지, 또는 `["q_proj", "v_proj"]` 같은 리스트로 명시할 수 있습니다 |
-| `use_rslora` | `bool` | `true` | Rank-Stabilized LoRA(rsLoRA) 사용 여부. 일반 LoRA의 scaling `α/r` 대신 `α/√r`을 사용하여 높은 rank에서 학습이 안정적입니다 |
+| `use_rslora` | `bool` | `false` | Rank-Stabilized LoRA(rsLoRA) 사용 여부. 일반 LoRA의 scaling `α/r` 대신 `α/√r`을 사용합니다. `r`이 32 이상일 때만 권장합니다. 낮은 rank에서는 업데이트를 과도하게 증폭시켜 과적합을 유발할 수 있습니다 |
 
 ### early_stopping — 조기 종료
 
@@ -460,13 +462,13 @@ training:
     alpha: 32
     dropout: 0.05
     target_modules: "auto"
-    use_rslora: true
+    use_rslora: false
   batch_size: 4
   gradient_accumulation_steps: 4
-  learning_rate: 2.0e-5
+  learning_rate: "auto"
   lr_scheduler: "cosine"
   warmup_ratio: 0.1
-  num_epochs: 5
+  num_epochs: "auto"
   early_stopping:
     enabled: true
     patience: 3
@@ -984,13 +986,13 @@ training:
     alpha: 32
     dropout: 0.05
     target_modules: "auto"
-    use_rslora: true
+    use_rslora: false
   batch_size: 4
   gradient_accumulation_steps: 4
-  learning_rate: 2.0e-5
+  learning_rate: "auto"
   lr_scheduler: "cosine"
   warmup_ratio: 0.1
-  num_epochs: 5
+  num_epochs: "auto"
   early_stopping:
     enabled: true
     patience: 3

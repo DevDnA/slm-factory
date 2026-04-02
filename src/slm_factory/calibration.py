@@ -49,15 +49,34 @@ def auto_chunk_size(content: str, max_context_chars: int = 12000) -> int:
 def auto_num_epochs(num_examples: int) -> int:
     """학습 데이터 양에 따라 최적 에포크 수를 계산합니다.
 
-    3~5 에포크가 LoRA 파인튜닝의 업계 표준입니다.
-    소량 데이터에서 에포크를 높이면 과적합(catastrophic forgetting)이 발생합니다.
+    LoRA 파인튜닝은 1~3 에포크가 최적입니다.
+    데이터가 많을수록 1 에포크에 충분한 gradient step이 발생하므로
+    에포크 수를 줄여야 합니다. 증강 데이터(같은 답변 반복)가 포함된
+    경우 에포크를 높이면 과적합(같은 말 반복)이 심화됩니다.
     """
-    if num_examples < 200:
+    if num_examples < 100:
         return 3
-    elif num_examples < 1000:
-        return 5
+    elif num_examples < 500:
+        return 2
     else:
-        return 3
+        return 1
+
+
+def auto_learning_rate(num_examples: int) -> float:
+    """학습 데이터 양에 따라 최적 learning rate를 계산합니다.
+
+    소규모 데이터에서 높은 학습률은 base 모델의 언어 능력을
+    빠르게 덮어쓰며(catastrophic forgetting), 학습 데이터의
+    특정 패턴만 암기하게 됩니다.
+    """
+    if num_examples < 100:
+        lr = 5e-5
+    elif num_examples < 500:
+        lr = 1e-4
+    else:
+        lr = 2e-4
+    logger.info("Auto learning_rate: %d examples → %.1e", num_examples, lr)
+    return lr
 
 
 def auto_questions_per_chunk(chunk: str) -> int:

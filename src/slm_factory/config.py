@@ -256,7 +256,7 @@ class LoraConfig(BaseModel):
     alpha: int = 32
     dropout: float = 0.1
     target_modules: Union[str, list[str]] = "auto"
-    use_rslora: bool = True
+    use_rslora: bool = False
 
 
 class EarlyStoppingConfig(BaseModel):
@@ -280,7 +280,9 @@ class TrainingConfig(BaseModel):
     lora: LoraConfig = Field(default_factory=LoraConfig)
     batch_size: int = 1
     gradient_accumulation_steps: int = 8
-    learning_rate: float = 2.0e-4
+    learning_rate: float | Literal["auto"] = "auto"
+    """학습률입니다. ``"auto"``이면 학습 데이터 양에 따라 자동 결정합니다.
+    소규모(<100): 5e-5, 중규모(<500): 1e-4, 대규모: 2e-4."""
     lr_scheduler: str = "cosine"
     warmup_ratio: float = 0.1
     num_epochs: int | Literal["auto"] = "auto"
@@ -291,16 +293,22 @@ class TrainingConfig(BaseModel):
     train_split: float = 0.9
     save_strategy: str = "epoch"
     quantization: QuantizationConfig = Field(default_factory=QuantizationConfig)
-    neftune_noise_alpha: float | None = None
-    """NEFTune 임베딩 노이즈 강도입니다. 설정 시 학습 중 임베딩에 노이즈를
-    주입하여 일반화 성능을 5~15% 향상시킵니다. 권장값: 5.0 (2B 이하), 10.0 (4B 이상)."""
+    weight_decay: float = 0.05
+    """가중치 감쇠(L2 정규화)입니다. 과적합을 억제합니다. 0이면 비활성."""
+    label_smoothing_factor: float = 0.1
+    """라벨 스무딩 계수입니다. 모델이 특정 답변을 과도하게 확신하는 것을 방지합니다.
+    0이면 비활성, 0.1이면 정답 확률을 90%로 낮추어 일반화 성능을 높입니다."""
+    neftune_noise_alpha: float | None = 5.0
+    """NEFTune 임베딩 노이즈 강도입니다. 학습 중 임베딩에 노이즈를
+    주입하여 일반화 성능을 5~15% 향상시킵니다. 권장값: 5.0 (2B 이하), 10.0 (4B 이상).
+    None이면 비활성."""
 
     @model_validator(mode="after")
     def _check_training_params(self) -> "TrainingConfig":
         """학습 파라미터의 유효성을 검증합니다."""
         if not (0.0 < self.train_split < 1.0):
             raise ValueError(f"train_split({self.train_split})은 0과 1 사이여야 합니다")
-        if self.learning_rate <= 0:
+        if self.learning_rate != "auto" and self.learning_rate <= 0:
             raise ValueError(f"learning_rate({self.learning_rate})는 양수여야 합니다")
         return self
 

@@ -227,7 +227,7 @@ class TestLoraConfig:
         assert cfg.alpha == 32
         assert cfg.dropout == 0.1
         assert cfg.target_modules == "auto"
-        assert cfg.use_rslora is True
+        assert cfg.use_rslora is False
 
 
 class TestTrainingConfig:
@@ -238,7 +238,7 @@ class TestTrainingConfig:
         cfg = TrainingConfig()
         assert cfg.batch_size == 1
         assert cfg.gradient_accumulation_steps == 8
-        assert cfg.learning_rate == 2e-4
+        assert cfg.learning_rate == "auto"
         assert cfg.lr_scheduler == "cosine"
         assert cfg.warmup_ratio == 0.1
         assert cfg.num_epochs == "auto"
@@ -246,6 +246,9 @@ class TestTrainingConfig:
         assert cfg.bf16 is True
         assert cfg.train_split == 0.9
         assert cfg.save_strategy == "epoch"
+        assert cfg.weight_decay == 0.05
+        assert cfg.label_smoothing_factor == 0.1
+        assert cfg.neftune_noise_alpha == 5.0
         assert isinstance(cfg.lora, LoraConfig)
         assert isinstance(cfg.early_stopping, EarlyStoppingConfig)
         assert isinstance(cfg.quantization, QuantizationConfig)

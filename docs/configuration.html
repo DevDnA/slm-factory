@@ -1062,9 +1062,9 @@ If the document does not contain relevant information, say "The document does no
 </tr>
 <tr>
 <td><code>learning_rate</code></td>
-<td><code>float</code></td>
-<td><code>2e-4</code></td>
-<td>학습률. LoRA 파인튜닝에는 <code>1e-4 ~ 5e-4</code> 범위가 일반적입니다</td>
+<td><code>float | "auto"</code></td>
+<td><code>"auto"</code></td>
+<td>학습률. <code>"auto"</code>이면 데이터 양에 따라 자동 결정됩니다 (100개 미만: 5e-5, 100~499개: 1e-4, 500개+: 2e-4). 실수를 지정하면 해당 값을 사용합니다</td>
 </tr>
 <tr>
 <td><code>lr_scheduler</code></td>
@@ -1082,7 +1082,7 @@ If the document does not contain relevant information, say "The document does no
 <td><code>num_epochs</code></td>
 <td><code>int | "auto"</code></td>
 <td><code>"auto"</code></td>
-<td>최대 에포크 수. <code>"auto"</code>이면 학습 데이터 양에 따라 자동 결정됩니다 (200개 미만: 3, 200~999개: 5, 1000개+: 3). 정수를 지정하면 해당 에포크 수로 실행됩니다. 조기 종료가 활성화되면 이보다 일찍 멈출 수 있습니다</td>
+<td>최대 에포크 수. <code>"auto"</code>이면 학습 데이터 양에 따라 자동 결정됩니다 (100개 미만: 3, 100~499개: 2, 500개+: 1). 정수를 지정하면 해당 에포크 수로 실행됩니다. 조기 종료가 활성화되면 이보다 일찍 멈출 수 있습니다</td>
 </tr>
 <tr>
 <td><code>optimizer</code></td>
@@ -1127,15 +1127,27 @@ If the document does not contain relevant information, say "The document does no
 <td>양자화 설정</td>
 </tr>
 <tr>
+<td><code>weight_decay</code></td>
+<td><code>float</code></td>
+<td><code>0.05</code></td>
+<td>가중치 감쇠(L2 정규화). 과적합을 억제합니다. 0이면 비활성</td>
+</tr>
+<tr>
+<td><code>label_smoothing_factor</code></td>
+<td><code>float</code></td>
+<td><code>0.1</code></td>
+<td>라벨 스무딩 계수. 모델이 특정 답변을 과도하게 확신하는 것을 방지합니다. 0이면 비활성</td>
+</tr>
+<tr>
 <td><code>neftune_noise_alpha</code></td>
 <td><code>float | None</code></td>
-<td><code>None</code></td>
-<td>NEFTune 임베딩 노이즈 강도. 설정 시 학습 중 임베딩에 노이즈를 주입하여 일반화 성능을 향상시킵니다. 권장값: <code>5.0</code> (2B 이하), <code>10.0</code> (4B 이상)</td>
+<td><code>5.0</code></td>
+<td>NEFTune 임베딩 노이즈 강도. 학습 중 임베딩에 노이즈를 주입하여 일반화 성능을 5~15% 향상시킵니다. 권장값: <code>5.0</code> (2B 이하), <code>10.0</code> (4B 이상). <code>None</code>이면 비활성</td>
 </tr>
 </tbody>
 </table>
 </div>
-<p><strong>제약조건</strong>: <code>learning_rate</code>는 반드시 0보다 커야 합니다. 0 이하로 설정하면 설정 로드 시 오류가 발생합니다.</p>
+<p><strong>제약조건</strong>: <code>learning_rate</code>가 실수인 경우 반드시 0보다 커야 합니다. 0 이하로 설정하면 설정 로드 시 오류가 발생합니다.</p>
 <h3 id="lora-lora-어댑터-설정">lora — LoRA 어댑터 설정</h3>
 <div class="table-wrapper">
 <table>
@@ -1158,7 +1170,7 @@ If the document does not contain relevant information, say "The document does no
 <td><code>alpha</code></td>
 <td><code>int</code></td>
 <td><code>32</code></td>
-<td>LoRA scaling factor. rsLoRA 사용 시 <code>α/√r</code>로 계산되므로 <code>r</code>과 동일한 값을 권장합니다</td>
+<td>LoRA scaling factor. scaling은 <code>α/r</code>로 계산됩니다. <code>r</code>과 동일한 값(1:1 비율)을 권장합니다. <code>alpha &gt; r</code>이면 LoRA 업데이트가 증폭되어 소규모 데이터에서 과적합 위험이 높아집니다</td>
 </tr>
 <tr>
 <td><code>dropout</code></td>
@@ -1175,8 +1187,8 @@ If the document does not contain relevant information, say "The document does no
 <tr>
 <td><code>use_rslora</code></td>
 <td><code>bool</code></td>
-<td><code>true</code></td>
-<td>Rank-Stabilized LoRA(rsLoRA) 사용 여부. 일반 LoRA의 scaling <code>α/r</code> 대신 <code>α/√r</code>을 사용하여 높은 rank에서 학습이 안정적입니다</td>
+<td><code>false</code></td>
+<td>Rank-Stabilized LoRA(rsLoRA) 사용 여부. 일반 LoRA의 scaling <code>α/r</code> 대신 <code>α/√r</code>을 사용합니다. <code>r</code>이 32 이상일 때만 권장합니다. 낮은 rank에서는 업데이트를 과도하게 증폭시켜 과적합을 유발할 수 있습니다</td>
 </tr>
 </tbody>
 </table>
@@ -1247,13 +1259,13 @@ If the document does not contain relevant information, say "The document does no
     alpha: 32
     dropout: 0.05
     target_modules: "auto"
-    use_rslora: true
+    use_rslora: false
   batch_size: 4
   gradient_accumulation_steps: 4
-  learning_rate: 2.0e-5
+  learning_rate: "auto"
   lr_scheduler: "cosine"
   warmup_ratio: 0.1
-  num_epochs: 5
+  num_epochs: "auto"
   early_stopping:
     enabled: true
     patience: 3
@@ -2118,13 +2130,13 @@ training:
     alpha: 32
     dropout: 0.05
     target_modules: "auto"
-    use_rslora: true
+    use_rslora: false
   batch_size: 4
   gradient_accumulation_steps: 4
-  learning_rate: 2.0e-5
+  learning_rate: "auto"
   lr_scheduler: "cosine"
   warmup_ratio: 0.1
-  num_epochs: 5
+  num_epochs: "auto"
   early_stopping:
     enabled: true
     patience: 3

@@ -302,6 +302,15 @@ class LoRATrainer:
         else:
             warmup_kwargs["warmup_ratio"] = tc.warmup_ratio
 
+        # 정규화 설정
+        regularization_kwargs: dict[str, Any] = {}
+        if tc.weight_decay > 0:
+            regularization_kwargs["weight_decay"] = tc.weight_decay
+            logger.info("Weight decay enabled: %.4f", tc.weight_decay)
+        if tc.label_smoothing_factor > 0:
+            regularization_kwargs["label_smoothing_factor"] = tc.label_smoothing_factor
+            logger.info("Label smoothing enabled: %.2f", tc.label_smoothing_factor)
+
         training_args = SFTConfig(
             output_dir=str(self.output_dir),
             num_train_epochs=tc.num_epochs,
@@ -324,7 +333,9 @@ class LoRATrainer:
             report_to="none",
             seed=42,
             remove_unused_columns=False,
+            max_grad_norm=1.0,
             **neftune_kwargs,
+            **regularization_kwargs,
             **{
                 k: v for k, v in overrides.items() if k not in ("bf16", "fp16", "optim")
             },

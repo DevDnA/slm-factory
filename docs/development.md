@@ -509,10 +509,10 @@ class LoRATrainer:
 
 | 파라미터 | 기본값 | 설명 |
 |---------|--------|------|
-| `num_epochs` | `"auto"` | 학습 에포크 수 (`"auto"`: 데이터 양에 따라 3~5 자동 결정) |
-| `learning_rate` | 2.0e-4 | 학습률 |
+| `num_epochs` | `"auto"` | 학습 에포크 수 (`"auto"`: 데이터 양에 따라 1~3 자동 결정) |
+| `learning_rate` | `"auto"` | 학습률 (`"auto"`: 데이터 양에 따라 5e-5~2e-4 자동 결정) |
 | `batch_size` | 1 | 디바이스당 배치 크기 |
-| `lora.r` / `lora.alpha` | 8 / 16 | LoRA 랭크 / 스케일링 |
+| `lora.r` / `lora.alpha` | 8 / 8 | LoRA 랭크 / 스케일링 (1:1 비율 권장) |
 | `early_stopping.patience` | 3 | 조기 종료 인내 에포크 수 |
 
 ```python

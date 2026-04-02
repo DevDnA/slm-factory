@@ -447,11 +447,12 @@ class Pipeline:
         """
         from .trainer import DataLoader, LoRATrainer
 
+        num_examples = sum(1 for _ in open(training_data_path, encoding="utf-8"))
+
         num_epochs = self.config.training.num_epochs
         if num_epochs == "auto":
             from .calibration import auto_num_epochs
 
-            num_examples = sum(1 for _ in open(training_data_path, encoding="utf-8"))
             num_epochs = auto_num_epochs(num_examples)
             logger.info(
                 "Auto num_epochs: %d examples → %d epochs",
@@ -459,6 +460,13 @@ class Pipeline:
                 num_epochs,
             )
             self.config.training.num_epochs = num_epochs
+
+        learning_rate = self.config.training.learning_rate
+        if learning_rate == "auto":
+            from .calibration import auto_learning_rate
+
+            learning_rate = auto_learning_rate(num_examples)
+            self.config.training.learning_rate = learning_rate
 
         logger.info("Loading training data from %s", training_data_path)
 

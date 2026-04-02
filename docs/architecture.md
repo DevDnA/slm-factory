@@ -385,7 +385,7 @@ SLMConfig (root)
 ├── training: TrainingConfig
 │   ├── batch_size: int = 1
 │   ├── gradient_accumulation_steps: int = 8
-│   ├── learning_rate = 2e-4
+│   ├── learning_rate: float | "auto" = "auto"
 │   ├── lr_scheduler: str = "cosine"
 │   ├── warmup_ratio: float = 0.1
 │   ├── num_epochs: int | "auto" = "auto"
@@ -398,7 +398,7 @@ SLMConfig (root)
 │   │   ├── alpha: int = 32
 │   │   ├── dropout: float = 0.1
 │   │   ├── target_modules: str | list[str] = "auto"
-│   │   └── use_rslora: bool = True
+│   │   └── use_rslora: bool = False
 │   ├── early_stopping: EarlyStoppingConfig
 │   │   ├── enabled: bool = True
 │   │   ├── patience: int = 3
@@ -406,7 +406,9 @@ SLMConfig (root)
 │   ├── quantization: QuantizationConfig
 │   │   ├── enabled: bool = True
 │   │   └── bits: int = 4
-│   └── neftune_noise_alpha: float | None = None
+│   ├── weight_decay: float = 0.05
+│   ├── label_smoothing_factor: float = 0.1
+│   └── neftune_noise_alpha: float | None = 5.0
 │
 ├── export: ExportConfig
 │   ├── merge_lora: bool = True
