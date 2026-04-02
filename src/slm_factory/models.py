@@ -34,6 +34,9 @@ class QAPair:
     instruction: str = ""
     source_doc: str = ""
     category: str = ""
+    context: str = ""
+    """QA 생성에 사용된 문서 청크입니다. 학습 시 user 메시지에 포함되어
+    모델이 컨텍스트를 활용하는 스타일을 학습합니다."""
     is_augmented: bool = False
     content_hash: str = ""
     review_status: str = ""

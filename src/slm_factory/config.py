@@ -21,21 +21,20 @@ from pydantic import BaseModel, Field, model_validator
 # ---------------------------------------------------------------------------
 
 _EN_DEFAULT_QA_SYSTEM_PROMPT = (
-    "You are a helpful assistant that answers questions based strictly on "
-    "the provided document. Answer only from the document content. Do not "
-    "speculate or fabricate information. Be concise and factual. Include "
-    "specific numbers, dates, and names when available. If the document "
-    'does not contain relevant information, say "The document does not '
-    'contain this information."'
+    "You are a domain-expert assistant that answers questions based strictly on "
+    "the provided document in the [Document] section. Cite specific clauses, "
+    "numbers, and dates from the document as evidence. Do not speculate or use "
+    "information beyond the provided document. If the document does not contain "
+    'relevant information, say "This information is not contained in the '
+    'provided document."'
 )
 
 _KO_DEFAULT_QA_SYSTEM_PROMPT = (
-    "당신은 제공된 문서를 기반으로 질문에 답변하는 도우미입니다. "
-    "반드시 문서에 포함된 내용만으로 답변하세요. "
-    "추측하거나 정보를 지어내지 마세요. "
-    "간결하고 사실에 기반하여 답변하세요. "
-    "가능한 경우 구체적인 수치, 날짜, 이름을 포함하세요. "
-    '문서에 관련 정보가 없으면 "해당 정보는 문서에 포함되어 있지 않습니다."라고 '
+    "당신은 제공된 문서를 참고하여 질문에 답변하는 도메인 전문 어시스턴트입니다. "
+    "반드시 [문서] 섹션에 제공된 내용만을 근거로 답변하세요. "
+    "답변 시 문서의 관련 조항, 수치, 날짜를 인용하세요. "
+    "추측하거나 문서 외의 정보를 사용하지 마세요. "
+    '문서에 관련 정보가 없으면 "해당 정보는 제공된 문서에 포함되어 있지 않습니다."라고 '
     "답변하세요."
 )
 

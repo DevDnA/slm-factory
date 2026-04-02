@@ -81,6 +81,9 @@ class ChatFormatter:
     def build_messages(self, pair: QAPair) -> list[dict[str, str]]:
         """QA 쌍에서 OpenAI 메시지 형식을 구성합니다.
 
+        컨텍스트가 있으면 user 메시지에 문서 컨텍스트를 포함하여
+        모델이 "주어진 문서를 읽고 답변하는 스타일"을 학습하도록 합니다.
+
         매개변수
         ----------
         pair : QAPair
@@ -97,7 +100,17 @@ class ChatFormatter:
         if self.system_prompt:
             messages.append({"role": "system", "content": self.system_prompt})
 
-        messages.append({"role": "user", "content": pair.question})
+        # 컨텍스트가 있으면 문서와 질문을 함께 구성
+        if pair.context:
+            user_content = (
+                f"다음 문서를 참고하여 질문에 답변하세요.\n\n"
+                f"[문서]\n{pair.context}\n\n"
+                f"[질문]\n{pair.question}"
+            )
+        else:
+            user_content = pair.question
+
+        messages.append({"role": "user", "content": user_content})
         messages.append({"role": "assistant", "content": pair.answer})
 
         return messages

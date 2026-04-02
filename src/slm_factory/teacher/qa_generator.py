@@ -251,6 +251,11 @@ class QAGenerator:
                 "- 개요, 기술, 절차, 비교 등 다양한 유형의 질문을 만드세요",
                 "- 문서에서 직접 답변할 수 있는 질문만 만드세요",
                 "",
+                "답변 작성 기준:",
+                '- 답변에 문서의 근거를 인용하세요 (예: "제X조에 따르면", "해당 문서에 의하면")',
+                "- 문서의 구체적인 조항, 수치, 날짜를 포함하여 근거를 명시하세요",
+                "- 도메인에 적합한 전문적이고 정확한 어투로 작성하세요",
+                "",
                 "반드시 아래 JSON 형식으로만 응답하세요:",
                 '{"items": [{"instruction": "질문1", "output": "답변1"}, '
                 '{"instruction": "질문2", "output": "답변2"}, ...]}',
@@ -359,6 +364,7 @@ class QAGenerator:
                             instruction=parsed["instruction"],
                             source_doc=doc.doc_id,
                             category="auto_generated",
+                            context=chunk_content,
                         )
                     )
                 return pairs
@@ -435,6 +441,7 @@ class QAGenerator:
                     instruction=parsed["instruction"],
                     source_doc=doc.doc_id,
                     category=category,
+                    context=doc.content[: self.max_context],
                 )
                 pairs.append(pair)
 
@@ -511,6 +518,7 @@ class QAGenerator:
                     instruction=parsed["instruction"],
                     source_doc=doc.doc_id,
                     category=category,
+                    context=content,
                 )
             except Exception as e:
                 logger.error(

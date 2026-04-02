@@ -125,7 +125,7 @@ class TestQuestionsConfig:
         assert cfg.categories == {}
         assert cfg.file is None
         assert cfg.output_format == "alpaca"
-        assert "helpful assistant" in cfg.system_prompt
+        assert "domain-expert assistant" in cfg.system_prompt
 
     def test_get_all_questions_카테고리에서_추출(self):
         """categories 딕셔너리에서 모든 질문을 평탄화하여 반환하는지 확인합니다."""

@@ -110,6 +110,7 @@ class DataAugmenter:
                 instruction=new_question,
                 source_doc=pair.source_doc,
                 category=pair.category,
+                context=pair.context,
                 is_augmented=True,
             )
             augmented_pairs.append(augmented)
