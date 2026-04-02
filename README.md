@@ -51,10 +51,10 @@ slm-factory의 두 기능은 역할이 명확히 다릅니다.
 
 ## 두 가지 패턴
 
-| 패턴 | 명령어 | 역할 | 적합한 경우 |
+| 패턴 | 명령어 | 역할 | 적합한&nbsp;경우 |
 |------|--------|------|-------------|
-| **RAG + 베이스 모델** | `slf rag` | RAG가 문서를 검색하고 Teacher(9B)가 답변 | 빠른 검증, 소규모 서비스 |
-| **RAG + 파인튜닝 SLM** | `slf tune` | Student(1B)가 도메인 어투로 답변 — 9배 빠르고 1/9 비용 | 프로덕션, 대규모 서비스 |
+| **RAG&nbsp;+&nbsp;베이스&nbsp;모델** | `slf rag` | RAG&nbsp;검색&nbsp;→&nbsp;Teacher(9B)&nbsp;답변 | 빠른&nbsp;검증 |
+| **RAG&nbsp;+&nbsp;파인튜닝&nbsp;SLM** | `slf tune` | RAG&nbsp;검색&nbsp;→&nbsp;Student(1B)&nbsp;답변,&nbsp;9배&nbsp;빠름 | 프로덕션 |
 
 ```bash
 slf rag                # RAG + Teacher 즉시 시작 (30초)
