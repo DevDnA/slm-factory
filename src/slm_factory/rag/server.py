@@ -12,9 +12,18 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from ..config import SLMConfig
 
+import re
+
 from ..utils import get_logger
 
 logger = get_logger("rag.server")
+
+# Ollama thinking 모델(Qwen3 등)의 <think> 태그를 제거합니다.
+_THINK_TAG_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
+
+
+def _clean_thinking_tags(text: str) -> str:
+    return _THINK_TAG_RE.sub("", text).strip()
 
 _RAG_SYSTEM_PROMPT = (
     "당신은 문서 기반 전문 어시스턴트입니다. "
@@ -367,7 +376,11 @@ def create_app(config: "SLMConfig"):
                 timeout=30.0,
             )
             if response.status_code == 200:
-                expanded = response.json().get("response", "").strip()
+                rewrite_data = response.json()
+                raw = rewrite_data.get("response", "")
+                if not raw:
+                    raw = rewrite_data.get("thinking", "")
+                expanded = _clean_thinking_tags(raw).strip()
                 if expanded:
                     return f"{query} {expanded}"
         except Exception:
@@ -534,30 +547,47 @@ def create_app(config: "SLMConfig"):
         if body.stream:
 
             async def _generate_stream():
-                async with http_client.stream(
-                    "POST",
-                    f"{api_base}/api/generate",
-                    json={
-                        "model": ollama_model,
-                        "prompt": prompt,
-                        "stream": True,
-                        "think": False,
-                        "keep_alive": -1,
-                        "options": {
-                            "num_predict": config.rag.max_tokens,
+                has_response_tokens = False
+                thinking_buf: list[str] = []
+                try:
+                    async with http_client.stream(
+                        "POST",
+                        f"{api_base}/api/generate",
+                        json={
+                            "model": ollama_model,
+                            "prompt": prompt,
+                            "stream": True,
+                            "think": False,
+                            "keep_alive": -1,
+                            "options": {
+                                "num_predict": config.rag.max_tokens,
+                            },
                         },
-                    },
-                ) as resp:
-                    resp.raise_for_status()
-                    async for line in resp.aiter_lines():
-                        if not line:
-                            continue
-                        chunk = json.loads(line)
-                        token = chunk.get("response", "")
-                        if token:
-                            yield f"data: {json.dumps({'token': token}, ensure_ascii=False)}\n\n"
-                        if chunk.get("done"):
-                            break
+                    ) as resp:
+                        resp.raise_for_status()
+                        async for line in resp.aiter_lines():
+                            if not line:
+                                continue
+                            chunk = json.loads(line)
+                            token = chunk.get("response", "")
+                            if token:
+                                has_response_tokens = True
+                                yield f"data: {json.dumps({'token': token}, ensure_ascii=False)}\n\n"
+                            else:
+                                thinking_token = chunk.get("thinking", "")
+                                if thinking_token:
+                                    thinking_buf.append(thinking_token)
+                            if chunk.get("done"):
+                                break
+                except Exception as exc:
+                    logger.error("Ollama 스트리밍 오류: %s", exc)
+                    yield f"data: {json.dumps({'token': f'\\n\\n[오류] Ollama 응답 실패: {exc}'}, ensure_ascii=False)}\n\n"
+
+                # Ollama 0.19.0 호환: response가 빈 경우 thinking 내용을 fallback으로 전송
+                if not has_response_tokens and thinking_buf:
+                    fallback = _clean_thinking_tags("".join(thinking_buf))
+                    if fallback:
+                        yield f"data: {json.dumps({'token': fallback}, ensure_ascii=False)}\n\n"
 
                 final = {
                     "sources": [s.model_dump() for s in sources],
@@ -628,7 +658,10 @@ def create_app(config: "SLMConfig"):
                     ),
                 },
             )
-        answer = response.json().get("response", "")
+        data = response.json()
+        answer = _clean_thinking_tags(data.get("response", ""))
+        if not answer:
+            answer = _clean_thinking_tags(data.get("thinking", ""))
 
         logger.info(
             "RAG 질의 처리 완료 — 검색 %d건, 모델: %s",
@@ -708,30 +741,47 @@ def create_app(config: "SLMConfig"):
         http_client = app.state.http_client
 
         async def _generate():
-            async with http_client.stream(
-                "POST",
-                f"{api_base}/api/generate",
-                json={
-                    "model": ollama_model,
-                    "prompt": prompt,
-                    "stream": True,
-                    "think": False,
-                    "keep_alive": -1,
-                    "options": {
-                        "num_predict": config.rag.max_tokens,
+            has_response_tokens = False
+            thinking_buf: list[str] = []
+            try:
+                async with http_client.stream(
+                    "POST",
+                    f"{api_base}/api/generate",
+                    json={
+                        "model": ollama_model,
+                        "prompt": prompt,
+                        "stream": True,
+                        "think": False,
+                        "keep_alive": -1,
+                        "options": {
+                            "num_predict": config.rag.max_tokens,
+                        },
                     },
-                },
-            ) as resp:
-                resp.raise_for_status()
-                async for line in resp.aiter_lines():
-                    if not line:
-                        continue
-                    chunk = json.loads(line)
-                    token = chunk.get("response", "")
-                    if token:
-                        yield f"data: {json.dumps({'type': 'token', 'content': token}, ensure_ascii=False)}\n\n"
-                    if chunk.get("done"):
-                        break
+                ) as resp:
+                    resp.raise_for_status()
+                    async for line in resp.aiter_lines():
+                        if not line:
+                            continue
+                        chunk = json.loads(line)
+                        token = chunk.get("response", "")
+                        if token:
+                            has_response_tokens = True
+                            yield f"data: {json.dumps({'type': 'token', 'content': token}, ensure_ascii=False)}\n\n"
+                        else:
+                            thinking_token = chunk.get("thinking", "")
+                            if thinking_token:
+                                thinking_buf.append(thinking_token)
+                        if chunk.get("done"):
+                            break
+            except Exception as exc:
+                logger.error("Ollama 스트리밍 오류: %s", exc)
+                yield f"data: {json.dumps({'type': 'token', 'content': f'\\n\\n[오류] Ollama 응답 실패: {exc}'}, ensure_ascii=False)}\n\n"
+
+            # Ollama 0.19.0 호환: response가 빈 경우 thinking 내용을 fallback으로 전송
+            if not has_response_tokens and thinking_buf:
+                fallback = _clean_thinking_tags("".join(thinking_buf))
+                if fallback:
+                    yield f"data: {json.dumps({'type': 'token', 'content': fallback}, ensure_ascii=False)}\n\n"
 
             yield f"data: {json.dumps({'type': 'sources', 'sources': [s.model_dump() for s in sources]}, ensure_ascii=False)}\n\n"
             yield f"data: {json.dumps({'type': 'done'})}\n\n"
