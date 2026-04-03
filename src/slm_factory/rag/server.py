@@ -4,6 +4,7 @@ Qdrant에 적재된 벡터 DB를 검색하고, Ollama SLM에 컨텍스트와 함
 질문을 전달하여 문서 기반 답변을 생성하는 REST API 서버입니다.
 """
 
+import asyncio
 import json
 import time
 from contextlib import asynccontextmanager
@@ -114,6 +115,7 @@ def create_app(config: "SLMConfig"):
     db_path = Path(config.paths.output) / config.rag.vector_db_path
     ollama_model = config.rag.ollama_model or config.export.ollama.model_name
     api_base = config.teacher.api_base
+    rag_max_tokens = config.rag.max_tokens
 
     # ------------------------------------------------------------------
     # 라이프사이클 관리
@@ -398,15 +400,19 @@ def create_app(config: "SLMConfig"):
         use_reranker = reranker is not None
         initial_k = top_k * 3 if use_reranker else top_k
 
+        t0 = time.monotonic()
         query_embedding = embedding_model.encode(
             body.query, prompt_name="query"
         ).tolist()
+        t_embed = time.monotonic()
+
         results = qdrant_client.query_points(
             collection_name=collection_name,
             query=query_embedding,
             limit=initial_k,
             with_payload=True,
         )
+        t_search = time.monotonic()
 
         documents = [p.payload.get("document", "") for p in results.points]
         ids = [p.payload.get("doc_id", str(p.id)) for p in results.points]
@@ -416,9 +422,11 @@ def create_app(config: "SLMConfig"):
             for p in results.points
         ]
 
+        t_rerank = t_search
         if use_reranker and documents:
             pairs = [(body.query, doc) for doc in documents]
             rerank_scores = reranker.predict(pairs)
+            t_rerank = time.monotonic()
             ranked = sorted(
                 zip(rerank_scores, documents, ids, distances, metadatas),
                 reverse=True,
@@ -438,6 +446,7 @@ def create_app(config: "SLMConfig"):
             distances = distances[:top_k]
             metadatas = metadatas[:top_k]
 
+        t_bm25 = t_rerank
         if config.rag.hybrid_search and app.state.bm25_index is not None:
             # Reciprocal Rank Fusion (RRF): 벡터 검색과 BM25 결과를 통합합니다.
             # RRF 점수 = sum(1 / (k + rank_i)) — k=60이 표준값입니다.
@@ -472,6 +481,7 @@ def create_app(config: "SLMConfig"):
             ids = list(sorted_ids)
             distances = [1.0 - rrf_scores[did] for did in sorted_ids]
             metadatas = [rrf_data[did][1] for did in sorted_ids]
+            t_bm25 = time.monotonic()
 
         # -- 유사도 필터링: min_score 미만 문서 제거 ---
         min_score = config.rag.min_score
@@ -523,6 +533,17 @@ def create_app(config: "SLMConfig"):
             f"[참고 문서]\n{context}\n\n"
             f"질문: {body.query}\n답변:"
         )
+        t_end = time.monotonic()
+        logger.info(
+            "검색 완료 %.3fs (임베딩 %.3fs, 벡터검색 %.3fs, 리랭커 %.3fs, BM25/RRF %.3fs, 후처리 %.3fs) — %d건",
+            t_end - t0,
+            t_embed - t0,
+            t_search - t_embed,
+            t_rerank - t_search,
+            t_bm25 - t_rerank,
+            t_end - t_bm25,
+            len(sources),
+        )
         return sources, prompt
 
     @app.post("/v1/query")
@@ -541,7 +562,7 @@ def create_app(config: "SLMConfig"):
         else:
             body_for_search = body
 
-        sources, prompt = _search_documents(body_for_search)
+        sources, prompt = await asyncio.to_thread(_search_documents, body_for_search)
         http_client = app.state.http_client
 
         if body.stream:
@@ -560,7 +581,7 @@ def create_app(config: "SLMConfig"):
                             "think": False,
                             "keep_alive": -1,
                             "options": {
-                                "num_predict": config.rag.max_tokens,
+                                "num_predict": rag_max_tokens,
                             },
                         },
                     ) as resp:
@@ -754,7 +775,7 @@ def create_app(config: "SLMConfig"):
                         "think": False,
                         "keep_alive": -1,
                         "options": {
-                            "num_predict": config.rag.max_tokens,
+                            "num_predict": rag_max_tokens,
                         },
                     },
                 ) as resp:
