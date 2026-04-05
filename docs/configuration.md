@@ -427,6 +427,7 @@ student:
 | `weight_decay` | `float` | `0.05` | 가중치 감쇠(L2 정규화). 과적합을 억제합니다. 0이면 비활성 |
 | `label_smoothing_factor` | `float` | `0.1` | 라벨 스무딩 계수. 모델이 특정 답변을 과도하게 확신하는 것을 방지합니다. 0이면 비활성 |
 | `neftune_noise_alpha` | `float \| None` | `5.0` | NEFTune 임베딩 노이즈 강도. 학습 중 임베딩에 노이즈를 주입하여 일반화 성능을 5~15% 향상시킵니다. 권장값: `5.0` (2B 이하), `10.0` (4B 이상). `None`이면 비활성 |
+| `completion_only_loss` | `bool` | `true` | assistant 응답 토큰에만 loss를 계산합니다. prompt 토큰(system/user)의 loss를 마스킹하여 모델이 응답 생성에 집중하도록 합니다. 소규모 데이터에서 과적합을 억제하는 데 효과적입니다 |
 
 **제약조건**: `learning_rate`가 실수인 경우 반드시 0보다 커야 합니다. 0 이하로 설정하면 설정 로드 시 오류가 발생합니다.
 
