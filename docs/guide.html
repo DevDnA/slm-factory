@@ -513,18 +513,24 @@ cp /path/to/docs/*.pdf /path/to/docs/*.txt my-first-project/documents/</code></p
 <p>파이프라인 완료 후 <code>status</code> 명령으로 각 단계의 결과물을 확인합니다.</p>
 <pre data-lang="bash"><code>slf status --config my-first-project/project.yaml</code></pre>
 <p>출력 예시:</p>
-<pre><code>┌──────────────────────────────────────────────────────────┐
-  단계       파일                      상태    건수
-  parse      parsed_documents.json     존재    5개 문서
-  generate   qa_alpaca.json            존재    150개 쌍
-  score      qa_scored.json            없음    -
-  augment    qa_augmented.json         없음    -
-  analyze    data_analysis.json        존재    1개 항목
-  convert    training_data.jsonl       존재    150개 줄
-  train      checkpoints/adapter/      존재    디렉토리
-  export     merged_model/             존재    디렉토리
-└──────────────────────────────────────────────────────────┘
-모든 단계가 완료되었습니다</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>단계</th><th>파일</th><th>상태</th><th>건수</th></tr>
+</thead>
+<tbody>
+<tr><td>parse</td><td>parsed_documents.json</td><td>존재</td><td>5개 문서</td></tr>
+<tr><td>generate</td><td>qa_alpaca.json</td><td>존재</td><td>150개 쌍</td></tr>
+<tr><td>score</td><td>qa_scored.json</td><td>없음</td><td>-</td></tr>
+<tr><td>augment</td><td>qa_augmented.json</td><td>없음</td><td>-</td></tr>
+<tr><td>analyze</td><td>data_analysis.json</td><td>존재</td><td>1개 항목</td></tr>
+<tr><td>convert</td><td>training_data.jsonl</td><td>존재</td><td>150개 줄</td></tr>
+<tr><td>train</td><td>checkpoints/adapter/</td><td>존재</td><td>디렉토리</td></tr>
+<tr><td>export</td><td>merged_model/</td><td>존재</td><td>디렉토리</td></tr>
+</tbody>
+</table>
+</div>
+<pre><code>모든 단계가 완료되었습니다</code></pre>
 <hr>
 <h3 id="모델-테스트">모델 테스트</h3>
 <p>내보내기가 완료되면 Ollama에 모델을 등록하고 바로 테스트할 수 있습니다.</p>
@@ -939,13 +945,12 @@ ollama serve
 <h2 id="7-파인튜닝과-rag--역할-분담">7. 파인튜닝과 RAG — 역할 분담</h2>
 <p>slm-factory는 <strong>RAG(검색 증강 생성)</strong>과 <strong>LoRA 파인튜닝</strong> 두 가지 기능을 제공합니다. 각각의 역할이 명확히 다릅니다.</p>
 <h3 id="핵심-원칙-지식은-rag-스타일은-파인튜닝">핵심 원칙: 지식은 RAG, 스타일은 파인튜닝</h3>
-<pre><code>┌─────────────────────────────────────────────────────────┐
-│  지식(WHAT)  → RAG가 담당                                │
-│    문서 검색 → 관련 컨텍스트 전달 → 정확한 정보 제공      │
-│                                                         │
-│  스타일(HOW) → 파인튜닝이 담당                            │
-│    컨텍스트 읽기 → 근거 인용 → 도메인 어투로 답변          │
-└─────────────────────────────────────────────────────────┘</code></pre>
+<blockquote>
+<p><strong>지식(WHAT) → RAG가 담당</strong><br>
+문서 검색 → 관련 컨텍스트 전달 → 정확한 정보 제공</p>
+<p><strong>스타일(HOW) → 파인튜닝이 담당</strong><br>
+컨텍스트 읽기 → 근거 인용 → 도메인 어투로 답변</p>
+</blockquote>
 <p><strong>파인튜닝은 지식 주입이 아닙니다.</strong> 1B~2B 모델은 문서 내용을 안정적으로 암기할 수 없습니다. 문서 내용을 암기시키면 과적합(같은 말 반복)이 발생합니다. 파인튜닝의 역할은 "주어진 문서를 읽고, 도메인에 맞는 어투로, 근거를 인용하며 답변하는 스타일"을 학습시키는 것입니다.</p>
 <h3 id="파인튜닝이-학습하는-것">파인튜닝이 학습하는 것</h3>
 <div class="table-wrapper">
