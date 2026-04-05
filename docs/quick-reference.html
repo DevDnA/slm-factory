@@ -310,9 +310,8 @@ slf tune               # 파인튜닝 + RAG + Student(1B) — 문서 20건+</cod
 <h2 id="파이프라인-단계">파이프라인 단계</h2>
 <p><code>slf tune</code> 실행 시 아래 순서로 진행됩니다. 상세한 단계 설명은 <a href="guide.html">사용 가이드</a>를 참조하십시오.</p>
 <ol>
-<li><strong>parse</strong> (필수) — PDF/HWPX/HTML/TXT/MD/DOCX/HWP 파싱 &rarr; <code>output/parsed_documents.json</code></li>
-<li><strong>chunking</strong> (선택) — 긴 문서를 청크로 분할하여 QA 생성 범위 확장</li>
-<li><strong>generate</strong> (필수) — Teacher LLM으로 QA 쌍 생성 &rarr; <code>output/qa_alpaca.json</code></li>
+<li><strong>parse</strong> (필수) — PDF/HWPX/HTML/TXT/MD/DOCX/HWP/DOC/PPT/PPTX/XLS/XLSX 파싱 &rarr; <code>output/parsed_documents.json</code></li>
+<li><strong>generate</strong> (필수) — Teacher LLM으로 QA 쌍 생성 &rarr; <code>output/qa_alpaca.json</code> (chunking 설정 시 문서를 청크로 분할하여 생성)</li>
 <li><strong>validate</strong> (필수) — 규칙 + 임베딩 기반 QA 검증 및 필터링 &rarr; <code>qa_alpaca.json</code> 갱신</li>
 <li><strong>score</strong> (선택) — Teacher LLM 1~5점 품질 평가 &rarr; <code>output/qa_scored.json</code></li>
 <li><strong>augment</strong> (선택) — 질문 패러프레이즈 데이터 증강 &rarr; <code>output/qa_augmented.json</code></li>

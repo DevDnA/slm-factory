@@ -36,7 +36,12 @@ src/slm_factory/
 │   ├── html.py              # HTML 파서 (BeautifulSoup4)
 │   ├── text.py              # TXT/MD 파서
 │   ├── docx.py              # DOCX 파서 (python-docx, 선택적)
-│   └── hwp.py               # HWP 파서 (olefile, 선택적)
+│   ├── hwp.py               # HWP 파서 (olefile, 선택적)
+│   ├── doc.py               # DOC 파서 (olefile, 선택적)
+│   ├── pptx.py              # PPTX 파서 (python-pptx, 선택적)
+│   ├── ppt.py               # PPT 파서 (olefile, 선택적)
+│   ├── xlsx.py              # XLSX 파서 (openpyxl, 선택적)
+│   └── xls.py               # XLS 파서 (xlrd, 선택적)
 ├── teacher/
 │   ├── __init__.py          # create_teacher() 팩토리 함수
 │   ├── base.py              # BaseTeacher ABC
@@ -288,8 +293,13 @@ from slm_factory.parsers import registry
 | `TextParser` | `text.py` | `.txt`, `.md` | charset-normalizer |
 | `DOCXParser` | `docx.py` | `.docx` | python-docx (선택적) |
 | `HWPParser` | `hwp.py` | `.hwp` | olefile (선택적) |
+| `DOCParser` | `doc.py` | `.doc` | olefile (선택적) |
+| `PPTXParser` | `pptx.py` | `.pptx` | python-pptx (선택적) |
+| `PPTParser` | `ppt.py` | `.ppt` | olefile (선택적) |
+| `XLSXParser` | `xlsx.py` | `.xlsx` | openpyxl (선택적) |
+| `XLSParser` | `xls.py` | `.xls` | xlrd (선택적) |
 
-`DOCXParser`는 `python-docx`가, `HWPParser`는 `olefile`이 설치되지 않은 경우 자동으로 비활성화됩니다. 레지스트리는 `parsers/__init__.py`에서 모든 파서를 자동 등록합니다.
+선택적 파서(DOCX, HWP, DOC, PPTX, PPT, XLSX, XLS)는 해당 라이브러리가 설치되지 않은 경우 자동으로 비활성화됩니다. 레지스트리는 `parsers/__init__.py`에서 모든 파서를 자동 등록합니다.
 
 `parsers/base.py`의 `detect_encoding()` 함수는 HTML 파서와 텍스트 파서가 공유하는 유틸리티입니다. charset-normalizer를 사용하여 EUC-KR, CP949 등 한국어 인코딩을 정확하게 감지합니다.
 
@@ -599,6 +609,13 @@ class QAReviewerApp(App[None]):
     출력: config.review.output_file (기본값: qa_reviewed.json)
     """
 ```
+
+### 위젯 (widgets.py)
+
+| 클래스 | 역할 |
+|--------|------|
+| `QACard` | QA 쌍을 카드 형태로 표시하는 위젯 |
+| `StatusBar` | 리뷰 진행률 및 상태를 표시하는 하단 바 |
 
 ---
 

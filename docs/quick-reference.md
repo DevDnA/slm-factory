@@ -103,9 +103,8 @@ slf tune               # 파인튜닝 + RAG + Student(1B) — 문서 20건+
 
 `slf tune` 실행 시 아래 순서로 진행됩니다. 상세한 단계 설명은 [사용 가이드](guide.md)를 참조하십시오.
 
-1. **parse** (필수) — PDF/HWPX/HTML/TXT/MD/DOCX/HWP 파싱 → `output/parsed_documents.json`
-1b. **chunking** (선택) — 긴 문서를 청크로 분할하여 QA 생성 범위 확장
-2. **generate** (필수) — Teacher LLM으로 QA 쌍 생성 → `output/qa_alpaca.json`
+1. **parse** (필수) — PDF/HWPX/HTML/TXT/MD/DOCX/HWP/DOC/PPT/PPTX/XLS/XLSX 파싱 → `output/parsed_documents.json`
+2. **generate** (필수) — Teacher LLM으로 QA 쌍 생성 → `output/qa_alpaca.json` (chunking 설정 시 문서를 청크로 분할하여 생성)
 3. **validate** (필수) — 규칙 + 임베딩 기반 QA 검증 및 필터링 → `qa_alpaca.json` 갱신
 4. **score** (선택) — Teacher LLM 1~5점 품질 평가 → `output/qa_scored.json`
 5. **augment** (선택) — 질문 패러프레이즈 데이터 증강 → `output/qa_augmented.json`

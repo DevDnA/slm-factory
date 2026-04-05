@@ -689,6 +689,7 @@ rag:
   reranker_enabled: true
   reranker_model: "dragonkue/bge-reranker-v2-m3-ko"
   hybrid_search: true
+  query_rewriting: false
   min_score: 0.0
 ```
 

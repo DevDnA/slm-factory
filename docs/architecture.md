@@ -92,9 +92,14 @@ cli.py
         │     ├─→ pdf.py (PDFParser)
         │     ├─→ hwpx.py (HWPXParser)
         │     ├─→ html.py (HTMLParser)
-│     ├─→ text.py (TextParser)
-│     ├─→ docx.py (DOCXParser)
-│     └─→ hwp.py (HWPParser)
+        │     ├─→ text.py (TextParser)
+        │     ├─→ docx.py (DOCXParser, 선택적)
+        │     ├─→ hwp.py (HWPParser, 선택적)
+        │     ├─→ doc.py (DOCParser, 선택적)
+        │     ├─→ pptx.py (PPTXParser, 선택적)
+        │     ├─→ ppt.py (PPTParser, 선택적)
+        │     ├─→ xlsx.py (XLSXParser, 선택적)
+        │     └─→ xls.py (XLSParser, 선택적)
         │
         ├─→ teacher/
         │     ├─→ base.py (BaseTeacher)
@@ -122,11 +127,11 @@ cli.py
         ├─→ evaluator.py (ModelEvaluator)
         ├─→ comparator.py (ModelComparator)
         ├─→ incremental.py (IncrementalTracker)
-        ├─→ calibration.py (auto_chunk_size, auto_num_epochs, section_aware_chunk)
+        ├─→ calibration.py (auto_chunk_size, auto_num_epochs, auto_learning_rate, auto_questions_per_chunk, section_aware_chunk)
         ├─→ device.py (detect_device)
         ├─→ evolve_history.py (EvolveHistory)
         ├─→ rag/ (RAGIndexer, RAG 서버)
-        └─→ tui/ (QAReviewerApp)
+        └─→ tui/ (QAReviewerApp, QACard, StatusBar)
 
 모든 모듈
   ├─→ config.py (SLMConfig + 28개 하위 모델)
@@ -151,7 +156,7 @@ class CSVParser(BaseParser):
         ...
 ```
 
-`parsers/__init__.py`에서 전역 `registry` 인스턴스를 생성하고 4개 기본 파서(PDF, HWPX, HTML, Text)를 무조건 등록하며, 2개 선택적 파서(DOCX, HWP)는 해당 패키지가 설치된 경우에만 등록합니다. 새 파서를 `@registry.register`로 등록하면 즉시 파이프라인에서 처리됩니다.
+`parsers/__init__.py`에서 전역 `registry` 인스턴스를 생성하고 4개 기본 파서(PDF, HWPX, HTML, Text)를 무조건 등록하며, 7개 선택적 파서(DOCX, HWP, DOC, PPTX, PPT, XLSX, XLS)는 해당 패키지가 설치된 경우에만 등록합니다. 새 파서를 `@registry.register`로 등록하면 즉시 파이프라인에서 처리됩니다.
 
 `parsers/base.py`의 `detect_encoding()` 함수는 HTML 파서와 텍스트 파서가 공유하는 인코딩 감지 유틸리티입니다. charset-normalizer를 사용하여 EUC-KR, CP949 등 한국어 인코딩을 정확하게 감지합니다. `HTMLParser`는 BeautifulSoup4의 lxml 백엔드를 사용하며, h1–h6 헤딩 태그를 마크다운 헤딩으로 변환하여 문서 구조를 보존합니다.
 
@@ -218,7 +223,7 @@ results = await asyncio.gather(*tasks, return_exceptions=True)
 
 | 단계 | 입력 타입 | 출력 타입 | 저장 파일 |
 |------|----------|----------|----------|
-| parse | 파일 시스템 (PDF/HWPX/HTML/TXT/MD/DOCX/HWP) | `list[ParsedDocument]` | `parsed_documents.json` |
+| parse | 파일 시스템 (PDF/HWPX/HTML/TXT/MD/DOCX/HWP/DOC/PPTX/PPT/XLSX/XLS) | `list[ParsedDocument]` | `parsed_documents.json` |
 | generate | `list[ParsedDocument]` | `list[QAPair]` | `qa_alpaca.json` |
 | validate | `list[QAPair]` | `list[QAPair]` (필터링) | 없음 (메모리 전달) |
 | score | `list[QAPair]` | `list[QAPair]` (필터링) | `qa_scored.json` |
@@ -228,7 +233,7 @@ results = await asyncio.gather(*tasks, return_exceptions=True)
 | train | JSONL 파일 경로 | 어댑터 디렉토리 경로 | `checkpoints/adapter/` |
 | export | 어댑터 디렉토리 경로 | 병합 모델 디렉토리 경로 | `merged_model/` + `Modelfile` |
 | eval | `list[QAPair]` + 모델 이름 | `list[EvalResult]` | `eval_results.json` |
-| compare | `list[QAPair]` | `list[CompareResult]` | `compare_results.json` |
+| compare | `list[QAPair]` | `list[CompareResult]` | `compare_results.json` (※ `pipeline.run()`에서 자동 실행되지 않음. `slf eval compare`로 독립 실행) |
 | autorag_export | `list[ParsedDocument]` + `list[QAPair]` | parquet files | `autorag/corpus.parquet`, `autorag/qa.parquet` |
 | rag_index | `corpus.parquet` | Qdrant collection | `qdrant_db/` |
 

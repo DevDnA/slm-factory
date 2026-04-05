@@ -319,9 +319,14 @@
         │     ├─→ pdf.py (PDFParser)
         │     ├─→ hwpx.py (HWPXParser)
         │     ├─→ html.py (HTMLParser)
-│     ├─→ text.py (TextParser)
-│     ├─→ docx.py (DOCXParser)
-│     └─→ hwp.py (HWPParser)
+        │     ├─→ text.py (TextParser)
+        │     ├─→ docx.py (DOCXParser, 선택적)
+        │     ├─→ hwp.py (HWPParser, 선택적)
+        │     ├─→ doc.py (DOCParser, 선택적)
+        │     ├─→ pptx.py (PPTXParser, 선택적)
+        │     ├─→ ppt.py (PPTParser, 선택적)
+        │     ├─→ xlsx.py (XLSXParser, 선택적)
+        │     └─→ xls.py (XLSParser, 선택적)
         │
         ├─→ teacher/
         │     ├─→ base.py (BaseTeacher)
@@ -349,11 +354,11 @@
         ├─→ evaluator.py (ModelEvaluator)
         ├─→ comparator.py (ModelComparator)
         ├─→ incremental.py (IncrementalTracker)
-        ├─→ calibration.py (auto_chunk_size, auto_num_epochs, section_aware_chunk)
+        ├─→ calibration.py (auto_chunk_size, auto_num_epochs, auto_learning_rate, auto_questions_per_chunk, section_aware_chunk)
         ├─→ device.py (detect_device)
         ├─→ evolve_history.py (EvolveHistory)
         ├─→ rag/ (RAGIndexer, RAG 서버)
-        └─→ tui/ (QAReviewerApp)
+        └─→ tui/ (QAReviewerApp, QACard, StatusBar)
 
 모든 모듈
   ├─→ config.py (SLMConfig + 28개 하위 모델)
@@ -372,7 +377,7 @@ class CSVParser(BaseParser):
 
     def parse(self, path: Path) -&gt; ParsedDocument:
         ...</code></pre>
-<p><code>parsers/__init__.py</code>에서 전역 <code>registry</code> 인스턴스를 생성하고 4개 기본 파서(PDF, HWPX, HTML, Text)를 무조건 등록하며, 2개 선택적 파서(DOCX, HWP)는 해당 패키지가 설치된 경우에만 등록합니다. 새 파서를 <code>@registry.register</code>로 등록하면 즉시 파이프라인에서 처리됩니다.</p>
+<p><code>parsers/__init__.py</code>에서 전역 <code>registry</code> 인스턴스를 생성하고 4개 기본 파서(PDF, HWPX, HTML, Text)를 무조건 등록하며, 7개 선택적 파서(DOCX, HWP, DOC, PPTX, PPT, XLSX, XLS)는 해당 패키지가 설치된 경우에만 등록합니다. 새 파서를 <code>@registry.register</code>로 등록하면 즉시 파이프라인에서 처리됩니다.</p>
 <p><code>parsers/base.py</code>의 <code>detect_encoding()</code> 함수는 HTML 파서와 텍스트 파서가 공유하는 인코딩 감지 유틸리티입니다. charset-normalizer를 사용하여 EUC-KR, CP949 등 한국어 인코딩을 정확하게 감지합니다. <code>HTMLParser</code>는 BeautifulSoup4의 lxml 백엔드를 사용하며, h1–h6 헤딩 태그를 마크다운 헤딩으로 변환하여 문서 구조를 보존합니다.</p>
 <p>→ 커스텀 파서 구현 전체 예제는 <a href="development.html">개발자 가이드</a> 참조</p>
 <h3 id="32-factory-패턴-teacher">3.2 Factory 패턴 (teacher/)</h3>
@@ -428,7 +433,7 @@ results = await asyncio.gather(*tasks, return_exceptions=True)</code></pre>
 <tbody>
 <tr>
 <td>parse</td>
-<td>파일 시스템 (PDF/HWPX/HTML/TXT/MD/DOCX/HWP)</td>
+<td>파일 시스템 (PDF/HWPX/HTML/TXT/MD/DOCX/HWP/DOC/PPTX/PPT/XLSX/XLS)</td>
 <td><code>list[ParsedDocument]</code></td>
 <td><code>parsed_documents.json</code></td>
 </tr>
@@ -490,7 +495,7 @@ results = await asyncio.gather(*tasks, return_exceptions=True)</code></pre>
 <td>compare</td>
 <td><code>list[QAPair]</code></td>
 <td><code>list[CompareResult]</code></td>
-<td><code>compare_results.json</code></td>
+<td><code>compare_results.json</code> (※ <code>pipeline.run()</code>에서 자동 실행되지 않음. <code>slf eval compare</code>로 독립 실행)</td>
 </tr>
 <tr>
 <td>autorag_export</td>
