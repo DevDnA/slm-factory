@@ -105,7 +105,7 @@ Projects are configured via `project.yaml` (template in `templates/`). Pydantic 
 
 ### LoRA Training (`trainer/lora_trainer.py`)
 
-- **SFTTrainer가 전체 텍스트에 loss 계산**: `DataCollatorForCompletionOnlyLM` 미사용. 학습 데이터에 긴 문서 컨텍스트가 포함되면 prompt 토큰이 loss를 지배하여 모델 응답 부분의 학습 신호가 희석됨.
+- **Completion-only loss (기본 활성)**: `training.completion_only_loss: true` (기본값)로 assistant 응답 토큰에만 loss를 계산합니다. 학습 시 `{"text": ...}` → `{"prompt": ..., "completion": ...}` 자동 변환 후 `SFTConfig(completion_only_loss=True)`를 사용합니다. 채팅 템플릿에서 assistant 마커를 자동 감지하며, 감지 실패 시 자동으로 비활성화됩니다.
 - **소규모 데이터(<100개) 학습 시 주의사항**:
   - `gradient_accumulation_steps`가 학습 데이터 수보다 크면 step 수가 1~2개로 사실상 학습 안 됨 (step = data_count / grad_accum)
   - `label_smoothing_factor > 0.1`은 소규모 데이터에서 학습을 방해할 수 있음 → 0.0 권장

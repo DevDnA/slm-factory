@@ -311,6 +311,12 @@ class LoRATrainer:
             regularization_kwargs["label_smoothing_factor"] = tc.label_smoothing_factor
             logger.info("Label smoothing enabled: %.2f", tc.label_smoothing_factor)
 
+        # Completion-only loss 설정
+        completion_kwargs: dict[str, Any] = {}
+        if tc.completion_only_loss:
+            completion_kwargs["completion_only_loss"] = True
+            logger.info("Completion-only loss 활성화: prompt 토큰의 loss가 마스킹됩니다")
+
         training_args = SFTConfig(
             output_dir=str(self.output_dir),
             num_train_epochs=tc.num_epochs,
@@ -336,6 +342,7 @@ class LoRATrainer:
             max_grad_norm=1.0,
             **neftune_kwargs,
             **regularization_kwargs,
+            **completion_kwargs,
             **{
                 k: v for k, v in overrides.items() if k not in ("bf16", "fp16", "optim")
             },
@@ -392,6 +399,110 @@ class LoRATrainer:
 
         return callbacks
 
+    @staticmethod
+    def _detect_response_template(tokenizer: Any) -> str:
+        """토크나이저의 채팅 템플릿에서 assistant 응답 시작 마커를 감지합니다.
+
+        반환값
+        -------
+        str
+            assistant 응답 직전의 마커 문자열 (예: ``"<|im_start|>assistant\\n"``).
+
+        예외
+        ----
+        ValueError
+            채팅 템플릿에서 마커를 감지할 수 없는 경우.
+        """
+        sentinel = "__RESPONSE_SENTINEL__"
+        messages = [
+            {"role": "user", "content": "Q"},
+            {"role": "assistant", "content": sentinel},
+        ]
+        try:
+            rendered = tokenizer.apply_chat_template(
+                messages, tokenize=False, add_generation_prompt=False
+            )
+        except Exception as e:
+            raise ValueError(
+                f"채팅 템플릿 렌더링 실패: {e}. "
+                "completion_only_loss를 false로 설정하거나 "
+                "채팅 템플릿을 지원하는 모델을 사용하세요."
+            ) from e
+
+        idx = rendered.find(sentinel)
+        if idx < 0:
+            raise ValueError(
+                "채팅 템플릿에서 assistant 응답 마커를 감지할 수 없습니다. "
+                "completion_only_loss를 false로 설정하세요."
+            )
+
+        # sentinel 직전 텍스트에서 마지막 줄바꿈 기준으로 마커 추출
+        prefix = rendered[:idx]
+        # 마커는 보통 "assistant\n" 또는 "model\n" 등으로 끝남
+        # 역방향으로 줄바꿈 2개를 찾아 마커 시작점을 결정
+        last_newline = prefix.rstrip("\n").rfind("\n")
+        if last_newline >= 0:
+            marker = prefix[last_newline + 1 :]
+        else:
+            marker = prefix
+
+        if not marker.strip():
+            raise ValueError(
+                "감지된 assistant 마커가 비어있습니다. "
+                "completion_only_loss를 false로 설정하세요."
+            )
+
+        return marker
+
+    def _split_prompt_completion(
+        self, dataset_dict: Any, tokenizer: Any
+    ) -> Any:
+        """``{"text": ...}`` 형식의 데이터셋을 ``{"prompt": ..., "completion": ...}``
+        형식으로 변환합니다.
+
+        매개변수
+        ----------
+        dataset_dict:
+            ``"train"``과 ``"eval"`` 분할을 포함하는 ``DatasetDict``.
+        tokenizer:
+            채팅 템플릿이 있는 토크나이저.
+
+        반환값
+        -------
+        DatasetDict
+            ``"prompt"``과 ``"completion"`` 열을 포함하는 변환된 데이터셋.
+        """
+        from datasets import DatasetDict
+
+        marker = self._detect_response_template(tokenizer)
+        logger.info("감지된 assistant 응답 마커: %r", marker)
+
+        failed_count = 0
+
+        def split_fn(example: dict) -> dict:
+            nonlocal failed_count
+            text = example["text"]
+            idx = text.rfind(marker)
+            if idx < 0:
+                failed_count += 1
+                return {"prompt": "", "completion": text}
+            split_pos = idx + len(marker)
+            return {"prompt": text[:split_pos], "completion": text[split_pos:]}
+
+        new_splits = {}
+        for split_name, ds in dataset_dict.items():
+            mapped = ds.map(split_fn, remove_columns=["text"])
+            new_splits[split_name] = mapped
+
+        if failed_count > 0:
+            logger.warning(
+                "%d개 샘플에서 assistant 마커를 찾지 못했습니다. "
+                "해당 샘플은 전체 텍스트를 completion으로 사용합니다.",
+                failed_count,
+            )
+
+        return DatasetDict(new_splits)
+
     def train(self, dataset_dict: Any) -> Path:
         """제공된 데이터셋에서 LoRA 미세 조정을 실행합니다.
 
@@ -416,6 +527,18 @@ class LoRATrainer:
         lora_config = self._create_lora_config()
         model = get_peft_model(model, lora_config)
         model.print_trainable_parameters()
+
+        # Completion-only loss: {"text": ...} → {"prompt": ..., "completion": ...} 변환
+        if self.training_config.completion_only_loss:
+            try:
+                dataset_dict = self._split_prompt_completion(
+                    dataset_dict, tokenizer
+                )
+            except ValueError as e:
+                logger.warning(
+                    "Completion-only loss 비활성화 (마커 감지 실패): %s", e
+                )
+                self.training_config.completion_only_loss = False
 
         num_train = (
             len(dataset_dict["train"])

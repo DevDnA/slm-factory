@@ -301,6 +301,10 @@ class TrainingConfig(BaseModel):
     """NEFTune 임베딩 노이즈 강도입니다. 학습 중 임베딩에 노이즈를
     주입하여 일반화 성능을 5~15% 향상시킵니다. 권장값: 5.0 (2B 이하), 10.0 (4B 이상).
     None이면 비활성."""
+    completion_only_loss: bool = True
+    """assistant 응답 토큰에만 loss를 계산합니다. prompt 토큰(system/user)의
+    loss를 마스킹하여 모델이 응답 생성에 집중하도록 합니다.
+    소규모 데이터에서 과적합을 억제하는 데 효과적입니다."""
 
     @model_validator(mode="after")
     def _check_training_params(self) -> "TrainingConfig":

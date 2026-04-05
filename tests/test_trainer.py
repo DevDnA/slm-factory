@@ -354,7 +354,8 @@ class TestLoRATrainerTrain:
         with patch.object(trainer, "_load_model", return_value=(mock_model, mock_tokenizer)), \
              patch.object(trainer, "_create_lora_config", return_value=MagicMock()), \
              patch.object(trainer, "_create_training_args", return_value=MagicMock()), \
-             patch.object(trainer, "_create_callbacks", return_value=[]):
+             patch.object(trainer, "_create_callbacks", return_value=[]), \
+             patch.object(trainer, "_split_prompt_completion", return_value=mock_dataset):
             return trainer.train(mock_dataset), sft_cls
 
     def test_정상_학습_흐름(self):
@@ -419,3 +420,142 @@ class TestLoRATrainerTrain:
                 trainer, mock_dataset, mock_model, mock_tokenizer,
                 sft_cls=mock_sft_cls,
             )
+
+
+# ---------------------------------------------------------------------------
+# LoRATrainer — Completion-Only Loss
+# ---------------------------------------------------------------------------
+
+
+class TestDetectResponseTemplate:
+    """_detect_response_template() 테스트입니다."""
+
+    def test_Qwen_채팅_템플릿_감지(self):
+        """Qwen 스타일 채팅 템플릿에서 assistant 마커를 감지합니다."""
+        mock_tokenizer = MagicMock()
+        mock_tokenizer.apply_chat_template.return_value = (
+            "<|im_start|>user\nQ<|im_end|>\n"
+            "<|im_start|>assistant\n__RESPONSE_SENTINEL__<|im_end|>\n"
+        )
+
+        result = LoRATrainer._detect_response_template(mock_tokenizer)
+        assert "assistant" in result
+        assert result == "<|im_start|>assistant\n"
+
+    def test_Gemma_채팅_템플릿_감지(self):
+        """Gemma 스타일 채팅 템플릿에서 assistant 마커를 감지합니다."""
+        mock_tokenizer = MagicMock()
+        mock_tokenizer.apply_chat_template.return_value = (
+            "<start_of_turn>user\nQ<end_of_turn>\n"
+            "<start_of_turn>model\n__RESPONSE_SENTINEL__<end_of_turn>\n"
+        )
+
+        result = LoRATrainer._detect_response_template(mock_tokenizer)
+        assert "model" in result
+        assert result == "<start_of_turn>model\n"
+
+    def test_채팅_템플릿_렌더링_실패(self):
+        """채팅 템플릿 렌더링이 실패하면 ValueError를 발생시킵니다."""
+        mock_tokenizer = MagicMock()
+        mock_tokenizer.apply_chat_template.side_effect = Exception("template error")
+
+        with pytest.raises(ValueError, match="채팅 템플릿 렌더링 실패"):
+            LoRATrainer._detect_response_template(mock_tokenizer)
+
+    def test_sentinel_미발견시_ValueError(self):
+        """sentinel이 렌더링 결과에 없으면 ValueError를 발생시킵니다."""
+        mock_tokenizer = MagicMock()
+        mock_tokenizer.apply_chat_template.return_value = "no sentinel here"
+
+        with pytest.raises(ValueError, match="assistant 응답 마커를 감지할 수 없습니다"):
+            LoRATrainer._detect_response_template(mock_tokenizer)
+
+
+class TestSplitPromptCompletion:
+    """_split_prompt_completion() 테스트입니다."""
+
+    def _make_mock_dataset(self, texts):
+        """mock DatasetDict를 생성합니다. map()이 실제 변환을 수행합니다."""
+        def make_split(text_list):
+            ds = MagicMock()
+            data = [{"text": t} for t in text_list]
+
+            def mock_map(fn, remove_columns=None):
+                mapped = [fn(row) for row in data]
+                result_ds = MagicMock()
+                result_ds.__getitem__ = MagicMock(side_effect=lambda i: mapped[i])
+                result_ds.column_names = list(mapped[0].keys()) if mapped else []
+                return result_ds
+            ds.map = mock_map
+            return ds
+
+        mock_dict = {"train": make_split(texts), "eval": make_split(texts)}
+        return mock_dict
+
+    def test_정상_분할(self):
+        """assistant 마커를 기준으로 prompt/completion을 분할합니다."""
+        config = _make_training_config()
+        trainer = LoRATrainer(config)
+
+        text = (
+            "<|im_start|>user\n질문<|im_end|>\n"
+            "<|im_start|>assistant\n답변입니다.<|im_end|>\n"
+        )
+        ds = self._make_mock_dataset([text])
+
+        mock_tokenizer = MagicMock()
+        mock_tokenizer.apply_chat_template.return_value = (
+            "<|im_start|>user\nQ<|im_end|>\n"
+            "<|im_start|>assistant\n__RESPONSE_SENTINEL__<|im_end|>\n"
+        )
+
+        # datasets가 mock이므로 DatasetDict를 dict passthrough로 설정
+        datasets_mock = sys.modules["datasets"]
+        datasets_mock.DatasetDict = lambda x: x
+
+        result = trainer._split_prompt_completion(ds, mock_tokenizer)
+
+        train_row = result["train"][0]
+        assert "prompt" in train_row
+        assert "completion" in train_row
+        assert train_row["completion"] == "답변입니다.<|im_end|>\n"
+        assert train_row["prompt"].endswith("<|im_start|>assistant\n")
+
+    def test_마커_미발견_fallback(self):
+        """마커를 찾지 못하면 전체 텍스트를 completion으로 사용합니다."""
+        config = _make_training_config()
+        trainer = LoRATrainer(config)
+
+        text = "마커가 없는 텍스트"
+        ds = self._make_mock_dataset([text])
+
+        mock_tokenizer = MagicMock()
+        mock_tokenizer.apply_chat_template.return_value = (
+            "<|im_start|>user\nQ<|im_end|>\n"
+            "<|im_start|>assistant\n__RESPONSE_SENTINEL__<|im_end|>\n"
+        )
+
+        datasets_mock = sys.modules["datasets"]
+        datasets_mock.DatasetDict = lambda x: x
+
+        result = trainer._split_prompt_completion(ds, mock_tokenizer)
+
+        train_row = result["train"][0]
+        assert train_row["prompt"] == ""
+        assert train_row["completion"] == text
+
+
+class TestCompletionOnlyLossConfig:
+    """completion_only_loss 설정 테스트입니다."""
+
+    def test_기본값_True(self):
+        """completion_only_loss의 기본값은 True입니다."""
+        config = _make_training_config()
+        assert config.training.completion_only_loss is True
+
+    def test_비활성화(self):
+        """completion_only_loss를 False로 설정할 수 있습니다."""
+        config = _make_training_config(
+            training={"completion_only_loss": False},
+        )
+        assert config.training.completion_only_loss is False
