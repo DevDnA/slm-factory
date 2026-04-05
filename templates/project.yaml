@@ -94,9 +94,9 @@ analyzer:
 
 # -- 4·5단계: 학생 모델(Student Model) + 학습(Training) --------------------
 student:
-  model: "google/gemma-3-1b-it"            # ⚠ 첫 실행 시 HuggingFace에서 자동 다운로드 (~1GB)
-                                        # HF_TOKEN 환경변수 필요 (Gemma는 gated repo)
-                                        # 추천: google/gemma-3-1b-it (3GB VRAM), google/gemma-3-4b-it (10GB VRAM)
+  model: "Qwen/Qwen2.5-1.5B-Instruct"     # ⚠ 첫 실행 시 HuggingFace에서 자동 다운로드 (~3GB)
+                                        # HF_TOKEN 불필요 (공개 모델). Ollama GGUF 변환 호환성 우수
+                                        # 추천: Qwen/Qwen2.5-1.5B-Instruct (3GB VRAM), Qwen/Qwen2.5-3B-Instruct (7GB VRAM)
   max_seq_length: 4096                  # 이 토큰 수를 초과하는 QA 쌍은 convert 단계에서 제외됩니다
                                         # → 줄이면 긴 QA가 버려지지만 VRAM 사용량 감소. 부족 시 2048
 
@@ -117,23 +117,24 @@ training:
 
   batch_size: 1                         # 한 번에 학습하는 QA 샘플 수. VRAM 사용량을 가장 크게 좌우
                                         # → VRAM별 권장값: 8GB→2, 16GB→4~8, 24GB→8~16
-  gradient_accumulation_steps: 8          # 이 횟수만큼 모아서 한 번에 학습. 실질 배치 = 1 × 8 = 8
+  gradient_accumulation_steps: 4          # 이 횟수만큼 모아서 한 번에 학습. 실질 배치 = 1 × 4 = 4
+                                        # → 주의: 학습 데이터 수보다 크면 step이 1~2개로 학습 안 됨
                                         # → VRAM 부족으로 batch_size를 줄였을 때, 이 값을 올리면 보완됨
-  learning_rate: "auto"                  # "auto" 또는 실수. auto는 데이터 양에 따라 자동 결정
-                                        # → <100개: 5e-5, <500개: 1e-4, 500+: 2e-4
+  learning_rate: 3e-5                    # "auto" 또는 실수. 소규모 데이터(<100개)에서 검증된 값
+                                        # → auto 시: <100개: 5e-5, <500개: 1e-4, 500+: 2e-4
                                         # → 과적합 시 수동으로 1e-5~5e-5로 낮춰보세요
   lr_scheduler: "cosine"                # 학습이 진행될수록 learning_rate를 어떻게 줄일지 결정
                                         # → "cosine": 후반부에 서서히 감소 (권장)
                                         # → "linear": 일정하게 감소 | "constant": 줄이지 않음
   warmup_ratio: 0.1                     # 학습 초반에 learning_rate를 천천히 올리는 구간 (전체의 10%)
                                         # → 초반 학습이 불안정할 때 이 값을 0.15~0.2로 올려보세요
-  num_epochs: "auto"                     # "auto" 또는 정수. auto는 데이터 양에 따라 자동 결정
-                                        # → <100개: 3, <500개: 2, 500+: 1
+  num_epochs: 3                          # "auto" 또는 정수. 소규모 데이터에서 검증된 값
+                                        # → auto 시: <100개: 3, <500개: 2, 500+: 1
                                         # → early_stopping이 켜져 있으면 이 수 전에 자동 종료됩니다
 
   early_stopping:
     enabled: true                        # 학습 효과가 없으면 num_epochs 전에 자동으로 멈춥니다
-    patience: 3                          # 연속 3회 평가에서 나아지지 않으면 학습 중단
+    patience: 2                          # 연속 2회 평가에서 나아지지 않으면 학습 중단
     threshold: 0.01                      # 손실(loss)이 0.01 이상 줄어야 "나아졌다"고 판단
                                         # → 줄이면(0.005) 미세한 개선도 인정 → 더 오래 학습
                                         # → 올리면(0.05) 큰 개선만 인정 → 더 빨리 종료
@@ -148,15 +149,15 @@ training:
                                         # → "steps": 에포크 대신 일정 스텝마다 실행
 
   quantization:
-    enabled: true                        # true로 바꾸면 모델을 4비트로 압축 로드하여 VRAM 크게 절약
-                                         # → VRAM 8GB 이하에서 학습해야 할 때 활성화 (속도는 다소 감소)
+    enabled: false                       # MPS(Apple Silicon)에서 4bit 양자화는 수치 불안정 유발 가능
+                                         # → CUDA GPU에서는 true로 설정하면 VRAM 크게 절약 (속도는 다소 감소)
     bits: 4                              # 양자화 비트 수. 현재 4비트만 지원
 
   # --- 과적합 방지 (Regularization) ---
-  weight_decay: 0.05                     # 가중치 감쇠(L2 정규화). 과적합을 억제합니다
-                                         # → 0이면 비활성. 과적합 심할 때 0.1로 올려보세요
-  label_smoothing_factor: 0.1            # 라벨 스무딩. 모델이 특정 답변을 과도하게 확신하는 것을 방지
-                                         # → 0이면 비활성. 같은 말 반복 시 0.1~0.2로 설정
+  weight_decay: 0.01                     # 가중치 감쇠(L2 정규화). 과적합을 억제합니다
+                                         # → 0이면 비활성. 과적합 심할 때 0.05~0.1로 올려보세요
+  label_smoothing_factor: 0.0            # 라벨 스무딩. 소규모 데이터(<100개)에서는 0.0 권장 (학습 방해)
+                                         # → 데이터 500개 이상일 때 0.1~0.2로 설정하면 과신 방지 효과
   neftune_noise_alpha: 5.0               # NEFTune 임베딩 노이즈. 일반화 성능 5~15% 향상
                                          # → 권장값: 5.0 (2B 이하), 10.0 (4B 이상). null이면 비활성
 
@@ -206,7 +207,7 @@ rag:
   workers: 1                            # uvicorn 워커 수
   log_level: "info"                     # uvicorn 로그 레벨
   cors_origins: ["*"]                   # CORS 허용 오리진
-  request_timeout: 120.0                # RAG 질의 타임아웃 (초)
+  request_timeout: 300.0                # RAG 질의 타임아웃 (초). SLM 추론이 느릴 수 있으므로 여유 있게 설정
   max_tokens: -1                        # -1이면 모델이 자연 종료할 때까지 생성
   ollama_model: ""                      # Ollama 모델명 (빈 값이면 export.ollama.model_name 사용)
   reranker_enabled: true                 # 검색 결과를 cross-encoder로 재정렬하여 정확도 향상

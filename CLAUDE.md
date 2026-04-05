@@ -90,3 +90,44 @@ Projects are configured via `project.yaml` (template in `templates/`). Pydantic 
 - No configured linter/formatter (no ruff/black/mypy config)
 - Tests mock all ML libraries (torch, transformers, etc.) via `conftest.py` fixtures for fast execution
 - Test fixtures: `make_config()`, `make_qa_pair()`, `make_parsed_doc()` factories in `tests/conftest.py`
+
+## Known Issues & Troubleshooting
+
+### Student Model Selection
+
+- **Gemma-3 (`google/gemma-3-1b-it`) Ollama 호환 문제**: safetensors → GGUF 변환 시 vocab 크기 불일치 및 `model_type: "gemma3_text"` 인식 실패로 빈 응답 또는 깨진 출력 발생. transformers로 직접 추론하면 정상이지만 Ollama에서는 동작하지 않음.
+- **권장 Student 모델**: `Qwen/Qwen2.5-1.5B-Instruct` — Ollama GGUF 변환 호환성 우수, 한국어 성능 양호, HF_TOKEN 불필요(공개 모델).
+
+### Ollama Export (`exporter/ollama_export.py`)
+
+- Ollama Modelfile 생성 시 **TEMPLATE 지시어가 누락**되면 `{{ .Prompt }}` (raw passthrough)로 설정되어 chat 형식이 적용되지 않음. 모델별 올바른 chat template 필요.
+- Ollama 0.19.0 기준 safetensors → GGUF 내부 변환 시 ARM/neon 아키텍처에서 `Quantization is not supported for ArchType::neon` 경고가 발생하며, 비양자화 F16 GGUF를 생성함. 공식 Ollama 모델(Q4_K_M)과 다른 포맷.
+
+### LoRA Training (`trainer/lora_trainer.py`)
+
+- **SFTTrainer가 전체 텍스트에 loss 계산**: `DataCollatorForCompletionOnlyLM` 미사용. 학습 데이터에 긴 문서 컨텍스트가 포함되면 prompt 토큰이 loss를 지배하여 모델 응답 부분의 학습 신호가 희석됨.
+- **소규모 데이터(<100개) 학습 시 주의사항**:
+  - `gradient_accumulation_steps`가 학습 데이터 수보다 크면 step 수가 1~2개로 사실상 학습 안 됨 (step = data_count / grad_accum)
+  - `label_smoothing_factor > 0.1`은 소규모 데이터에서 학습을 방해할 수 있음 → 0.0 권장
+  - MPS(Apple Silicon)에서 `quantization.enabled: true` (4bit)는 수치 불안정 유발 가능 → `false` 권장
+  - `learning_rate: auto` 시 calibration.py가 데이터 수 기준으로 결정 (< 100: 5e-5, < 500: 1e-4, 500+: 2e-4)
+
+### 검증된 학습 파라미터 (29개 QA, MPS, Qwen2.5-1.5B)
+
+```yaml
+student:
+  model: "Qwen/Qwen2.5-1.5B-Instruct"
+training:
+  lora: { r: 8, alpha: 8, dropout: 0.1 }
+  batch_size: 1
+  gradient_accumulation_steps: 4    # 26개 데이터 → ~6 steps/epoch
+  learning_rate: 3e-5
+  num_epochs: 3                     # 총 ~18 steps
+  quantization: { enabled: false }  # MPS에서 안정성 확보
+  weight_decay: 0.01
+  label_smoothing_factor: 0.0
+  neftune_noise_alpha: 5.0
+rag:
+  max_tokens: 512                   # 무한 생성 방지
+  request_timeout: 300.0
+```

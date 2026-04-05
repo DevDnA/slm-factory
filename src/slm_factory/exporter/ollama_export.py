@@ -52,20 +52,38 @@ class OllamaExporter:
         output_path = Path(output_path)
         
         logger.info("Modelfile 생성 중: %s", output_path)
-        
+
+        # 모델 아키텍처에 맞는 chat template 감지
+        chat_template = self._detect_chat_template(model_dir)
+
         # Modelfile 내용 구성
         lines = [
             f"FROM {model_dir}",
             "",
+        ]
+
+        # chat template 추가 (없으면 Ollama가 raw passthrough하여 깨진 출력 발생)
+        if chat_template:
+            lines.extend([
+                f'TEMPLATE """{chat_template}"""',
+                "",
+            ])
+
+        lines.extend([
             'SYSTEM """',
             self.system_prompt,
             '"""',
             "",
-        ]
-        
+        ])
+
         # 매개변수 추가
         for param_name, param_value in self.parameters.items():
             lines.append(f"PARAMETER {param_name} {param_value}")
+
+        # stop 토큰 추가 (chat template에서 사용하는 turn 종료 토큰)
+        stop_token = self._detect_stop_token(model_dir)
+        if stop_token:
+            lines.append(f"PARAMETER stop {stop_token}")
         
         content = "\n".join(lines)
         
@@ -76,6 +94,93 @@ class OllamaExporter:
         
         return output_path
     
+    # -- 모델 아키텍처별 Ollama Go template 매핑 --
+    # Ollama는 safetensors에서 chat template을 자동 감지하지 못하는 경우가 있음.
+    # 이 경우 TEMPLATE {{ .Prompt }} (raw passthrough)로 설정되어 깨진 출력 발생.
+    _CHAT_TEMPLATES: dict[str, str] = {
+        "Qwen2ForCausalLM": (
+            "{{- range $i, $_ := .Messages }}"
+            "{{- if eq .Role \"system\" }}<|im_start|>system\n"
+            "{{ .Content }}<|im_end|>\n"
+            "{{- else if eq .Role \"user\" }}<|im_start|>user\n"
+            "{{ .Content }}<|im_end|>\n"
+            "{{- else if eq .Role \"assistant\" }}<|im_start|>assistant\n"
+            "{{ .Content }}<|im_end|>\n"
+            "{{- end }}"
+            "{{- end }}<|im_start|>assistant\n"
+        ),
+        "Gemma3ForCausalLM": (
+            "{{- range $i, $_ := .Messages }}"
+            "{{- if eq .Role \"user\" }}<start_of_turn>user\n"
+            "{{ if and $.System (eq $i 0) }}{{ $.System }}\n\n{{ end }}"
+            "{{ .Content }}<end_of_turn>\n"
+            "{{ else if eq .Role \"assistant\" }}<start_of_turn>model\n"
+            "{{ .Content }}<end_of_turn>\n"
+            "{{ end }}"
+            "{{- end }}<start_of_turn>model\n"
+        ),
+        "LlamaForCausalLM": (
+            "{{- range $i, $_ := .Messages }}"
+            "{{- if eq .Role \"system\" }}<|start_header_id|>system<|end_header_id|>\n\n"
+            "{{ .Content }}<|eot_id|>"
+            "{{- else if eq .Role \"user\" }}<|start_header_id|>user<|end_header_id|>\n\n"
+            "{{ .Content }}<|eot_id|>"
+            "{{- else if eq .Role \"assistant\" }}<|start_header_id|>assistant<|end_header_id|>\n\n"
+            "{{ .Content }}<|eot_id|>"
+            "{{- end }}"
+            "{{- end }}<|start_header_id|>assistant<|end_header_id|>\n\n"
+        ),
+    }
+
+    _STOP_TOKENS: dict[str, str] = {
+        "Qwen2ForCausalLM": "<|im_end|>",
+        "Gemma3ForCausalLM": "<end_of_turn>",
+        "LlamaForCausalLM": "<|eot_id|>",
+    }
+
+    def _detect_chat_template(self, model_dir: Path) -> str | None:
+        """모델 디렉토리의 config.json에서 아키텍처를 읽어 chat template을 반환합니다."""
+        import json
+
+        config_path = model_dir / "config.json"
+        if not config_path.exists():
+            logger.warning("config.json 없음 — chat template 감지 건너뜀")
+            return None
+
+        try:
+            config = json.loads(config_path.read_text(encoding="utf-8"))
+            architectures = config.get("architectures", [])
+            for arch in architectures:
+                if arch in self._CHAT_TEMPLATES:
+                    logger.info("Chat template 감지됨: %s", arch)
+                    return self._CHAT_TEMPLATES[arch]
+            logger.info(
+                "알 수 없는 아키텍처(%s) — chat template 생략 (Ollama 자동 감지에 의존)",
+                architectures,
+            )
+        except Exception as e:
+            logger.warning("config.json 파싱 실패: %s", e)
+
+        return None
+
+    def _detect_stop_token(self, model_dir: Path) -> str | None:
+        """모델 아키텍처에 맞는 stop 토큰을 반환합니다."""
+        import json
+
+        config_path = model_dir / "config.json"
+        if not config_path.exists():
+            return None
+
+        try:
+            config = json.loads(config_path.read_text(encoding="utf-8"))
+            for arch in config.get("architectures", []):
+                if arch in self._STOP_TOKENS:
+                    return self._STOP_TOKENS[arch]
+        except Exception:
+            pass
+
+        return None
+
     def create_model(
         self,
         modelfile_path: str | Path,
