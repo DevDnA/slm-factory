@@ -842,20 +842,8 @@ def _start_rag_server(config) -> None:
     finally:
         sock.close()
 
-    ollama_model = config.rag.ollama_model
-    if not ollama_model:
-        import subprocess as _sp
-
-        check = _sp.run(
-            ["ollama", "list"],
-            capture_output=True,
-            text=True,
-        )
-        if config.export.ollama.model_name in check.stdout:
-            ollama_model = config.export.ollama.model_name
-        else:
-            ollama_model = config.teacher.model
-        config.rag.ollama_model = ollama_model
+    ollama_model = config.rag.ollama_model or config.teacher.model
+    config.rag.ollama_model = ollama_model
     console.print(
         f"\n[bold]RAG API 서버 시작[/bold]\n"
         f"  모델:   [cyan]{ollama_model}[/cyan]\n"
@@ -2000,7 +1988,7 @@ def rag_serve(
             raise typer.Exit(code=1)
 
         ollama_model = (
-            pipeline.config.rag.ollama_model or pipeline.config.export.ollama.model_name
+            pipeline.config.rag.ollama_model or pipeline.config.teacher.model
         )
 
         console.print(

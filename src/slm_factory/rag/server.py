@@ -113,7 +113,7 @@ def create_app(config: "SLMConfig"):
     # ------------------------------------------------------------------
 
     db_path = Path(config.paths.output) / config.rag.vector_db_path
-    ollama_model = config.rag.ollama_model or config.export.ollama.model_name
+    ollama_model = config.rag.ollama_model or config.teacher.model
     api_base = config.teacher.api_base
     rag_max_tokens = config.rag.max_tokens
 

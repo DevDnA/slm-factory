@@ -209,7 +209,7 @@ rag:
   cors_origins: ["*"]                   # CORS 허용 오리진
   request_timeout: 300.0                # RAG 질의 타임아웃 (초). SLM 추론이 느릴 수 있으므로 여유 있게 설정
   max_tokens: -1                        # -1이면 모델이 자연 종료할 때까지 생성
-  ollama_model: ""                      # Ollama 모델명 (빈 값이면 export.ollama.model_name 사용)
+  ollama_model: ""                      # 빈 값이면 teacher.model 사용 (기본: Teacher 모델)
   reranker_enabled: true                 # 검색 결과를 cross-encoder로 재정렬하여 정확도 향상
   reranker_model: "dragonkue/bge-reranker-v2-m3-ko"  # 한국어 파인튜닝 Reranker (F1 0.9123, 원본 bge-v2-m3 대비 +3.5p)
   hybrid_search: true                    # 벡터 + 키워드(BM25) 하이브리드 검색 활성화
