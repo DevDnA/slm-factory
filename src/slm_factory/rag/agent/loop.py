@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from dataclasses import dataclass, field
 from typing import Any, AsyncGenerator
 
@@ -99,7 +100,6 @@ class AgentLoop:
 
     async def _generate(self, prompt: str) -> str:
         """Ollama /api/generate를 비스트리밍으로 호출하여 텍스트를 생성합니다."""
-        import re
 
         payload: dict[str, Any] = {
             "model": self._model,
@@ -214,7 +214,7 @@ class AgentLoop:
                     obs_text = obs_text[:_MAX_OBSERVATION_LEN] + "\n...(결과 생략)"
                 scratchpad += f"\nThought: 하위 질문 '{sq}'에 대해 검색합니다.\n"
                 scratchpad += f"Action: search\n"
-                scratchpad += f'Action Input: {{"query": "{sq}"}}\n'
+                scratchpad += f"Action Input: {json.dumps({'query': sq}, ensure_ascii=False)}\n"
                 scratchpad += f"Observation: {obs_text}\n"
                 events.append(AgentEvent(type="thought", content=f"하위 질문: {sq}", iteration=0))
                 events.append(AgentEvent(type="observation", content=obs_text, iteration=0))
@@ -301,7 +301,6 @@ class AgentLoop:
         self, query: str, history: str = ""
     ) -> AsyncGenerator[AgentEvent, None]:
         """스트리밍 실행 — Final Answer 감지 후 실시간 토큰 전달."""
-        import re
 
         all_sources: list[dict[str, Any]] = []
         scratchpad = ""
@@ -328,7 +327,7 @@ class AgentLoop:
                     obs_text = obs_text[:_MAX_OBSERVATION_LEN] + "\n...(결과 생략)"
                 scratchpad += f"\nThought: 하위 질문 '{sq}'에 대해 검색합니다.\n"
                 scratchpad += f"Action: search\n"
-                scratchpad += f'Action Input: {{"query": "{sq}"}}\n'
+                scratchpad += f"Action Input: {json.dumps({'query': sq}, ensure_ascii=False)}\n"
                 scratchpad += f"Observation: {obs_text}\n"
                 yield AgentEvent(type="observation", content=obs_text[:300], iteration=0)
 
@@ -499,9 +498,3 @@ class AgentLoop:
             iterations=self._max_iterations,
             events=events,
         )
-
-def _chunk_text(text: str, chunk_size: int) -> list[str]:
-    """텍스트를 지정된 크기의 청크로 분할합니다."""
-    if not text:
-        return []
-    return [text[i:i + chunk_size] for i in range(0, len(text), chunk_size)]

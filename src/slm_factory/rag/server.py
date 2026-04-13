@@ -21,8 +21,11 @@ logger = get_logger("rag.server")
 
 # Ollama thinking 모델(Qwen3 등)의 <think> 태그를 제거합니다.
 _THINK_TAG_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
-# Gemma 등 모델의 특수 태그 (<channel|>, <end_of_turn> 등)
-_SPECIAL_TAG_RE = re.compile(r"<[a-z_]+\|?>", re.IGNORECASE)
+# Gemma 등 모델의 특수 태그 (허용 목록 기반)
+_SPECIAL_TAG_RE = re.compile(
+    r"</?(?:end_of_turn|start_of_turn|channel|pad|eos|bos|sep|cls|mask|unk)\|?>",
+    re.IGNORECASE,
+)
 
 
 def _clean_thinking_tags(text: str) -> str:
@@ -855,6 +858,8 @@ def create_app(config: "SLMConfig"):
         "종합", "분석", "검토",
     )
 
+    _COMPARISON_RE = re.compile(r".{2,}[와과].{2,}(의|을|를|에|는|가)")
+
     def _is_complex_query(query: str) -> bool:
         """질문 복잡도를 규칙 기반으로 판단합니다."""
         # 키워드 매칭
@@ -865,8 +870,7 @@ def create_app(config: "SLMConfig"):
         if query.count("?") >= 2 or query.count("？") >= 2:
             return True
         # '~와/과 ~' 비교 패턴
-        import re
-        if re.search(r".{2,}[와과].{2,}(의|을|를|에|는|가)", query):
+        if _COMPARISON_RE.search(query):
             return True
         return False
 

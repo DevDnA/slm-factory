@@ -946,7 +946,14 @@ body {
   });
 
   function safeSanitize(html) {
-    return (typeof DOMPurify !== 'undefined') ? DOMPurify.sanitize(html) : html;
+    if (typeof DOMPurify === 'undefined') return html;
+    return DOMPurify.sanitize(html, {
+      USE_PROFILES: { html: true },
+      FORBID_TAGS: ['style', 'form', 'input', 'textarea', 'select', 'iframe', 'object', 'embed'],
+      FORBID_ATTR: ['style', 'onerror', 'onload', 'onclick'],
+      ADD_TAGS: ['span'],
+      ADD_ATTR: ['class', 'aria-hidden'],
+    });
   }
 
   function renderKatex(el) {

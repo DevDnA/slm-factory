@@ -68,8 +68,11 @@ _REASONING_ARTIFACT_RE = re.compile(
 
 _THINK_TAG_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
 
-# Gemma 등 모델이 출력하는 특수 태그 (<channel|>, <end_of_turn> 등)
-_SPECIAL_TAG_RE = re.compile(r"<[a-z_]+\|?>", re.IGNORECASE)
+# Gemma 등 모델이 출력하는 특수 태그 (허용 목록 기반)
+_SPECIAL_TAG_RE = re.compile(
+    r"</?(?:end_of_turn|start_of_turn|channel|pad|eos|bos|sep|cls|mask|unk)\|?>",
+    re.IGNORECASE,
+)
 
 
 def _clean_final_answer(text: str) -> str:
