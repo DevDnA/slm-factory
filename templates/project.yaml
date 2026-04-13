@@ -215,6 +215,12 @@ rag:
   hybrid_search: true                    # 벡터 + 키워드(BM25) 하이브리드 검색 활성화
   query_rewriting: false                 # 짧은 질의를 LLM으로 확장하여 검색 품질 향상
   min_score: 0.0                         # 검색 결과 최소 유사도 (0.0~1.0, 미만 문서 제외, 0.0=필터링 비활성)
+  agent:
+    enabled: true                        # Agent RAG 모드 (ReAct 루프 기반 다단계 검색·추론)
+    max_iterations: 5                    # ReAct 루프 최대 반복 횟수
+    session_ttl: 3600                    # 대화 세션 유지 시간 (초)
+    max_history_turns: 20                # 세션당 최대 대화 턴 수
+    stream_reasoning: true               # 추론 과정(Thought/Action)을 실시간 스트리밍
 
 # -- 증분 학습(Incremental Learning) ----------------------------------------
 incremental:

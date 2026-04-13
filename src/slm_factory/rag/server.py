@@ -21,10 +21,14 @@ logger = get_logger("rag.server")
 
 # Ollama thinking 모델(Qwen3 등)의 <think> 태그를 제거합니다.
 _THINK_TAG_RE = re.compile(r"<think>.*?</think>", re.DOTALL)
+# Gemma 등 모델의 특수 태그 (<channel|>, <end_of_turn> 등)
+_SPECIAL_TAG_RE = re.compile(r"<[a-z_]+\|?>", re.IGNORECASE)
 
 
 def _clean_thinking_tags(text: str) -> str:
-    return _THINK_TAG_RE.sub("", text).strip()
+    text = _THINK_TAG_RE.sub("", text)
+    text = _SPECIAL_TAG_RE.sub("", text)
+    return text.strip()
 
 _RAG_SYSTEM_PROMPT = (
     "당신은 문서 기반 전문 어시스턴트입니다. "
@@ -34,7 +38,8 @@ _RAG_SYSTEM_PROMPT = (
     "2. 여러 문서의 정보를 종합하되, 문서 간 내용이 상충하면 차이점을 명확히 설명하세요.\n"
     "3. 문서에 근거한 구체적 수치, 날짜, 명칭을 우선 사용하세요.\n"
     "4. 문서에 직접적 근거가 없으면 '해당 정보를 찾을 수 없습니다'라고 답변하세요.\n"
-    "5. 표, 목록, 소제목 등 마크다운을 활용하여 구조적으로 정리하세요.\n"
+    "5. 반드시 Markdown 문법으로 작성하세요. HTML 태그(<b>, <table>, <ul> 등)는 절대 사용하지 마세요. "
+    "표는 | 구분자, 강조는 **굵게**, 목록은 - 또는 1. 형식을 사용하세요.\n"
     "6. 답변은 완결성 있게 작성하되 간결하게 핵심만 전달하세요."
 )
 
@@ -81,7 +86,7 @@ def create_app(config: "SLMConfig"):
         )
 
     import httpx
-    from pydantic import BaseModel
+    from pydantic import BaseModel, Field
 
     # ------------------------------------------------------------------
     # Pydantic 요청/응답 모델
@@ -97,8 +102,8 @@ def create_app(config: "SLMConfig"):
     class QueryRequest(BaseModel):
         """RAG 질의 요청."""
 
-        query: str
-        top_k: int | None = None
+        query: str = Field(..., min_length=1, max_length=4096)
+        top_k: int | None = Field(None, ge=1, le=50)
         stream: bool = False
 
     class QueryResponse(BaseModel):
@@ -234,18 +239,56 @@ def create_app(config: "SLMConfig"):
             except Exception:
                 logger.warning("BM25 인덱스 구축 실패 — 비활성 상태로 계속합니다")
 
+        # -- Agent RAG 모드 초기화 ---
+        _app.state.agent_session_manager = None
+        _app.state.agent_tool_registry = None
+        _cleanup_task = None
+
+        if config.rag.agent.enabled:
+            from .agent.session import SessionManager
+            from .agent.tools import ToolRegistry
+
+            _app.state.agent_session_manager = SessionManager(
+                ttl=config.rag.agent.session_ttl,
+                max_turns=config.rag.agent.max_history_turns,
+            )
+            _app.state.agent_tool_registry = ToolRegistry(
+                app_state=_app.state,
+                config=config,
+                tokenize_fn=_korean_tokenize,
+            )
+
+            async def _cleanup_sessions():
+                while True:
+                    await asyncio.sleep(300)
+                    try:
+                        _app.state.agent_session_manager.cleanup_expired()
+                    except Exception:
+                        logger.warning("세션 정리 중 오류 발생", exc_info=True)
+
+            _cleanup_task = asyncio.create_task(_cleanup_sessions())
+            logger.info(
+                "Agent RAG 모드 활성화 (max_iterations=%d, session_ttl=%ds)",
+                config.rag.agent.max_iterations,
+                config.rag.agent.session_ttl,
+            )
+
         port = config.rag.server_port
+        mode_label = "Agent RAG" if config.rag.agent.enabled else "RAG"
         logger.info(
             "\n\n"
             "  ╔══════════════════════════════════════════╗\n"
-            "  ║  RAG 채팅 서비스 준비 완료!              ║\n"
+            "  ║  %s 채팅 서비스 준비 완료!              ║\n"
             "  ║  http://localhost:%d/chat              ║\n"
             "  ╚══════════════════════════════════════════╝\n",
+            mode_label,
             port,
         )
 
         yield
 
+        if _cleanup_task is not None:
+            _cleanup_task.cancel()
         await http_client.aclose()
         qdrant_client.close()
         logger.info("RAG 서버 리소스 정리 완료")
@@ -293,7 +336,7 @@ def create_app(config: "SLMConfig"):
             status_code=500,
             content={
                 "error": "internal_server_error",
-                "message": str(exc),
+                "message": "내부 오류가 발생했습니다. 서버 로그를 확인하세요.",
                 "request_id": request_id,
             },
         )
@@ -317,41 +360,6 @@ def create_app(config: "SLMConfig"):
             return text.lower().split()
         tokens = _kiwi_instance.tokenize(text)  # type: ignore[union-attr]
         return [t.form for t in tokens if len(t.form) > 1 or not t.tag.startswith("J")]
-
-    def _bm25_search(query: str, top_k: int) -> list[tuple[str, str, float, dict]]:
-        """BM25Okapi를 사용한 키워드 기반 문서 검색입니다.
-
-        kiwi 형태소 토크나이저로 쿼리를 분석하고, 사전 구축된
-        BM25Okapi 인덱스에서 TF-IDF 기반 검색을 수행합니다.
-        """
-        bm25_index = app.state.bm25_index
-        if bm25_index is None or not app.state.bm25_docs:
-            return []
-        query_tokens = _korean_tokenize(query)
-        if not query_tokens:
-            return []
-        scores = bm25_index.get_scores(query_tokens)
-        # 점수 기준 상위 top_k개 추출 (점수 > 0인 것만)
-        top_indices = scores.argsort()[::-1][:top_k]
-        results: list[tuple[str, str, float, dict]] = []
-        for idx in top_indices:
-            score = float(scores[idx])
-            if score <= 0:
-                break
-            meta = (
-                app.state.bm25_metadatas[idx]
-                if app.state.bm25_metadatas and idx < len(app.state.bm25_metadatas)
-                else {}
-            )
-            results.append(
-                (
-                    app.state.bm25_docs[idx],
-                    app.state.bm25_ids[idx],
-                    score,
-                    meta,
-                )
-            )
-        return results
 
     async def _rewrite_query(query: str) -> str:
         """짧은 질의를 검색에 적합한 형태로 확장합니다."""
@@ -390,163 +398,37 @@ def create_app(config: "SLMConfig"):
         return query
 
     def _search_documents(body: QueryRequest):
-        qdrant_client = app.state.qdrant_client
-        collection_name = app.state.collection_name
-        embedding_model = app.state.embedding_model
+        from .search import search_documents
 
-        top_k = body.top_k or config.rag.top_k
-
-        reranker = app.state.reranker
-        use_reranker = reranker is not None
-        initial_k = top_k * 3 if use_reranker else top_k
-
-        t0 = time.monotonic()
-        query_embedding = embedding_model.encode(
-            body.query, prompt_name="query"
-        ).tolist()
-        t_embed = time.monotonic()
-
-        results = qdrant_client.query_points(
-            collection_name=collection_name,
-            query=query_embedding,
-            limit=initial_k,
-            with_payload=True,
+        output = search_documents(
+            body.query,
+            top_k=body.top_k or config.rag.top_k,
+            qdrant_client=app.state.qdrant_client,
+            collection_name=app.state.collection_name,
+            embedding_model=app.state.embedding_model,
+            min_score=config.rag.min_score,
+            reranker=app.state.reranker,
+            hybrid_search=config.rag.hybrid_search,
+            bm25_index=app.state.bm25_index,
+            bm25_docs=getattr(app.state, "bm25_docs", None),
+            bm25_ids=getattr(app.state, "bm25_ids", None),
+            bm25_metadatas=getattr(app.state, "bm25_metadatas", None),
+            tokenize_fn=_korean_tokenize,
         )
-        t_search = time.monotonic()
 
-        documents = [p.payload.get("document", "") for p in results.points]
-        ids = [p.payload.get("doc_id", str(p.id)) for p in results.points]
-        distances = [1.0 - p.score for p in results.points]
-        metadatas = [
-            {k: v for k, v in p.payload.items() if k not in ("document", "doc_id")}
-            for p in results.points
+        sources = [
+            Source(content=s.content, doc_id=s.doc_id, score=s.score)
+            for s in output.sources
         ]
-
-        t_rerank = t_search
-        if use_reranker and documents:
-            pairs = [(body.query, doc) for doc in documents]
-            rerank_scores = reranker.predict(pairs)
-            t_rerank = time.monotonic()
-            ranked = sorted(
-                zip(rerank_scores, documents, ids, distances, metadatas),
-                reverse=True,
-            )
-            ranked = ranked[:top_k]
-            if ranked:
-                _, documents, ids, distances, metadatas = zip(*ranked)
-                documents = list(documents)
-                ids = list(ids)
-                distances = list(distances)
-                metadatas = list(metadatas)
-            else:
-                documents, ids, distances, metadatas = [], [], [], []
-        else:
-            documents = documents[:top_k]
-            ids = ids[:top_k]
-            distances = distances[:top_k]
-            metadatas = metadatas[:top_k]
-
-        t_bm25 = t_rerank
-        if config.rag.hybrid_search and app.state.bm25_index is not None:
-            # Reciprocal Rank Fusion (RRF): 벡터 검색과 BM25 결과를 통합합니다.
-            # RRF 점수 = sum(1 / (k + rank_i)) — k=60이 표준값입니다.
-            rrf_k = 60
-
-            # 벡터 검색 결과에 RRF 점수 부여
-            rrf_scores: dict[str, float] = {}
-            rrf_data: dict[str, tuple[str, dict]] = {}  # doc_id → (doc, meta)
-            for rank, (doc, doc_id, _dist, meta) in enumerate(
-                zip(documents, ids, distances, metadatas)
-            ):
-                rrf_scores[doc_id] = rrf_scores.get(doc_id, 0.0) + 1.0 / (
-                    rrf_k + rank + 1
-                )
-                if doc_id not in rrf_data:
-                    rrf_data[doc_id] = (doc, meta)
-
-            # BM25 검색 결과에 RRF 점수 추가
-            bm25_results = _bm25_search(body.query, top_k * 2)
-            for rank, (doc, doc_id, _score, meta) in enumerate(bm25_results):
-                rrf_scores[doc_id] = rrf_scores.get(doc_id, 0.0) + 1.0 / (
-                    rrf_k + rank + 1
-                )
-                if doc_id not in rrf_data:
-                    rrf_data[doc_id] = (doc, meta)
-
-            # RRF 점수 기준 정렬 후 상위 top_k개 선택
-            sorted_ids = sorted(
-                rrf_scores, key=lambda did: rrf_scores[did], reverse=True
-            )[:top_k]
-            documents = [rrf_data[did][0] for did in sorted_ids]
-            ids = list(sorted_ids)
-            distances = [1.0 - rrf_scores[did] for did in sorted_ids]
-            metadatas = [rrf_data[did][1] for did in sorted_ids]
-            t_bm25 = time.monotonic()
-
-        # -- 유사도 필터링: min_score 미만 문서 제거 ---
-        min_score = config.rag.min_score
-        if min_score > 0:
-            filtered = [
-                (doc, did, dist, meta)
-                for doc, did, dist, meta in zip(documents, ids, distances, metadatas)
-                if max(0.0, min(1.0, 1.0 - dist)) >= min_score
-            ]
-            if filtered:
-                documents, ids, distances, metadatas = (
-                    [x[0] for x in filtered],
-                    [x[1] for x in filtered],
-                    [x[2] for x in filtered],
-                    [x[3] for x in filtered],
-                )
-
-        # -- Lost-in-the-middle 재정렬: 관련도 높은 문서를 처음과 끝에 배치 ---
-        if len(documents) >= 3:
-            items = list(zip(documents, ids, distances, metadatas))
-            front = [items[i] for i in range(0, len(items), 2)]
-            back = [items[i] for i in range(1, len(items), 2)]
-            reordered = front + list(reversed(back))
-            documents = [x[0] for x in reordered]
-            ids = [x[1] for x in reordered]
-            distances = [x[2] for x in reordered]
-            metadatas = [x[3] for x in reordered]
-
-        sources: list[Source] = []
-        context_parts: list[str] = []
-        seen_parents: set[str] = set()
-
-        doc_num = 0
-        for doc, doc_id, distance, metadata in zip(
-            documents, ids, distances, metadatas
-        ):
-            score = max(0.0, min(1.0, 1.0 - distance))
-            parent = metadata.get("parent_content", doc) if metadata else doc
-            sources.append(Source(content=doc, doc_id=doc_id, score=score))
-            parent_key = parent[:100]
-            if parent_key not in seen_parents:
-                seen_parents.add(parent_key)
-                doc_num += 1
-                context_parts.append(f"[문서 {doc_num}]\n{parent}")
-
-        context = "\n\n---\n\n".join(context_parts)
+        context = "\n\n---\n\n".join(output.context_parts)
         prompt = (
             f"{_RAG_SYSTEM_PROMPT}\n\n"
             f"[참고 문서]\n{context}\n\n"
             f"질문: {body.query}\n답변:"
         )
-        t_end = time.monotonic()
-        logger.info(
-            "검색 완료 %.3fs (임베딩 %.3fs, 벡터검색 %.3fs, 리랭커 %.3fs, BM25/RRF %.3fs, 후처리 %.3fs) — %d건",
-            t_end - t0,
-            t_embed - t0,
-            t_search - t_embed,
-            t_rerank - t_search,
-            t_bm25 - t_rerank,
-            t_end - t_bm25,
-            len(sources),
-        )
         return sources, prompt
 
-    @app.post("/v1/query")
+    @app.post("/query")
     async def query_rag(body: QueryRequest):
         """문서 검색 후 Ollama SLM으로 답변을 생성합니다.
 
@@ -590,7 +472,7 @@ def create_app(config: "SLMConfig"):
                             if not line:
                                 continue
                             chunk = json.loads(line)
-                            token = chunk.get("response", "")
+                            token = _SPECIAL_TAG_RE.sub("", chunk.get("response", ""))
                             if token:
                                 has_response_tokens = True
                                 yield f"data: {json.dumps({'token': token}, ensure_ascii=False)}\n\n"
@@ -602,7 +484,7 @@ def create_app(config: "SLMConfig"):
                                 break
                 except Exception as exc:
                     logger.error("Ollama 스트리밍 오류: %s", exc)
-                    yield f"data: {json.dumps({'token': f'\\n\\n[오류] Ollama 응답 실패: {exc}'}, ensure_ascii=False)}\n\n"
+                    yield f"data: {json.dumps({'token': '\\n\\n[오류] 응답 생성 중 문제가 발생했습니다.'}, ensure_ascii=False)}\n\n"
 
                 # Ollama 0.19.0 호환: response가 빈 경우 thinking 내용을 fallback으로 전송
                 if not has_response_tokens and thinking_buf:
@@ -748,7 +630,7 @@ def create_app(config: "SLMConfig"):
         html_path = Path(__file__).parent / "static" / "chat.html"
         return HTMLResponse(html_path.read_text(encoding="utf-8"))
 
-    @app.post("/v1/stream")
+    @app.post("/stream")
     async def query_stream(body: QueryRequest):
         if config.rag.query_rewriting:
             expanded = await _rewrite_query(body.query)
@@ -758,7 +640,7 @@ def create_app(config: "SLMConfig"):
         else:
             body_for_search = body
 
-        sources, prompt = _search_documents(body_for_search)
+        sources, prompt = await asyncio.to_thread(_search_documents, body_for_search)
         http_client = app.state.http_client
 
         async def _generate():
@@ -784,7 +666,7 @@ def create_app(config: "SLMConfig"):
                         if not line:
                             continue
                         chunk = json.loads(line)
-                        token = chunk.get("response", "")
+                        token = _SPECIAL_TAG_RE.sub("", chunk.get("response", ""))
                         if token:
                             has_response_tokens = True
                             yield f"data: {json.dumps({'type': 'token', 'content': token}, ensure_ascii=False)}\n\n"
@@ -796,7 +678,7 @@ def create_app(config: "SLMConfig"):
                             break
             except Exception as exc:
                 logger.error("Ollama 스트리밍 오류: %s", exc)
-                yield f"data: {json.dumps({'type': 'token', 'content': f'\\n\\n[오류] Ollama 응답 실패: {exc}'}, ensure_ascii=False)}\n\n"
+                yield f"data: {json.dumps({'type': 'token', 'content': '\\n\\n[오류] 응답 생성 중 문제가 발생했습니다.'}, ensure_ascii=False)}\n\n"
 
             # Ollama 0.19.0 호환: response가 빈 경우 thinking 내용을 fallback으로 전송
             if not has_response_tokens and thinking_buf:
@@ -817,6 +699,319 @@ def create_app(config: "SLMConfig"):
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
+
+    # ------------------------------------------------------------------
+    # Agent RAG 엔드포인트
+    # ------------------------------------------------------------------
+
+    class AgentQueryRequest(BaseModel):
+        """Agent RAG 질의 요청."""
+
+        query: str = Field(..., min_length=1, max_length=4096)
+        session_id: str | None = Field(None, max_length=64)
+        stream: bool = True
+
+    class AgentQueryResponse(BaseModel):
+        """Agent RAG 질의 응답."""
+
+        answer: str
+        sources: list[Source]
+        query: str
+        session_id: str
+        iterations: int
+
+    @app.get("/agent/status")
+    async def agent_status():
+        """Agent RAG 모드 활성화 상태를 반환합니다."""
+        return {"enabled": config.rag.agent.enabled}
+
+    @app.post("/agent")
+    async def agent_query(body: AgentQueryRequest):
+        """Agent RAG — ReAct 루프로 다단계 검색·추론 후 답변합니다."""
+        if not config.rag.agent.enabled:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "error": "agent_mode_disabled",
+                    "message": (
+                        "Agent 모드가 비활성화되어 있습니다. "
+                        "project.yaml에서 rag.agent.enabled: true로 설정하세요."
+                    ),
+                },
+            )
+
+        from .agent.loop import AgentLoop
+        from .agent.session import Message
+
+        session_mgr = app.state.agent_session_manager
+        tool_registry = app.state.agent_tool_registry
+        http_client = app.state.http_client
+
+        session_id, messages = session_mgr.get_or_create(body.session_id)
+        history = session_mgr.format_history(session_id)
+
+        agent = AgentLoop(
+            http_client=http_client,
+            tool_registry=tool_registry,
+            ollama_model=ollama_model,
+            api_base=api_base,
+            max_iterations=config.rag.agent.max_iterations,
+            max_tokens=rag_max_tokens,
+            request_timeout=config.rag.request_timeout,
+        )
+
+        # 사용자 메시지 기록
+        session_mgr.add_message(session_id, Message(role="user", content=body.query))
+
+        if body.stream:
+            async def _agent_stream():
+                answer_parts: list[str] = []
+                final_sources: list[dict] = []
+                try:
+                    async for event in agent.run_stream(body.query, history):
+                        if event.type == "thought" and config.rag.agent.stream_reasoning:
+                            yield f"data: {json.dumps({'type': 'thought', 'content': event.content, 'iteration': event.iteration}, ensure_ascii=False)}\n\n"
+                        elif event.type == "action" and config.rag.agent.stream_reasoning:
+                            yield f"data: {json.dumps({'type': 'action', 'content': event.content, 'input': event.metadata.get('input', {}), 'iteration': event.iteration}, ensure_ascii=False)}\n\n"
+                        elif event.type == "observation" and config.rag.agent.stream_reasoning:
+                            # 관찰 결과는 길 수 있으므로 300자로 제한
+                            obs_preview = event.content[:300]
+                            if len(event.content) > 300:
+                                obs_preview += "..."
+                            yield f"data: {json.dumps({'type': 'observation', 'content': obs_preview, 'iteration': event.iteration}, ensure_ascii=False)}\n\n"
+                        elif event.type == "token":
+                            answer_parts.append(event.content)
+                            yield f"data: {json.dumps({'type': 'token', 'content': event.content}, ensure_ascii=False)}\n\n"
+                        elif event.type == "done":
+                            final_sources = event.metadata.get("sources", [])
+                        elif event.type == "error":
+                            yield f"data: {json.dumps({'type': 'token', 'content': '[오류] 처리 중 문제가 발생했습니다.'}, ensure_ascii=False)}\n\n"
+                except Exception as exc:
+                    logger.error("Agent 스트리밍 오류: %s", exc)
+                    yield f"data: {json.dumps({'type': 'token', 'content': '[오류] Agent 실행 중 문제가 발생했습니다.'}, ensure_ascii=False)}\n\n"
+
+                # 어시스턴트 메시지 기록
+                answer = "".join(answer_parts)
+                if answer:
+                    session_mgr.add_message(
+                        session_id, Message(role="assistant", content=answer)
+                    )
+
+                sources_data = [
+                    {"content": s.get("content", ""), "doc_id": s.get("doc_id", ""), "score": s.get("score", 0.0)}
+                    for s in final_sources
+                ]
+                yield f"data: {json.dumps({'type': 'sources', 'sources': sources_data}, ensure_ascii=False)}\n\n"
+                yield f"data: {json.dumps({'type': 'done', 'session_id': session_id})}\n\n"
+
+            return StreamingResponse(
+                _agent_stream(),
+                media_type="text/event-stream",
+                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+            )
+        else:
+            # 비스트리밍 모드
+            try:
+                result = await agent.run(body.query, history)
+            except Exception as exc:
+                logger.error("Agent 실행 오류: %s", exc)
+                return JSONResponse(
+                    status_code=502,
+                    content={"error": "agent_error", "message": "Agent 실행 중 내부 오류가 발생했습니다."},
+                )
+
+            session_mgr.add_message(
+                session_id, Message(role="assistant", content=result.answer)
+            )
+
+            sources = [
+                Source(
+                    content=s.get("content", ""),
+                    doc_id=s.get("doc_id", ""),
+                    score=s.get("score", 0.0),
+                )
+                for s in result.sources
+            ]
+
+            return AgentQueryResponse(
+                answer=result.answer,
+                sources=sources,
+                query=body.query,
+                session_id=session_id,
+                iterations=result.iterations,
+            )
+
+    # ------------------------------------------------------------------
+    # 자동 라우팅 엔드포인트
+    # ------------------------------------------------------------------
+
+    _COMPLEX_KEYWORDS = (
+        "비교", "차이", "다른점", "대비", "vs", "versus",
+        "변경", "바뀐", "달라진", "개정",
+        "왜", "이유", "원인", "근거",
+        "어떤 경우", "조건", "해당하는", "자격",
+        "장단점", "장점과 단점", "pros", "cons",
+        "관계", "연관", "영향", "따르면",
+        "종합", "분석", "검토",
+    )
+
+    def _is_complex_query(query: str) -> bool:
+        """질문 복잡도를 규칙 기반으로 판단합니다."""
+        # 키워드 매칭
+        q = query.lower()
+        if any(kw in q for kw in _COMPLEX_KEYWORDS):
+            return True
+        # 질문에 2개 이상의 물음표 또는 절이 있으면 복합
+        if query.count("?") >= 2 or query.count("？") >= 2:
+            return True
+        # '~와/과 ~' 비교 패턴
+        import re
+        if re.search(r".{2,}[와과].{2,}(의|을|를|에|는|가)", query):
+            return True
+        return False
+
+    class AutoQueryRequest(BaseModel):
+        """자동 라우팅 질의 요청."""
+
+        query: str = Field(..., min_length=1, max_length=4096)
+        session_id: str | None = Field(None, max_length=64)
+
+    @app.post("/auto")
+    async def auto_query(body: AutoQueryRequest):
+        """질문 복잡도를 판단하여 Simple RAG 또는 Agent RAG로 자동 라우팅합니다."""
+        use_agent = config.rag.agent.enabled and _is_complex_query(body.query)
+
+        if use_agent:
+            from .agent.loop import AgentLoop
+            from .agent.session import Message
+
+            session_mgr = app.state.agent_session_manager
+            tool_registry = app.state.agent_tool_registry
+            http_client = app.state.http_client
+
+            session_id, messages = session_mgr.get_or_create(body.session_id)
+            history = session_mgr.format_history(session_id)
+
+            agent = AgentLoop(
+                http_client=http_client,
+                tool_registry=tool_registry,
+                ollama_model=ollama_model,
+                api_base=api_base,
+                max_iterations=config.rag.agent.max_iterations,
+                max_tokens=rag_max_tokens,
+                request_timeout=config.rag.request_timeout,
+            )
+
+            session_mgr.add_message(session_id, Message(role="user", content=body.query))
+
+            async def _auto_agent_stream():
+                answer_parts: list[str] = []
+                final_sources: list[dict] = []
+                # 라우팅 정보 전송
+                yield f"data: {json.dumps({'type': 'route', 'mode': 'agent'}, ensure_ascii=False)}\n\n"
+                try:
+                    async for event in agent.run_stream(body.query, history):
+                        if event.type == "thought" and config.rag.agent.stream_reasoning:
+                            yield f"data: {json.dumps({'type': 'thought', 'content': event.content, 'iteration': event.iteration}, ensure_ascii=False)}\n\n"
+                        elif event.type == "action" and config.rag.agent.stream_reasoning:
+                            yield f"data: {json.dumps({'type': 'action', 'content': event.content, 'input': event.metadata.get('input', {}), 'iteration': event.iteration}, ensure_ascii=False)}\n\n"
+                        elif event.type == "observation" and config.rag.agent.stream_reasoning:
+                            obs_preview = event.content[:300]
+                            if len(event.content) > 300:
+                                obs_preview += "..."
+                            yield f"data: {json.dumps({'type': 'observation', 'content': obs_preview, 'iteration': event.iteration}, ensure_ascii=False)}\n\n"
+                        elif event.type == "token":
+                            answer_parts.append(event.content)
+                            yield f"data: {json.dumps({'type': 'token', 'content': event.content}, ensure_ascii=False)}\n\n"
+                        elif event.type == "done":
+                            final_sources = event.metadata.get("sources", [])
+                        elif event.type == "error":
+                            yield f"data: {json.dumps({'type': 'token', 'content': '[오류] 처리 중 문제가 발생했습니다.'}, ensure_ascii=False)}\n\n"
+                except Exception as exc:
+                    logger.error("Auto-agent 스트리밍 오류: %s", exc)
+                    yield f"data: {json.dumps({'type': 'token', 'content': '[오류] 처리 중 문제가 발생했습니다.'}, ensure_ascii=False)}\n\n"
+
+                answer = "".join(answer_parts)
+                if answer:
+                    session_mgr.add_message(session_id, Message(role="assistant", content=answer))
+
+                sources_data = [
+                    {"content": s.get("content", ""), "doc_id": s.get("doc_id", ""), "score": s.get("score", 0.0)}
+                    for s in final_sources
+                ]
+                yield f"data: {json.dumps({'type': 'sources', 'sources': sources_data}, ensure_ascii=False)}\n\n"
+                yield f"data: {json.dumps({'type': 'done', 'session_id': session_id})}\n\n"
+
+            return StreamingResponse(
+                _auto_agent_stream(),
+                media_type="text/event-stream",
+                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+            )
+        else:
+            # Simple RAG
+            if config.rag.query_rewriting:
+                expanded = await _rewrite_query(body.query)
+                body_for_search = QueryRequest(
+                    query=expanded, top_k=None, stream=True
+                )
+            else:
+                body_for_search = QueryRequest(
+                    query=body.query, top_k=None, stream=True
+                )
+
+            sources, prompt = await asyncio.to_thread(_search_documents, body_for_search)
+            http_client = app.state.http_client
+
+            async def _auto_simple_stream():
+                has_response_tokens = False
+                thinking_buf: list[str] = []
+                # 라우팅 정보 전송
+                yield f"data: {json.dumps({'type': 'route', 'mode': 'simple'}, ensure_ascii=False)}\n\n"
+                try:
+                    async with http_client.stream(
+                        "POST",
+                        f"{api_base}/api/generate",
+                        json={
+                            "model": ollama_model,
+                            "prompt": prompt,
+                            "stream": True,
+                            "think": False,
+                            "keep_alive": -1,
+                            "options": {"num_predict": rag_max_tokens},
+                        },
+                    ) as resp:
+                        resp.raise_for_status()
+                        async for line in resp.aiter_lines():
+                            if not line:
+                                continue
+                            chunk = json.loads(line)
+                            token = _SPECIAL_TAG_RE.sub("", chunk.get("response", ""))
+                            if token:
+                                has_response_tokens = True
+                                yield f"data: {json.dumps({'type': 'token', 'content': token}, ensure_ascii=False)}\n\n"
+                            else:
+                                thinking_token = chunk.get("thinking", "")
+                                if thinking_token:
+                                    thinking_buf.append(thinking_token)
+                            if chunk.get("done"):
+                                break
+                except Exception as exc:
+                    logger.error("Auto-simple 스트리밍 오류: %s", exc)
+                    yield f"data: {json.dumps({'type': 'token', 'content': '[오류] 응답 생성 중 문제가 발생했습니다.'}, ensure_ascii=False)}\n\n"
+
+                if not has_response_tokens and thinking_buf:
+                    fallback = _clean_thinking_tags("".join(thinking_buf))
+                    if fallback:
+                        yield f"data: {json.dumps({'type': 'token', 'content': fallback}, ensure_ascii=False)}\n\n"
+
+                yield f"data: {json.dumps({'type': 'sources', 'sources': [s.model_dump() for s in sources]}, ensure_ascii=False)}\n\n"
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+            return StreamingResponse(
+                _auto_simple_stream(),
+                media_type="text/event-stream",
+                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+            )
 
     return app
 

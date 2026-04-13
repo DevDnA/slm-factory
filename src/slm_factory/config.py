@@ -412,6 +412,45 @@ class RefinementConfig(BaseModel):
         return self
 
 
+class AgentRagConfig(BaseModel):
+    """Agent RAG 모드 설정입니다.
+
+    활성화하면 LLM이 ReAct 루프를 통해 도구를 반복 사용하여
+    복합 질문에 다단계 검색·추론으로 답변합니다.
+    """
+
+    enabled: bool = True
+    """Agent 모드 활성화 여부. ``false``이면 기존 단일 패스 RAG를 사용합니다."""
+
+    max_iterations: int = 5
+    """ReAct 루프 최대 반복 횟수. 무한 루프를 방지합니다."""
+
+    session_ttl: int = 3600
+    """세션 유지 시간 (초). 이 시간 동안 대화 내역을 보존합니다."""
+
+    max_history_turns: int = 20
+    """대화 내역 최대 턴 수. 초과 시 오래된 턴을 제거합니다."""
+
+    stream_reasoning: bool = True
+    """추론 과정(Thought/Action/Observation)을 클라이언트에 실시간 스트리밍합니다."""
+
+    @model_validator(mode="after")
+    def _check_agent_params(self) -> "AgentRagConfig":
+        if self.max_iterations < 1:
+            raise ValueError(
+                f"max_iterations({self.max_iterations})는 1 이상이어야 합니다"
+            )
+        if self.session_ttl < 0:
+            raise ValueError(
+                f"session_ttl({self.session_ttl})은 0 이상이어야 합니다"
+            )
+        if self.max_history_turns < 1:
+            raise ValueError(
+                f"max_history_turns({self.max_history_turns})는 1 이상이어야 합니다"
+            )
+        return self
+
+
 class RagConfig(BaseModel):
     """RAG 서비스 구축 설정입니다.
 
@@ -475,6 +514,9 @@ class RagConfig(BaseModel):
     min_score: float = 0.0
     """검색 결과 최소 유사도 점수 (0.0~1.0). 이 값 미만의 문서는 컨텍스트에서 제외됩니다.
     0.0으로 설정하면 필터링을 비활성화합니다."""
+
+    agent: AgentRagConfig = Field(default_factory=AgentRagConfig)
+    """Agent RAG 모드 설정. ``agent.enabled: true``로 활성화합니다."""
 
     @model_validator(mode="after")
     def _check_rag_params(self) -> "RagConfig":

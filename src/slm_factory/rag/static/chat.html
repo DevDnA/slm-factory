@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 <style>
 /* ─── Design Tokens ─── */
 :root {
@@ -797,6 +798,65 @@ body {
   border-color: var(--color-success);
   opacity: 1;
 }
+/* ─── Agent Toggle ─── */
+.agent-toggle-btn {
+  display: flex; align-items: center; gap: 6px; cursor: pointer;
+  background: none; border: none; padding: 4px 0; user-select: none;
+}
+.agent-toggle-dot {
+  display: inline-block; width: 36px; height: 20px;
+  background: var(--color-bg-tertiary); border-radius: var(--radius-pill);
+  position: relative; transition: background 0.2s;
+  border: 1px solid var(--color-border-input);
+}
+.agent-toggle-dot::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 14px; height: 14px; background: var(--color-text-secondary);
+  border-radius: 50%; transition: transform 0.2s, background 0.2s;
+}
+.agent-toggle-btn.active .agent-toggle-dot {
+  background: var(--color-accent);
+}
+.agent-toggle-btn.active .agent-toggle-dot::after {
+  transform: translateX(16px); background: #fff;
+}
+.agent-toggle-btn.active .agent-toggle-label {
+  color: var(--color-accent);
+}
+.agent-toggle-btn:disabled {
+  opacity: 0.4; cursor: not-allowed;
+}
+.agent-toggle-label {
+  font-size: 12px; font-weight: 500; color: var(--color-text-secondary);
+}
+
+/* ─── Agent Reasoning Steps ─── */
+.agent-reasoning {
+  margin-bottom: 8px; border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm); overflow: hidden;
+}
+.agent-reasoning-toggle {
+  display: flex; align-items: center; gap: 6px; padding: 8px 12px;
+  background: var(--color-bg-tertiary); cursor: pointer; font-size: 12px;
+  color: var(--color-text-secondary); border: none; width: 100%; text-align: left;
+}
+.agent-reasoning-toggle:hover { background: var(--color-bg-source-hover); }
+.agent-reasoning-toggle .arrow { transition: transform 0.2s; font-size: 10px; }
+.agent-reasoning-toggle.open .arrow { transform: rotate(90deg); }
+.agent-reasoning-body {
+  display: none; padding: 8px 12px; font-size: 12px; line-height: 1.6;
+  color: var(--color-text-secondary); max-height: 300px; overflow-y: auto;
+  background: var(--color-bg-primary);
+}
+.agent-reasoning-body.open { display: block; }
+.agent-step { padding: 4px 0; border-bottom: 1px solid var(--color-border); }
+.agent-step:last-child { border-bottom: none; }
+.agent-step-type {
+  font-weight: 600; font-size: 11px; text-transform: uppercase; margin-right: 6px;
+}
+.agent-step-type.thought { color: #a78bfa; }
+.agent-step-type.action { color: #34d399; }
+.agent-step-type.observation { color: #fbbf24; }
 </style>
 </head>
 <body>
@@ -807,9 +867,12 @@ body {
       <div class="header-logo">R</div>
       <span class="header-title">slm-factory RAG 서비스</span>
     </div>
-    <div class="header-status">
-      <span class="status-dot" id="statusDot"></span>
-      <span id="statusText">연결됨</span>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span class="agent-toggle-label" id="modeLabel" style="font-size:11px;color:var(--color-text-muted)">Auto</span>
+      <div class="header-status">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">연결됨</span>
+      </div>
     </div>
   </header>
 
@@ -865,32 +928,40 @@ body {
   let isStreaming = false;
   let mermaidCounter = 0;
 
-  mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+  try { mermaid.initialize({ startOnLoad: false, theme: 'dark' }); } catch(e) { console.warn('mermaid init failed:', e); }
 
   marked.setOptions({
     breaks: true,
     gfm: true,
     highlight: function(code, lang) {
-      if (lang === 'mermaid') return code;
-      if (lang && hljs.getLanguage(lang)) {
-        return hljs.highlight(code, { language: lang }).value;
-      }
-      return hljs.highlightAuto(code).value;
+      try {
+        if (lang === 'mermaid') return code;
+        if (typeof hljs !== 'undefined' && lang && hljs.getLanguage(lang)) {
+          return hljs.highlight(code, { language: lang }).value;
+        }
+        if (typeof hljs !== 'undefined') return hljs.highlightAuto(code).value;
+      } catch(e) {}
+      return code;
     },
   });
+
+  function safeSanitize(html) {
+    return (typeof DOMPurify !== 'undefined') ? DOMPurify.sanitize(html) : html;
+  }
 
   function renderKatex(el) {
     if (typeof katex === 'undefined') return;
     var html = el.innerHTML;
-    html = html.replace(/\$\$([^$]+?)\$\$/g, function(_, tex) {
+    function escapeHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    html = html.replace(/\$\$([^$]+?)\$\$/g, function(match, tex) {
       try { return katex.renderToString(tex.trim(), { displayMode: true, throwOnError: false }); }
-      catch(e) { return _; }
+      catch(e) { return escapeHtml(match); }
     });
-    html = html.replace(/\$([^$\n]+?)\$/g, function(_, tex) {
+    html = html.replace(/\$([^$\n]+?)\$/g, function(match, tex) {
       try { return katex.renderToString(tex.trim(), { displayMode: false, throwOnError: false }); }
-      catch(e) { return _; }
+      catch(e) { return escapeHtml(match); }
     });
-    el.innerHTML = html;
+    el.innerHTML = safeSanitize(html);
   }
 
   function renderMermaid(el) {
@@ -945,6 +1016,10 @@ body {
 
   checkHealth();
   setInterval(checkHealth, 30000);
+
+  // ─── Auto routing mode ───
+  var modeLabel = document.getElementById('modeLabel');
+  var agentSessionId = null;
 
   // ─── Send message ───
   function handleSend() {
@@ -1114,12 +1189,13 @@ body {
     var bodyEl = null;
     var sources = [];
     var renderTimer = null;
+    var agentSteps = [];
 
     try {
-      var response = await fetch('/v1/stream', {
+      var response = await fetch('/auto', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: query, stream: true })
+        body: JSON.stringify({ query: query, session_id: agentSessionId })
       });
 
       if (!response.ok) {
@@ -1136,6 +1212,10 @@ body {
       var parts = appendMessage('ai', '');
       contentEl = parts.contentEl;
       bodyEl = parts.bodyEl;
+
+      // Agent reasoning container (created lazily)
+      var reasoningEl = null;
+      var reasoningBody = null;
 
       while (true) {
         var result = await reader.read();
@@ -1160,7 +1240,7 @@ body {
             answer += data.content;
             if (!renderTimer) {
               renderTimer = requestAnimationFrame(function() {
-                contentEl.innerHTML = marked.parse(answer);
+                contentEl.innerHTML = safeSanitize(marked.parse(answer));
                 renderKatex(contentEl);
                 var cursorEl = document.createElement('span');
                 cursorEl.className = 'typing-cursor';
@@ -1175,10 +1255,59 @@ body {
                 renderTimer = null;
               });
             }
+          } else if (data.type === 'route') {
+            // 자동 라우팅 결과 — 헤더 + 메시지 버블에 배지 표시
+            var isAgent = data.mode === 'agent';
+            if (modeLabel) {
+              modeLabel.textContent = isAgent ? 'Agent' : 'RAG';
+              modeLabel.style.color = isAgent ? 'var(--color-accent)' : 'var(--color-text-muted)';
+            }
+            if (bodyEl) {
+              var badge = document.createElement('span');
+              badge.style.cssText = 'display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:9999px;margin-bottom:6px;'
+                + (isAgent
+                  ? 'background:rgba(79,124,255,0.15);color:var(--color-accent);'
+                  : 'background:rgba(52,211,153,0.15);color:var(--color-success);');
+              badge.textContent = isAgent ? 'Agent RAG' : 'Simple RAG';
+              bodyEl.insertBefore(badge, bodyEl.firstChild);
+            }
           } else if (data.type === 'sources') {
             sources = data.sources || [];
           } else if (data.type === 'done') {
-            // stream finished
+            if (data.session_id) {
+              agentSessionId = data.session_id;
+            }
+          } else if (data.type === 'thought' || data.type === 'action' || data.type === 'observation') {
+            // Agent reasoning steps
+            if (!reasoningEl) {
+              reasoningEl = document.createElement('div');
+              reasoningEl.className = 'agent-reasoning';
+              var toggleBtn = document.createElement('button');
+              toggleBtn.className = 'agent-reasoning-toggle';
+              toggleBtn.innerHTML = '<span class="arrow">▶</span> 추론 과정';
+              reasoningBody = document.createElement('div');
+              reasoningBody.className = 'agent-reasoning-body';
+              toggleBtn.addEventListener('click', function() {
+                toggleBtn.classList.toggle('open');
+                reasoningBody.classList.toggle('open');
+              });
+              reasoningEl.appendChild(toggleBtn);
+              reasoningEl.appendChild(reasoningBody);
+              bodyEl.insertBefore(reasoningEl, contentEl);
+            }
+            var stepEl = document.createElement('div');
+            stepEl.className = 'agent-step';
+            var typeLabel = data.type === 'thought' ? 'THOUGHT'
+              : data.type === 'action' ? 'ACTION'
+              : 'OBSERVATION';
+            var stepContent = data.content || '';
+            if (data.type === 'action' && data.input) {
+              stepContent += ' → ' + JSON.stringify(data.input);
+            }
+            stepEl.innerHTML = '<span class="agent-step-type ' + data.type + '">' + typeLabel + '</span>' +
+              stepContent.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            reasoningBody.appendChild(stepEl);
+            scrollToBottom();
           }
         }
       }
@@ -1188,7 +1317,7 @@ body {
         renderTimer = null;
       }
       if (answer && contentEl) {
-        contentEl.innerHTML = marked.parse(answer);
+        contentEl.innerHTML = safeSanitize(marked.parse(answer));
         renderKatex(contentEl);
         renderMermaid(contentEl);
         addCopyButtons(contentEl);
