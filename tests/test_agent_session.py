@@ -104,3 +104,40 @@ class TestSessionManager:
         _, msgs2 = sm.get_or_create(sid2)
         assert msgs1[0].content == "a"
         assert msgs2[0].content == "b"
+
+
+class TestLastSources:
+    """Phase 3-a — set/get_last_sources API."""
+
+    def test_기본값은_빈_목록(self):
+        sm = SessionManager()
+        sid = sm.create_session()
+        assert sm.get_last_sources(sid) == []
+
+    def test_set_후_get(self):
+        sm = SessionManager()
+        sid = sm.create_session()
+        srcs = [{"doc_id": "d1", "score": 0.9, "content": "c"}]
+        sm.set_last_sources(sid, srcs)
+        assert sm.get_last_sources(sid) == srcs
+
+    def test_없는_세션에_set은_무시(self):
+        sm = SessionManager()
+        sm.set_last_sources("nonexistent", [{"doc_id": "x"}])
+        assert sm.get_last_sources("nonexistent") == []
+
+    def test_set은_복사본_저장(self):
+        sm = SessionManager()
+        sid = sm.create_session()
+        srcs = [{"doc_id": "d1"}]
+        sm.set_last_sources(sid, srcs)
+        srcs.append({"doc_id": "d2"})  # 외부에서 변경해도
+        assert len(sm.get_last_sources(sid)) == 1  # 내부는 영향 없음
+
+    def test_cleanup_expired시_last_sources도_제거(self):
+        sm = SessionManager(ttl=0)
+        sid = sm.create_session()
+        sm.set_last_sources(sid, [{"doc_id": "d1"}])
+        time.sleep(0.01)
+        sm.cleanup_expired()
+        assert sm.get_last_sources(sid) == []

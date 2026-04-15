@@ -412,6 +412,32 @@ class RefinementConfig(BaseModel):
         return self
 
 
+class AgentModelsConfig(BaseModel):
+    """Phase 9 — Agent 각 컴포넌트별 모델 라우팅.
+
+    각 슬롯은 선택적이며, 빈 문자열이면 ``rag.ollama_model`` (기본 synthesis 모델)로
+    fallback합니다. 사용자가 여러 크기의 Ollama 모델을 보유했을 때 라이트한 작업은
+    작은 모델, 최종 답변은 큰 모델로 분리하여 성능·비용을 최적화합니다.
+    """
+
+    router_model: str = ""
+    """IntentClassifier용 — 빠른 분류. 작은 모델 권장."""
+    planner_model: str = ""
+    """Planner용 — JSON 구조 생성. 중급 모델."""
+    synthesis_model: str = ""
+    """최종 답변 합성용. 가장 큰 모델 권장."""
+    verifier_model: str = ""
+    """Verifier 충분성 판정용. 작은 모델."""
+    reviewer_model: str = ""
+    """Review-Work 3개 checker용. 중급 모델."""
+    reflector_model: str = ""
+    """Reflector 답변 자기 검증용. 중급 모델."""
+    clarifier_model: str = ""
+    """Clarifier 명확화 질문 생성용. 중급 모델."""
+    scorer_model: str = ""
+    """AnswerScorer 정량 평가용. 중급 모델."""
+
+
 class AgentRagConfig(BaseModel):
     """Agent RAG 모드 설정입니다.
 
@@ -434,6 +460,142 @@ class AgentRagConfig(BaseModel):
     stream_reasoning: bool = True
     """추론 과정(Thought/Action/Observation)을 클라이언트에 실시간 스트리밍합니다."""
 
+    persist_sessions: bool = False
+    """세션을 파일 시스템에 영속화합니다. ``true``이면 서버 재시작 후에도 대화 내역이 유지됩니다."""
+
+    sessions_dir: str = "agent_sessions"
+    """세션 JSON 파일 저장 경로. ``paths.output`` 하위에 생성됩니다."""
+
+    planner_enabled: bool = False
+    """Planner 기반 오케스트레이션 활성화. ``true``이면 plan → execute → verify → synthesize 경로를 사용하고, ``false``이면 기존 ReAct AgentLoop를 사용합니다."""
+
+    verifier_enabled: bool = True
+    """Planner 경로에서 Verifier로 컨텍스트 충분성을 판정합니다. ``planner_enabled=false``이면 무시됩니다."""
+
+    verifier_max_repairs: int = 1
+    """Verifier가 허용하는 추가 검색(repair)의 최대 횟수."""
+
+    legacy_fallback_enabled: bool = True
+    """Planner가 구조적으로 실패(``is_fallback=True``)할 때 기존 ReAct ``AgentLoop``로 자동 전환합니다.
+    ``false``로 설정하면 planner의 fallback 계획(단일 search)을 그대로 실행합니다."""
+
+    session_source_reuse: bool = True
+    """같은 세션의 이전 턴에서 참조한 문서를 다음 질의의 synthesis 프롬프트에 주입합니다.
+    follow-up 질의의 대화 연속성을 높입니다. ``planner_enabled=true``에서만 작동합니다."""
+
+    session_source_reuse_limit: int = 5
+    """이전 턴에서 재사용할 참조 문서의 최대 개수."""
+
+    parallel_steps: bool = False
+    """Planner plan이 2개 이상의 ``search`` step으로 구성된 경우 이를 ``asyncio.gather``로 동시 실행합니다.
+    이벤트는 plan 순서대로 emit되어 SSE 계약이 유지됩니다. ``search`` 이외의 도구 또는 단일 step에서는 무시됩니다."""
+
+    reflector_enabled: bool = False
+    """Reflector (답변 자기 검증) 활성화. 답변 생성 후 LLM이 품질·근거를 평가하고
+    부족하면 추가 검색으로 재시도합니다. ``planner_enabled=true``에서만 작동합니다."""
+
+    reflector_max_retries: int = 1
+    """Reflector가 답변을 거부할 때 허용할 추가 검색·재합성 횟수."""
+
+    intent_classifier_enabled: bool = False
+    """IntentClassifier (LLM 기반 의도 분류) 활성화. ``/auto`` 라우팅에 키워드 휴리스틱
+    대신 LLM 분류를 사용합니다. 실패 시 키워드 fallback."""
+
+    intent_classifier_cache_ttl: int = 300
+    """같은 질의에 대한 의도 분류 결과 캐싱 시간(초). 0이면 비활성."""
+
+    clarifier_enabled: bool = False
+    """Clarifier persona 활성화. IntentClassifier가 ``ambiguous``로 분류한 질의에
+    답변 대신 명확화 질문을 반환합니다. ``intent_classifier_enabled=true``에서만 작동."""
+
+    clarifier_max_questions: int = 2
+    """Clarifier가 반환할 질문의 최대 개수 (1~3 권장)."""
+
+    personas_enabled: bool = False
+    """Persona 시스템 활성화. intent별 전용 synthesis prompt + 도구 화이트리스트 사용.
+    ``intent_classifier_enabled=true``와 ``planner_enabled=true``에서 효과적."""
+
+    custom_personas_dir: str = ""
+    """Phase 14 — 사용자 정의 persona YAML 디렉터리. 빈 문자열이면 비활성. 이 디렉터리의
+    persona가 built-in persona보다 우선 적용됩니다."""
+
+    review_work_enabled: bool = False
+    """Review-Work 병렬 검증 활성화. 답변 생성 후 3개 reviewer(grounding, completeness,
+    hallucination)가 병렬로 검증하여 품질 이벤트를 발행합니다. ``planner_enabled=true``에서만 작동."""
+
+    review_work_retry: bool = False
+    """Review-Work 실패 시 추가 검색 + 재합성 자동 재시도. ``review_work_enabled=true``에서만 효과."""
+
+    self_improvement_enabled: bool = False
+    """Phase 13 — AnswerScorer 기반 자기 개선 루프 활성화. 답변 점수가 ``min_quality_score``
+    미만이면 구체 피드백을 주입해 재합성을 시도합니다."""
+
+    min_quality_score: float = 7.0
+    """이 점수 미만이면 self-improvement 재시도 (1~10 범위)."""
+
+    max_self_improvement_iterations: int = 1
+    """self-improvement의 최대 재시도 횟수."""
+
+    memory_compression_enabled: bool = False
+    """Phase 12 — 긴 대화 자동 요약 활성화. ``compress_after_turns`` 초과 시 가장 오래된
+    대화를 LLM 요약 한 줄로 압축하여 토큰 예산을 관리합니다."""
+
+    compress_after_turns: int = 10
+    """이 턴 수를 초과하면 오래된 턴 압축을 시도합니다 (user+assistant 쌍 기준)."""
+
+    compress_target_chars: int = 500
+    """요약 결과의 목표 길이 (문자 수)."""
+
+    hooks_enabled: bool = False
+    """Hooks 시스템 활성화. 파이프라인 주요 지점(pre_query, post_search, post_synthesis)
+    에서 등록된 hook을 실행합니다."""
+
+    builtin_hooks: list[str] = Field(default_factory=list)
+    """자동 등록할 내장 hook 이름 목록. 예: ``["normalize_korean_whitespace",
+    "dedup_sources_by_doc_id", "strip_html_from_answer"]``."""
+
+    skills_enabled: bool = False
+    """Skills 시스템 활성화. ``skills_dir``의 YAML 파일을 로드하여 질의의 trigger에
+    매칭되는 skill의 ``prompt_addon``을 synthesis prompt에 자동 주입합니다."""
+
+    skills_dir: str = "skills"
+    """Skill YAML 파일이 위치한 디렉터리. 상대 경로는 프로젝트 루트 기준."""
+
+    models: AgentModelsConfig = Field(default_factory=AgentModelsConfig)
+    """컴포넌트별 모델 라우팅. 빈 슬롯은 ``rag.ollama_model``로 fallback."""
+
+    smart_mode: bool = False
+    """**원클릭 프리셋 (P0)** — ``true``이면 Phase 5+6+8+11 + 기반 (Planner/Verifier/
+    Reflector/Legacy fallback)이 자동 활성화."""
+
+    ultra_mode: bool = False
+    """**최대 성능 프리셋 (Phase 15b)** — ``smart_mode`` + P1/P2 전체 (Hooks, Memory
+    Compression, Self-Improvement, Review-Work retry). 가장 똑똑하지만 LLM 호출 수·지연
+    증가. 파일 기반 기능(skills, custom_personas)은 디렉터리 지정 시에만 활성화됩니다."""
+
+    @model_validator(mode="after")
+    def _apply_smart_mode(self) -> "AgentRagConfig":
+        """smart_mode/ultra_mode 프리셋을 개별 플래그에 cascade."""
+        if self.smart_mode or self.ultra_mode:
+            # P0 = Phase 5 + 6 + 8 + 11 + 기반 Phase들(1c planner/verifier, 2 fallback, 4 reflector)
+            self.intent_classifier_enabled = True
+            self.clarifier_enabled = True
+            self.personas_enabled = True
+            self.review_work_enabled = True
+            self.planner_enabled = True
+            self.verifier_enabled = True
+            self.reflector_enabled = True
+            self.legacy_fallback_enabled = True
+        if self.ultra_mode:
+            # Ultra = P0 + P1/P2 전체
+            self.hooks_enabled = True
+            self.memory_compression_enabled = True
+            self.self_improvement_enabled = True
+            self.review_work_retry = True
+            self.session_source_reuse = True
+            # skills_enabled, custom_personas_dir는 디렉터리 지정 시에만 의미가 있으므로 건드리지 않음.
+        return self
+
     @model_validator(mode="after")
     def _check_agent_params(self) -> "AgentRagConfig":
         if self.max_iterations < 1:
@@ -447,6 +609,10 @@ class AgentRagConfig(BaseModel):
         if self.max_history_turns < 1:
             raise ValueError(
                 f"max_history_turns({self.max_history_turns})는 1 이상이어야 합니다"
+            )
+        if self.verifier_max_repairs < 0:
+            raise ValueError(
+                f"verifier_max_repairs({self.verifier_max_repairs})는 0 이상이어야 합니다"
             )
         return self
 

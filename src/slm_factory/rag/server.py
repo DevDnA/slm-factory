@@ -249,12 +249,22 @@ def create_app(config: "SLMConfig"):
 
         if config.rag.agent.enabled:
             from .agent.session import SessionManager
+            from .agent.state import FileBackedSessionStore
             from .agent.tools import ToolRegistry
 
-            _app.state.agent_session_manager = SessionManager(
-                ttl=config.rag.agent.session_ttl,
-                max_turns=config.rag.agent.max_history_turns,
-            )
+            if config.rag.agent.persist_sessions:
+                sessions_path = Path(config.paths.output) / config.rag.agent.sessions_dir
+                _app.state.agent_session_manager = FileBackedSessionStore(
+                    base_dir=sessions_path,
+                    ttl=config.rag.agent.session_ttl,
+                    max_turns=config.rag.agent.max_history_turns,
+                )
+                logger.info("Agent 세션 영속화 활성화: %s", sessions_path)
+            else:
+                _app.state.agent_session_manager = SessionManager(
+                    ttl=config.rag.agent.session_ttl,
+                    max_turns=config.rag.agent.max_history_turns,
+                )
             _app.state.agent_tool_registry = ToolRegistry(
                 app_state=_app.state,
                 config=config,
@@ -730,7 +740,7 @@ def create_app(config: "SLMConfig"):
 
     @app.post("/agent")
     async def agent_query(body: AgentQueryRequest):
-        """Agent RAG — ReAct 루프로 다단계 검색·추론 후 답변합니다."""
+        """Agent RAG — stream 모드는 orchestrator를 통해, non-stream 모드는 AgentLoop.run()으로 처리합니다."""
         if not config.rag.agent.enabled:
             return JSONResponse(
                 status_code=400,
@@ -743,6 +753,20 @@ def create_app(config: "SLMConfig"):
                 },
             )
 
+        if body.stream:
+            # Stream 모드 — orchestrator.handle_agent()가 세션/AgentLoop/planner 경로를 모두 처리.
+            async def _sse_stream():
+                async for event in _orchestrator.handle_agent(body.query, body.session_id):
+                    yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+
+            return StreamingResponse(
+                _sse_stream(),
+                media_type="text/event-stream",
+                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+            )
+
+        # Non-stream 모드 — AgentLoop.run()의 별도 코드 경로를 유지합니다
+        # (run_stream과 force-answer 처리 방식이 달라 단순 교체가 위험).
         from .agent.loop import AgentLoop
         from .agent.session import Message
 
@@ -750,7 +774,7 @@ def create_app(config: "SLMConfig"):
         tool_registry = app.state.agent_tool_registry
         http_client = app.state.http_client
 
-        session_id, messages = session_mgr.get_or_create(body.session_id)
+        session_id, _ = session_mgr.get_or_create(body.session_id)
         history = session_mgr.format_history(session_id)
 
         agent = AgentLoop(
@@ -762,117 +786,147 @@ def create_app(config: "SLMConfig"):
             max_tokens=rag_max_tokens,
             request_timeout=config.rag.request_timeout,
         )
-
-        # 사용자 메시지 기록
         session_mgr.add_message(session_id, Message(role="user", content=body.query))
 
-        if body.stream:
-            async def _agent_stream():
-                answer_parts: list[str] = []
-                final_sources: list[dict] = []
-                try:
-                    async for event in agent.run_stream(body.query, history):
-                        if event.type == "thought" and config.rag.agent.stream_reasoning:
-                            yield f"data: {json.dumps({'type': 'thought', 'content': event.content, 'iteration': event.iteration}, ensure_ascii=False)}\n\n"
-                        elif event.type == "action" and config.rag.agent.stream_reasoning:
-                            yield f"data: {json.dumps({'type': 'action', 'content': event.content, 'input': event.metadata.get('input', {}), 'iteration': event.iteration}, ensure_ascii=False)}\n\n"
-                        elif event.type == "observation" and config.rag.agent.stream_reasoning:
-                            # 관찰 결과는 길 수 있으므로 300자로 제한
-                            obs_preview = event.content[:300]
-                            if len(event.content) > 300:
-                                obs_preview += "..."
-                            yield f"data: {json.dumps({'type': 'observation', 'content': obs_preview, 'iteration': event.iteration}, ensure_ascii=False)}\n\n"
-                        elif event.type == "token":
-                            answer_parts.append(event.content)
-                            yield f"data: {json.dumps({'type': 'token', 'content': event.content}, ensure_ascii=False)}\n\n"
-                        elif event.type == "done":
-                            final_sources = event.metadata.get("sources", [])
-                        elif event.type == "error":
-                            yield f"data: {json.dumps({'type': 'token', 'content': '[오류] 처리 중 문제가 발생했습니다.'}, ensure_ascii=False)}\n\n"
-                except Exception as exc:
-                    logger.error("Agent 스트리밍 오류: %s", exc)
-                    yield f"data: {json.dumps({'type': 'token', 'content': '[오류] Agent 실행 중 문제가 발생했습니다.'}, ensure_ascii=False)}\n\n"
-
-                # 어시스턴트 메시지 기록
-                answer = "".join(answer_parts)
-                if answer:
-                    session_mgr.add_message(
-                        session_id, Message(role="assistant", content=answer)
-                    )
-
-                sources_data = [
-                    {"content": s.get("content", ""), "doc_id": s.get("doc_id", ""), "score": s.get("score", 0.0)}
-                    for s in final_sources
-                ]
-                yield f"data: {json.dumps({'type': 'sources', 'sources': sources_data}, ensure_ascii=False)}\n\n"
-                yield f"data: {json.dumps({'type': 'done', 'session_id': session_id})}\n\n"
-
-            return StreamingResponse(
-                _agent_stream(),
-                media_type="text/event-stream",
-                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-            )
-        else:
-            # 비스트리밍 모드
-            try:
-                result = await agent.run(body.query, history)
-            except Exception as exc:
-                logger.error("Agent 실행 오류: %s", exc)
-                return JSONResponse(
-                    status_code=502,
-                    content={"error": "agent_error", "message": "Agent 실행 중 내부 오류가 발생했습니다."},
-                )
-
-            session_mgr.add_message(
-                session_id, Message(role="assistant", content=result.answer)
+        try:
+            result = await agent.run(body.query, history)
+        except Exception as exc:
+            logger.error("Agent 실행 오류: %s", exc)
+            return JSONResponse(
+                status_code=502,
+                content={"error": "agent_error", "message": "Agent 실행 중 내부 오류가 발생했습니다."},
             )
 
-            sources = [
-                Source(
-                    content=s.get("content", ""),
-                    doc_id=s.get("doc_id", ""),
-                    score=s.get("score", 0.0),
-                )
-                for s in result.sources
-            ]
+        session_mgr.add_message(
+            session_id, Message(role="assistant", content=result.answer)
+        )
 
-            return AgentQueryResponse(
-                answer=result.answer,
-                sources=sources,
-                query=body.query,
-                session_id=session_id,
-                iterations=result.iterations,
+        sources = [
+            Source(
+                content=s.get("content", ""),
+                doc_id=s.get("doc_id", ""),
+                score=s.get("score", 0.0),
             )
+            for s in result.sources
+        ]
+
+        return AgentQueryResponse(
+            answer=result.answer,
+            sources=sources,
+            query=body.query,
+            session_id=session_id,
+            iterations=result.iterations,
+        )
 
     # ------------------------------------------------------------------
     # 자동 라우팅 엔드포인트
     # ------------------------------------------------------------------
 
-    _COMPLEX_KEYWORDS = (
-        "비교", "차이", "다른점", "대비", "vs", "versus",
-        "변경", "바뀐", "달라진", "개정",
-        "왜", "이유", "원인", "근거",
-        "어떤 경우", "조건", "해당하는", "자격",
-        "장단점", "장점과 단점", "pros", "cons",
-        "관계", "연관", "영향", "따르면",
-        "종합", "분석", "검토",
+    from .agent.orchestrator import AgentOrchestrator
+    from .agent.router import QueryRouter
+
+    # IntentClassifier는 선택적 — 활성화 시 router에 주입.
+    _intent_classifier = None
+    if config.rag.agent.enabled and config.rag.agent.intent_classifier_enabled:
+        from .agent.intent_classifier import IntentClassifier
+
+        # Phase 9: router_model 슬롯이 있으면 사용, 없으면 기본 ollama_model.
+        _router_model = (
+            getattr(config.rag.agent.models, "router_model", "").strip()
+            or ollama_model
+        )
+
+        # http_client는 lifespan에서 설정되므로 지연 접근. 여기서는 router가
+        # route_async() 호출 시점에 app.state.http_client를 사용하도록 래퍼로 감쌈.
+        class _LazyIntentClassifier:
+            _cached = None
+
+            def _get(self):
+                if self._cached is None:
+                    self._cached = IntentClassifier(
+                        http_client=app.state.http_client,
+                        ollama_model=_router_model,
+                        api_base=api_base,
+                        request_timeout=min(config.rag.request_timeout, 10.0),
+                        cache_ttl=config.rag.agent.intent_classifier_cache_ttl,
+                    )
+                return self._cached
+
+            async def classify(self, query):
+                return await self._get().classify(query)
+
+        _intent_classifier = _LazyIntentClassifier()
+
+    _query_router = QueryRouter(
+        agent_enabled=config.rag.agent.enabled,
+        intent_classifier=_intent_classifier,
     )
 
-    _COMPARISON_RE = re.compile(r".{2,}[와과].{2,}(의|을|를|에|는|가)")
+    async def _simple_auto_stream(query: str):
+        """단순 RAG 경로 — query_rewriting, 검색, Ollama 스트리밍을 이벤트 dict로 변환합니다."""
+        if config.rag.query_rewriting:
+            expanded = await _rewrite_query(query)
+            body_for_search = QueryRequest(query=expanded, top_k=None, stream=True)
+        else:
+            body_for_search = QueryRequest(query=query, top_k=None, stream=True)
 
-    def _is_complex_query(query: str) -> bool:
-        """질문 복잡도를 규칙 기반으로 판단합니다."""
-        # 키워드 매칭
-        q = query.lower()
-        if any(kw in q for kw in _COMPLEX_KEYWORDS):
-            return True
-        # 질문에 2개 이상의 물음표 또는 절이 있으면 복합
-        if query.count("?") >= 2 or query.count("？") >= 2:
-            return True
-        # '~와/과 ~' 비교 패턴
-        if _COMPARISON_RE.search(query):
-            return True
-        return False
+        sources, prompt = await asyncio.to_thread(_search_documents, body_for_search)
+        http_client = app.state.http_client
+
+        has_response_tokens = False
+        thinking_buf: list[str] = []
+        try:
+            async with http_client.stream(
+                "POST",
+                f"{api_base}/api/generate",
+                json={
+                    "model": ollama_model,
+                    "prompt": prompt,
+                    "stream": True,
+                    "think": False,
+                    "keep_alive": -1,
+                    "options": {"num_predict": rag_max_tokens},
+                },
+            ) as resp:
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    if not line:
+                        continue
+                    chunk = json.loads(line)
+                    token = _SPECIAL_TAG_RE.sub("", chunk.get("response", ""))
+                    if token:
+                        has_response_tokens = True
+                        yield {"type": "token", "content": token}
+                    else:
+                        thinking_token = chunk.get("thinking", "")
+                        if thinking_token:
+                            thinking_buf.append(thinking_token)
+                    if chunk.get("done"):
+                        break
+        except Exception as exc:
+            logger.error("Auto-simple 스트리밍 오류: %s", exc)
+            yield {
+                "type": "token",
+                "content": "[오류] 응답 생성 중 문제가 발생했습니다.",
+            }
+
+        if not has_response_tokens and thinking_buf:
+            fallback = _clean_thinking_tags("".join(thinking_buf))
+            if fallback:
+                yield {"type": "token", "content": fallback}
+
+        yield {"type": "sources", "sources": [s.model_dump() for s in sources]}
+        yield {"type": "done"}
+
+    _orchestrator = AgentOrchestrator(
+        router=_query_router,
+        app_state=app.state,
+        config=config,
+        ollama_model=ollama_model,
+        api_base=api_base,
+        rag_max_tokens=rag_max_tokens,
+        simple_stream_fn=_simple_auto_stream,
+    )
 
     class AutoQueryRequest(BaseModel):
         """자동 라우팅 질의 요청."""
@@ -883,139 +937,16 @@ def create_app(config: "SLMConfig"):
     @app.post("/auto")
     async def auto_query(body: AutoQueryRequest):
         """질문 복잡도를 판단하여 Simple RAG 또는 Agent RAG로 자동 라우팅합니다."""
-        use_agent = config.rag.agent.enabled and _is_complex_query(body.query)
 
-        if use_agent:
-            from .agent.loop import AgentLoop
-            from .agent.session import Message
+        async def _sse_stream():
+            async for event in _orchestrator.handle_auto(body.query, body.session_id):
+                yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
 
-            session_mgr = app.state.agent_session_manager
-            tool_registry = app.state.agent_tool_registry
-            http_client = app.state.http_client
-
-            session_id, messages = session_mgr.get_or_create(body.session_id)
-            history = session_mgr.format_history(session_id)
-
-            agent = AgentLoop(
-                http_client=http_client,
-                tool_registry=tool_registry,
-                ollama_model=ollama_model,
-                api_base=api_base,
-                max_iterations=config.rag.agent.max_iterations,
-                max_tokens=rag_max_tokens,
-                request_timeout=config.rag.request_timeout,
-            )
-
-            session_mgr.add_message(session_id, Message(role="user", content=body.query))
-
-            async def _auto_agent_stream():
-                answer_parts: list[str] = []
-                final_sources: list[dict] = []
-                # 라우팅 정보 전송
-                yield f"data: {json.dumps({'type': 'route', 'mode': 'agent'}, ensure_ascii=False)}\n\n"
-                try:
-                    async for event in agent.run_stream(body.query, history):
-                        if event.type == "thought" and config.rag.agent.stream_reasoning:
-                            yield f"data: {json.dumps({'type': 'thought', 'content': event.content, 'iteration': event.iteration}, ensure_ascii=False)}\n\n"
-                        elif event.type == "action" and config.rag.agent.stream_reasoning:
-                            yield f"data: {json.dumps({'type': 'action', 'content': event.content, 'input': event.metadata.get('input', {}), 'iteration': event.iteration}, ensure_ascii=False)}\n\n"
-                        elif event.type == "observation" and config.rag.agent.stream_reasoning:
-                            obs_preview = event.content[:300]
-                            if len(event.content) > 300:
-                                obs_preview += "..."
-                            yield f"data: {json.dumps({'type': 'observation', 'content': obs_preview, 'iteration': event.iteration}, ensure_ascii=False)}\n\n"
-                        elif event.type == "token":
-                            answer_parts.append(event.content)
-                            yield f"data: {json.dumps({'type': 'token', 'content': event.content}, ensure_ascii=False)}\n\n"
-                        elif event.type == "done":
-                            final_sources = event.metadata.get("sources", [])
-                        elif event.type == "error":
-                            yield f"data: {json.dumps({'type': 'token', 'content': '[오류] 처리 중 문제가 발생했습니다.'}, ensure_ascii=False)}\n\n"
-                except Exception as exc:
-                    logger.error("Auto-agent 스트리밍 오류: %s", exc)
-                    yield f"data: {json.dumps({'type': 'token', 'content': '[오류] 처리 중 문제가 발생했습니다.'}, ensure_ascii=False)}\n\n"
-
-                answer = "".join(answer_parts)
-                if answer:
-                    session_mgr.add_message(session_id, Message(role="assistant", content=answer))
-
-                sources_data = [
-                    {"content": s.get("content", ""), "doc_id": s.get("doc_id", ""), "score": s.get("score", 0.0)}
-                    for s in final_sources
-                ]
-                yield f"data: {json.dumps({'type': 'sources', 'sources': sources_data}, ensure_ascii=False)}\n\n"
-                yield f"data: {json.dumps({'type': 'done', 'session_id': session_id})}\n\n"
-
-            return StreamingResponse(
-                _auto_agent_stream(),
-                media_type="text/event-stream",
-                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-            )
-        else:
-            # Simple RAG
-            if config.rag.query_rewriting:
-                expanded = await _rewrite_query(body.query)
-                body_for_search = QueryRequest(
-                    query=expanded, top_k=None, stream=True
-                )
-            else:
-                body_for_search = QueryRequest(
-                    query=body.query, top_k=None, stream=True
-                )
-
-            sources, prompt = await asyncio.to_thread(_search_documents, body_for_search)
-            http_client = app.state.http_client
-
-            async def _auto_simple_stream():
-                has_response_tokens = False
-                thinking_buf: list[str] = []
-                # 라우팅 정보 전송
-                yield f"data: {json.dumps({'type': 'route', 'mode': 'simple'}, ensure_ascii=False)}\n\n"
-                try:
-                    async with http_client.stream(
-                        "POST",
-                        f"{api_base}/api/generate",
-                        json={
-                            "model": ollama_model,
-                            "prompt": prompt,
-                            "stream": True,
-                            "think": False,
-                            "keep_alive": -1,
-                            "options": {"num_predict": rag_max_tokens},
-                        },
-                    ) as resp:
-                        resp.raise_for_status()
-                        async for line in resp.aiter_lines():
-                            if not line:
-                                continue
-                            chunk = json.loads(line)
-                            token = _SPECIAL_TAG_RE.sub("", chunk.get("response", ""))
-                            if token:
-                                has_response_tokens = True
-                                yield f"data: {json.dumps({'type': 'token', 'content': token}, ensure_ascii=False)}\n\n"
-                            else:
-                                thinking_token = chunk.get("thinking", "")
-                                if thinking_token:
-                                    thinking_buf.append(thinking_token)
-                            if chunk.get("done"):
-                                break
-                except Exception as exc:
-                    logger.error("Auto-simple 스트리밍 오류: %s", exc)
-                    yield f"data: {json.dumps({'type': 'token', 'content': '[오류] 응답 생성 중 문제가 발생했습니다.'}, ensure_ascii=False)}\n\n"
-
-                if not has_response_tokens and thinking_buf:
-                    fallback = _clean_thinking_tags("".join(thinking_buf))
-                    if fallback:
-                        yield f"data: {json.dumps({'type': 'token', 'content': fallback}, ensure_ascii=False)}\n\n"
-
-                yield f"data: {json.dumps({'type': 'sources', 'sources': [s.model_dump() for s in sources]}, ensure_ascii=False)}\n\n"
-                yield f"data: {json.dumps({'type': 'done'})}\n\n"
-
-            return StreamingResponse(
-                _auto_simple_stream(),
-                media_type="text/event-stream",
-                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
-            )
+        return StreamingResponse(
+            _sse_stream(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
 
     return app
 
