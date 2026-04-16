@@ -482,7 +482,7 @@ class TestLlmJudgeScore:
         await ev._llm_judge_score(mock_client, "ref", "gen", "q?")
 
         call_body = mock_client.post.call_args[1]["json"]
-        assert call_body["model"] == "qwen3.5:9b"
+        assert call_body["model"] == "gemma4:e2b"
 
     @pytest.mark.asyncio
     async def test_llm_judge_model_커스텀(self, judge_config):
