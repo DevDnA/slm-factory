@@ -154,7 +154,7 @@ chunking:
 | 필드 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
 | `backend` | `"ollama"` \| `"openai"` | `"ollama"` | 사용할 LLM 백엔드. `"ollama"`는 로컬 Ollama 서버, `"openai"`는 OpenAI 호환 API입니다 |
-| `model` | `str` | `"gemma4:e4b"` | 모델 이름 또는 ID (빈 값 불가) |
+| `model` | `str` | `"qwen3.5:9b"` | 모델 이름 또는 ID (빈 값 불가) |
 | `api_base` | `str` | `"http://localhost:11434"` | API 엔드포인트 URL (빈 값 불가) |
 | `api_key` | `str \| None` | `null` | API 키. `backend: "openai"`일 때 필수입니다. Ollama는 불필요합니다 |
 | `temperature` | `float` | `0.3` | 생성 온도 (0.0~1.0). 낮을수록 일관성 있는 답변을 생성합니다 |
@@ -165,7 +165,7 @@ chunking:
 ```yaml
 teacher:
   backend: "ollama"
-  model: "gemma4:e4b"
+  model: "qwen3.5:9b"
   api_base: "http://localhost:11434"
   temperature: 0.3
   timeout: 300
@@ -184,7 +184,7 @@ teacher:
   temperature: 0.3
 ```
 
-권장 Ollama 모델: `gemma4:e4b` (기본값, Gemma4 Effective 4B, 경량), `qwen3.5:9b` (다국어, 8GB VRAM), `qwen3.5:27b` (고품질, 24GB+), `exaone3.5:7.8b` (한국어 최적화).
+권장 Ollama 모델: `qwen3.5:9b` (기본값, Qwen3.5 9B), `qwen3.5:27b` (고품질, 24GB+), `exaone3.5:7.8b` (한국어 최적화).
 
 ---
 
@@ -399,10 +399,10 @@ student:
 | 모델 | HuggingFace ID | VRAM (LoRA) | 특징 |
 |------|----------------|-------------|------|
 | Gemma 3 1B | `google/gemma-3-1b-it` | ~3GB | Gemma License (상업 허용), Pydantic 기본값이지만 Ollama 변환 이슈 있음 |
-| Qwen2.5 1.5B | `Qwen/Qwen2.5-1.5B-Instruct` | ~2GB | Apache 2.0, **`slf init` 템플릿 기본값** — Ollama GGUF 호환성 우수 |
+| Qwen3.5 9B | `Qwen/Qwen2.5-1.5B-Instruct` | ~2GB | Apache 2.0, **`slf init` 템플릿 기본값** — Ollama GGUF 호환성 우수 |
 | Gemma 3 4B | `google/gemma-3-4b-it` | ~10GB | Gemma License (상업 허용), 128K 컨텍스트 |
 | Phi-4 Mini | `microsoft/Phi-4-mini-instruct` | ~10GB (QLoRA) | MIT, 추론 강점, 한국어 공식 지원 |
-| Qwen3.5 4B | `Qwen/Qwen3.5-4B` | ~10GB | Apache 2.0, 다국어 201언어 |
+| Qwen3.5 9B | `Qwen/Qwen3.5-4B` | ~10GB | Apache 2.0, 다국어 201언어 |
 
 모델 선택 기준: 8GB VRAM은 `google/gemma-3-1b-it` 또는 `Qwen/Qwen2.5-1.5B-Instruct`, 16GB+는 `google/gemma-3-4b-it` 권장.
 
@@ -801,7 +801,7 @@ rag:
       router_model: "qwen2.5:0.5b"
       planner_model: "qwen2.5:7b"
       synthesis_model: "qwen2.5:14b"
-      verifier_model: "qwen2.5:1.5b"
+      verifier_model: "qwen3.5:9b"
 ```
 
 **제약조건**: `max_iterations >= 1`, `session_ttl >= 0`, `max_history_turns >= 1`, `verifier_max_repairs >= 0`. 위반 시 설정 로드 단계에서 `ValidationError`가 발생합니다.
@@ -1009,7 +1009,7 @@ parsing:
   hwpx:
     apply_spacing: true  # 한국어 띄어쓰기 교정 (uv sync --extra korean 필요)
 
-# 로컬 Ollama 서버 사용 (한국어 품질 향상을 위해 기본 gemma4:e4b 대신 qwen3.5:9b 사용)
+# 로컬 Ollama 서버 사용 (기본 Teacher 모델 qwen3.5:9b)
 teacher:
   backend: "ollama"
   model: "qwen3.5:9b"
@@ -1188,7 +1188,7 @@ slf check --config project.yaml
 │ 문서 디렉토리  │ OK     │ 5개 파일 (./documents)         │
 │ 출력 디렉토리  │ OK     │ 쓰기 가능 (./output)           │
 │ Ollama 연결    │ OK     │ v0.3.12 (http://localhost:11434)│
-│ 모델 사용 가능 │ OK     │ gemma4:e4b                     │
+│ 모델 사용 가능 │ OK     │ qwen3.5:9b                     │
 │ 학생 모델      │ OK     │ google/gemma-3-1b-it           │
 │ 컴퓨팅 디바이스│ Apple Silicon GPU (MPS) │ Apple M3 Pro      │
 │ 학습 정밀도    │ OK     │ float16 (fp16)                 │

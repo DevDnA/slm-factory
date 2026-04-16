@@ -257,7 +257,7 @@ rag:
       router_model: "qwen2.5:0.5b"
       planner_model: "qwen2.5:7b"
       synthesis_model: "qwen2.5:14b"
-      verifier_model: "qwen2.5:1.5b"
+      verifier_model: "qwen3.5:9b"
 ```
 
 ### 개별 플래그 수동 제어

@@ -168,7 +168,7 @@ slf check --config my-project/project.yaml
 │ 문서 디렉토리  │ OK     │ 3개 파일 (./documents)         │
 │ 출력 디렉토리  │ OK     │ 쓰기 가능 (./output)           │
 │ Ollama 연결    │ OK     │ v0.3.12 (http://localhost:11434)│
-│ 모델 사용 가능 │ OK     │ gemma4:e4b                     │
+│ 모델 사용 가능 │ OK     │ qwen3.5:9b                     │
 │ 학생 모델      │ OK     │ Qwen/Qwen2.5-1.5B-Instruct     │
 │ 컴퓨팅 디바이스│ NVIDIA GPU (CUDA) │ NVIDIA RTX 4090       │
 │ 학습 정밀도    │ OK     │ bfloat16 (bf16)                │
@@ -182,7 +182,7 @@ slf check --config my-project/project.yaml
 
 ### `rag`
 
-RAG 웹 채팅 서비스를 시작합니다. Qdrant 인덱스가 없으면 문서를 파싱하고 자동으로 구축합니다. 파인튜닝된 Student 모델이 Ollama에 등록되어 있으면 자동으로 해당 모델을 사용하고, 없으면 Teacher 모델(기본값: `gemma4:e4b`)로 폴백합니다.
+RAG 웹 채팅 서비스를 시작합니다. Qdrant 인덱스가 없으면 문서를 파싱하고 자동으로 구축합니다. 파인튜닝된 Student 모델이 Ollama에 등록되어 있으면 자동으로 해당 모델을 사용하고, 없으면 Teacher 모델(기본값: `qwen3.5:9b`)로 폴백합니다.
 
 **사용법**
 

@@ -552,7 +552,7 @@
 <tr>
 <td><code>model</code></td>
 <td><code>str</code></td>
-<td><code>"gemma4:e4b"</code></td>
+<td><code>"qwen3.5:9b"</code></td>
 <td>모델 이름 또는 ID (빈 값 불가)</td>
 </tr>
 <tr>
@@ -596,7 +596,7 @@
 </div>
 <pre data-lang="yaml"><code>teacher:
   backend: "ollama"
-  model: "gemma4:e4b"
+  model: "qwen3.5:9b"
   api_base: "http://localhost:11434"
   temperature: 0.3
   timeout: 300
@@ -609,7 +609,7 @@
   api_base: "https://api.openai.com"
   api_key: "sk-proj-..."
   temperature: 0.3</code></pre>
-<p>권장 Ollama 모델: <code>gemma4:e4b</code> (기본값, Gemma4 Effective 4B, 경량), <code>qwen3.5:9b</code> (다국어, 8GB VRAM), <code>qwen3.5:27b</code> (고품질, 24GB+), <code>exaone3.5:7.8b</code> (한국어 최적화).</p>
+<p>권장 Ollama 모델: <code>qwen3.5:9b</code> (기본값, Qwen3.5 9B), <code>qwen3.5:27b</code> (고품질, 24GB+), <code>exaone3.5:7.8b</code> (한국어 최적화).</p>
 <hr>
 </section>
 
@@ -1014,7 +1014,7 @@ If the document does not contain relevant information, say "The document does no
 <td>Gemma License (상업 허용), Pydantic 기본값이지만 Ollama 변환 이슈 있음</td>
 </tr>
 <tr>
-<td>Qwen2.5 1.5B</td>
+<td>Qwen3.5 9B</td>
 <td><code>Qwen/Qwen2.5-1.5B-Instruct</code></td>
 <td>~2GB</td>
 <td>Apache 2.0, **<code>slf init</code> 템플릿 기본값** — Ollama GGUF 호환성 우수</td>
@@ -1032,7 +1032,7 @@ If the document does not contain relevant information, say "The document does no
 <td>MIT, 추론 강점, 한국어 공식 지원</td>
 </tr>
 <tr>
-<td>Qwen3.5 4B</td>
+<td>Qwen3.5 9B</td>
 <td><code>Qwen/Qwen3.5-4B</code></td>
 <td>~10GB</td>
 <td>Apache 2.0, 다국어 201언어</td>
@@ -2160,7 +2160,7 @@ rag:
       router_model: "qwen2.5:0.5b"
       planner_model: "qwen2.5:7b"
       synthesis_model: "qwen2.5:14b"
-      verifier_model: "qwen2.5:1.5b"</code></pre>
+      verifier_model: "qwen3.5:9b"</code></pre>
 <p><strong>제약조건</strong>: <code>max_iterations &gt;= 1</code>, <code>session_ttl &gt;= 0</code>, <code>max_history_turns &gt;= 1</code>, <code>verifier_max_repairs &gt;= 0</code>. 위반 시 설정 로드 단계에서 <code>ValidationError</code>가 발생합니다.</p>
 <p><strong>참고</strong></p>
 <ul>
@@ -2403,7 +2403,7 @@ parsing:
   hwpx:
     apply_spacing: true  # 한국어 띄어쓰기 교정 (uv sync --extra korean 필요)
 
-# 로컬 Ollama 서버 사용 (한국어 품질 향상을 위해 기본 gemma4:e4b 대신 qwen3.5:9b 사용)
+# 로컬 Ollama 서버 사용 (기본 Teacher 모델 qwen3.5:9b)
 teacher:
   backend: "ollama"
   model: "qwen3.5:9b"
@@ -2609,7 +2609,7 @@ review:
 │ 문서 디렉토리  │ OK     │ 5개 파일 (./documents)         │
 │ 출력 디렉토리  │ OK     │ 쓰기 가능 (./output)           │
 │ Ollama 연결    │ OK     │ v0.3.12 (http://localhost:11434)│
-│ 모델 사용 가능 │ OK     │ gemma4:e4b                     │
+│ 모델 사용 가능 │ OK     │ qwen3.5:9b                     │
 │ 학생 모델      │ OK     │ google/gemma-3-1b-it           │
 │ 컴퓨팅 디바이스│ Apple Silicon GPU (MPS) │ Apple M3 Pro      │
 │ 학습 정밀도    │ OK     │ float16 (fp16)                 │

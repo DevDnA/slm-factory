@@ -66,13 +66,10 @@ ollama serve
 
 **3단계: Teacher 모델 다운로드**
 
-기본 Teacher 모델은 `gemma4:e4b` (Gemma4 Effective 4B, 경량) 입니다. 한국어/다국어 품질이 더 필요하면 `qwen3.5:9b`를 사용하세요.
+기본 Teacher 모델은 `qwen3.5:9b` (Qwen3.5 9B) 입니다. 더 높은 품질이 필요하면 `qwen3.5:27b`를 사용하세요.
 
 ```bash
-# 기본 Teacher 모델 (경량, ./setup.sh가 자동 다운로드)
-ollama pull gemma4:e4b
-
-# 한국어/다국어 대안 (8GB VRAM)
+# 기본 Teacher 모델 (./setup.sh가 자동 다운로드)
 ollama pull qwen3.5:9b
 
 # 고품질 대안 (24GB+ VRAM 필요)
@@ -85,7 +82,7 @@ ollama pull exaone3.5:7.8b
 다운로드 완료 후 정상 동작을 확인합니다.
 
 ```bash
-ollama run gemma4:e4b "안녕하세요"
+ollama run qwen3.5:9b "안녕하세요"
 ```
 
 ---
@@ -292,7 +289,7 @@ project:
 
 teacher:
   backend: "ollama"           # "ollama" 또는 "openai"
-  model: "gemma4:e4b"         # 기본 Teacher 모델. 다국어 필요 시 "qwen3.5:9b"
+  model: "qwen3.5:9b"         # 기본 Teacher 모델. 고품질 필요 시 "qwen3.5:27b"
   api_base: "http://localhost:11434"
   temperature: 0.3
 
@@ -879,7 +876,7 @@ slf rag
 
 #### RAG + 베이스 모델 (`slf rag`)
 
-문서를 파싱하고 벡터 인덱스를 구축한 후 바로 웹 채팅을 시작합니다. 파인튜닝 없이 Teacher 모델(기본 `gemma4:e4b`)이 검색된 문서를 참조하여 답변합니다. 파인튜닝된 Student 모델이 Ollama에 있으면 자동으로 해당 모델을 사용합니다.
+문서를 파싱하고 벡터 인덱스를 구축한 후 바로 웹 채팅을 시작합니다. 파인튜닝 없이 Teacher 모델(기본 `qwen3.5:9b`)이 검색된 문서를 참조하여 답변합니다. 파인튜닝된 Student 모델이 Ollama에 있으면 자동으로 해당 모델을 사용합니다.
 
 #### RAG + 파인튜닝 SLM (`slf tune`)
 

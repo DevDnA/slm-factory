@@ -107,7 +107,7 @@ class TestTeacherConfig:
         """교사 설정의 기본값을 검증합니다."""
         cfg = TeacherConfig()
         assert cfg.backend == "ollama"
-        assert cfg.model == "gemma4:e4b"
+        assert cfg.model == "qwen3.5:9b"
         assert cfg.api_base == "http://localhost:11434"
         assert cfg.api_key is None
         assert cfg.temperature == 0.3
@@ -499,8 +499,8 @@ class TestEvalConfigLlmJudge:
         assert cfg.llm_judge_model == ""
 
     def test_llm_judge_model_설정(self):
-        cfg = EvalConfig(llm_judge_model="gemma4:e4b")
-        assert cfg.llm_judge_model == "gemma4:e4b"
+        cfg = EvalConfig(llm_judge_model="qwen3.5:9b")
+        assert cfg.llm_judge_model == "qwen3.5:9b"
 
     def test_llm_judge_없이_기존_메트릭만(self):
         cfg = EvalConfig(metrics=["bleu", "rouge"])
