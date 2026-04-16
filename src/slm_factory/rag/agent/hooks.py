@@ -36,6 +36,17 @@ Hook = Callable[[Any], Any]  # sync 또는 async
 class HookRegistry:
     """lifecycle hook 등록·실행 관리자.
 
+    Hook 시그니처
+    -------------
+    fn 시그니처: ``(payload: Any) -> Any | Awaitable[Any]``.
+    fn 자체는 ``callable``이어야 하며 (coroutine factory 함수 또는 일반 함수),
+    호출 결과가 coroutine/awaitable이면 자동으로 ``await``됩니다.
+    이미 만들어진 coroutine 객체나 ``asyncio.Task``를 그대로 등록하면 안 됩니다.
+    fn은 새 payload를 반환해야 하며, ``None``을 반환하면 그대로 다음 hook에
+    전달됩니다 (``None``도 유효한 payload).
+
+    예외는 Registry가 삼키고 직전 결과를 유지하므로 hook은 raise해도 안전합니다.
+
     Parameters
     ----------
     enabled:

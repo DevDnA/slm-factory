@@ -97,7 +97,7 @@ class TeacherConfig(BaseModel):
     """QA 생성을 위한 교사 LLM 설정입니다."""
 
     backend: Literal["ollama", "openai"] = "ollama"
-    model: str = Field("qwen3.5:9b", min_length=1)
+    model: str = Field("gemma4:e2b", min_length=1)
     api_base: str = Field("http://localhost:11434", min_length=1)
     api_key: str | None = None
     temperature: float = 0.3
@@ -564,6 +564,14 @@ class AgentRagConfig(BaseModel):
     models: AgentModelsConfig = Field(default_factory=AgentModelsConfig)
     """컴포넌트별 모델 라우팅. 빈 슬롯은 ``rag.ollama_model``로 fallback."""
 
+    observation_preview_limit: int = 300
+    """observation 이벤트로 클라이언트에 보낼 때의 길이 제한(문자)."""
+
+    ollama_keep_alive: str = "5m"
+    """모든 LLM 호출에 사용할 Ollama keep_alive 값. 모델 워밍업 유지 시간을
+    의미합니다. 기본 ``"5m"``은 5분 유지, ``"-1"`` 또는 ``-1`` 은 무한 유지,
+    ``"0"`` 은 즉시 언로드."""
+
     smart_mode: bool = False
     """**원클릭 프리셋 (P0)** — ``true``이면 Phase 5+6+8+11 + 기반 (Planner/Verifier/
     Reflector/Legacy fallback)이 자동 활성화."""
@@ -593,6 +601,24 @@ class AgentRagConfig(BaseModel):
             self.self_improvement_enabled = True
             self.review_work_retry = True
             self.session_source_reuse = True
+            # ultra_mode는 retry 폭발을 막기 위해 retry/iter 한도를 1로 권고합니다.
+            # 사용자가 명시적으로 더 큰 값을 설정하면 경고만 출력하고 그대로 둡니다.
+            if self.reflector_max_retries > 1:
+                logging.getLogger("slm_factory.config").warning(
+                    "ultra_mode와 reflector_max_retries=%d가 동시에 설정되었습니다 — "
+                    "답변 재합성이 누적되어 지연·중복이 커질 수 있습니다.",
+                    self.reflector_max_retries,
+                )
+            else:
+                self.reflector_max_retries = 1
+            if self.max_self_improvement_iterations > 1:
+                logging.getLogger("slm_factory.config").warning(
+                    "ultra_mode와 max_self_improvement_iterations=%d가 동시에 설정되었습니다 — "
+                    "self-improvement 루프가 답변 지연을 키울 수 있습니다.",
+                    self.max_self_improvement_iterations,
+                )
+            else:
+                self.max_self_improvement_iterations = 1
             # skills_enabled, custom_personas_dir는 디렉터리 지정 시에만 의미가 있으므로 건드리지 않음.
         return self
 

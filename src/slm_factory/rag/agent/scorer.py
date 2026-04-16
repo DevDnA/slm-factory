@@ -30,11 +30,17 @@ _NEUTRAL_SCORE = 7.0
 
 @dataclass
 class ScoreResult:
-    """AnswerScorer 판정 결과."""
+    """AnswerScorer 판정 결과.
+
+    ``ok=False``는 LLM 호출/파싱 실패로 점수가 의미 없는 중립값으로 채워졌음을
+    뜻합니다. 호출 측은 이 플래그를 보고 self-improvement 루프를 즉시 종료해
+    무한·무의미 재시도를 방지해야 합니다.
+    """
 
     score: float  # 1.0 ~ 10.0
     feedback: str = ""
     improvements: list[str] = None  # type: ignore[assignment]
+    ok: bool = True
 
     def __post_init__(self):
         if self.improvements is None:
@@ -69,12 +75,15 @@ class AnswerScorer:
         api_base: str,
         request_timeout: float = 20.0,
         max_tokens: int = 300,
+        *,
+        keep_alive: str = "5m",
     ) -> None:
         self._http_client = http_client
         self._model = ollama_model
         self._api_base = api_base
         self._request_timeout = request_timeout
         self._max_tokens = max_tokens
+        self._keep_alive = keep_alive
 
     async def score(
         self,
@@ -95,13 +104,19 @@ class AnswerScorer:
         except Exception as exc:
             logger.warning("Scorer LLM 호출 실패: %s — 중립 점수", exc)
             return ScoreResult(
-                score=_NEUTRAL_SCORE, feedback="scorer unavailable"
+                score=_NEUTRAL_SCORE,
+                feedback="scorer unavailable",
+                ok=False,
             )
 
         parsed = self._parse(raw)
         if parsed is None:
             logger.debug("Scorer JSON 파싱 실패 — 중립 점수")
-            return ScoreResult(score=_NEUTRAL_SCORE, feedback="parse failure")
+            return ScoreResult(
+                score=_NEUTRAL_SCORE,
+                feedback="parse failure",
+                ok=False,
+            )
 
         return self._to_result(parsed)
 
@@ -126,7 +141,7 @@ class AnswerScorer:
                 "stream": False,
                 "think": False,
                 "format": "json",
-                "keep_alive": -1,
+                "keep_alive": self._keep_alive,
                 "options": {"num_predict": self._max_tokens},
             },
             timeout=self._request_timeout,

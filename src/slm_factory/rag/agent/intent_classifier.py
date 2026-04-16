@@ -92,6 +92,8 @@ class IntentClassifier:
         max_tokens: int = 150,
         cache_ttl: int = 300,
         cache_max_size: int = 512,
+        *,
+        keep_alive: str = "5m",
     ) -> None:
         self._http_client = http_client
         self._model = ollama_model
@@ -100,6 +102,7 @@ class IntentClassifier:
         self._max_tokens = max_tokens
         self._cache_ttl = cache_ttl
         self._cache_max_size = cache_max_size
+        self._keep_alive = keep_alive
         self._cache: dict[str, tuple[IntentDecision, float]] = {}
 
     # ------------------------------------------------------------------
@@ -172,7 +175,7 @@ class IntentClassifier:
                 "stream": False,
                 "think": False,
                 "format": "json",
-                "keep_alive": -1,
+                "keep_alive": self._keep_alive,
                 "options": {"num_predict": self._max_tokens},
             },
             timeout=self._request_timeout,

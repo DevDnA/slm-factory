@@ -50,6 +50,8 @@ class ConversationCompressor:
         request_timeout: float = 30.0,
         max_tokens: int = 400,
         target_chars: int = 500,
+        *,
+        keep_alive: str = "5m",
     ) -> None:
         self._http_client = http_client
         self._model = ollama_model
@@ -57,6 +59,7 @@ class ConversationCompressor:
         self._request_timeout = request_timeout
         self._max_tokens = max_tokens
         self._target_chars = target_chars
+        self._keep_alive = keep_alive
 
     async def summarize(self, messages: list[Message]) -> str | None:
         """메시지 목록을 한 단락 요약으로 반환 — 실패 시 ``None``."""
@@ -104,7 +107,7 @@ class ConversationCompressor:
                 "prompt": prompt,
                 "stream": False,
                 "think": False,
-                "keep_alive": -1,
+                "keep_alive": self._keep_alive,
                 "options": {"num_predict": self._max_tokens},
             },
             timeout=self._request_timeout,

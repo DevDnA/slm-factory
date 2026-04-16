@@ -215,13 +215,27 @@ class FileBackedSessionStore:
         return "\n".join(lines)
 
     def cleanup_expired(self) -> int:
-        """TTL이 만료된 세션 파일을 정리합니다."""
+        """TTL이 만료된 세션 파일을 정리합니다.
+
+        ``_save``가 모든 메시지/last_sources 변경 시점마다 호출되므로
+        파일 mtime ≈ ``last_access``가 보장됩니다. 따라서 JSON을 모두 로드해
+        ``last_access``를 비교하는 대신 ``Path.stat().st_mtime``으로 빠르게
+        만료 여부를 판정해 I/O 비용을 절감합니다.
+        """
         now = time.time()
         removed = 0
-        for record in self._iter_records():
-            if now - record.last_access > self._ttl:
-                self._delete(record.session_id)
-                removed += 1
+        for path in self._dir.glob("*.json"):
+            try:
+                mtime = path.stat().st_mtime
+            except OSError as exc:
+                logger.debug("세션 mtime 조회 실패 (%s): %s", path.name, exc)
+                continue
+            if now - mtime > self._ttl:
+                try:
+                    path.unlink(missing_ok=True)
+                    removed += 1
+                except OSError as exc:
+                    logger.debug("만료 세션 삭제 실패 (%s): %s", path.name, exc)
         if removed:
             logger.debug("만료 세션 %d개 정리 완료", removed)
         return removed

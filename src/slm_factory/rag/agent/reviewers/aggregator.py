@@ -42,6 +42,7 @@ async def run_reviewers(
     api_base: str,
     request_timeout: float = 20.0,
     reviewers: list[Reviewer] | None = None,
+    keep_alive: str = "5m",
 ) -> AggregatedVerdict:
     """3 reviewer를 병렬로 실행하고 종합 판정을 반환합니다 — never raises.
 
@@ -50,6 +51,9 @@ async def run_reviewers(
     reviewers:
         사용할 Reviewer 인스턴스 목록. ``None``이면 기본 3개(grounding,
         completeness, hallucination).
+    keep_alive:
+        Ollama ``keep_alive`` 파라미터. reviewers가 ``None``일 때만 사용됨
+        (사용자 지정 reviewers는 자체 keep_alive를 가짐).
     """
     if reviewers is None:
         reviewers = [
@@ -58,18 +62,21 @@ async def run_reviewers(
                 ollama_model=ollama_model,
                 api_base=api_base,
                 request_timeout=request_timeout,
+                keep_alive=keep_alive,
             ),
             CompletenessChecker(
                 http_client=http_client,
                 ollama_model=ollama_model,
                 api_base=api_base,
                 request_timeout=request_timeout,
+                keep_alive=keep_alive,
             ),
             HallucinationChecker(
                 http_client=http_client,
                 ollama_model=ollama_model,
                 api_base=api_base,
                 request_timeout=request_timeout,
+                keep_alive=keep_alive,
             ),
         ]
 

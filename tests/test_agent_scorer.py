@@ -201,8 +201,7 @@ class TestOrchestratorIntegration:
         events = await _collect(orch.handle_agent("질의"))
 
         tokens = [e["content"] for e in events if e["type"] == "token"]
-        # 초안 + 개선됨 둘 다 emit
-        assert "초안" in tokens
-        assert "개선됨" in tokens
+        # HIGH-1/HIGH-2: 드래프트는 yield 하지 않고 최종 답변만 단일 token으로 발행.
+        assert tokens == ["개선됨"]
         # synthesis 2회 호출 (초안 + 재합성)
         assert fixtures.app_state.http_client.stream.call_count == 2

@@ -112,12 +112,27 @@ def parse_react_output(text: str) -> ParsedStep:
         else:
             step.action_input = {}
 
-    # Fallback: 아무 패턴도 매칭 안 되면 전체를 답변으로 처리
+    # Fallback: 아무 패턴도 매칭 안 되면 전체를 답변으로 처리.
+    # 단, 마커가 전혀 없고 텍스트가 매우 짧으면(<10자) 의미 있는 답변일 가능성이
+    # 낮으므로 final_answer를 채우지 않고 force_answer 경로로 escalate되도록 둠.
     if not step.thought and not step.action and not step.final_answer:
         cleaned = text.strip()
-        if cleaned:
-            logger.debug("ReAct 파싱 실패 — 전체 텍스트를 답변으로 처리")
-            step.final_answer = cleaned
+        if not cleaned:
+            return step
+        has_marker = bool(
+            re.search(
+                r"(?:Action|행동|Final Answer|최종 답변|Thought|생각)\s*:",
+                cleaned,
+                re.IGNORECASE,
+            )
+        )
+        if not has_marker and len(cleaned) < 10:
+            logger.debug(
+                "ReAct 파싱 실패 — 너무 짧고 마커도 없어 force_answer로 escalate"
+            )
+            return step
+        logger.debug("ReAct 파싱 실패 — 전체 텍스트를 답변으로 처리")
+        step.final_answer = cleaned
 
     return step
 

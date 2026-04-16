@@ -28,12 +28,19 @@ class ToolResult:
 
 @dataclass
 class ToolSpec:
-    """도구 명세."""
+    """도구 명세.
+
+    ``parallel_safe``는 동일 plan 내 다른 step과 ``asyncio.gather``로 병렬
+    실행해도 안전한지를 표시합니다. 외부 상태를 변경하지 않고 read-only로
+    동작하며 결과가 호출 순서에 의존하지 않는 경우에만 ``True``로 두세요.
+    Orchestrator의 ``parallel_steps`` 게이트가 이 값을 검사합니다.
+    """
 
     name: str
     description: str
     parameters: str
     fn: Callable[..., Awaitable[ToolResult]]
+    parallel_safe: bool = False
 
 
 class ToolRegistry:
@@ -49,44 +56,60 @@ class ToolRegistry:
         한국어 토큰화 함수 (BM25 검색용).
     """
 
-    def __init__(self, app_state: Any, config: Any, tokenize_fn: Any = None) -> None:
+    def __init__(
+        self,
+        app_state: Any,
+        config: Any,
+        tokenize_fn: Any = None,
+        *,
+        keep_alive: str = "5m",
+    ) -> None:
         self._app_state = app_state
         self._config = config
         self._tokenize_fn = tokenize_fn
+        self._keep_alive = keep_alive
         self._tools: dict[str, ToolSpec] = {}
 
         self._register_builtin_tools()
 
     def _register_builtin_tools(self) -> None:
+        # search/lookup/compare는 read-only & 결과가 호출 순서에 의존하지 않으므로
+        # parallel_safe=True. evaluate/list_documents는 의존성·일관성 보장을 위해
+        # 보수적으로 직렬 처리.
         self.register(ToolSpec(
             name="search",
             description="벡터 DB에서 관련 문서를 검색합니다. 핵심 키워드로 검색하세요.",
             parameters='{"query": "검색할 핵심 키워드"}',
             fn=self._tool_search,
+            parallel_safe=True,
         ))
         self.register(ToolSpec(
             name="lookup",
             description="특정 문서 ID로 문서 전체 내용을 조회합니다.",
             parameters='{"doc_id": "조회할 문서 ID"}',
             fn=self._tool_lookup,
+            parallel_safe=True,
         ))
         self.register(ToolSpec(
             name="compare",
             description="두 검색어의 결과를 비교합니다. 차이점 분석에 유용합니다.",
             parameters='{"query_a": "첫 번째 검색어", "query_b": "두 번째 검색어"}',
             fn=self._tool_compare,
+            parallel_safe=True,
         ))
         self.register(ToolSpec(
             name="evaluate",
             description="수집된 정보가 질문에 답하기 충분한지 평가합니다. 부족하면 추가 검색 키워드를 제안합니다.",
             parameters='{"query": "원래 질문", "context": "지금까지 수집된 정보 요약"}',
             fn=self._tool_evaluate,
+            parallel_safe=False,
         ))
         self.register(ToolSpec(
             name="list_documents",
             description="인덱싱된 문서 목록과 ID를 조회합니다.",
             parameters="{}",
             fn=self._tool_list_documents,
+            parallel_safe=False,
         ))
 
     def register(self, spec: ToolSpec) -> None:
@@ -260,7 +283,7 @@ class ToolRegistry:
                     "stream": False,
                     "think": False,
                     "format": "json",
-                    "keep_alive": -1,
+                    "keep_alive": self._keep_alive,
                     "options": {"num_predict": 200},
                 },
                 timeout=60.0,

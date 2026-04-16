@@ -4,6 +4,14 @@ Qdrant에 적재된 벡터 DB를 검색하고, Ollama SLM에 컨텍스트와 함
 질문을 전달하여 문서 기반 답변을 생성하는 REST API 서버입니다.
 """
 
+import os
+
+# HF tokenizer fork 방지 + progress bar 노이즈 제거.
+# SentenceTransformer/transformers import보다 먼저 설정되어야 합니다.
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+os.environ.setdefault("TRANSFORMERS_NO_ADVISORY_WARNINGS", "1")
+
 import asyncio
 import json
 import time
@@ -393,7 +401,7 @@ def create_app(config: "SLMConfig"):
                     "prompt": prompt,
                     "stream": False,
                     "think": False,
-                    "keep_alive": -1,
+                    "keep_alive": config.rag.agent.ollama_keep_alive,
                     "options": {"num_predict": 100},
                 },
                 timeout=30.0,
@@ -474,7 +482,7 @@ def create_app(config: "SLMConfig"):
                             "prompt": prompt,
                             "stream": True,
                             "think": False,
-                            "keep_alive": -1,
+                            "keep_alive": config.rag.agent.ollama_keep_alive,
                             "options": {
                                 "num_predict": rag_max_tokens,
                             },
@@ -533,7 +541,7 @@ def create_app(config: "SLMConfig"):
                     "prompt": prompt,
                     "stream": False,
                     "think": False,
-                    "keep_alive": -1,
+                    "keep_alive": config.rag.agent.ollama_keep_alive,
                     "options": {"num_predict": config.rag.max_tokens},
                 },
             )
@@ -668,7 +676,7 @@ def create_app(config: "SLMConfig"):
                         "prompt": prompt,
                         "stream": True,
                         "think": False,
-                        "keep_alive": -1,
+                        "keep_alive": config.rag.agent.ollama_keep_alive,
                         "options": {
                             "num_predict": rag_max_tokens,
                         },
@@ -785,6 +793,7 @@ def create_app(config: "SLMConfig"):
             max_iterations=config.rag.agent.max_iterations,
             max_tokens=rag_max_tokens,
             request_timeout=config.rag.request_timeout,
+            keep_alive=config.rag.agent.ollama_keep_alive,
         )
         session_mgr.add_message(session_id, Message(role="user", content=body.query))
 
@@ -838,22 +847,40 @@ def create_app(config: "SLMConfig"):
 
         # http_client는 lifespan에서 설정되므로 지연 접근. 여기서는 router가
         # route_async() 호출 시점에 app.state.http_client를 사용하도록 래퍼로 감쌈.
-        class _LazyIntentClassifier:
-            _cached = None
+        # asyncio.Lock으로 동시 첫 호출에서 race-by-construction을 막습니다 —
+        # 여러 요청이 동시에 도착해도 단일 IntentClassifier 인스턴스만 생성됩니다.
+        # Lock은 이벤트 루프에 바인딩되므로 첫 async 호출 시점에 lazy 생성합니다.
+        _agent_keep_alive = config.rag.agent.ollama_keep_alive
 
-            def _get(self):
-                if self._cached is None:
-                    self._cached = IntentClassifier(
-                        http_client=app.state.http_client,
-                        ollama_model=_router_model,
-                        api_base=api_base,
-                        request_timeout=min(config.rag.request_timeout, 10.0),
-                        cache_ttl=config.rag.agent.intent_classifier_cache_ttl,
-                    )
+        class _LazyIntentClassifier:
+            def __init__(self):
+                self._cached = None
+                self._lock: "asyncio.Lock | None" = None
+
+            async def _get(self):
+                if self._cached is not None:
+                    return self._cached
+                if self._lock is None:
+                    self._lock = asyncio.Lock()
+                async with self._lock:
+                    if self._cached is None:
+                        self._cached = IntentClassifier(
+                            http_client=app.state.http_client,
+                            ollama_model=_router_model,
+                            api_base=api_base,
+                            request_timeout=min(
+                                config.rag.request_timeout, 10.0
+                            ),
+                            cache_ttl=(
+                                config.rag.agent.intent_classifier_cache_ttl
+                            ),
+                            keep_alive=_agent_keep_alive,
+                        )
                 return self._cached
 
             async def classify(self, query):
-                return await self._get().classify(query)
+                inst = await self._get()
+                return await inst.classify(query)
 
         _intent_classifier = _LazyIntentClassifier()
 
@@ -884,7 +911,7 @@ def create_app(config: "SLMConfig"):
                     "prompt": prompt,
                     "stream": True,
                     "think": False,
-                    "keep_alive": -1,
+                    "keep_alive": config.rag.agent.ollama_keep_alive,
                     "options": {"num_predict": rag_max_tokens},
                 },
             ) as resp:
@@ -947,6 +974,279 @@ def create_app(config: "SLMConfig"):
             media_type="text/event-stream",
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
+
+    # ------------------------------------------------------------------
+    # OpenAI 호환 엔드포인트 (OpenWebUI / 기타 OpenAI 클라이언트용)
+    # ------------------------------------------------------------------
+
+    class _OpenAIChatMessage(BaseModel):
+        role: str
+        content: str | list[dict] = ""
+
+        def text(self) -> str:
+            if isinstance(self.content, list):
+                parts = []
+                for item in self.content:
+                    if isinstance(item, dict) and item.get("type") == "text":
+                        parts.append(item.get("text", ""))
+                return "".join(parts)
+            return self.content or ""
+
+    class _OpenAIChatRequest(BaseModel):
+        model: str = "slm-factory-auto"
+        messages: list[_OpenAIChatMessage]
+        stream: bool = False
+        temperature: float | None = None
+        max_tokens: int | None = None
+        user: str | None = None
+
+    _MODEL_AUTO = "slm-factory-auto"
+    _MODEL_AGENT = "slm-factory-agent"
+    _MODEL_RAG = "slm-factory-rag"
+    _MODEL_ALIASES = {_MODEL_AUTO, _MODEL_AGENT, _MODEL_RAG}
+
+    def _format_sources_markdown(sources: list[dict]) -> str:
+        if not sources:
+            return ""
+        lines = ["\n\n---\n**📚 참고 문서**\n"]
+        for i, s in enumerate(sources[:5], 1):
+            doc_id = s.get("doc_id", "?")
+            score = float(s.get("score", 0.0) or 0.0)
+            preview = (s.get("content", "") or "").strip().replace("\n", " ")
+            if len(preview) > 160:
+                preview = preview[:160] + "…"
+            lines.append(f"{i}. `{doc_id}` · score {score:.2f} — {preview}")
+        return "\n".join(lines)
+
+    def _select_event_stream(model_id: str, query: str, session_id: str | None):
+        resolved = model_id if model_id in _MODEL_ALIASES else _MODEL_AUTO
+        if resolved == _MODEL_AGENT and config.rag.agent.enabled:
+            return _orchestrator.handle_agent(query, session_id), resolved
+        if resolved == _MODEL_RAG:
+            return _simple_auto_stream(query), resolved
+        return _orchestrator.handle_auto(query, session_id), resolved
+
+    @app.get("/v1/models")
+    async def openai_list_models():
+        """OpenAI 호환 모델 목록 — OpenWebUI가 selector에 노출합니다."""
+        now = int(time.time())
+        data = [
+            {
+                "id": _MODEL_AUTO,
+                "object": "model",
+                "created": now,
+                "owned_by": "slm-factory",
+                "description": "Auto-routed (Simple RAG ↔ Agent RAG)",
+            },
+            {
+                "id": _MODEL_RAG,
+                "object": "model",
+                "created": now,
+                "owned_by": "slm-factory",
+                "description": "Simple RAG (single-shot retrieval)",
+            },
+        ]
+        if config.rag.agent.enabled:
+            data.append(
+                {
+                    "id": _MODEL_AGENT,
+                    "object": "model",
+                    "created": now,
+                    "owned_by": "slm-factory",
+                    "description": "Agent RAG (multi-step ReAct)",
+                }
+            )
+        return {"object": "list", "data": data}
+
+    @app.post("/v1/chat/completions")
+    async def openai_chat_completions(body: _OpenAIChatRequest, request: Request):
+        """OpenAI Chat Completions 호환 엔드포인트.
+
+        - 마지막 user 메시지를 query로 사용합니다.
+        - 모델명으로 경로를 라우팅: ``slm-factory-auto`` | ``-agent`` | ``-rag``.
+        - ``user`` 필드가 있으면 세션 키로 사용해 Agent RAG 히스토리를 유지합니다.
+        """
+        user_msgs = [m for m in body.messages if m.role == "user"]
+        if not user_msgs:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "error": {
+                        "message": "messages에 user role이 최소 1개 필요합니다.",
+                        "type": "invalid_request_error",
+                    }
+                },
+            )
+        query = user_msgs[-1].text().strip()
+        if not query:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "error": {
+                        "message": "마지막 user 메시지가 비어 있습니다.",
+                        "type": "invalid_request_error",
+                    }
+                },
+            )
+
+        session_key = body.user if body.user else None
+
+        event_stream, resolved_model = _select_event_stream(
+            body.model, query, session_key
+        )
+
+        completion_id = f"chatcmpl-{uuid.uuid4().hex[:24]}"
+        created = int(time.time())
+
+        if body.stream:
+
+            async def _openai_sse():
+                first = {
+                    "id": completion_id,
+                    "object": "chat.completion.chunk",
+                    "created": created,
+                    "model": resolved_model,
+                    "choices": [
+                        {
+                            "index": 0,
+                            "delta": {"role": "assistant", "content": ""},
+                            "finish_reason": None,
+                        }
+                    ],
+                }
+                yield f"data: {json.dumps(first, ensure_ascii=False)}\n\n"
+
+                sources_collected: list[dict] = []
+                finish_reason = "stop"
+                try:
+                    async for event in event_stream:
+                        etype = event.get("type")
+                        if etype == "token":
+                            content = event.get("content", "")
+                            if not content:
+                                continue
+                            chunk = {
+                                "id": completion_id,
+                                "object": "chat.completion.chunk",
+                                "created": created,
+                                "model": resolved_model,
+                                "choices": [
+                                    {
+                                        "index": 0,
+                                        "delta": {"content": content},
+                                        "finish_reason": None,
+                                    }
+                                ],
+                            }
+                            yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
+                        elif etype == "sources":
+                            sources_collected = event.get("sources", []) or []
+                        elif etype == "done":
+                            break
+                except Exception as exc:
+                    logger.exception("OpenAI 호환 스트리밍 오류: %s", exc)
+                    err_chunk = {
+                        "id": completion_id,
+                        "object": "chat.completion.chunk",
+                        "created": created,
+                        "model": resolved_model,
+                        "choices": [
+                            {
+                                "index": 0,
+                                "delta": {
+                                    "content": "\n\n[오류] 응답 생성 중 문제가 발생했습니다."
+                                },
+                                "finish_reason": None,
+                            }
+                        ],
+                    }
+                    yield f"data: {json.dumps(err_chunk, ensure_ascii=False)}\n\n"
+                    finish_reason = "error"
+
+                if sources_collected:
+                    footer = _format_sources_markdown(sources_collected)
+                    if footer:
+                        footer_chunk = {
+                            "id": completion_id,
+                            "object": "chat.completion.chunk",
+                            "created": created,
+                            "model": resolved_model,
+                            "choices": [
+                                {
+                                    "index": 0,
+                                    "delta": {"content": footer},
+                                    "finish_reason": None,
+                                }
+                            ],
+                        }
+                        yield f"data: {json.dumps(footer_chunk, ensure_ascii=False)}\n\n"
+
+                final = {
+                    "id": completion_id,
+                    "object": "chat.completion.chunk",
+                    "created": created,
+                    "model": resolved_model,
+                    "choices": [
+                        {"index": 0, "delta": {}, "finish_reason": finish_reason}
+                    ],
+                }
+                yield f"data: {json.dumps(final, ensure_ascii=False)}\n\n"
+                yield "data: [DONE]\n\n"
+
+            return StreamingResponse(
+                _openai_sse(),
+                media_type="text/event-stream",
+                headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+            )
+
+        content_parts: list[str] = []
+        sources_collected: list[dict] = []
+        try:
+            async for event in event_stream:
+                etype = event.get("type")
+                if etype == "token":
+                    content_parts.append(event.get("content", "") or "")
+                elif etype == "sources":
+                    sources_collected = event.get("sources", []) or []
+                elif etype == "done":
+                    break
+        except Exception as exc:
+            logger.exception("OpenAI 호환 non-stream 오류: %s", exc)
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "error": {
+                        "message": "응답 생성 중 오류가 발생했습니다.",
+                        "type": "internal_error",
+                    }
+                },
+            )
+
+        full = "".join(content_parts).strip()
+        if sources_collected:
+            full = f"{full}{_format_sources_markdown(sources_collected)}"
+
+        prompt_tokens = sum(len(m.text()) for m in body.messages) // 4
+        completion_tokens = max(1, len(full) // 4)
+
+        return {
+            "id": completion_id,
+            "object": "chat.completion",
+            "created": created,
+            "model": resolved_model,
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {"role": "assistant", "content": full},
+                    "finish_reason": "stop",
+                }
+            ],
+            "usage": {
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "total_tokens": prompt_tokens + completion_tokens,
+            },
+        }
 
     return app
 

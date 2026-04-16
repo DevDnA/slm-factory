@@ -1446,10 +1446,9 @@ class TestReflectorIntegration:
         # synthesis 2회 호출 (초안 + 수정본)
         assert fixtures.app_state.http_client.stream.call_count == 2
 
-        # 두 답변의 토큰이 모두 stream됨
+        # HIGH-1/HIGH-2: 드래프트는 yield 하지 않고 최종 답변만 단일 token으로 발행.
         tokens = [e["content"] for e in events if e["type"] == "token"]
-        assert "초안 답변" in tokens
-        assert "수정된 답변" in tokens
+        assert tokens == ["수정된 답변"]
 
         # 보완 source가 최종 sources에 포함됨
         sources = [e for e in events if e["type"] == "sources"][0]["sources"]

@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import Any, AsyncGenerator, Callable
+from typing import Any, AsyncGenerator, Callable, Iterable
 
 from ...utils import get_logger
 from .persona_router import PersonaRouter
@@ -36,8 +36,6 @@ SimpleStreamFn = Callable[[str], AsyncGenerator[dict, None]]
 
 # 컨텍스트 합성 시 prompt에 삽입되는 참고 문서의 최대 길이.
 _SYNTHESIS_CONTEXT_CHAR_LIMIT = 6000
-# observation 이벤트로 클라이언트에 보낼 때의 길이 제한.
-_OBSERVATION_PREVIEW_LIMIT = 300
 
 
 class AgentOrchestrator:
@@ -89,6 +87,14 @@ class AgentOrchestrator:
         )
         self._skill_registry = self._build_skill_registry(config)
         self._hook_registry = self._build_hook_registry(config)
+        # observation 이벤트로 클라이언트에 보낼 때의 길이 제한 — config에서 캐시.
+        self._obs_preview_limit = getattr(
+            config.rag.agent, "observation_preview_limit", 300
+        )
+        # 모든 LLM 호출에 사용할 Ollama keep_alive 값 — config에서 캐시.
+        self._keep_alive = getattr(
+            config.rag.agent, "ollama_keep_alive", "5m"
+        )
 
     @staticmethod
     def _build_hook_registry(config: Any):
@@ -160,10 +166,17 @@ class AgentOrchestrator:
     async def handle_auto(
         self, query: str, session_id: str | None = None
     ) -> AsyncGenerator[dict, None]:
-        """``/auto``의 전체 이벤트 스트림을 생성합니다."""
-        query = await self._hook_registry.run("pre_query", query)
+        """``/auto``의 전체 이벤트 스트림을 생성합니다.
+
+        raw_query는 사용자 입력 그대로 보존되어 세션 history에 저장되고,
+        normalized_query는 pre_query hook을 거쳐 router/planner/synthesis 등
+        downstream 단계에 전달됩니다 (의미: 대화 history와 LLM 컨텍스트가
+        동일한 사용자 발화를 보장).
+        """
+        raw_query = query
+        normalized_query = await self._hook_registry.run("pre_query", query)
         # IntentClassifier가 주입된 router는 ``route_async()``를 통해 LLM 분류를 수행.
-        decision = await self._router.route_async(query)
+        decision = await self._router.route_async(normalized_query)
         logger.info(
             "라우팅 결정: mode=%s complexity=%.2f reason=%s intent=%s",
             decision.mode,
@@ -182,7 +195,9 @@ class AgentOrchestrator:
             decision.intent == "ambiguous"
             and self._config.rag.agent.clarifier_enabled
         ):
-            async for event in self._stream_clarifier(query, session_id):
+            async for event in self._stream_clarifier(
+                normalized_query, session_id, raw_query=raw_query
+            ):
                 yield event
             return
 
@@ -191,10 +206,12 @@ class AgentOrchestrator:
             logger.info("Persona 선택: %s", persona.name)
 
         if decision.mode == "simple":
-            async for event in self._simple_stream_fn(query):
+            async for event in self._simple_stream_fn(normalized_query):
                 yield event
         else:
-            async for event in self._stream_agent(query, session_id, persona=persona):
+            async for event in self._stream_agent(
+                normalized_query, session_id, persona=persona, raw_query=raw_query
+            ):
                 yield event
 
     async def handle_agent(
@@ -205,8 +222,11 @@ class AgentOrchestrator:
         ``handle_auto``와 달리 ``{type: route}`` 이벤트를 발행하지 않으며,
         ``planner_enabled`` 설정에 따라 planner 또는 legacy 경로로 분기합니다.
         """
-        query = await self._hook_registry.run("pre_query", query)
-        async for event in self._stream_agent(query, session_id):
+        raw_query = query
+        normalized_query = await self._hook_registry.run("pre_query", query)
+        async for event in self._stream_agent(
+            normalized_query, session_id, raw_query=raw_query
+        ):
             yield event
 
     # ------------------------------------------------------------------
@@ -214,18 +234,35 @@ class AgentOrchestrator:
     # ------------------------------------------------------------------
 
     async def _stream_clarifier(
-        self, query: str, session_id: str | None
+        self,
+        query: str,
+        session_id: str | None,
+        *,
+        raw_query: str | None = None,
     ) -> AsyncGenerator[dict, None]:
-        """Clarifier persona로 명확화 질문을 생성·반환합니다."""
+        """Clarifier persona로 명확화 질문을 생성·반환합니다.
+
+        ``raw_query``는 사용자가 입력한 원문이며 세션 history에 그대로 저장.
+        ``query``는 정규화된 텍스트로 LLM 프롬프트(history)에 전달됩니다.
+        """
         from .personas.clarifier import Clarifier
         from .session import Message
 
         session_store = self._app_state.agent_session_manager
         http_client = self._app_state.http_client
+        aux_timeout = min(self._config.rag.request_timeout, 30.0)
 
         sid, _ = session_store.get_or_create(session_id)
+        # Clarifier 경로에서도 긴 대화는 압축이 필요함 — 기록 전에 시도해 history를 줄임.
+        await self._maybe_compress_memory(
+            session_store, sid, http_client, aux_timeout
+        )
         history = session_store.format_history(sid)
-        session_store.add_message(sid, Message(role="user", content=query))
+        # 세션에는 사용자가 실제로 입력한 raw_query를 저장 (history와 입력 일치).
+        session_store.add_message(
+            sid,
+            Message(role="user", content=raw_query if raw_query is not None else query),
+        )
 
         clarifier = Clarifier(
             http_client=http_client,
@@ -233,6 +270,7 @@ class AgentOrchestrator:
             api_base=self._api_base,
             request_timeout=min(self._config.rag.request_timeout, 15.0),
             max_questions=self._config.rag.agent.clarifier_max_questions,
+            keep_alive=self._keep_alive,
         )
         result = await clarifier.generate_questions(query, history=history)
 
@@ -257,15 +295,18 @@ class AgentOrchestrator:
         session_id: str | None,
         *,
         persona: Persona | None = None,
+        raw_query: str | None = None,
     ) -> AsyncGenerator[dict, None]:
         """``planner_enabled`` 설정에 따라 planner 또는 legacy 경로로 디스패치합니다."""
         if self._config.rag.agent.planner_enabled:
             async for ev in self._stream_agent_planner(
-                query, session_id, persona=persona
+                query, session_id, persona=persona, raw_query=raw_query
             ):
                 yield ev
         else:
-            async for ev in self._stream_agent_legacy(query, session_id):
+            async for ev in self._stream_agent_legacy(
+                query, session_id, raw_query=raw_query
+            ):
                 yield ev
 
     # ------------------------------------------------------------------
@@ -273,9 +314,18 @@ class AgentOrchestrator:
     # ------------------------------------------------------------------
 
     async def _stream_agent_legacy(
-        self, query: str, session_id: str | None
+        self,
+        query: str,
+        session_id: str | None,
+        *,
+        raw_query: str | None = None,
+        skip_user_message: bool = False,
     ) -> AsyncGenerator[dict, None]:
-        """Agent RAG legacy 경로 — 세션 관리 + AgentLoop run_stream 이벤트 매핑."""
+        """Agent RAG legacy 경로 — 세션 관리 + AgentLoop run_stream 이벤트 매핑.
+
+        ``skip_user_message=True``는 planner 경로에서 fallback으로 진입할 때
+        이미 user 메시지가 기록되어 있는 경우에 사용합니다 (이중 기록 방지).
+        """
         from .loop import AgentLoop
         from .session import Message
 
@@ -294,13 +344,22 @@ class AgentOrchestrator:
             max_iterations=self._config.rag.agent.max_iterations,
             max_tokens=self._rag_max_tokens,
             request_timeout=self._config.rag.request_timeout,
+            keep_alive=self._keep_alive,
         )
 
-        session_store.add_message(sid, Message(role="user", content=query))
+        if not skip_user_message:
+            session_store.add_message(
+                sid,
+                Message(
+                    role="user",
+                    content=raw_query if raw_query is not None else query,
+                ),
+            )
 
         stream_reasoning = self._config.rag.agent.stream_reasoning
         answer_parts: list[str] = []
         final_sources: list[dict] = []
+        preview_limit = self._obs_preview_limit
 
         try:
             async for event in agent.run_stream(query, history):
@@ -318,8 +377,8 @@ class AgentOrchestrator:
                         "iteration": event.iteration,
                     }
                 elif event.type == "observation" and stream_reasoning:
-                    obs_preview = event.content[:300]
-                    if len(event.content) > 300:
+                    obs_preview = event.content[:preview_limit]
+                    if len(event.content) > preview_limit:
                         obs_preview += "..."
                     yield {
                         "type": "observation",
@@ -344,18 +403,17 @@ class AgentOrchestrator:
             }
 
         answer = "".join(answer_parts)
-        if answer:
+        if answer.strip():
             session_store.add_message(sid, Message(role="assistant", content=answer))
-
-        sources_payload = [
-            {
-                "content": s.get("content", ""),
-                "doc_id": s.get("doc_id", ""),
-                "score": s.get("score", 0.0),
-            }
-            for s in final_sources
-        ]
-        yield {"type": "sources", "sources": sources_payload}
+            sources_payload = [
+                {
+                    "content": s.get("content", ""),
+                    "doc_id": s.get("doc_id", ""),
+                    "score": s.get("score", 0.0),
+                }
+                for s in final_sources
+            ]
+            yield {"type": "sources", "sources": sources_payload}
         yield {"type": "done", "session_id": sid}
 
     # ------------------------------------------------------------------
@@ -368,8 +426,22 @@ class AgentOrchestrator:
         session_id: str | None,
         *,
         persona: Persona | None = None,
+        raw_query: str | None = None,
     ) -> AsyncGenerator[dict, None]:
-        """Planner 기반 오케스트레이션 경로."""
+        """Planner 기반 오케스트레이션 경로.
+
+        설계 원칙
+        ---------
+        - **드래프트 vs 발행 분리**: 첫 합성·reflector·review-work·self-improvement
+          retry는 모두 ``_collect_synthesis``로 답변을 만들고 yield하지 않습니다.
+          모든 quality loop가 끝난 뒤 **최종 답변만** 단일 ``token`` 이벤트로
+          발행합니다 — 답변 중복 yield 방지(HIGH-1/HIGH-2).
+        - **세션 user 메시지 우선 기록**: planner.plan() 호출 전에 user 메시지를
+          기록해 follow-up 질의의 plan이 history를 반영하도록 합니다(HIGH-3).
+        - **raw vs normalized**: 세션 history에는 ``raw_query``를, planner/synthesis
+          downstream에는 ``query``(normalized)를 사용해 사용자 입력과 컨텍스트를
+          분리합니다(MED-1).
+        """
         from .planner import Planner
         from .session import Message
         from .verifier import Verifier
@@ -379,13 +451,29 @@ class AgentOrchestrator:
         stream_reasoning = self._config.rag.agent.stream_reasoning
         # Planner/Verifier는 메인 timeout보다 짧게 — 빠른 실패로 fallback 경로 확보.
         aux_timeout = min(self._config.rag.request_timeout, 30.0)
+        preview_limit = self._obs_preview_limit
 
-        # Plan 먼저 생성 — 이 시점까지는 세션에 부수효과 없음.
+        # --- HIGH-3: user 메시지 기록을 planner.plan() **이전**에 수행 -------
+        session_store = self._app_state.agent_session_manager
+        tool_registry = self._app_state.agent_tool_registry
+
+        sid, _ = session_store.get_or_create(session_id)
+        history = session_store.format_history(sid)
+        session_store.add_message(
+            sid,
+            Message(
+                role="user",
+                content=raw_query if raw_query is not None else query,
+            ),
+        )
+
+        # Plan 생성.
         planner = Planner(
             http_client=http_client,
             ollama_model=self._model_for("planner"),
             api_base=self._api_base,
             request_timeout=aux_timeout,
+            keep_alive=self._keep_alive,
         )
         plan = await planner.plan(query)
 
@@ -407,22 +495,22 @@ class AgentOrchestrator:
                 plan.steps = []
 
         # Fallback 게이트 — planner가 구조적으로 실패했으면 legacy 경로로 위임.
-        # 세션 user 메시지는 legacy가 기록하므로 여기서는 건너뜁니다.
+        # user 메시지는 이미 위에서 기록했으므로 legacy에는 ``skip_user_message=True``.
+        # 또한 planner가 생성한 sid를 그대로 사용해 동일 세션에 assistant 답변이
+        # 기록되도록 합니다 (이중 기록 + 세션 분기 방지).
         if plan.is_fallback and self._config.rag.agent.legacy_fallback_enabled:
             logger.warning(
                 "Planner fallback (%s) — legacy AgentLoop 경로로 전환",
                 plan.rationale,
             )
-            async for event in self._stream_agent_legacy(query, session_id):
+            async for event in self._stream_agent_legacy(
+                query,
+                sid,
+                raw_query=raw_query,
+                skip_user_message=True,
+            ):
                 yield event
             return
-
-        session_store = self._app_state.agent_session_manager
-        tool_registry = self._app_state.agent_tool_registry
-
-        sid, _ = session_store.get_or_create(session_id)
-        history = session_store.format_history(sid)
-        session_store.add_message(sid, Message(role="user", content=query))
 
         if stream_reasoning:
             summary = f"계획: {plan.strategy} 전략, {len(plan.steps)}개 step"
@@ -431,14 +519,27 @@ class AgentOrchestrator:
             yield {"type": "thought", "content": summary, "iteration": 0}
 
         all_sources: list[dict] = []
+        seen_doc_ids: set[str] = set()
         context_parts: list[str] = []
 
         # --- Plan step 실행 -------------------------------------------
-        # 병렬 조건: parallel_steps=True + search-only + 2개 이상.
+        # 병렬 조건: parallel_steps=True + 모든 step이 parallel_safe + 2개 이상.
+        # ToolSpec.parallel_safe 메타를 신뢰해 read-only 도구만 병렬화합니다.
+        def _tool_is_parallel_safe(tool_name: str) -> bool:
+            # ToolRegistry는 ``get`` 또는 ``_tools`` 사전을 노출 — get으로 조회.
+            getter = getattr(tool_registry, "get", None)
+            if not callable(getter):
+                # MagicMock 등 테스트 fixture 호환: search-only fallback 정책 유지.
+                return tool_name == "search"
+            spec = getter(tool_name)
+            if spec is None:
+                return False
+            return bool(getattr(spec, "parallel_safe", False))
+
         can_parallelize = (
             self._config.rag.agent.parallel_steps
             and len(plan.steps) >= 2
-            and all(step.tool == "search" for step in plan.steps)
+            and all(_tool_is_parallel_safe(step.tool) for step in plan.steps)
         )
 
         if can_parallelize:
@@ -475,16 +576,12 @@ class AgentOrchestrator:
                     )
                     continue
 
-                for src in result.sources:
-                    if not any(
-                        s.get("doc_id") == src.get("doc_id") for s in all_sources
-                    ):
-                        all_sources.append(src)
+                self._dedup_extend(all_sources, seen_doc_ids, result.sources)
                 context_parts.append(result.text)
 
                 if stream_reasoning:
-                    obs_preview = result.text[:_OBSERVATION_PREVIEW_LIMIT]
-                    if len(result.text) > _OBSERVATION_PREVIEW_LIMIT:
+                    obs_preview = result.text[:preview_limit]
+                    if len(result.text) > preview_limit:
                         obs_preview += "..."
                     yield {
                         "type": "observation",
@@ -514,14 +611,12 @@ class AgentOrchestrator:
                     logger.warning("도구 '%s' 실행 실패: %s", step.tool, exc)
                     continue
 
-                for src in result.sources:
-                    if not any(s.get("doc_id") == src.get("doc_id") for s in all_sources):
-                        all_sources.append(src)
+                self._dedup_extend(all_sources, seen_doc_ids, result.sources)
                 context_parts.append(result.text)
 
                 if stream_reasoning:
-                    obs_preview = result.text[:_OBSERVATION_PREVIEW_LIMIT]
-                    if len(result.text) > _OBSERVATION_PREVIEW_LIMIT:
+                    obs_preview = result.text[:preview_limit]
+                    if len(result.text) > preview_limit:
                         obs_preview += "..."
                     yield {
                         "type": "observation",
@@ -537,6 +632,7 @@ class AgentOrchestrator:
                 ollama_model=self._model_for("verifier"),
                 api_base=self._api_base,
                 request_timeout=aux_timeout,
+                keep_alive=self._keep_alive,
             )
             max_repairs = self._config.rag.agent.verifier_max_repairs
             for _ in range(max_repairs):
@@ -571,14 +667,14 @@ class AgentOrchestrator:
                     logger.warning("Repair search 실패: %s", exc)
                     break
 
-                for src in repair_result.sources:
-                    if not any(s.get("doc_id") == src.get("doc_id") for s in all_sources):
-                        all_sources.append(src)
+                self._dedup_extend(
+                    all_sources, seen_doc_ids, repair_result.sources
+                )
                 context_parts.append(repair_result.text)
 
                 if stream_reasoning:
-                    obs_preview = repair_result.text[:_OBSERVATION_PREVIEW_LIMIT]
-                    if len(repair_result.text) > _OBSERVATION_PREVIEW_LIMIT:
+                    obs_preview = repair_result.text[:preview_limit]
+                    if len(repair_result.text) > preview_limit:
                         obs_preview += "..."
                     yield {
                         "type": "observation",
@@ -586,28 +682,33 @@ class AgentOrchestrator:
                         "iteration": repair_iteration,
                     }
 
-        # --- 답변 합성 -------------------------------------------------
+        # --- 답변 합성(드래프트) ---------------------------------------
         # 이전 턴의 참조 문서를 synthesis 컨텍스트에 주입(follow-up 연속성).
         prior_context = self._format_prior_context(session_store, sid)
-        context_str = "\n\n".join(context_parts)
-        if prior_context:
-            context_str = f"{prior_context}\n\n{context_str}" if context_str else prior_context
 
-        # Skills 주입: 질의에 매칭되는 skill의 prompt_addon을 context 앞에 prepend.
-        skill_addon = self._format_active_skills(query)
-        if skill_addon:
-            context_str = f"{skill_addon}\n\n{context_str}" if context_str else skill_addon
+        def _build_context() -> str:
+            """현재 시점 context_parts + prior_context + skill_addon로 컨텍스트 재계산.
+
+            Self-Improvement 등 후행 단계에서 반드시 호출해 reflector/review-work
+            보완 검색 결과까지 포함되도록 합니다(MED-6).
+            """
+            ctx = "\n\n".join(context_parts)
+            if prior_context:
+                ctx = f"{prior_context}\n\n{ctx}" if ctx else prior_context
+            addon = self._format_active_skills(query)
+            if addon:
+                ctx = f"{addon}\n\n{ctx}" if ctx else addon
+            return ctx
+
+        context_str = _build_context()
 
         # post_search hook — 수집된 source 목록을 후처리(dedup, boosting 등).
         all_sources = await self._hook_registry.run("post_search", all_sources)
 
-        answer_parts: list[str] = []
-        async for token in self._stream_synthesis(
+        # 첫 합성: token yield 없이 답변만 수집(드래프트).
+        answer = await self._collect_synthesis(
             query, context_str, history, persona=persona
-        ):
-            answer_parts.append(token)
-            yield {"type": "token", "content": token}
-        answer = "".join(answer_parts)
+        )
         answer = await self._hook_registry.run("post_synthesis", answer)
 
         # --- Reflector: 답변 자기 검증 + 필요 시 추가 검색·재합성 -------
@@ -619,6 +720,7 @@ class AgentOrchestrator:
                 ollama_model=self._model_for("reflector"),
                 api_base=self._api_base,
                 request_timeout=aux_timeout,
+                keep_alive=self._keep_alive,
             )
             max_retries = self._config.rag.agent.reflector_max_retries
             reflect_iteration = repair_iteration
@@ -659,16 +761,12 @@ class AgentOrchestrator:
                     logger.warning("Reflector 보완 검색 실패: %s", exc)
                     break
 
-                for src in extra.sources:
-                    if not any(
-                        s.get("doc_id") == src.get("doc_id") for s in all_sources
-                    ):
-                        all_sources.append(src)
+                self._dedup_extend(all_sources, seen_doc_ids, extra.sources)
                 context_parts.append(extra.text)
 
                 if stream_reasoning:
-                    obs_preview = extra.text[:_OBSERVATION_PREVIEW_LIMIT]
-                    if len(extra.text) > _OBSERVATION_PREVIEW_LIMIT:
+                    obs_preview = extra.text[:preview_limit]
+                    if len(extra.text) > preview_limit:
                         obs_preview += "..."
                     yield {
                         "type": "observation",
@@ -681,18 +779,10 @@ class AgentOrchestrator:
                         "iteration": reflect_iteration,
                     }
 
-                new_context = "\n\n".join(context_parts)
-                if prior_context:
-                    new_context = (
-                        f"{prior_context}\n\n{new_context}" if new_context else prior_context
-                    )
-                retry_parts: list[str] = []
-                async for token in self._stream_synthesis(
-                    query, new_context, history, persona=persona
-                ):
-                    retry_parts.append(token)
-                    yield {"type": "token", "content": token}
-                retry_answer = "".join(retry_parts)
+                # 재합성도 token yield 없이 수집 — 최종 답변만 발행.
+                retry_answer = await self._collect_synthesis(
+                    query, _build_context(), history, persona=persona
+                )
                 if retry_answer:
                     answer = retry_answer
 
@@ -716,6 +806,7 @@ class AgentOrchestrator:
                 ollama_model=self._model_for("reviewer"),
                 api_base=self._api_base,
                 request_timeout=aux_timeout,
+                keep_alive=self._keep_alive,
             )
             for v in verdict.verdicts:
                 yield {
@@ -756,16 +847,14 @@ class AgentOrchestrator:
                     review_extra = None
 
                 if review_extra is not None:
-                    for src in review_extra.sources:
-                        if not any(
-                            s.get("doc_id") == src.get("doc_id") for s in all_sources
-                        ):
-                            all_sources.append(src)
+                    self._dedup_extend(
+                        all_sources, seen_doc_ids, review_extra.sources
+                    )
                     context_parts.append(review_extra.text)
 
                     if stream_reasoning:
-                        obs_preview = review_extra.text[:_OBSERVATION_PREVIEW_LIMIT]
-                        if len(review_extra.text) > _OBSERVATION_PREVIEW_LIMIT:
+                        obs_preview = review_extra.text[:preview_limit]
+                        if len(review_extra.text) > preview_limit:
                             obs_preview += "..."
                         yield {
                             "type": "observation",
@@ -773,20 +862,9 @@ class AgentOrchestrator:
                             "iteration": repair_iteration,
                         }
 
-                    new_context = "\n\n".join(context_parts)
-                    if prior_context:
-                        new_context = (
-                            f"{prior_context}\n\n{new_context}"
-                            if new_context
-                            else prior_context
-                        )
-                    review_retry_parts: list[str] = []
-                    async for token in self._stream_synthesis(
-                        query, new_context, history, persona=persona
-                    ):
-                        review_retry_parts.append(token)
-                        yield {"type": "token", "content": token}
-                    review_retry_answer = "".join(review_retry_parts)
+                    review_retry_answer = await self._collect_synthesis(
+                        query, _build_context(), history, persona=persona
+                    )
                     if review_retry_answer:
                         answer = review_retry_answer
 
@@ -799,6 +877,7 @@ class AgentOrchestrator:
                 ollama_model=self._model_for("scorer"),
                 api_base=self._api_base,
                 request_timeout=aux_timeout,
+                keep_alive=self._keep_alive,
             )
             min_score = getattr(self._config.rag.agent, "min_quality_score", 7.0)
             max_iters = getattr(
@@ -816,6 +895,9 @@ class AgentOrchestrator:
                 result = await scorer.score(
                     query, answer, current_sources_for_score
                 )
+                # LOW-5: scorer 실패 시 무의미한 중립 점수로 재시도하지 않음.
+                if not result.ok:
+                    break
                 if not result.below(min_score):
                     break
 
@@ -829,44 +911,48 @@ class AgentOrchestrator:
                         "iteration": 0,
                     }
 
-                # Feedback을 context 앞에 주입하고 재합성.
+                # MED-6: reflector/review-work 단계에서 추가된 context를 반영하도록
+                # context를 직전에 재계산.
+                current_context_str = _build_context()
                 feedback_block = self._format_score_feedback(result)
                 improved_context = (
-                    f"{feedback_block}\n\n{context_str}"
-                    if context_str
+                    f"{feedback_block}\n\n{current_context_str}"
+                    if current_context_str
                     else feedback_block
                 )
-                improve_parts: list[str] = []
-                async for token in self._stream_synthesis(
+                new_answer = await self._collect_synthesis(
                     query, improved_context, history, persona=persona
-                ):
-                    improve_parts.append(token)
-                    yield {"type": "token", "content": token}
-                new_answer = "".join(improve_parts)
+                )
                 if new_answer:
                     answer = new_answer
 
-        if answer:
+        # --- 최종 답변 발행 (단일 token 이벤트) ------------------------
+        # 모든 quality loop가 종료된 뒤에야 답변 텍스트를 클라이언트에 발행합니다.
+        # 단일 이벤트로 보내 OpenAI compat adapter의 ``content_parts`` 누적이
+        # 정확히 한 답변만 포함하도록 보장합니다(HIGH-1/HIGH-2).
+        if answer.strip():
+            yield {"type": "token", "content": answer}
             session_store.add_message(sid, Message(role="assistant", content=answer))
             await self._maybe_compress_memory(session_store, sid, http_client, aux_timeout)
 
-        sources_payload = [
-            {
-                "content": s.get("content", ""),
-                "doc_id": s.get("doc_id", ""),
-                "score": s.get("score", 0.0),
-            }
-            for s in all_sources
-        ]
+            sources_payload = [
+                {
+                    "content": s.get("content", ""),
+                    "doc_id": s.get("doc_id", ""),
+                    "score": s.get("score", 0.0),
+                }
+                for s in all_sources
+            ]
 
-        # 다음 턴을 위해 현재 참조 문서를 세션에 저장.
-        if self._config.rag.agent.session_source_reuse and sources_payload:
-            limit = self._config.rag.agent.session_source_reuse_limit
-            set_last = getattr(session_store, "set_last_sources", None)
-            if callable(set_last):
-                set_last(sid, sources_payload[:limit])
+            # 다음 턴을 위해 현재 참조 문서를 세션에 저장.
+            if self._config.rag.agent.session_source_reuse and sources_payload:
+                limit = self._config.rag.agent.session_source_reuse_limit
+                set_last = getattr(session_store, "set_last_sources", None)
+                if callable(set_last):
+                    set_last(sid, sources_payload[:limit])
 
-        yield {"type": "sources", "sources": sources_payload}
+            yield {"type": "sources", "sources": sources_payload}
+
         yield {"type": "done", "session_id": sid}
 
     @staticmethod
@@ -995,7 +1081,7 @@ class AgentOrchestrator:
             "prompt": prompt,
             "stream": True,
             "think": False,
-            "keep_alive": -1,
+            "keep_alive": self._keep_alive,
             "options": {"num_predict": self._rag_max_tokens},
         }
         try:
@@ -1021,6 +1107,63 @@ class AgentOrchestrator:
         except Exception as exc:
             logger.error("답변 합성 실패: %s", exc)
             yield "[오류] 답변 생성 중 문제가 발생했습니다."
+
+    async def _collect_synthesis(
+        self,
+        query: str,
+        context: str,
+        history: str,
+        *,
+        persona: Persona | None = None,
+    ) -> str:
+        """``_stream_synthesis``를 소비해 최종 텍스트만 반환합니다.
+
+        Planner 경로에서는 첫 합성 + reflector·review-work·self-improvement
+        retry 모두 이 helper로 답변을 만들고, **모든 quality loop가 끝난 뒤**
+        최종 답변만 단일 token 이벤트로 발행합니다 — 답변 중복 yield 방지.
+        """
+        parts: list[str] = []
+        async for token in self._stream_synthesis(
+            query, context, history, persona=persona
+        ):
+            parts.append(token)
+        return "".join(parts)
+
+    @staticmethod
+    def _dedup_extend(
+        all_sources: list[dict],
+        seen: set[str],
+        new_sources: Iterable[dict],
+    ) -> None:
+        """``new_sources``를 doc_id 기준으로 dedup하여 ``all_sources``에 추가.
+
+        이미 존재하는 doc_id는 score가 높을 때만 in-place 갱신합니다.
+        ``seen``은 호출 측이 보유한 doc_id set으로, in-place 갱신됩니다.
+        """
+        for src in new_sources:
+            if not isinstance(src, dict):
+                continue
+            doc_id = str(src.get("doc_id", ""))
+            if doc_id and doc_id in seen:
+                # 기존 항목과 score 비교 후 갱신
+                try:
+                    new_score = float(src.get("score", 0.0) or 0.0)
+                except (TypeError, ValueError):
+                    new_score = 0.0
+                for i, existing in enumerate(all_sources):
+                    if str(existing.get("doc_id", "")) != doc_id:
+                        continue
+                    try:
+                        old_score = float(existing.get("score", 0.0) or 0.0)
+                    except (TypeError, ValueError):
+                        old_score = 0.0
+                    if new_score > old_score:
+                        all_sources[i] = src
+                    break
+                continue
+            all_sources.append(src)
+            if doc_id:
+                seen.add(doc_id)
 
 
 __all__ = ["AgentOrchestrator", "SimpleStreamFn"]

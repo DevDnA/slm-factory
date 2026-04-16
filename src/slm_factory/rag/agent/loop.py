@@ -85,6 +85,8 @@ class AgentLoop:
         max_iterations: int = 5,
         max_tokens: int = -1,
         request_timeout: float = 120.0,
+        *,
+        keep_alive: str = "5m",
     ) -> None:
         self._http_client = http_client
         self._tools = tool_registry
@@ -93,6 +95,10 @@ class AgentLoop:
         self._max_iterations = max_iterations
         self._max_tokens = max_tokens
         self._request_timeout = request_timeout
+        self._keep_alive = keep_alive
+        # 동일 query 분해 결과 캐시 — LLM 호출 제거.
+        self._decompose_cache: dict[str, list[str]] = {}
+        self._decompose_cache_max = 50
 
     # ------------------------------------------------------------------
     # LLM 호출
@@ -106,7 +112,7 @@ class AgentLoop:
             "prompt": prompt,
             "stream": False,
             "think": False,
-            "keep_alive": -1,
+            "keep_alive": self._keep_alive,
         }
         if self._max_tokens > 0:
             payload["options"] = {"num_predict": self._max_tokens}
@@ -131,7 +137,7 @@ class AgentLoop:
             "prompt": prompt,
             "stream": True,
             "think": False,
-            "keep_alive": -1,
+            "keep_alive": self._keep_alive,
         }
         if self._max_tokens > 0:
             payload["options"] = {"num_predict": self._max_tokens}
@@ -178,7 +184,14 @@ class AgentLoop:
     # ------------------------------------------------------------------
 
     async def _decompose_query(self, query: str) -> list[str]:
-        """복합 질문을 하위 질문으로 분해합니다. 단순 질문이면 그대로 반환."""
+        """복합 질문을 하위 질문으로 분해합니다. 단순 질문이면 그대로 반환.
+
+        동일 query에 대한 LLM 호출을 막기 위해 in-memory dict로 LRU-ish
+        캐시를 운용합니다 (size 제한만 적용 — 단순한 정책으로 충분).
+        """
+        cached = self._decompose_cache.get(query)
+        if cached is not None:
+            return list(cached)
         try:
             prompt = DECOMPOSE_PROMPT.format(query=query)
             response = await self._generate(prompt)
@@ -189,10 +202,25 @@ class AgentLoop:
                 data = json.loads(response[brace_start:brace_end + 1])
                 subs = data.get("sub_questions", [])
                 if isinstance(subs, list) and len(subs) >= 1:
-                    return subs[:3]  # 최대 3개
+                    result = [str(s) for s in subs[:3]]  # 최대 3개
+                    self._cache_decompose(query, result)
+                    return result
         except Exception:
             pass
-        return [query]
+        fallback = [query]
+        self._cache_decompose(query, fallback)
+        return fallback
+
+    def _cache_decompose(self, query: str, result: list[str]) -> None:
+        """decompose 결과를 size 제한 캐시에 저장합니다."""
+        if len(self._decompose_cache) >= self._decompose_cache_max:
+            # 가장 오래된(삽입 순서 첫) 엔트리 1개 퇴거.
+            try:
+                oldest = next(iter(self._decompose_cache))
+                self._decompose_cache.pop(oldest, None)
+            except StopIteration:
+                pass
+        self._decompose_cache[query] = list(result)
 
     async def run(self, query: str, history: str = "") -> AgentResult:
         """동기적 실행 — 최종 결과를 반환합니다."""
@@ -363,7 +391,14 @@ class AgentLoop:
                                 )
                     else:
                         # Final Answer 이후 — 추론 키워드 나오면 중단
-                        if _REASONING_STOP.search(buffer[buffer.rfind("Final Answer"):] if "Final Answer" in buffer else buffer[-200:]):
+                        # 영문/한국어 마커 모두 탐색 (loop:336 _FINAL_ANSWER_MARKER와 일치)
+                        marker_pos = -1
+                        for marker in ("Final Answer", "최종 답변"):
+                            pos = buffer.rfind(marker)
+                            if pos > marker_pos:
+                                marker_pos = pos
+                        tail = buffer[marker_pos:] if marker_pos != -1 else buffer[-200:]
+                        if _REASONING_STOP.search(tail):
                             break
                         # 특수 태그 필터링
                         clean_token = _SPECIAL_TAG_RE.sub("", token)
@@ -427,11 +462,18 @@ class AgentLoop:
                 scratchpad += f"Action Input: {json.dumps(step.action_input or {}, ensure_ascii=False)}\n"
                 scratchpad += f"Observation: {obs_text}\n"
             else:
-                # Action도 Final Answer도 없음 — fallback 답변
+                # Action도 Final Answer도 없음 — fallback 답변.
+                # thought/buffer가 모두 비어있으면 빈 답변이 되므로 error로 escalate.
                 answer = step.thought or buffer
                 if answer:
                     yield AgentEvent(
                         type="token", content=answer, iteration=iteration,
+                    )
+                else:
+                    yield AgentEvent(
+                        type="error",
+                        content="LLM 응답이 비어 있습니다 — 답변을 생성하지 못했습니다.",
+                        iteration=iteration,
                     )
                 yield AgentEvent(
                     type="done", content="", iteration=iteration,
@@ -439,8 +481,17 @@ class AgentLoop:
                 )
                 return
 
-        # max_iterations 도달 — 강제 답변도 실시간 스트리밍
+        # max_iterations 도달 — 강제 답변도 실시간 스트리밍.
+        # 클라이언트가 "강제 답변" 단계임을 인지하도록 thought 이벤트를 먼저 발행.
         logger.warning("max_iterations(%d) 도달 — 강제 답변 생성", self._max_iterations)
+        yield AgentEvent(
+            type="thought",
+            content=(
+                f"max_iterations({self._max_iterations}) 도달 — "
+                "수집된 정보로 강제 답변 생성"
+            ),
+            iteration=self._max_iterations,
+        )
         force_prompt = FORCE_ANSWER_PROMPT.format(
             gathered_context=scratchpad[-3000:] if scratchpad else "(수집된 정보 없음)",
             query=query,
@@ -476,6 +527,16 @@ class AgentLoop:
     ) -> AgentResult:
         """max_iterations 도달 시 수집된 컨텍스트로 강제 답변을 생성합니다."""
         logger.warning("max_iterations(%d) 도달 — 강제 답변 생성", self._max_iterations)
+
+        # 강제 답변 단계임을 사용자/디버깅용 thought 이벤트로 기록.
+        events.append(AgentEvent(
+            type="thought",
+            content=(
+                f"max_iterations({self._max_iterations}) 도달 — "
+                "수집된 정보로 강제 답변 생성"
+            ),
+            iteration=self._max_iterations,
+        ))
 
         prompt = FORCE_ANSWER_PROMPT.format(
             gathered_context=scratchpad[-3000:] if scratchpad else "(수집된 정보 없음)",

@@ -70,12 +70,15 @@ class Reflector:
         api_base: str,
         request_timeout: float = 30.0,
         max_tokens: int = 250,
+        *,
+        keep_alive: str = "5m",
     ) -> None:
         self._http_client = http_client
         self._model = ollama_model
         self._api_base = api_base
         self._request_timeout = request_timeout
         self._max_tokens = max_tokens
+        self._keep_alive = keep_alive
 
     # ------------------------------------------------------------------
     # Public API
@@ -135,7 +138,7 @@ class Reflector:
                 "stream": False,
                 "think": False,
                 "format": "json",
-                "keep_alive": -1,
+                "keep_alive": self._keep_alive,
                 "options": {"num_predict": self._max_tokens},
             },
             timeout=self._request_timeout,
