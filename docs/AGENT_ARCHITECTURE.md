@@ -33,7 +33,7 @@ QueryRouter.route_async
        │
        ▼
     Plan step 실행
-      ├─ parallel_steps + search×N ──► asyncio.gather (Phase 3-b)
+      ├─ parallel_steps + parallel_safe×N ──► asyncio.gather (Phase 3-b)
       └─ 직렬 실행
          │
          ▼
@@ -125,7 +125,7 @@ smart_mode + Hooks + Memory Compression + Self-Improvement + Review-Work retry +
 ### 세부 opt-in 플래그 (P3)
 - `skills_enabled` + `skills_dir` — 도메인 지식 팩
 - `custom_personas_dir` — 사용자 정의 persona
-- `parallel_steps` — 병렬 search (decompose 전략 전용)
+- `parallel_steps` — plan의 모든 step이 ToolSpec.parallel_safe=True면 병렬 실행 (search/lookup/compare 등 read-only 도구)
 - `persist_sessions` + `sessions_dir` — 세션 영속화
 - `models.*_model` — 컴포넌트별 Ollama 모델 분리 (Phase 9)
 
@@ -152,13 +152,78 @@ smart_mode + Hooks + Memory Compression + Self-Improvement + Review-Work retry +
 - Planner: 단일 search fallback plan
 - Verifier: sufficient=True (중립)
 - Reflector: answer_ok=True (통과)
-- Scorer: 7.0/10 (중립)
+- Scorer: 7.0/10 (중립) + `ScoreResult.ok=False` 플래그
 - Reviewer: passed=True (통과)
 - Clarifier: 일반적 fallback 질문
 - IntentClassifier: ambiguous (Clarifier 트리거)
 - Compressor: None (압축 스킵)
 
 이 계약으로 LLM 장애가 agent 전체를 중단시키지 않습니다.
+
+## 핵심 아키텍처 규약
+
+### Drafting vs Publishing 분리 (HIGH-1 / HIGH-2)
+
+Planner 경로의 합성은 **답변을 만드는 단계**와 **클라이언트에 발행하는 단계**가 엄격히 분리됩니다.
+
+- 첫 합성, Reflector 재시도, Review-Work 재시도, Self-Improvement 재시도는 모두 `_collect_synthesis()`로 답변을 문자열 버퍼에 수집합니다(token 이벤트를 yield하지 않음).
+- 모든 quality loop가 종료된 뒤 최종 답변만 **단일 `{"type":"token"}` 이벤트**로 발행합니다.
+- 결과: SSE token 이벤트가 답변 1개당 정확히 1번만 발행되며, OpenAI 호환 어댑터의 `content_parts` 누적이 항상 단일 답변만 포함합니다.
+- `if answer.strip():` 가드로 빈 답변은 `sources`/`token` 이벤트 없이 `done`만 발행합니다.
+
+### Session User 메시지 우선 기록 (HIGH-3)
+
+- user 메시지는 `planner.plan()` **호출 전**에 세션에 기록됩니다 — follow-up 질의의 plan이 history를 활용할 수 있도록.
+- planner → legacy fallback 시 `_stream_agent_legacy(skip_user_message=True)`로 호출하여 user 메시지 이중 기록을 방지합니다.
+
+### Raw vs Normalized Query (MED-1)
+
+- `pre_query` hook으로 정규화된 `query`는 router/planner/synthesis로 전달됩니다.
+- 세션 `add_message`에는 `raw_query`를 기록합니다 — 사용자 입력 원본과 downstream 컨텍스트를 분리.
+
+### Force-Answer Thought 이벤트
+
+`AgentLoop`가 `max_iterations`에 도달하면 강제 답변 생성 전에 다음 thought 이벤트를 발행합니다:
+
+```
+{"type": "thought", "content": "max_iterations(N) 도달 — 강제 답변 생성"}
+```
+
+Final Answer 마커는 한국어("최종 답변")와 영어("Final Answer") 모두 탐색하며, parser fallback은 마커가 없고 `<10자`이면 force_answer로 escalate합니다.
+
+### Parallel Step Gate
+
+`parallel_steps=true`일 때, orchestrator는 plan의 모든 step을 검사하여 `ToolSpec.parallel_safe=True`이고 2개 이상인 경우에만 `asyncio.gather`로 병렬 실행합니다. 이전에는 `search` 전용이었으나 이제 메타데이터 기반으로 일반화되었습니다. 이벤트는 plan 순서대로 emit되어 SSE 계약이 보존됩니다.
+
+내장 도구 `parallel_safe` 플래그:
+- `search` / `lookup` / `compare` — `True` (read-only, 호출 순서 독립)
+- `evaluate` / `list_documents` — `False` (일관성/의존성 보호를 위해 직렬)
+
+### Ultra Mode Validator 보강
+
+`ultra_mode=true`일 때:
+- `reflector_max_retries`가 1을 초과하면 경고 로그 출력 후 `1`로 cap
+- `max_self_improvement_iterations`가 1을 초과하면 경고 로그 출력 후 `1`로 cap
+- retry 폭발로 인한 지연·중복을 방지하는 방어 장치입니다.
+- `skills_enabled`, `custom_personas_dir`는 디렉터리 지정 시에만 의미가 있으므로 `ultra_mode`가 건드리지 않습니다.
+
+### Scorer 실패 시 루프 탈출
+
+`AnswerScorer`는 LLM 호출/JSON 파싱 실패 시 `ScoreResult(ok=False, score=7.0)`를 반환합니다. Orchestrator는 self-improvement 루프에서 `if not result.ok: break` 검사로 무한·무의미 재시도를 방지합니다.
+
+### 성능 최적화
+
+- `AgentLoop._decompose_query`는 최대 50개 LRU 캐시를 보유합니다(동일 쿼리 재사용).
+- `FileBackedSessionStore.cleanup_expired`는 파일 `mtime` 기반으로 판정합니다 — JSON 로드 없이 빠른 만료 체크.
+- `_LazyIntentClassifier`는 `asyncio.Lock`으로 첫 인스턴스화 race를 방지합니다.
+- 모든 LLM 호출 모듈에 `keep_alive` 파라미터가 전파됩니다(`rag.agent.ollama_keep_alive`로 제어, 기본 `"5m"`).
+
+## 신규 config 필드 요약 (4차 리뷰)
+
+| 필드 | 기본값 | 목적 |
+|---|---|---|
+| `observation_preview_limit` | `300` | observation 이벤트의 본문 미리보기 길이 제한(문자) |
+| `ollama_keep_alive` | `"5m"` | 모든 LLM 호출의 Ollama `keep_alive`. 이전에는 `-1` 하드코딩 |
 
 ## 테스트 커버리지 (Phase 15b 완료 기준)
 

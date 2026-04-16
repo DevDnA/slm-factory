@@ -66,10 +66,13 @@ ollama serve
 
 **3단계: Teacher 모델 다운로드**
 
-한국어와 영어를 모두 지원하는 `qwen3.5:9b`를 권장합니다.
+기본 Teacher 모델은 `gemma4:e2b` (Gemma4 Effective 2B, 경량) 입니다. 한국어/다국어 품질이 더 필요하면 `qwen3.5:9b`를 사용하세요.
 
 ```bash
-# 권장 Teacher 모델 (한국어/다국어, 8GB VRAM)
+# 기본 Teacher 모델 (경량, ./setup.sh가 자동 다운로드)
+ollama pull gemma4:e2b
+
+# 한국어/다국어 대안 (8GB VRAM)
 ollama pull qwen3.5:9b
 
 # 고품질 대안 (24GB+ VRAM 필요)
@@ -82,7 +85,7 @@ ollama pull exaone3.5:7.8b
 다운로드 완료 후 정상 동작을 확인합니다.
 
 ```bash
-ollama run qwen3.5:9b "안녕하세요"
+ollama run gemma4:e2b "안녕하세요"
 ```
 
 ---
@@ -289,7 +292,7 @@ project:
 
 teacher:
   backend: "ollama"           # "ollama" 또는 "openai"
-  model: "qwen3.5:9b"           # Teacher 모델 이름
+  model: "gemma4:e2b"         # 기본 Teacher 모델. 다국어 필요 시 "qwen3.5:9b"
   api_base: "http://localhost:11434"
   temperature: 0.3
 
@@ -876,13 +879,15 @@ slf rag
 
 #### RAG + 베이스 모델 (`slf rag`)
 
-문서를 파싱하고 벡터 인덱스를 구축한 후 바로 웹 채팅을 시작합니다. 파인튜닝 없이 Teacher 모델(qwen3.5:9b)이 검색된 문서를 참조하여 답변합니다. 파인튜닝된 Student 모델이 Ollama에 있으면 자동으로 해당 모델을 사용합니다.
+문서를 파싱하고 벡터 인덱스를 구축한 후 바로 웹 채팅을 시작합니다. 파인튜닝 없이 Teacher 모델(기본 `gemma4:e2b`)이 검색된 문서를 참조하여 답변합니다. 파인튜닝된 Student 모델이 Ollama에 있으면 자동으로 해당 모델을 사용합니다.
 
 #### RAG + 파인튜닝 SLM (`slf tune`)
 
 13단계 파이프라인을 실행하여 Student 모델의 응답 스타일을 학습시키고, RAG 인덱스를 구축한 후 웹 채팅을 시작합니다. 파인튜닝된 경량 모델(1B)이 도메인에 맞는 어투로 근거를 인용하며 답변합니다. Teacher(9B) 대비 9배 빠르고 1/9 비용입니다. 두 패턴 모두 RAG 검색 결과를 근거로 답변하므로 할루시네이션이 억제됩니다.
 
 > **팁**: 두 모드를 병렬로 실행할 수도 있습니다. 터미널 1에서 `slf rag`로 즉시 서비스하면서, 터미널 2에서 `slf tune --no-chat`으로 파인튜닝을 진행합니다.
+
+웹 채팅 UI(`http://localhost:8000/`)에는 다크/라이트 테마 토글, 추론 표시 토글, 모델 선택기(`auto` / `rag` / `agent`)가 있습니다.
 
 #### ⚠️ SLM 단독 사용에 대하여
 
@@ -1117,6 +1122,40 @@ questions:
 ```
 
 한국어 지원이 우수한 Teacher 모델은 `qwen3.5:9b`입니다. `llama3.1:8b`는 한국어 지원이 제한적입니다.
+
+---
+
+### Student 모델 선택
+
+**배경**: Pydantic 기본값(`google/gemma-3-1b-it`)은 프레임워크 표준이지만, `slf init` 프로젝트 템플릿은 Ollama GGUF 변환 호환성 문제로 `Qwen/Qwen2.5-1.5B-Instruct`를 사용합니다.
+
+**Gemma-3 Ollama 변환 문제** (`google/gemma-3-1b-it`)
+```
+증상: safetensors → GGUF 변환 시 vocab 크기 불일치 또는 
+      model_type: "gemma3_text" 인식 실패로 빈 응답 또는 깨진 출력
+배경: Ollama 0.19.0의 자동 변환이 Gemma-3의 특수 토크나이저를 정확히 
+      변환하지 못함. transformers로는 정상이지만 Ollama GGUF는 동작 안 함
+```
+
+**권장 해결책**:
+
+1. **프로젝트 템플릿 기본값 사용** (권장)
+   ```yaml
+   student:
+     model: "Qwen/Qwen2.5-1.5B-Instruct"  # slf init 템플릿 기본값
+   ```
+   Ollama GGUF 호환성 우수, 한국어 성능 양호, HF_TOKEN 불필요.
+
+2. **다른 모델 시도**
+   - `Qwen/Qwen3.5-1B` — Apache 2.0, 다국어 지원
+   - `microsoft/Phi-4-mini-instruct` — MIT, 추론 강점
+   - `TinyLlama/TinyLlama-1.1B-Chat-v1.0` — 가볍고 안정적
+
+3. **Gemma-3 고수하려면**
+   - `transformers` 라이브러리로 직접 추론 (Ollama 우회)
+   - 또는 공식 GGUF 변환 모델(`gglm`/`llama.cpp`) 사용
+
+자세한 배경은 [CLAUDE.md — Known Issues > Student Model Selection](../CLAUDE.md)을 참고하세요.
 
 ---
 

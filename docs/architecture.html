@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>아키텍처 가이드 - slm-factory</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Mono:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="./assets/style.css">
 </head>
 <body>
@@ -101,6 +100,12 @@
 <ol class="toc-list">
 <li class="toc-h3"><a href="#61-계층별-에러-처리">6.1 계층별 에러 처리</a></li>
 <li class="toc-h3"><a href="#62-복구-전략">6.2 복구 전략</a></li>
+</ol>
+</li>
+<li><a href="#7-agent-rag-파이프라인">7. Agent RAG 파이프라인</a>
+<ol class="toc-list">
+<li class="toc-h3"><a href="#주요-모듈">주요 모듈</a></li>
+<li class="toc-h3"><a href="#아키텍처-규약">아키텍처 규약</a></li>
 </ol>
 </li>
 <li><a href="#관련-문서">관련 문서</a>
@@ -679,7 +684,7 @@ parsed_documents.json    →  generate 단계부터 재개
 │
 ├── teacher: TeacherConfig
 │   ├── backend: Literal["ollama", "openai"] = "ollama"
-│   ├── model: str = "qwen3.5:9b"
+│   ├── model: str = "gemma4:e2b"
 │   ├── api_base: str = "http://localhost:11434"
 │   ├── api_key: str | None = None
 │   ├── temperature: float = 0.3
@@ -836,7 +841,47 @@ parsed_documents.json    →  generate 단계부터 재개
     ├── reranker_model: str = "dragonkue/bge-reranker-v2-m3-ko"
     ├── hybrid_search: bool = True
     ├── min_score: float = 0.0
-    └── query_rewriting: bool = False</code></pre>
+    ├── query_rewriting: bool = False
+    └── agent: AgentRagConfig
+        ├── enabled: bool = True
+        ├── max_iterations: int = 5
+        ├── session_ttl: int = 3600
+        ├── max_history_turns: int = 20
+        ├── stream_reasoning: bool = True
+        ├── persist_sessions: bool = False
+        ├── sessions_dir: str = "agent_sessions"
+        ├── planner_enabled: bool = False
+        ├── verifier_enabled: bool = True
+        ├── verifier_max_repairs: int = 1
+        ├── legacy_fallback_enabled: bool = True
+        ├── session_source_reuse: bool = True
+        ├── session_source_reuse_limit: int = 5
+        ├── parallel_steps: bool = False
+        ├── reflector_enabled: bool = False
+        ├── reflector_max_retries: int = 1
+        ├── intent_classifier_enabled: bool = False
+        ├── intent_classifier_cache_ttl: int = 300
+        ├── clarifier_enabled: bool = False
+        ├── clarifier_max_questions: int = 2
+        ├── personas_enabled: bool = False
+        ├── custom_personas_dir: str = ""
+        ├── review_work_enabled: bool = False
+        ├── review_work_retry: bool = False
+        ├── self_improvement_enabled: bool = False
+        ├── min_quality_score: float = 7.0
+        ├── max_self_improvement_iterations: int = 1
+        ├── memory_compression_enabled: bool = False
+        ├── compress_after_turns: int = 10
+        ├── compress_target_chars: int = 500
+        ├── hooks_enabled: bool = False
+        ├── builtin_hooks: list[str] = []
+        ├── skills_enabled: bool = False
+        ├── skills_dir: str = "skills"
+        ├── models: AgentModelsConfig (router/planner/synthesis/...)
+        ├── observation_preview_limit: int = 300
+        ├── ollama_keep_alive: str = "5m"
+        ├── smart_mode: bool = False
+        └── ultra_mode: bool = False</code></pre>
 <p>→ 각 필드의 상세 설명은 <a href="configuration.html">설정 레퍼런스</a> 참조</p>
 <h3 id="52-설정-로드-프로세스">5.2 설정 로드 프로세스</h3>
 <p>CLI에서 <code>--config</code> 옵션으로 경로를 지정하거나, 지정하지 않으면 <code>_find_config()</code>가 현재 디렉토리부터 상위 디렉토리를 순회하며 <code>project.yaml</code>을 자동 탐색합니다.</p>
@@ -1088,6 +1133,122 @@ def _strip_none_sections(cls, values: dict) -&gt; dict:
 </tbody>
 </table>
 </div>
+<hr>
+</section>
+
+<section id="7-agent-rag-파이프라인">
+<h2 id="7-agent-rag-파이프라인">7. Agent RAG 파이프라인</h2>
+<p>RAG 서버 <code>/auto</code> 경로는 <code>AgentOrchestrator</code>가 구동하는 OMO 패턴 기반 12단계 지능 파이프라인을 제공합니다.</p>
+<pre><code>사용자 질의
+  → [Hook] pre_query (query 정규화)
+  → QueryRouter.route_async (IntentClassifier + 키워드 fallback)
+  → PersonaRouter.select(intent) — Researcher/Comparator/Analyst/Procedural/Clarifier + custom
+  → Planner → ExecutionPlan(strategy, steps)
+  → (plan.is_fallback + legacy_fallback_enabled → legacy AgentLoop로 위임)
+  → Plan step 실행 (parallel_steps + 모든 step parallel_safe면 asyncio.gather)
+  → ToolRegistry.execute → ToolResult.sources → all_sources
+  → Verifier → 부족하면 repair search (max verifier_max_repairs)
+  → [Hook] post_search (dedup, boosting)
+  → _stream_synthesis (persona template + skills addon + prior sources)
+  → [Hook] post_synthesis (HTML strip 등)
+  → Reflector → 근거 약하면 보완 검색 + 재합성 (max reflector_max_retries)
+  → Review-Work 병렬 (Grounding/Completeness/Hallucination reviewer)
+  → Self-Improvement Loop (AnswerScorer 1~10 점수, 임계값 미만 시 재합성)
+  → 세션 기록 (user + assistant)
+  → Memory Compression (compress_after_turns 초과 시 오래된 턴 LLM 요약)
+  → 최종 답변을 단일 token 이벤트로 발행 (drafting vs publishing 분리)
+  → sources 이벤트 + done 이벤트</code></pre>
+<h3 id="주요-모듈">주요 모듈</h3>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr>
+<th>모듈</th>
+<th>역할</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rag/agent/orchestrator.py</code></td>
+<td><code>AgentOrchestrator</code> — 전체 파이프라인 조율, drafting/publishing 분리</td>
+</tr>
+<tr>
+<td><code>rag/agent/router.py</code></td>
+<td><code>QueryRouter</code> — intent + 키워드 라우팅</td>
+</tr>
+<tr>
+<td><code>rag/agent/intent_classifier.py</code></td>
+<td>LLM 기반 의도 분류, TTL 캐시, <code>_LazyIntentClassifier</code> asyncio.Lock</td>
+</tr>
+<tr>
+<td><code>rag/agent/planner.py</code></td>
+<td>질의 &rarr; <code>ExecutionPlan</code></td>
+</tr>
+<tr>
+<td><code>rag/agent/verifier.py</code></td>
+<td>컨텍스트 충분성 판정 + repair 루프</td>
+</tr>
+<tr>
+<td><code>rag/agent/reflector.py</code></td>
+<td>답변 자기 검증</td>
+</tr>
+<tr>
+<td><code>rag/agent/scorer.py</code></td>
+<td><code>AnswerScorer</code> — 1~10 정량 점수, <code>ScoreResult.ok</code> 플래그</td>
+</tr>
+<tr>
+<td><code>rag/agent/reviewers/</code></td>
+<td>Grounding/Completeness/Hallucination reviewer 3종 + Aggregator</td>
+</tr>
+<tr>
+<td><code>rag/agent/personas/</code></td>
+<td>Researcher/Comparator/Analyst/Procedural/Clarifier</td>
+</tr>
+<tr>
+<td><code>rag/agent/persona_loader.py</code></td>
+<td>YAML 기반 custom persona 로더</td>
+</tr>
+<tr>
+<td><code>rag/agent/tools.py</code></td>
+<td><code>ToolRegistry</code>, <code>ToolSpec.parallel_safe</code> 메타데이터</td>
+</tr>
+<tr>
+<td><code>rag/agent/skills/</code></td>
+<td>YAML 기반 도메인 지식 팩 로더</td>
+</tr>
+<tr>
+<td><code>rag/agent/hooks.py</code></td>
+<td><code>HookRegistry</code> — pre_query/post_search/post_synthesis</td>
+</tr>
+<tr>
+<td><code>rag/agent/memory.py</code></td>
+<td><code>ConversationCompressor</code> — 긴 대화 LLM 요약</td>
+</tr>
+<tr>
+<td><code>rag/agent/state.py</code></td>
+<td><code>FileBackedSessionStore</code> — 세션 영속화, mtime 기반 cleanup</td>
+</tr>
+<tr>
+<td><code>rag/agent/loop.py</code></td>
+<td>ReAct <code>AgentLoop</code> (legacy), <code>_decompose_query</code> LRU 캐시 (max 50)</td>
+</tr>
+<tr>
+<td><code>rag/agent/parser.py</code></td>
+<td>ReAct 출력 파서. Final Answer/최종 답변 마커 + fallback escalation</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 id="아키텍처-규약">아키텍처 규약</h3>
+<ul>
+<li><strong>Drafting vs Publishing 분리</strong>: <code>_collect_synthesis()</code>로 답변을 버퍼에 수집한 뒤 모든 quality loop가 끝나야 단일 <code>token</code> 이벤트로 발행합니다. OpenAI compat의 <code>content_parts</code> 누적이 항상 정확히 1개 답변만 포함합니다.</li>
+<li><strong>Session 이중 기록 방지</strong>: user 메시지를 <code>planner.plan()</code> 호출 <strong>전</strong>에 세션에 기록하며, planner &rarr; legacy fallback 시 <code>skip_user_message=True</code>로 전달합니다.</li>
+<li><strong>Raw vs normalized query</strong>: <code>pre_query</code> hook으로 정규화된 query는 router/planner/synthesis에 전달되고, 세션 <code>add_message</code>는 raw query로 기록합니다.</li>
+<li><strong>Ultra mode cap</strong>: <code>ultra_mode=true</code>이면 <code>reflector_max_retries</code>·<code>max_self_improvement_iterations</code>를 validator가 1로 cap (더 큰 값 명시 시 경고 로그).</li>
+<li><strong>Never-raise 계약</strong>: 모든 LLM 호출 모듈은 실패 시 안전한 기본값을 반환. <code>AnswerScorer</code>는 <code>ScoreResult.ok=False</code>로 self-improvement 루프 즉시 종료.</li>
+<li><strong>Parallel step gate</strong>: <code>parallel_steps=true</code> + 모든 step이 <code>ToolSpec.parallel_safe</code> + 2개 이상일 때 <code>asyncio.gather</code> 병렬 실행.</li>
+</ul>
+<p>상세 아키텍처 문서와 이벤트 계약은 <a href="AGENT_ARCHITECTURE.html">AGENT_ARCHITECTURE.md</a>를, 개별 config 필드 설명은 <a href="configuration.html#ragagent--agent-rag-모드">설정 레퍼런스 — rag.agent</a> 섹션을 참고하세요.</p>
 <hr>
 </section>
 

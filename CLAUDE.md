@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-slm-factory is a Teacher-Student Knowledge Distillation framework for building domain-specific Small Language Models (SLMs). It uses a large Teacher LLM (9B via Ollama) to generate QA training data from domain documents, then fine-tunes a small Student model (1B) with LoRA. RAG handles factual knowledge (WHAT); fine-tuning teaches response style (HOW).
+slm-factory is a Teacher-Student Knowledge Distillation framework for building domain-specific Small Language Models (SLMs). It uses a Teacher LLM (default `gemma4:e2b` — Gemma4 Effective 2B — via Ollama; `qwen3.5:9b` recommended for higher multilingual quality) to generate QA training data from domain documents, then fine-tunes a small Student model (1B) with LoRA. RAG handles factual knowledge (WHAT); fine-tuning teaches response style (HOW).
 
 Two main usage patterns:
 - `slf rag` — instant RAG + Teacher model chat (30 seconds setup)

@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CLI 명령어 레퍼런스 - slm-factory</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Mono:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="./assets/style.css">
 </head>
 <body>
@@ -452,29 +451,25 @@ slf init policy-assistant --path /workspace/projects</code></pre>
 <p><strong>예시</strong></p>
 <pre data-lang="bash"><code>slf check --config my-project/project.yaml</code></pre>
 <p><strong>출력 예시 (전체 통과)</strong></p>
-<p class="text-center"><strong>slm-factory 환경 점검</strong></p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>항목</th><th>상태</th><th>상세</th></tr>
-</thead>
-<tbody>
-<tr><td>설정 파일</td><td>OK</td><td>./my-project/project.yaml</td></tr>
-<tr><td>문서 디렉토리</td><td>OK</td><td>3개 파일 (./documents)</td></tr>
-<tr><td>출력 디렉토리</td><td>OK</td><td>쓰기 가능 (./output)</td></tr>
-<tr><td>Ollama 연결</td><td>OK</td><td>v0.3.12 (http://localhost:11434)</td></tr>
-<tr><td>모델 사용 가능</td><td>OK</td><td>qwen3.5:9b</td></tr>
-<tr><td>학생 모델</td><td>OK</td><td>google/gemma-3-1b-it</td></tr>
-<tr><td>컴퓨팅 디바이스</td><td>NVIDIA GPU (CUDA)</td><td>NVIDIA RTX 4090</td></tr>
-<tr><td>학습 정밀도</td><td>OK</td><td>bfloat16 (bf16)</td></tr>
-<tr><td>4bit 양자화</td><td>OK</td><td>사용 가능</td></tr>
-</tbody>
-</table>
-</div>
-<pre><code>모든 점검 통과!</code></pre>
+<pre><code>                slm-factory 환경 점검
+┌────────────────┬────────┬────────────────────────────────┐
+│ 항목           │ 상태   │ 상세                           │
+├────────────────┼────────┼────────────────────────────────┤
+│ 설정 파일      │ OK     │ ./my-project/project.yaml      │
+│ 문서 디렉토리  │ OK     │ 3개 파일 (./documents)         │
+│ 출력 디렉토리  │ OK     │ 쓰기 가능 (./output)           │
+│ Ollama 연결    │ OK     │ v0.3.12 (http://localhost:11434)│
+│ 모델 사용 가능 │ OK     │ gemma4:e2b                     │
+│ 학생 모델      │ OK     │ Qwen/Qwen2.5-1.5B-Instruct     │
+│ 컴퓨팅 디바이스│ NVIDIA GPU (CUDA) │ NVIDIA RTX 4090       │
+│ 학습 정밀도    │ OK     │ bfloat16 (bf16)                │
+│ 4bit 양자화    │ OK     │ 사용 가능                      │
+└────────────────┴────────┴────────────────────────────────┘
+
+모든 점검 통과!</code></pre>
 <hr>
 <h3 id="rag"><code>rag</code></h3>
-<p>RAG 웹 채팅 서비스를 시작합니다. Qdrant 인덱스가 없으면 문서를 파싱하고 자동으로 구축합니다. 파인튜닝된 Student 모델이 Ollama에 등록되어 있으면 자동으로 해당 모델을 사용하고, 없으면 Teacher 모델(기본값: <code>qwen3.5:9b</code>)로 폴백합니다.</p>
+<p>RAG 웹 채팅 서비스를 시작합니다. Qdrant 인덱스가 없으면 문서를 파싱하고 자동으로 구축합니다. 파인튜닝된 Student 모델이 Ollama에 등록되어 있으면 자동으로 해당 모델을 사용하고, 없으면 Teacher 모델(기본값: <code>gemma4:e2b</code>)로 폴백합니다.</p>
 <p><strong>사용법</strong></p>
 <pre><code>slf rag [OPTIONS]</code></pre>
 <p><strong>옵션</strong></p>
@@ -1474,8 +1469,18 @@ slf tool rag-serve --port 9000</code></pre>
 </tr>
 <tr>
 <td><code>GET</code></td>
+<td><code>/v1/models</code></td>
+<td>OpenAI 호환 모델 목록 (<code>slm-factory-auto</code> / <code>-rag</code> / <code>-agent</code>)</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/v1/chat/completions</code></td>
+<td>OpenAI Chat Completions 호환 — OpenWebUI 등 연동. 스트리밍/비스트리밍, multimodal content 리스트 수용</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
 <td><code>/chat</code></td>
-<td>내장 웹 채팅 UI (HTML 페이지)</td>
+<td>내장 웹 채팅 UI (HTML 페이지, 다크/라이트 테마 토글)</td>
 </tr>
 <tr>
 <td><code>GET</code></td>
@@ -1495,6 +1500,32 @@ slf tool rag-serve --port 9000</code></pre>
 </tbody>
 </table>
 </div>
+<p><strong>OpenAI 호환 모델 라우팅</strong></p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr>
+<th>모델 ID</th>
+<th>동작</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>slm-factory-auto</code></td>
+<td><code>AgentOrchestrator.handle_auto</code> — simple/agent 자동 선택 (기본값)</td>
+</tr>
+<tr>
+<td><code>slm-factory-rag</code></td>
+<td>단일 패스 simple RAG</td>
+</tr>
+<tr>
+<td><code>slm-factory-agent</code></td>
+<td>Agent RAG (다단계 ReAct) — <code>rag.agent.enabled=true</code>일 때 목록에 추가</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>알 수 없는 모델 ID는 <code>slm-factory-auto</code>로 fallback됩니다. <code>body.user</code> 필드가 있으면 세션 키로 사용되어 Agent RAG 히스토리가 유지됩니다.</p>
 <p><strong>API 호출 예시</strong></p>
 <pre data-lang="bash"><code># 일반 응답
 curl -X POST http://localhost:8000/v1/query \
@@ -1514,10 +1545,25 @@ curl -N -X POST http://localhost:8000/v1/query \
   "query": "도메인 질문"
 }</code></pre>
 <p><strong>SSE 스트리밍 응답 형식</strong> (<code>"stream": true</code> 요청 시)</p>
+<p><code>/v1/query</code> 및 <code>/v1/stream</code> 엔드포인트 (단일 패스 RAG):</p>
 <pre><code>data: {"token": "문서"}
 data: {"token": " 기반"}
 data: {"token": " 답변..."}
 data: {"sources": [...], "query": "도메인 질문", "done": true}</code></pre>
+<p><code>/v1/chat/completions</code> — 모델 <code>slm-factory-agent</code> (Agent RAG):</p>
+<pre><code>data: {"type": "route", "mode": "agent", "intent": "factual"}
+data: {"type": "thought", "content": "...", "iteration": 1}
+data: {"type": "action", "content": "search", "input": "...", "iteration": 1}
+data: {"type": "observation", "content": "...", "iteration": 1}
+data: {"type": "token", "content": "최종"}
+data: {"type": "token", "content": " 답변"}
+data: {"type": "sources", "sources": [...]}
+data: {"type": "done", "session_id": "..."}</code></pre>
+<p><code>/v1/chat/completions</code> — 모델 <code>slm-factory-auto</code> 또는 <code>slm-factory-rag</code> (OpenAI 호환):</p>
+<pre><code>data: {"choices":[{"delta":{"content":"문서"}}]}
+data: {"choices":[{"delta":{"content":" 기반"}}]}
+...
+data: [DONE]</code></pre>
 <p><strong>참고</strong></p>
 <ul>
 <li>사전 조건: <code>tool rag-index</code>로 Qdrant를 먼저 구축해야 합니다.</li>
@@ -1659,25 +1705,21 @@ slf tool update</code></pre>
 <p><strong>예시</strong></p>
 <pre data-lang="bash"><code>slf status</code></pre>
 <p><strong>출력 예시</strong></p>
-<p class="text-center"><strong>파이프라인 진행 상태</strong></p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>단계</th><th>파일</th><th>상태</th><th>건수</th></tr>
-</thead>
-<tbody>
-<tr><td>parse</td><td>parsed_documents.json</td><td>존재</td><td>5개 문서</td></tr>
-<tr><td>generate</td><td>qa_alpaca.json</td><td>존재</td><td>150개 쌍</td></tr>
-<tr><td>score</td><td>qa_scored.json</td><td>없음</td><td>-</td></tr>
-<tr><td>augment</td><td>qa_augmented.json</td><td>없음</td><td>-</td></tr>
-<tr><td>analyze</td><td>data_analysis.json</td><td>없음</td><td>-</td></tr>
-<tr><td>convert</td><td>training_data.jsonl</td><td>없음</td><td>-</td></tr>
-<tr><td>train</td><td>checkpoints/adapter/</td><td>없음</td><td>-</td></tr>
-<tr><td>export</td><td>merged_model/</td><td>없음</td><td>-</td></tr>
-</tbody>
-</table>
-</div>
-<pre><code>다음 --resume 실행 시 validate부터 재개됩니다</code></pre>
+<pre><code>              파이프라인 진행 상태
+┌──────────┬──────────────────────────┬────────┬──────────────┐
+│ 단계     │ 파일                     │ 상태   │ 건수         │
+├──────────┼──────────────────────────┼────────┼──────────────┤
+│ parse    │ parsed_documents.json    │ 존재   │ 5개 문서     │
+│ generate │ qa_alpaca.json           │ 존재   │ 150개 쌍     │
+│ score    │ qa_scored.json           │ 없음   │ -            │
+│ augment  │ qa_augmented.json        │ 없음   │ -            │
+│ analyze  │ data_analysis.json       │ 없음   │ -            │
+│ convert  │ training_data.jsonl      │ 없음   │ -            │
+│ train    │ checkpoints/adapter/     │ 없음   │ -            │
+│ export   │ merged_model/            │ 없음   │ -            │
+└──────────┴──────────────────────────┴────────┴──────────────┘
+
+다음 --resume 실행 시 validate부터 재개됩니다</code></pre>
 <p>모든 단계가 완료된 경우 "모든 단계가 완료되었습니다" 메시지를 출력합니다.</p>
 <hr>
 <h3 id="clean"><code>clean</code></h3>
@@ -1754,20 +1796,17 @@ slf clean --all</code></pre>
   ./my-project/output/qa_augmented.json
   ./my-project/output/data_analysis.json
 
-삭제하시겠습니까? [y/N]:</code></pre>
-<p class="text-center"><strong>삭제 결과</strong></p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>파일</th><th>상태</th></tr>
-</thead>
-<tbody>
-<tr><td>./my-project/output/qa_scored...</td><td>삭제됨</td></tr>
-<tr><td>...</td><td>삭제됨</td></tr>
-</tbody>
-</table>
-</div>
-<pre><code>3개 항목 삭제 완료</code></pre>
+삭제하시겠습니까? [y/N]:
+
+          삭제 결과
+┌──────────────────────────────────┬────────┐
+│ 파일                             │ 상태   │
+├──────────────────────────────────┼────────┤
+│ ./my-project/output/qa_scored... │ 삭제됨 │
+│ ...                              │ 삭제됨 │
+└──────────────────────────────────┴────────┘
+
+3개 항목 삭제 완료</code></pre>
 <hr>
 <h3 id="version"><code>version</code></h3>
 <p>slm-factory의 현재 버전을 출력합니다.</p>

@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>사용 가이드 - slm-factory</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Mono:wght@400;500;600;700&display=swap">
   <link rel="stylesheet" href="./assets/style.css">
 </head>
 <body>
@@ -108,7 +107,7 @@
 <li class="toc-h3"><a href="#ollama-배포">Ollama 배포</a></li>
 </ol>
 </li>
-<li><a href="#7-파인튜닝과-rag--역할-분담">7. 파인튜닝과 RAG — 역할 분담</a>
+<li><a href="#7-파인튜닝과-rag-역할-분담">7. 파인튜닝과 RAG — 역할 분담</a>
 <ol class="toc-list">
 <li class="toc-h3"><a href="#핵심-원칙-지식은-rag-스타일은-파인튜닝">핵심 원칙: 지식은 RAG, 스타일은 파인튜닝</a></li>
 <li class="toc-h3"><a href="#파인튜닝이-학습하는-것">파인튜닝이 학습하는 것</a></li>
@@ -128,6 +127,7 @@
 <li class="toc-h3"><a href="#학습-데이터-부족-경고">학습 데이터 부족 경고</a></li>
 <li class="toc-h3"><a href="#빈-qa-응답-생성">빈 QA 응답 생성</a></li>
 <li class="toc-h3"><a href="#한국어-문서에서-영어-qa-생성">한국어 문서에서 영어 QA 생성</a></li>
+<li class="toc-h3"><a href="#student-모델-선택">Student 모델 선택</a></li>
 <li class="toc-h3"><a href="#python-버전-문제">Python 버전 문제</a></li>
 <li class="toc-h3"><a href="#학습-중단-시-복구">학습 중단 시 복구</a></li>
 <li class="toc-h3"><a href="#모델-배포-방법">모델 배포 방법</a></li>
@@ -197,8 +197,11 @@ curl -fsSL https://ollama.com/install.sh | sh
 <p>별도 터미널 창에서 서버를 실행합니다. 파이프라인이 실행되는 동안 계속 켜두어야 합니다.</p>
 <pre data-lang="bash"><code>ollama serve</code></pre>
 <p><strong>3단계: Teacher 모델 다운로드</strong></p>
-<p>한국어와 영어를 모두 지원하는 <code>qwen3.5:9b</code>를 권장합니다.</p>
-<pre data-lang="bash"><code># 권장 Teacher 모델 (한국어/다국어, 8GB VRAM)
+<p>기본 Teacher 모델은 <code>gemma4:e2b</code> (Gemma4 Effective 2B, 경량) 입니다. 한국어/다국어 품질이 더 필요하면 <code>qwen3.5:9b</code>를 사용하세요.</p>
+<pre data-lang="bash"><code># 기본 Teacher 모델 (경량, ./setup.sh가 자동 다운로드)
+ollama pull gemma4:e2b
+
+# 한국어/다국어 대안 (8GB VRAM)
 ollama pull qwen3.5:9b
 
 # 고품질 대안 (24GB+ VRAM 필요)
@@ -207,7 +210,7 @@ ollama pull qwen3.5:27b
 # 한국어 최적화 대안
 ollama pull exaone3.5:7.8b</code></pre>
 <p>다운로드 완료 후 정상 동작을 확인합니다.</p>
-<pre data-lang="bash"><code>ollama run qwen3.5:9b "안녕하세요"</code></pre>
+<pre data-lang="bash"><code>ollama run gemma4:e2b "안녕하세요"</code></pre>
 <hr>
 <blockquote><p><code>./setup.sh</code>가 <code>slf</code> 명령어를 자동 설치합니다. 설치 후 바로 사용할 수 있습니다.</p></blockquote>
 <h3 id="slm-factory-설치">slm-factory 설치</h3>
@@ -513,24 +516,18 @@ cp /path/to/docs/*.pdf /path/to/docs/*.txt my-first-project/documents/</code></p
 <p>파이프라인 완료 후 <code>status</code> 명령으로 각 단계의 결과물을 확인합니다.</p>
 <pre data-lang="bash"><code>slf status --config my-first-project/project.yaml</code></pre>
 <p>출력 예시:</p>
-<div class="table-wrapper">
-<table>
-<thead>
-<tr><th>단계</th><th>파일</th><th>상태</th><th>건수</th></tr>
-</thead>
-<tbody>
-<tr><td>parse</td><td>parsed_documents.json</td><td>존재</td><td>5개 문서</td></tr>
-<tr><td>generate</td><td>qa_alpaca.json</td><td>존재</td><td>150개 쌍</td></tr>
-<tr><td>score</td><td>qa_scored.json</td><td>없음</td><td>-</td></tr>
-<tr><td>augment</td><td>qa_augmented.json</td><td>없음</td><td>-</td></tr>
-<tr><td>analyze</td><td>data_analysis.json</td><td>존재</td><td>1개 항목</td></tr>
-<tr><td>convert</td><td>training_data.jsonl</td><td>존재</td><td>150개 줄</td></tr>
-<tr><td>train</td><td>checkpoints/adapter/</td><td>존재</td><td>디렉토리</td></tr>
-<tr><td>export</td><td>merged_model/</td><td>존재</td><td>디렉토리</td></tr>
-</tbody>
-</table>
-</div>
-<pre><code>모든 단계가 완료되었습니다</code></pre>
+<pre><code>┌──────────────────────────────────────────────────────────┐
+  단계       파일                      상태    건수
+  parse      parsed_documents.json     존재    5개 문서
+  generate   qa_alpaca.json            존재    150개 쌍
+  score      qa_scored.json            없음    -
+  augment    qa_augmented.json         없음    -
+  analyze    data_analysis.json        존재    1개 항목
+  convert    training_data.jsonl       존재    150개 줄
+  train      checkpoints/adapter/      존재    디렉토리
+  export     merged_model/             존재    디렉토리
+└──────────────────────────────────────────────────────────┘
+모든 단계가 완료되었습니다</code></pre>
 <hr>
 <h3 id="모델-테스트">모델 테스트</h3>
 <p>내보내기가 완료되면 Ollama에 모델을 등록하고 바로 테스트할 수 있습니다.</p>
@@ -557,7 +554,7 @@ ollama run my-first-project-model</code></pre>
 
 teacher:
   backend: "ollama"           # "ollama" 또는 "openai"
-  model: "qwen3.5:9b"           # Teacher 모델 이름
+  model: "gemma4:e2b"         # 기본 Teacher 모델. 다국어 필요 시 "qwen3.5:9b"
   api_base: "http://localhost:11434"
   temperature: 0.3
 
@@ -941,17 +938,18 @@ ollama serve
 <hr>
 </section>
 
-<section id="7-파인튜닝과-rag--역할-분담">
-<h2 id="7-파인튜닝과-rag--역할-분담">7. 파인튜닝과 RAG — 역할 분담</h2>
+<section id="7-파인튜닝과-rag-역할-분담">
+<h2 id="7-파인튜닝과-rag-역할-분담">7. 파인튜닝과 RAG — 역할 분담</h2>
 <p>slm-factory는 <strong>RAG(검색 증강 생성)</strong>과 <strong>LoRA 파인튜닝</strong> 두 가지 기능을 제공합니다. 각각의 역할이 명확히 다릅니다.</p>
 <h3 id="핵심-원칙-지식은-rag-스타일은-파인튜닝">핵심 원칙: 지식은 RAG, 스타일은 파인튜닝</h3>
-<blockquote>
-<p><strong>지식(WHAT) → RAG가 담당</strong><br>
-문서 검색 → 관련 컨텍스트 전달 → 정확한 정보 제공</p>
-<p><strong>스타일(HOW) → 파인튜닝이 담당</strong><br>
-컨텍스트 읽기 → 근거 인용 → 도메인 어투로 답변</p>
-</blockquote>
-<p><strong>파인튜닝은 지식 주입이 아닙니다.</strong> 1B~2B 모델은 문서 내용을 안정적으로 암기할 수 없습니다. 문서 내용을 암기시키면 과적합(같은 말 반복)이 발생합니다. 파인튜닝의 역할은 "주어진 문서를 읽고, 도메인에 맞는 어투로, 근거를 인용하며 답변하는 스타일"을 학습시키는 것입니다.</p>
+<pre><code>┌─────────────────────────────────────────────────────────┐
+│  지식(WHAT)  → RAG가 담당                                │
+│    문서 검색 → 관련 컨텍스트 전달 → 정확한 정보 제공      │
+│                                                         │
+│  스타일(HOW) → 파인튜닝이 담당                            │
+│    컨텍스트 읽기 → 근거 인용 → 도메인 어투로 답변          │
+└─────────────────────────────────────────────────────────┘</code></pre>
+<p><strong>파인튜닝은 지식 주입이 아닙니다.</strong> 1B~2B 모델은 문서 내용을 암기할 수는 있지만 일반화할 수 없습니다 — 학습 데이터와 동일한 질문에는 답하지만, 조금만 다르게 물어도 깨진 답변을 생성합니다(과적합). 파인튜닝의 역할은 "주어진 문서를 읽고, 도메인에 맞는 어투로, 근거를 인용하며 답변하는 스타일"을 학습시키는 것입니다.</p>
 <h3 id="파인튜닝이-학습하는-것">파인튜닝이 학습하는 것</h3>
 <div class="table-wrapper">
 <table>
@@ -1131,10 +1129,11 @@ slf rag
 </table>
 </div>
 <h4 id="rag-베이스-모델-slf-rag">RAG + 베이스 모델 (<code>slf rag</code>)</h4>
-<p>문서를 파싱하고 벡터 인덱스를 구축한 후 바로 웹 채팅을 시작합니다. 파인튜닝 없이 Teacher 모델(qwen3.5:9b)이 검색된 문서를 참조하여 답변합니다. 파인튜닝된 Student 모델이 Ollama에 있으면 자동으로 해당 모델을 사용합니다.</p>
+<p>문서를 파싱하고 벡터 인덱스를 구축한 후 바로 웹 채팅을 시작합니다. 파인튜닝 없이 Teacher 모델(기본 <code>gemma4:e2b</code>)이 검색된 문서를 참조하여 답변합니다. 파인튜닝된 Student 모델이 Ollama에 있으면 자동으로 해당 모델을 사용합니다.</p>
 <h4 id="rag-파인튜닝-slm-slf-tune">RAG + 파인튜닝 SLM (<code>slf tune</code>)</h4>
 <p>13단계 파이프라인을 실행하여 Student 모델의 응답 스타일을 학습시키고, RAG 인덱스를 구축한 후 웹 채팅을 시작합니다. 파인튜닝된 경량 모델(1B)이 도메인에 맞는 어투로 근거를 인용하며 답변합니다. Teacher(9B) 대비 9배 빠르고 1/9 비용입니다. 두 패턴 모두 RAG 검색 결과를 근거로 답변하므로 할루시네이션이 억제됩니다.</p>
 <blockquote><p><strong>팁</strong>: 두 모드를 병렬로 실행할 수도 있습니다. 터미널 1에서 <code>slf rag</code>로 즉시 서비스하면서, 터미널 2에서 <code>slf tune --no-chat</code>으로 파인튜닝을 진행합니다.</p></blockquote>
+<p>웹 채팅 UI(<code>http://localhost:8000/</code>)에는 다크/라이트 테마 토글, 추론 표시 토글, 모델 선택기(<code>auto</code> / <code>rag</code> / <code>agent</code>)가 있습니다.</p>
 <h4 id="slm-단독-사용에-대하여">⚠️ SLM 단독 사용에 대하여</h4>
 <p><code>slf tune --no-chat</code>으로 파인튜닝 후 <code>ollama run</code>으로 모델을 직접 사용할 수 있지만, <strong>프로덕션에서는 권장하지 않습니다.</strong> 파인튜닝은 답변 스타일(어투, 근거 인용)을 학습시키는 것이지, 도메인 지식을 내재화하는 것이 아닙니다. RAG 없이 사용하면 모델이 참조할 문서가 없으므로 할루시네이션이 발생합니다. 오프라인·격리 환경에서 불가피한 경우에만 고려하되, <code>slf eval run</code>으로 품질을 반드시 검증하십시오.</p>
 <hr>
@@ -1263,6 +1262,30 @@ RuntimeError: MPS backend out of memory</code></pre>
     반드시 한국어로 답변하십시오.
     문서 내용에만 근거하여 답변하십시오.</code></pre>
 <p>한국어 지원이 우수한 Teacher 모델은 <code>qwen3.5:9b</code>입니다. <code>llama3.1:8b</code>는 한국어 지원이 제한적입니다.</p>
+<hr>
+<h3 id="student-모델-선택">Student 모델 선택</h3>
+<p><strong>배경</strong>: Pydantic 기본값(<code>google/gemma-3-1b-it</code>)은 프레임워크 표준이지만, <code>slf init</code> 프로젝트 템플릿은 Ollama GGUF 변환 호환성 문제로 <code>Qwen/Qwen2.5-1.5B-Instruct</code>를 사용합니다.</p>
+<p><strong>Gemma-3 Ollama 변환 문제</strong> (<code>google/gemma-3-1b-it</code>)</p>
+<pre><code>증상: safetensors → GGUF 변환 시 vocab 크기 불일치 또는 
+      model_type: "gemma3_text" 인식 실패로 빈 응답 또는 깨진 출력
+배경: Ollama 0.19.0의 자동 변환이 Gemma-3의 특수 토크나이저를 정확히 
+      변환하지 못함. transformers로는 정상이지만 Ollama GGUF는 동작 안 함</code></pre>
+<p><strong>권장 해결책</strong>:</p>
+<ol>
+<li><strong>프로젝트 템플릿 기본값 사용</strong> (권장) ```yaml student: model: "Qwen/Qwen2.5-1.5B-Instruct"  # slf init 템플릿 기본값 ``` Ollama GGUF 호환성 우수, 한국어 성능 양호, HF_TOKEN 불필요.</li>
+<li><strong>다른 모델 시도</strong>
+<ul>
+<li><code>Qwen/Qwen3.5-1B</code> — Apache 2.0, 다국어 지원</li>
+<li><code>microsoft/Phi-4-mini-instruct</code> — MIT, 추론 강점</li>
+<li><code>TinyLlama/TinyLlama-1.1B-Chat-v1.0</code> — 가볍고 안정적</li>
+</ul></li>
+<li><strong>Gemma-3 고수하려면</strong>
+<ul>
+<li><code>transformers</code> 라이브러리로 직접 추론 (Ollama 우회)</li>
+<li>또는 공식 GGUF 변환 모델(<code>gglm</code>/<code>llama.cpp</code>) 사용</li>
+</ul></li>
+</ol>
+<p>자세한 배경은 <a href="../CLAUDE.html">CLAUDE.md — Known Issues > Student Model Selection</a>을 참고하세요.</p>
 <hr>
 <h3 id="python-버전-문제">Python 버전 문제</h3>
 <p><strong>증상</strong>: 설치 중 Python 버전 관련 오류가 발생하거나 패키지 설치가 실패합니다.</p>

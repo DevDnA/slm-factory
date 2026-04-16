@@ -168,8 +168,8 @@ slf check --config my-project/project.yaml
 │ 문서 디렉토리  │ OK     │ 3개 파일 (./documents)         │
 │ 출력 디렉토리  │ OK     │ 쓰기 가능 (./output)           │
 │ Ollama 연결    │ OK     │ v0.3.12 (http://localhost:11434)│
-│ 모델 사용 가능 │ OK     │ qwen3.5:9b                     │
-│ 학생 모델      │ OK     │ google/gemma-3-1b-it           │
+│ 모델 사용 가능 │ OK     │ gemma4:e2b                     │
+│ 학생 모델      │ OK     │ Qwen/Qwen2.5-1.5B-Instruct     │
 │ 컴퓨팅 디바이스│ NVIDIA GPU (CUDA) │ NVIDIA RTX 4090       │
 │ 학습 정밀도    │ OK     │ bfloat16 (bf16)                │
 │ 4bit 양자화    │ OK     │ 사용 가능                      │
@@ -182,7 +182,7 @@ slf check --config my-project/project.yaml
 
 ### `rag`
 
-RAG 웹 채팅 서비스를 시작합니다. Qdrant 인덱스가 없으면 문서를 파싱하고 자동으로 구축합니다. 파인튜닝된 Student 모델이 Ollama에 등록되어 있으면 자동으로 해당 모델을 사용하고, 없으면 Teacher 모델(기본값: `qwen3.5:9b`)로 폴백합니다.
+RAG 웹 채팅 서비스를 시작합니다. Qdrant 인덱스가 없으면 문서를 파싱하고 자동으로 구축합니다. 파인튜닝된 Student 모델이 Ollama에 등록되어 있으면 자동으로 해당 모델을 사용하고, 없으면 Teacher 모델(기본값: `gemma4:e2b`)로 폴백합니다.
 
 **사용법**
 
@@ -869,10 +869,22 @@ slf tool rag-serve --port 9000
 |--------|------|------|
 | `POST` | `/v1/query` | 질의 → 문서 검색 → SLM 답변 생성 (`stream: true`로 SSE 스트리밍 가능) |
 | `POST` | `/v1/stream` | 웹 채팅 UI 전용 SSE 스트리밍 엔드포인트 |
-| `GET` | `/chat` | 내장 웹 채팅 UI (HTML 페이지) |
+| `GET` | `/v1/models` | OpenAI 호환 모델 목록 (`slm-factory-auto` / `-rag` / `-agent`) |
+| `POST` | `/v1/chat/completions` | OpenAI Chat Completions 호환 — OpenWebUI 등 연동. 스트리밍/비스트리밍, multimodal content 리스트 수용 |
+| `GET` | `/chat` | 내장 웹 채팅 UI (HTML 페이지, 다크/라이트 테마 토글) |
 | `GET` | `/health` | `/health/ready`의 별칭 — Qdrant 및 Ollama 연결 상태 확인 |
 | `GET` | `/health/ready` | Qdrant 및 Ollama 연결 상태 확인 (로드밸런서 헬스체크용) |
 | `GET` | `/health/live` | 라이브니스 체크 — 서버 실행 중이면 항상 200 응답 |
+
+**OpenAI 호환 모델 라우팅**
+
+| 모델 ID | 동작 |
+|---------|------|
+| `slm-factory-auto` | `AgentOrchestrator.handle_auto` — simple/agent 자동 선택 (기본값) |
+| `slm-factory-rag` | 단일 패스 simple RAG |
+| `slm-factory-agent` | Agent RAG (다단계 ReAct) — `rag.agent.enabled=true`일 때 목록에 추가 |
+
+알 수 없는 모델 ID는 `slm-factory-auto`로 fallback됩니다. `body.user` 필드가 있으면 세션 키로 사용되어 Agent RAG 히스토리가 유지됩니다.
 
 **API 호출 예시**
 
@@ -902,11 +914,32 @@ curl -N -X POST http://localhost:8000/v1/query \
 
 **SSE 스트리밍 응답 형식** (`"stream": true` 요청 시)
 
+`/v1/query` 및 `/v1/stream` 엔드포인트 (단일 패스 RAG):
 ```
 data: {"token": "문서"}
 data: {"token": " 기반"}
 data: {"token": " 답변..."}
 data: {"sources": [...], "query": "도메인 질문", "done": true}
+```
+
+`/v1/chat/completions` — 모델 `slm-factory-agent` (Agent RAG):
+```
+data: {"type": "route", "mode": "agent", "intent": "factual"}
+data: {"type": "thought", "content": "...", "iteration": 1}
+data: {"type": "action", "content": "search", "input": "...", "iteration": 1}
+data: {"type": "observation", "content": "...", "iteration": 1}
+data: {"type": "token", "content": "최종"}
+data: {"type": "token", "content": " 답변"}
+data: {"type": "sources", "sources": [...]}
+data: {"type": "done", "session_id": "..."}
+```
+
+`/v1/chat/completions` — 모델 `slm-factory-auto` 또는 `slm-factory-rag` (OpenAI 호환):
+```
+data: {"choices":[{"delta":{"content":"문서"}}]}
+data: {"choices":[{"delta":{"content":" 기반"}}]}
+...
+data: [DONE]
 ```
 
 **참고**

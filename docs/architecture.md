@@ -335,7 +335,7 @@ SLMConfig (root)
 │
 ├── teacher: TeacherConfig
 │   ├── backend: Literal["ollama", "openai"] = "ollama"
-│   ├── model: str = "qwen3.5:9b"
+│   ├── model: str = "gemma4:e2b"
 │   ├── api_base: str = "http://localhost:11434"
 │   ├── api_key: str | None = None
 │   ├── temperature: float = 0.3
@@ -492,7 +492,47 @@ SLMConfig (root)
     ├── reranker_model: str = "dragonkue/bge-reranker-v2-m3-ko"
     ├── hybrid_search: bool = True
     ├── min_score: float = 0.0
-    └── query_rewriting: bool = False
+    ├── query_rewriting: bool = False
+    └── agent: AgentRagConfig
+        ├── enabled: bool = True
+        ├── max_iterations: int = 5
+        ├── session_ttl: int = 3600
+        ├── max_history_turns: int = 20
+        ├── stream_reasoning: bool = True
+        ├── persist_sessions: bool = False
+        ├── sessions_dir: str = "agent_sessions"
+        ├── planner_enabled: bool = False
+        ├── verifier_enabled: bool = True
+        ├── verifier_max_repairs: int = 1
+        ├── legacy_fallback_enabled: bool = True
+        ├── session_source_reuse: bool = True
+        ├── session_source_reuse_limit: int = 5
+        ├── parallel_steps: bool = False
+        ├── reflector_enabled: bool = False
+        ├── reflector_max_retries: int = 1
+        ├── intent_classifier_enabled: bool = False
+        ├── intent_classifier_cache_ttl: int = 300
+        ├── clarifier_enabled: bool = False
+        ├── clarifier_max_questions: int = 2
+        ├── personas_enabled: bool = False
+        ├── custom_personas_dir: str = ""
+        ├── review_work_enabled: bool = False
+        ├── review_work_retry: bool = False
+        ├── self_improvement_enabled: bool = False
+        ├── min_quality_score: float = 7.0
+        ├── max_self_improvement_iterations: int = 1
+        ├── memory_compression_enabled: bool = False
+        ├── compress_after_turns: int = 10
+        ├── compress_target_chars: int = 500
+        ├── hooks_enabled: bool = False
+        ├── builtin_hooks: list[str] = []
+        ├── skills_enabled: bool = False
+        ├── skills_dir: str = "skills"
+        ├── models: AgentModelsConfig (router/planner/synthesis/...)
+        ├── observation_preview_limit: int = 300
+        ├── ollama_keep_alive: str = "5m"
+        ├── smart_mode: bool = False
+        └── ultra_mode: bool = False
 ```
 
 → 각 필드의 상세 설명은 [설정 레퍼런스](configuration.md) 참조
@@ -592,6 +632,67 @@ def _strip_none_sections(cls, values: dict) -> dict:
 | 진화 품질 게이트 실패 | 생성된 Ollama 모델 자동 삭제 후 이전 모델 유지 | `cli.py` evolve 명령 |
 | 설정 파일 없음 | 기본 설정 생성 제안 (`slf init`) | `cli.py` |
 | 파이프라인 중단 | `--resume`으로 중간 파일에서 재개 | `cli.py` + 중간 파일 체인 |
+
+---
+
+## 7. Agent RAG 파이프라인
+
+RAG 서버 `/auto` 경로는 `AgentOrchestrator`가 구동하는 OMO 패턴 기반 12단계 지능 파이프라인을 제공합니다.
+
+```
+사용자 질의
+  → [Hook] pre_query (query 정규화)
+  → QueryRouter.route_async (IntentClassifier + 키워드 fallback)
+  → PersonaRouter.select(intent) — Researcher/Comparator/Analyst/Procedural/Clarifier + custom
+  → Planner → ExecutionPlan(strategy, steps)
+  → (plan.is_fallback + legacy_fallback_enabled → legacy AgentLoop로 위임)
+  → Plan step 실행 (parallel_steps + 모든 step parallel_safe면 asyncio.gather)
+  → ToolRegistry.execute → ToolResult.sources → all_sources
+  → Verifier → 부족하면 repair search (max verifier_max_repairs)
+  → [Hook] post_search (dedup, boosting)
+  → _stream_synthesis (persona template + skills addon + prior sources)
+  → [Hook] post_synthesis (HTML strip 등)
+  → Reflector → 근거 약하면 보완 검색 + 재합성 (max reflector_max_retries)
+  → Review-Work 병렬 (Grounding/Completeness/Hallucination reviewer)
+  → Self-Improvement Loop (AnswerScorer 1~10 점수, 임계값 미만 시 재합성)
+  → 세션 기록 (user + assistant)
+  → Memory Compression (compress_after_turns 초과 시 오래된 턴 LLM 요약)
+  → 최종 답변을 단일 token 이벤트로 발행 (drafting vs publishing 분리)
+  → sources 이벤트 + done 이벤트
+```
+
+### 주요 모듈
+
+| 모듈 | 역할 |
+|---|---|
+| `rag/agent/orchestrator.py` | `AgentOrchestrator` — 전체 파이프라인 조율, drafting/publishing 분리 |
+| `rag/agent/router.py` | `QueryRouter` — intent + 키워드 라우팅 |
+| `rag/agent/intent_classifier.py` | LLM 기반 의도 분류, TTL 캐시, `_LazyIntentClassifier` asyncio.Lock |
+| `rag/agent/planner.py` | 질의 → `ExecutionPlan` |
+| `rag/agent/verifier.py` | 컨텍스트 충분성 판정 + repair 루프 |
+| `rag/agent/reflector.py` | 답변 자기 검증 |
+| `rag/agent/scorer.py` | `AnswerScorer` — 1~10 정량 점수, `ScoreResult.ok` 플래그 |
+| `rag/agent/reviewers/` | Grounding/Completeness/Hallucination reviewer 3종 + Aggregator |
+| `rag/agent/personas/` | Researcher/Comparator/Analyst/Procedural/Clarifier |
+| `rag/agent/persona_loader.py` | YAML 기반 custom persona 로더 |
+| `rag/agent/tools.py` | `ToolRegistry`, `ToolSpec.parallel_safe` 메타데이터 |
+| `rag/agent/skills/` | YAML 기반 도메인 지식 팩 로더 |
+| `rag/agent/hooks.py` | `HookRegistry` — pre_query/post_search/post_synthesis |
+| `rag/agent/memory.py` | `ConversationCompressor` — 긴 대화 LLM 요약 |
+| `rag/agent/state.py` | `FileBackedSessionStore` — 세션 영속화, mtime 기반 cleanup |
+| `rag/agent/loop.py` | ReAct `AgentLoop` (legacy), `_decompose_query` LRU 캐시 (max 50) |
+| `rag/agent/parser.py` | ReAct 출력 파서. Final Answer/최종 답변 마커 + fallback escalation |
+
+### 아키텍처 규약
+
+- **Drafting vs Publishing 분리**: `_collect_synthesis()`로 답변을 버퍼에 수집한 뒤 모든 quality loop가 끝나야 단일 `token` 이벤트로 발행합니다. OpenAI compat의 `content_parts` 누적이 항상 정확히 1개 답변만 포함합니다.
+- **Session 이중 기록 방지**: user 메시지를 `planner.plan()` 호출 **전**에 세션에 기록하며, planner → legacy fallback 시 `skip_user_message=True`로 전달합니다.
+- **Raw vs normalized query**: `pre_query` hook으로 정규화된 query는 router/planner/synthesis에 전달되고, 세션 `add_message`는 raw query로 기록합니다.
+- **Ultra mode cap**: `ultra_mode=true`이면 `reflector_max_retries`·`max_self_improvement_iterations`를 validator가 1로 cap (더 큰 값 명시 시 경고 로그).
+- **Never-raise 계약**: 모든 LLM 호출 모듈은 실패 시 안전한 기본값을 반환. `AnswerScorer`는 `ScoreResult.ok=False`로 self-improvement 루프 즉시 종료.
+- **Parallel step gate**: `parallel_steps=true` + 모든 step이 `ToolSpec.parallel_safe` + 2개 이상일 때 `asyncio.gather` 병렬 실행.
+
+상세 아키텍처 문서와 이벤트 계약은 [AGENT_ARCHITECTURE.md](AGENT_ARCHITECTURE.md)를, 개별 config 필드 설명은 [설정 레퍼런스 — rag.agent](configuration.md#ragagent--agent-rag-모드) 섹션을 참고하세요.
 
 ---
 

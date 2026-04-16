@@ -154,7 +154,7 @@ chunking:
 | 필드 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
 | `backend` | `"ollama"` \| `"openai"` | `"ollama"` | 사용할 LLM 백엔드. `"ollama"`는 로컬 Ollama 서버, `"openai"`는 OpenAI 호환 API입니다 |
-| `model` | `str` | `"qwen3.5:9b"` | 모델 이름 또는 ID (빈 값 불가) |
+| `model` | `str` | `"gemma4:e2b"` | 모델 이름 또는 ID (빈 값 불가) |
 | `api_base` | `str` | `"http://localhost:11434"` | API 엔드포인트 URL (빈 값 불가) |
 | `api_key` | `str \| None` | `null` | API 키. `backend: "openai"`일 때 필수입니다. Ollama는 불필요합니다 |
 | `temperature` | `float` | `0.3` | 생성 온도 (0.0~1.0). 낮을수록 일관성 있는 답변을 생성합니다 |
@@ -165,7 +165,7 @@ chunking:
 ```yaml
 teacher:
   backend: "ollama"
-  model: "qwen3.5:9b"
+  model: "gemma4:e2b"
   api_base: "http://localhost:11434"
   temperature: 0.3
   timeout: 300
@@ -184,7 +184,7 @@ teacher:
   temperature: 0.3
 ```
 
-권장 Ollama 모델: `qwen3.5:9b` (다국어, 8GB VRAM), `qwen3.5:27b` (고품질, 24GB+), `exaone3.5:7.8b` (한국어 최적화).
+권장 Ollama 모델: `gemma4:e2b` (기본값, Gemma4 Effective 2B, 경량), `qwen3.5:9b` (다국어, 8GB VRAM), `qwen3.5:27b` (고품질, 24GB+), `exaone3.5:7.8b` (한국어 최적화).
 
 ---
 
@@ -386,9 +386,11 @@ analyzer:
 | `model` | `str` | `"google/gemma-3-1b-it"` | HuggingFace 모델 ID. causal LM이어야 합니다 (예: Qwen, Gemma, Llama) (빈 값 불가) |
 | `max_seq_length` | `int` | `4096` | 학습 데이터의 최대 토큰 길이. 이보다 긴 시퀀스는 잘립니다 |
 
+> **중요**: 위의 Pydantic 기본값(`google/gemma-3-1b-it`)은 프레임워크 기본입니다. 그러나 `slf init` 프로젝트 템플릿(`templates/project.yaml:97`)은 Ollama GGUF 변환 호환성 이슈로 `Qwen/Qwen2.5-1.5B-Instruct`를 사용합니다. 자세한 배경은 [CLAUDE.md](../CLAUDE.md)의 "Known Issues > Student Model Selection"을 참고하세요.
+
 ```yaml
 student:
-  model: "google/gemma-3-1b-it"
+  model: "google/gemma-3-1b-it"  # Pydantic 기본값
   max_seq_length: 4096
 ```
 
@@ -396,12 +398,13 @@ student:
 
 | 모델 | HuggingFace ID | VRAM (LoRA) | 특징 |
 |------|----------------|-------------|------|
-| Gemma 3 1B | `google/gemma-3-1b-it` | ~3GB | Gemma License (상업 허용), 소량 데이터 파인튜닝 용이 |
+| Gemma 3 1B | `google/gemma-3-1b-it` | ~3GB | Gemma License (상업 허용), Pydantic 기본값이지만 Ollama 변환 이슈 있음 |
+| Qwen2.5 1.5B | `Qwen/Qwen2.5-1.5B-Instruct` | ~2GB | Apache 2.0, **`slf init` 템플릿 기본값** — Ollama GGUF 호환성 우수 |
 | Gemma 3 4B | `google/gemma-3-4b-it` | ~10GB | Gemma License (상업 허용), 128K 컨텍스트 |
 | Phi-4 Mini | `microsoft/Phi-4-mini-instruct` | ~10GB (QLoRA) | MIT, 추론 강점, 한국어 공식 지원 |
 | Qwen3.5 4B | `Qwen/Qwen3.5-4B` | ~10GB | Apache 2.0, 다국어 201언어 |
 
-모델 선택 기준: 8GB VRAM은 `google/gemma-3-1b-it`, 16GB+는 `google/gemma-3-4b-it` 권장.
+모델 선택 기준: 8GB VRAM은 `google/gemma-3-1b-it` 또는 `Qwen/Qwen2.5-1.5B-Instruct`, 16GB+는 `google/gemma-3-4b-it` 권장.
 
 ---
 
@@ -431,6 +434,15 @@ student:
 
 **제약조건**: `learning_rate`가 실수인 경우 반드시 0보다 커야 합니다. 0 이하로 설정하면 설정 로드 시 오류가 발생합니다.
 
+> **참고**: 위 표는 Pydantic 기본값입니다. `slf init` 프로젝트 템플릿(`templates/project.yaml`)은 소규모 데이터(~30개 QA)·MPS(Apple Silicon) 환경에 맞춰 다음과 같이 override됩니다:
+> - `lora.r: 8, alpha: 8`
+> - `batch_size: 1, gradient_accumulation_steps: 4`
+> - `learning_rate: 3e-5, num_epochs: 3`
+> - `quantization.enabled: false` (MPS 수치 불안정성 회피)
+> - `weight_decay: 0.01, label_smoothing_factor: 0.0`
+> 
+> 대규모 데이터(500+ QA)는 Pydantic 기본값 그대로 사용해도 무방합니다. 상세한 파라미터 튜닝은 [CLAUDE.md](../CLAUDE.md)의 "검증된 학습 파라미터"를 참고하세요.
+
 ### lora — LoRA 어댑터 설정
 
 | 필드 | 타입 | 기본값 | 설명 |
@@ -457,6 +469,7 @@ student:
 | `bits` | `int` | `4` | 양자화 비트 수. 현재는 4비트만 지원합니다 |
 
 ```yaml
+# 예시: Pydantic 기본값과 다른 설정
 training:
   lora:
     r: 16
@@ -466,7 +479,7 @@ training:
     use_rslora: false
   batch_size: 4
   gradient_accumulation_steps: 4
-  learning_rate: "auto"
+  learning_rate: "auto"  # 기본값과 동일
   lr_scheduler: "cosine"
   warmup_ratio: 0.1
   num_epochs: "auto"
@@ -701,6 +714,103 @@ rag:
 - 임베딩 모델은 sentence-transformers 호환 모델이면 모두 사용 가능합니다. 한국어·다국어 문서에는 `Qwen/Qwen3-Embedding-0.6B`가 권장됩니다.
 - `hybrid_search: true` (기본값) 설정 시 BM25Okapi 키워드 검색과 벡터 검색을 RRF(Reciprocal Rank Fusion)로 결합합니다. `rank_bm25` 패키지가 필요합니다 (`uv sync --extra rag`). 한국어 문서에서는 kiwipiepy 형태소 분석기를 사용하여 정확한 토큰화를 수행합니다 (`uv sync --extra korean` 필요). Lost-in-middle 문제를 완화하기 위해 검색된 문서를 관련도 순으로 재정렬합니다.
 
+### rag.agent — Agent RAG 모드
+
+> `AgentOrchestrator`가 구동하는 OMO 패턴 기반 12단계 지능 파이프라인 설정입니다. `/auto` 경로의 라우팅·플래닝·검증·합성·반성·재시도를 제어합니다. 아키텍처 개요는 [AGENT_ARCHITECTURE.md](AGENT_ARCHITECTURE.md)를 참고하세요.
+
+| 필드 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `enabled` | `bool` | `true` | Agent 모드 활성화. `false`이면 기존 단일 패스 RAG를 사용합니다 |
+| `max_iterations` | `int` | `5` | ReAct 루프 최대 반복 횟수. 초과 시 `force_answer` thought 이벤트 발행 후 강제 답변 생성 |
+| `session_ttl` | `int` | `3600` | 세션 유지 시간(초) |
+| `max_history_turns` | `int` | `20` | 대화 내역 최대 턴 수. 초과 시 오래된 턴 제거 |
+| `stream_reasoning` | `bool` | `true` | 추론(Thought/Action/Observation)을 SSE로 실시간 스트리밍 |
+| `persist_sessions` | `bool` | `false` | `FileBackedSessionStore`로 세션을 JSON 파일에 영속화 |
+| `sessions_dir` | `str` | `"agent_sessions"` | 영속 세션 JSON 저장 경로 (`paths.output` 하위) |
+| `planner_enabled` | `bool` | `false` | Planner 오케스트레이션(plan → execute → verify → synthesize) 활성화. `false`이면 기존 ReAct `AgentLoop` 사용 |
+| `verifier_enabled` | `bool` | `true` | Verifier로 컨텍스트 충분성 판정 (`planner_enabled=true`에서만 유효) |
+| `verifier_max_repairs` | `int` | `1` | Verifier가 허용하는 추가 검색(repair) 최대 횟수 |
+| `legacy_fallback_enabled` | `bool` | `true` | Planner가 구조적으로 실패(`is_fallback=True`)하면 legacy `AgentLoop`로 자동 전환 |
+| `session_source_reuse` | `bool` | `true` | 같은 세션 이전 턴의 참조 문서를 다음 synthesis 프롬프트에 주입 (`planner_enabled=true`에서만) |
+| `session_source_reuse_limit` | `int` | `5` | 재사용할 이전 턴 문서 최대 개수 |
+| `parallel_steps` | `bool` | `false` | Planner plan의 모든 step이 `parallel_safe`이고 2개 이상이면 `asyncio.gather`로 병렬 실행. `ToolSpec.parallel_safe` 메타데이터를 검사 |
+| `reflector_enabled` | `bool` | `false` | Reflector 답변 자기 검증. 근거 부족 시 추가 검색 + 재합성 (`planner_enabled=true`에서만) |
+| `reflector_max_retries` | `int` | `1` | Reflector 거부 시 추가 검색·재합성 최대 횟수. `ultra_mode=true`이면 1로 cap |
+| `intent_classifier_enabled` | `bool` | `false` | LLM 기반 의도 분류(`factual`/`comparative`/`analytical`/`procedural`/`exploratory`/`ambiguous`) 활성화. 실패 시 키워드 fallback |
+| `intent_classifier_cache_ttl` | `int` | `300` | 의도 분류 결과 캐싱 시간(초). `0`이면 비활성 |
+| `clarifier_enabled` | `bool` | `false` | IntentClassifier가 `ambiguous`로 분류하면 Clarifier persona가 답변 대신 명확화 질문을 반환 (`intent_classifier_enabled=true` 필요) |
+| `clarifier_max_questions` | `int` | `2` | Clarifier 질문 최대 개수 (1~3 권장) |
+| `personas_enabled` | `bool` | `false` | Persona 시스템 활성화. intent별 전용 synthesis 프롬프트 + 도구 화이트리스트 |
+| `custom_personas_dir` | `str` | `""` | 사용자 정의 persona YAML 디렉터리. 빈 문자열이면 비활성. built-in persona보다 우선 적용 |
+| `review_work_enabled` | `bool` | `false` | Review-Work 병렬 검증 활성화. grounding/completeness/hallucination 3개 reviewer가 병렬 실행 (`planner_enabled=true`에서만) |
+| `review_work_retry` | `bool` | `false` | Review-Work 실패 시 추가 검색 + 재합성 (`review_work_enabled=true`에서만) |
+| `self_improvement_enabled` | `bool` | `false` | AnswerScorer 기반 자기 개선 루프. 점수 < `min_quality_score` 시 구체 피드백 주입 후 재합성 |
+| `min_quality_score` | `float` | `7.0` | 이 점수(1~10) 미만이면 self-improvement 재시도 |
+| `max_self_improvement_iterations` | `int` | `1` | self-improvement 최대 재시도 횟수. `ultra_mode=true`이면 1로 cap |
+| `memory_compression_enabled` | `bool` | `false` | 긴 대화 자동 요약. `compress_after_turns` 초과 시 오래된 턴을 LLM 요약으로 압축 |
+| `compress_after_turns` | `int` | `10` | 이 턴 수(user+assistant 쌍)를 초과하면 오래된 턴 압축 |
+| `compress_target_chars` | `int` | `500` | 요약 결과의 목표 길이(문자) |
+| `hooks_enabled` | `bool` | `false` | Hooks 시스템 활성화. `pre_query`/`post_search`/`post_synthesis` 지점에서 내장 또는 사용자 hook 실행 |
+| `builtin_hooks` | `list[str]` | `[]` | 자동 등록할 내장 hook. 예: `["normalize_korean_whitespace", "dedup_sources_by_doc_id", "strip_html_from_answer"]` |
+| `skills_enabled` | `bool` | `false` | Skills 시스템 활성화. `skills_dir`의 YAML에 정의된 trigger에 매칭되는 skill의 `prompt_addon`을 synthesis 프롬프트에 주입 |
+| `skills_dir` | `str` | `"skills"` | Skill YAML 디렉터리. 상대 경로는 프로젝트 루트 기준 |
+| `models` | `AgentModelsConfig` | (하위 참조) | 컴포넌트별 Ollama 모델 슬롯. 빈 슬롯은 `rag.ollama_model`로 fallback |
+| `observation_preview_limit` | `int` | `300` | observation SSE 이벤트로 클라이언트에 보낼 때의 길이 제한(문자) |
+| `ollama_keep_alive` | `str` | `"5m"` | 모든 LLM 호출에 전달하는 Ollama `keep_alive` 값. `"5m"`=5분 유지, `"-1"`=무한, `"0"`=즉시 언로드 |
+| `smart_mode` | `bool` | `false` | **원클릭 프리셋 (P0)** — `true`이면 IntentClassifier + Clarifier + Personas + Review-Work + Planner + Verifier + Reflector + Legacy fallback 자동 활성화 |
+| `ultra_mode` | `bool` | `false` | **최대 성능 프리셋** — `smart_mode` + Hooks + Memory Compression + Self-Improvement + Review-Work retry + Session source reuse 자동 활성화. 또한 validator가 `reflector_max_retries` / `max_self_improvement_iterations`를 1로 cap (더 큰 값을 명시하면 경고 로그 출력 후 유지) |
+
+#### rag.agent.models — 컴포넌트별 Ollama 모델 슬롯
+
+빈 슬롯(`""`)은 모두 `rag.ollama_model`로 자동 fallback됩니다. 워크로드별로 속도/품질 트레이드오프를 분리하려면 개별 슬롯을 지정하세요.
+
+| 필드 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `router_model` | `str` | `""` | IntentClassifier용 — 빠른 소형 모델 권장 |
+| `planner_model` | `str` | `""` | Planner JSON 생성용 — 중급 모델 권장 |
+| `synthesis_model` | `str` | `""` | 최종 답변 합성용 — 가장 큰 모델 권장 |
+| `verifier_model` | `str` | `""` | Verifier 충분성 판정용 — 작은 모델 권장 |
+| `reviewer_model` | `str` | `""` | Review-Work 3개 reviewer용 — 중급 모델 권장 |
+| `reflector_model` | `str` | `""` | Reflector 답변 검증용 — 중급 모델 권장 |
+| `clarifier_model` | `str` | `""` | Clarifier 명확화 질문용 — 중급 모델 권장 |
+| `scorer_model` | `str` | `""` | AnswerScorer 정량 평가용 — 중급 모델 권장 |
+
+**프리셋 설정 예시**
+
+```yaml
+# 원클릭 P0 추천 (답변 품질 + 의도 정확성 + 근거 검증)
+rag:
+  agent:
+    enabled: true
+    smart_mode: true
+```
+
+```yaml
+# 최대 품질 (모든 P0 + P1/P2 자동 활성화)
+rag:
+  agent:
+    enabled: true
+    ultra_mode: true
+    # 선택적 확장
+    skills_enabled: true
+    skills_dir: "/path/to/skills"
+    custom_personas_dir: "/path/to/personas"
+    parallel_steps: true
+    persist_sessions: true
+    models:
+      router_model: "qwen2.5:0.5b"
+      planner_model: "qwen2.5:7b"
+      synthesis_model: "qwen2.5:14b"
+      verifier_model: "qwen2.5:1.5b"
+```
+
+**제약조건**: `max_iterations >= 1`, `session_ttl >= 0`, `max_history_turns >= 1`, `verifier_max_repairs >= 0`. 위반 시 설정 로드 단계에서 `ValidationError`가 발생합니다.
+
+**참고**
+- 모든 LLM 호출 컴포넌트(Planner / Verifier / Reflector / Scorer / Reviewer / Clarifier / IntentClassifier / Compressor)는 **never-raise 계약**을 따릅니다 — LLM 장애 시 안전한 기본값으로 fallback하여 agent 전체를 중단시키지 않습니다.
+- `AnswerScorer`는 `ScoreResult.ok=False`를 반환할 수 있으며(LLM 호출/파싱 실패), orchestrator는 이 플래그를 보고 self-improvement 루프를 즉시 종료해 무한·무의미 재시도를 방지합니다.
+- `ToolSpec.parallel_safe` 메타데이터: 내장 도구 중 `search`/`lookup`/`compare`는 `True`, `evaluate`/`list_documents`는 `False`입니다.
+
 ---
 
 ## 20. refinement — Iterative Refinement 설정
@@ -824,7 +934,8 @@ training:
 **상황**: RTX 3060, RTX 4060 등 8GB VRAM GPU에서 학습할 때.
 
 ```yaml
-# 경량 Student 모델
+# 경량 Student 모델 (Pydantic 기본값. slf init 템플릿은 Ollama 호환성 우수한
+# Qwen/Qwen2.5-1.5B-Instruct 사용 — guide.md "Student 모델 선택" 트러블슈팅 참조)
 student:
   model: "google/gemma-3-1b-it"
   max_seq_length: 2048
@@ -898,10 +1009,10 @@ parsing:
   hwpx:
     apply_spacing: true  # 한국어 띄어쓰기 교정 (uv sync --extra korean 필요)
 
-# 로컬 Ollama 서버 사용
+# 로컬 Ollama 서버 사용 (한국어 품질 향상을 위해 기본 gemma4:e2b 대신 qwen3.5:9b 사용)
 teacher:
   backend: "ollama"
-  model: "qwen3.5:9b"  # 한국어 지원 우수
+  model: "qwen3.5:9b"
   api_base: "http://localhost:11434"
   temperature: 0.3
   timeout: 300
@@ -976,7 +1087,8 @@ analyzer:
   enabled: true
   output_file: "data_analysis.json"
 
-# 한국어 지원 우수한 Student 모델
+# 한국어 지원 우수한 Student 모델 (또는 slf init 템플릿 기본값
+# Qwen/Qwen2.5-1.5B-Instruct — Ollama GGUF 호환성 우수)
 student:
   model: "google/gemma-3-1b-it"
   max_seq_length: 4096
@@ -1035,7 +1147,7 @@ review:
 4. 질문과 시스템 프롬프트를 모두 한국어로 작성하여 한국어 답변을 유도합니다
 5. 한국어 거부 패턴 5개를 추가했습니다
 6. `groundedness.model`을 다국어 지원 모델로 변경했습니다
-7. `student.model: "google/gemma-3-1b-it"` — 소량 데이터에서 파인튜닝이 용이한 경량 Instruct 모델입니다
+7. `student.model: "google/gemma-3-1b-it"` — 소량 데이터에서 파인튜닝이 용이한 경량 Instruct 모델입니다 (Ollama 배포 시 호환성 이슈가 있으면 `slf init` 템플릿 기본값인 `Qwen/Qwen2.5-1.5B-Instruct` 사용 — `guide.md` "Student 모델 선택" 트러블슈팅 참조)
 8. `export.ollama.parameters.temperature: 0.5` — 정책 문서는 일관성이 중요하므로 낮췄습니다
 9. `compare`, `review`는 수동 조작이 필요하므로 명시적으로 비활성화합니다. 나머지 선택적 단계는 기본값(`true`)을 그대로 사용합니다
 
@@ -1076,7 +1188,7 @@ slf check --config project.yaml
 │ 문서 디렉토리  │ OK     │ 5개 파일 (./documents)         │
 │ 출력 디렉토리  │ OK     │ 쓰기 가능 (./output)           │
 │ Ollama 연결    │ OK     │ v0.3.12 (http://localhost:11434)│
-│ 모델 사용 가능 │ OK     │ qwen3.5:9b                     │
+│ 모델 사용 가능 │ OK     │ gemma4:e2b                     │
 │ 학생 모델      │ OK     │ google/gemma-3-1b-it           │
 │ 컴퓨팅 디바이스│ Apple Silicon GPU (MPS) │ Apple M3 Pro      │
 │ 학습 정밀도    │ OK     │ float16 (fp16)                 │

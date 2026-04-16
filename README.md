@@ -53,7 +53,7 @@ slm-factory의 두 기능은 역할이 명확히 다릅니다.
 
 | 패턴 | 명령어 | 역할 | 적합한&nbsp;경우 |
 |------|--------|------|-------------|
-| **RAG&nbsp;+&nbsp;베이스&nbsp;모델** | `slf rag` | RAG&nbsp;검색&nbsp;→&nbsp;Teacher(9B)&nbsp;답변 | 빠른&nbsp;검증 |
+| **RAG&nbsp;+&nbsp;베이스&nbsp;모델** | `slf rag` | RAG&nbsp;검색&nbsp;→&nbsp;Teacher(gemma4:e2b)&nbsp;답변 | 빠른&nbsp;검증 |
 | **RAG&nbsp;+&nbsp;파인튜닝&nbsp;SLM** | `slf tune` | RAG&nbsp;검색&nbsp;→&nbsp;Student(1B)&nbsp;답변,&nbsp;9배&nbsp;빠름 | 프로덕션 |
 
 ```bash
@@ -100,6 +100,8 @@ Student 모델이 학습하는 것:
 **컨텍스트 활용 스타일 학습** — 9B Teacher 모델이 문서 기반 QA를 자동 생성하고, 검증·채점·증강을 거쳐 1B Student 모델의 응답 스타일을 학습시킵니다. 학습 데이터에 문서 컨텍스트가 포함되어, 모델은 지식이 아닌 "문서를 읽고 답변하는 패턴"을 학습합니다.
 
 **과적합 방지 자동 조정** — 데이터 크기에 따라 learning rate, 에포크 수를 자동 조정하고, weight decay·label smoothing·NEFTune으로 과적합을 억제합니다.
+
+**Agent RAG (OMO 패턴)** — `rag.agent.smart_mode: true` 원클릭으로 LLM 기반 의도 분류, 질의 명확화, Persona 라우팅, Planner/Verifier 기반 다단계 검색, Review-Work 병렬 검증, Reflector 자기 검증을 모두 활성화합니다. `ultra_mode: true`는 여기에 Hooks, 대화 압축, Self-Improvement까지 추가합니다. OpenAI 호환 엔드포인트(`/v1/chat/completions`, `/v1/models`)를 제공해 OpenWebUI 등과 바로 연동할 수 있습니다.
 
 ## 문서
 

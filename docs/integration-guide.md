@@ -48,7 +48,7 @@ RAG는 검색 기법이지 답변 생성 모델이 아닙니다. 반드시 LLM(T
 
 | 항목 | 내용 |
 |------|------|
-| **LLM** | Teacher 모델(qwen3.5:9b) — 파인튜닝 없이 그대로 사용 |
+| **LLM** | Teacher 모델(기본 `gemma4:e2b`) — 파인튜닝 없이 그대로 사용 |
 | **장점** | 즉시 시작(30초), 파인튜닝 불필요, 문서 수 제한 없음 |
 | **단점** | Teacher(9B)가 직접 추론하므로 비용↑, 도메인 용어 이해가 제한적 |
 | **적합한 경우** | 문서 20건 미만, PoC, 빠른 검증 |
@@ -158,6 +158,8 @@ slf rag
 
 > **팁**: `slf tune --chat` 명령으로 전체 파이프라인 실행 후 RAG 서버까지 한 번에 시작할 수 있습니다. 서버는 foreground로 실행되며, `Ctrl+C`로 종료합니다.
 
+웹 채팅 UI(`http://localhost:8000/`)에는 다크/라이트 테마 토글, 추론 표시 토글, 모델 선택기(`auto` / `rag` / `agent`)가 있습니다.
+
 ```bash
 # API 호출 테스트
 curl -X POST http://localhost:8000/v1/query \
@@ -212,6 +214,78 @@ curl -N -X POST http://localhost:8000/v1/query \
 ```
 
 **적합한 경우:** PoC, 데모, 소규모 사내 서비스. 즉시 시작하여 API 서비스를 제공하고 싶을 때.
+
+#### OpenAI 호환 엔드포인트 (OpenWebUI 연동)
+
+RAG 서버는 OpenAI Chat Completions 호환 엔드포인트를 제공합니다. OpenWebUI, LibreChat 등 OpenAI API 클라이언트를 그대로 연결할 수 있습니다.
+
+| 메서드 | 경로 | 설명 |
+|--------|------|------|
+| `GET` | `/v1/models` | OpenWebUI selector에 노출되는 모델 목록 (`slm-factory-auto` / `-rag` / `-agent`) |
+| `POST` | `/v1/chat/completions` | OpenAI 호환 채팅 — `stream: true`/`false`, multimodal `content` 리스트 수용 |
+
+**모델 라우팅**
+
+| 모델 ID | 동작 |
+|---------|------|
+| `slm-factory-auto` (기본값) | `AgentOrchestrator.handle_auto` — 질의 복잡도에 따라 simple/agent 자동 선택 |
+| `slm-factory-rag` | 단일 패스 simple RAG |
+| `slm-factory-agent` | Agent RAG (다단계 ReAct) — `rag.agent.enabled=true`일 때만 노출 |
+
+알 수 없는 모델 ID는 `slm-factory-auto`로 fallback됩니다. `body.user` 필드가 있으면 세션 키로 사용되어 Agent RAG 히스토리를 유지합니다.
+
+**API 호출 예시**
+
+```bash
+# 비스트리밍
+curl -X POST http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "slm-factory-auto",
+    "messages": [{"role": "user", "content": "도메인 질문"}],
+    "stream": false
+  }'
+
+# 스트리밍 (OpenAI SSE 포맷)
+curl -N -X POST http://localhost:8000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "slm-factory-agent",
+    "messages": [{"role": "user", "content": "도메인 질문"}],
+    "stream": true,
+    "user": "session-abc"
+  }'
+```
+
+스트리밍 응답은 표준 OpenAI 포맷(`data: {...}\n\n` + `data: [DONE]`)을 따르며, 답변 뒤에 참조 문서가 Markdown 표로 이어 붙습니다.
+
+#### Agent RAG SSE 이벤트 타입 (`/auto` 및 `/agent` 경로)
+
+`rag.agent.enabled: true`일 때, Agent Orchestrator는 ReAct 루프의 각 단계를 SSE 이벤트로 스트리밍합니다. 클라이언트는 다음 이벤트 타입을 처리해야 합니다:
+
+| 이벤트 | 발행 시점 | payload 필드 |
+|---|---|---|
+| `route` | `/auto` 라우팅 직후 | `mode` (simple/agent), `intent?` (factual/comparative/...) |
+| `thought` | ReAct 추론 단계 | `content` (추론 텍스트), `iteration` (반복 번호) |
+| `action` | 도구 호출 | `content` (도구 이름), `input` (입력), `iteration` |
+| `observation` | 도구 결과 | `content` (결과, 최대 `observation_preview_limit`=300자로 truncated), `iteration` |
+| `token` | 답변 토큰 발행 | `content` (단일 토큰 또는 완전 답변) — planner 경로는 모든 quality loop 종료 후 단일 이벤트로 발행 |
+| `review` | Review-Work 판정 | `reviewer` (grounding/completeness/hallucination), `passed` (bool), `reason` |
+| `clarification` | ambiguous 질의 | `questions[]` (역질문 배열), `is_fallback` (bool) |
+| `sources` | 참조 문서 | `sources[]` (문서 배열) — 빈 답변 시 생략 |
+| `done` | 종료 | `session_id` (세션 ID) |
+
+**예시**: 
+```
+data: {"type":"route","mode":"agent","intent":"factual"}
+data: {"type":"thought","content":"사용자의 질문은 factual입니다. 검색을 시작합니다.","iteration":1}
+data: {"type":"action","content":"search","input":"도메인 질문","iteration":1}
+data: {"type":"observation","content":"검색 결과 1\n검색 결과 2\n...","iteration":1}
+data: {"type":"token","content":"최종 답변 첫 번째 토큰"}
+data: {"type":"token","content":" 이어서"}
+data: {"type":"sources","sources":[{"doc_id":"chunk_01","content":"...","score":0.92}]}
+data: {"type":"done","session_id":"user-abc-123"}
+```
 
 ### 4.3 구축 단계 요약
 
