@@ -428,6 +428,133 @@ class TestSmartModeIntegration:
 
 
 # ---------------------------------------------------------------------------
+# OpenAI 호환 엔드포인트 (OpenWebUI)
+# ---------------------------------------------------------------------------
+
+
+class TestOpenAICompat:
+    """/v1/models, /v1/chat/completions — OpenWebUI 연동용."""
+
+    def test_models_목록(self, rag_client):
+        response = rag_client.get("/v1/models")
+        assert response.status_code == 200
+        body = response.json()
+        assert body["object"] == "list"
+        ids = {m["id"] for m in body["data"]}
+        assert "slm-factory-auto" in ids
+        assert "slm-factory-rag" in ids
+        # agent.enabled=True 이므로 agent 모델도 노출
+        assert "slm-factory-agent" in ids
+
+    def test_chat_completions_비스트리밍(self, rag_client):
+        response = rag_client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "slm-factory-rag",
+                "messages": [{"role": "user", "content": "테스트"}],
+                "stream": False,
+            },
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["object"] == "chat.completion"
+        assert body["model"] == "slm-factory-rag"
+        assert body["choices"][0]["message"]["role"] == "assistant"
+        # 본문 + sources footer
+        content = body["choices"][0]["message"]["content"]
+        assert content  # 비어있지 않음
+        assert "참고 문서" in content
+        assert body["choices"][0]["finish_reason"] == "stop"
+
+    def test_chat_completions_스트리밍_SSE(self, rag_client):
+        response = rag_client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "slm-factory-auto",
+                "messages": [{"role": "user", "content": "오늘 날씨"}],
+                "stream": True,
+            },
+        )
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/event-stream")
+
+        chunks = [
+            line[len("data: "):]
+            for line in response.text.splitlines()
+            if line.startswith("data: ")
+        ]
+        assert chunks, "SSE 응답이 비어있습니다"
+        assert chunks[-1] == "[DONE]"
+
+        parsed = [json.loads(c) for c in chunks if c != "[DONE]"]
+        # 첫 청크는 role=assistant
+        assert parsed[0]["choices"][0]["delta"].get("role") == "assistant"
+        # 마지막 청크는 finish_reason=stop
+        assert parsed[-1]["choices"][0]["finish_reason"] == "stop"
+        # object 포맷 확인
+        assert all(p["object"] == "chat.completion.chunk" for p in parsed)
+        # content delta가 하나 이상 있어야 함
+        content_chunks = [
+            p for p in parsed if p["choices"][0]["delta"].get("content")
+        ]
+        assert content_chunks
+
+    def test_chat_completions_user_없는_요청_400(self, rag_client):
+        response = rag_client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "slm-factory-auto",
+                "messages": [{"role": "system", "content": "sys"}],
+                "stream": False,
+            },
+        )
+        assert response.status_code == 400
+        assert "user" in response.json()["error"]["message"]
+
+    def test_chat_completions_빈_query_400(self, rag_client):
+        response = rag_client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "slm-factory-auto",
+                "messages": [{"role": "user", "content": "   "}],
+                "stream": False,
+            },
+        )
+        assert response.status_code == 400
+
+    def test_chat_completions_multimodal_content_list(self, rag_client):
+        """OpenWebUI가 content를 list[dict]로 보낼 때도 텍스트만 추출."""
+        response = rag_client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "slm-factory-rag",
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [{"type": "text", "text": "테스트"}],
+                    }
+                ],
+                "stream": False,
+            },
+        )
+        assert response.status_code == 200
+        assert response.json()["choices"][0]["message"]["content"]
+
+    def test_chat_completions_unknown_model_fallback_auto(self, rag_client):
+        """알 수 없는 모델명은 auto로 fallback."""
+        response = rag_client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "gpt-4-whatever",
+                "messages": [{"role": "user", "content": "오늘 날씨"}],
+                "stream": False,
+            },
+        )
+        assert response.status_code == 200
+        assert response.json()["model"] == "slm-factory-auto"
+
+
+# ---------------------------------------------------------------------------
 # 헬퍼
 # ---------------------------------------------------------------------------
 
