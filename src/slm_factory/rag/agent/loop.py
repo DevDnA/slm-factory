@@ -6,7 +6,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 import re
 from dataclasses import dataclass, field
@@ -241,7 +240,7 @@ class AgentLoop:
                 if len(obs_text) > _MAX_OBSERVATION_LEN:
                     obs_text = obs_text[:_MAX_OBSERVATION_LEN] + "\n...(결과 생략)"
                 scratchpad += f"\nThought: 하위 질문 '{sq}'에 대해 검색합니다.\n"
-                scratchpad += f"Action: search\n"
+                scratchpad += "Action: search\n"
                 scratchpad += f"Action Input: {json.dumps({'query': sq}, ensure_ascii=False)}\n"
                 scratchpad += f"Observation: {obs_text}\n"
                 events.append(AgentEvent(type="thought", content=f"하위 질문: {sq}", iteration=0))
@@ -354,7 +353,7 @@ class AgentLoop:
                 if len(obs_text) > _MAX_OBSERVATION_LEN:
                     obs_text = obs_text[:_MAX_OBSERVATION_LEN] + "\n...(결과 생략)"
                 scratchpad += f"\nThought: 하위 질문 '{sq}'에 대해 검색합니다.\n"
-                scratchpad += f"Action: search\n"
+                scratchpad += "Action: search\n"
                 scratchpad += f"Action Input: {json.dumps({'query': sq}, ensure_ascii=False)}\n"
                 scratchpad += f"Observation: {obs_text}\n"
                 yield AgentEvent(type="observation", content=obs_text[:300], iteration=0)

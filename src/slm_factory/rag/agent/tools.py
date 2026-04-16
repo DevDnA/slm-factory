@@ -8,12 +8,11 @@ from __future__ import annotations
 
 import asyncio
 import json
-import logging
 from dataclasses import dataclass, field
-from typing import Any, Callable, Awaitable
+from typing import Any, Awaitable, Callable
 
 from ...utils import get_logger
-from ..search import search_documents, SearchOutput, SearchResult
+from ..search import search_documents, SearchOutput
 
 logger = get_logger("rag.agent.tools")
 
@@ -269,8 +268,6 @@ class ToolRegistry:
         prompt = SUFFICIENCY_PROMPT.format(query=query, context=context[:2000])
 
         try:
-            import httpx
-
             http_client = self._app_state.http_client
             ollama_model = self._config.rag.ollama_model or self._config.teacher.model
             api_base = self._config.teacher.api_base

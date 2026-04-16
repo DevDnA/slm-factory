@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import inspect
 import re
-from typing import Any, Awaitable, Callable
+from typing import Any, Callable
 
 from ...utils import get_logger
 

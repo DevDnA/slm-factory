@@ -505,7 +505,11 @@ def create_app(config: "SLMConfig"):
                                 break
                 except Exception as exc:
                     logger.error("Ollama 스트리밍 오류: %s", exc)
-                    yield f"data: {json.dumps({'token': '\\n\\n[오류] 응답 생성 중 문제가 발생했습니다.'}, ensure_ascii=False)}\n\n"
+                    err_payload = json.dumps(
+                        {"token": "\n\n[오류] 응답 생성 중 문제가 발생했습니다."},
+                        ensure_ascii=False,
+                    )
+                    yield f"data: {err_payload}\n\n"
 
                 # Ollama 0.19.0 호환: response가 빈 경우 thinking 내용을 fallback으로 전송
                 if not has_response_tokens and thinking_buf:
@@ -699,7 +703,11 @@ def create_app(config: "SLMConfig"):
                             break
             except Exception as exc:
                 logger.error("Ollama 스트리밍 오류: %s", exc)
-                yield f"data: {json.dumps({'type': 'token', 'content': '\\n\\n[오류] 응답 생성 중 문제가 발생했습니다.'}, ensure_ascii=False)}\n\n"
+                err_payload = json.dumps(
+                    {"type": "token", "content": "\n\n[오류] 응답 생성 중 문제가 발생했습니다."},
+                    ensure_ascii=False,
+                )
+                yield f"data: {err_payload}\n\n"
 
             # Ollama 0.19.0 호환: response가 빈 경우 thinking 내용을 fallback으로 전송
             if not has_response_tokens and thinking_buf:
