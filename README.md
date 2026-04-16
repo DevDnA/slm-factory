@@ -53,7 +53,7 @@ slm-factory의 두 기능은 역할이 명확히 다릅니다.
 
 | 패턴 | 명령어 | 역할 | 적합한&nbsp;경우 |
 |------|--------|------|-------------|
-| **RAG&nbsp;+&nbsp;베이스&nbsp;모델** | `slf rag` | RAG&nbsp;검색&nbsp;→&nbsp;Teacher(gemma4:e2b)&nbsp;답변 | 빠른&nbsp;검증 |
+| **RAG&nbsp;+&nbsp;베이스&nbsp;모델** | `slf rag` | RAG&nbsp;검색&nbsp;→&nbsp;Teacher(gemma4:e4b)&nbsp;답변 | 빠른&nbsp;검증 |
 | **RAG&nbsp;+&nbsp;파인튜닝&nbsp;SLM** | `slf tune` | RAG&nbsp;검색&nbsp;→&nbsp;Student(1B)&nbsp;답변,&nbsp;9배&nbsp;빠름 | 프로덕션 |
 
 ```bash

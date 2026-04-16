@@ -20,7 +20,7 @@ cd slm-factory
 
 ```bash
 ollama serve           # 별도 터미널에서 실행 (백그라운드 유지)
-ollama pull gemma4:e2b   # 기본 Teacher 모델 다운로드 (최초 1회, ./setup.sh가 자동 처리)
+ollama pull gemma4:e4b   # 기본 Teacher 모델 다운로드 (최초 1회, ./setup.sh가 자동 처리)
 ```
 
 ---
@@ -64,7 +64,7 @@ slf tune               # 파인튜닝 + RAG + Student(1B) — 문서 20건+
 | 명령어 | 설명 | 주요 옵션 |
 |--------|------|-----------|
 | `slf tune` | 파인튜닝 + RAG (Student 모델 학습 후 RAG 서비스) | `--until <단계>`, `--from <단계>`, `--resume` / `-r`, `--chat` |
-| `slf rag` | RAG 웹 채팅 (Student 자동 감지, 없으면 Teacher `gemma4:e2b` 폴백) | `--chat/--no-chat` |
+| `slf rag` | RAG 웹 채팅 (Student 자동 감지, 없으면 Teacher `gemma4:e4b` 폴백) | `--chat/--no-chat` |
 | `slf train` | LoRA 학습 실행 | `--data <jsonl>`, `--resume` / `-r` |
 | `slf export` | 모델 내보내기 (LoRA 병합 + Modelfile) | `--adapter <경로>` |
 
@@ -238,7 +238,7 @@ paths:
 
 teacher:
   backend: "ollama"                     # "ollama" 또는 "openai"
-  model: "gemma4:e2b"                   # 기본값. 다국어 필요 시 "qwen3.5:9b"
+  model: "gemma4:e4b"                   # 기본값. 다국어 필요 시 "qwen3.5:9b"
   api_base: "http://localhost:11434"
   temperature: 0.3
 
@@ -270,7 +270,7 @@ chunking:
 | `Could not install packages due to an OSError` (kiwipiepy) | Python 버전 미호환 | `python --version` 확인 (3.11+) |
 | `Only N QA pairs generated. Recommend at least 100` | 문서 부족 또는 질문 카테고리 부족 | 문서 추가 또는 `questions.categories` 확장 |
 | 대부분의 답변이 "The document does not contain..." | Teacher 모델 타임아웃 또는 질문 부적합 | `teacher.timeout: 300`, 질문을 문서 내용에 맞게 수정 |
-| `model not found` (Ollama) | Teacher 모델 미다운로드 | `ollama pull <teacher-model>` (기본값: `gemma4:e2b`) |
+| `model not found` (Ollama) | Teacher 모델 미다운로드 | `ollama pull <teacher-model>` (기본값: `gemma4:e4b`) |
 | `externally-managed-environment` (pip) | 환경 미설정 | `./setup.sh` 실행 후 재시도 |
 
 > 상세 해결 방법은 [사용 가이드](guide.md#8-트러블슈팅)를 참조하십시오.

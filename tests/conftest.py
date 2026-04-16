@@ -185,7 +185,7 @@ parsing:
 
 teacher:
   backend: "ollama"
-  model: "gemma4:e2b"
+  model: "gemma4:e4b"
 """,
         encoding="utf-8",
     )

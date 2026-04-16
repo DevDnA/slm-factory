@@ -23,8 +23,8 @@ parsing:
 teacher:
   backend: "ollama"                     # "ollama" (로컬) | "openai" (API/vLLM). vLLM은 openai 백엔드 사용
                                         # ⚠ ollama 사용 시 사전 실행 필요: ollama serve
-  model: "gemma4:e2b"                    # ⚠ 사전 다운로드 필요: ollama pull gemma4:e2b
-                                        # 추천: gemma4:e2b (Gemma4 Effective 2B), qwen3.5:9b (다국어), exaone3.5:7.8b (한국어 최적화)
+  model: "gemma4:e4b"                    # ⚠ 사전 다운로드 필요: ollama pull gemma4:e4b
+                                        # 추천: gemma4:e4b (Gemma4 Effective 4B), qwen3.5:9b (다국어), exaone3.5:7.8b (한국어 최적화)
   api_base: "http://localhost:11434"    # ollama 기본 주소. vLLM: "http://localhost:8000/v1"
   api_key: null                         # ollama는 불필요. openai 백엔드 사용 시 필수
   temperature: 0.3                      # 낮을수록 일관된 답변 (0.1~0.5 권장)

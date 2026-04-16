@@ -154,7 +154,7 @@ chunking:
 | 필드 | 타입 | 기본값 | 설명 |
 |------|------|--------|------|
 | `backend` | `"ollama"` \| `"openai"` | `"ollama"` | 사용할 LLM 백엔드. `"ollama"`는 로컬 Ollama 서버, `"openai"`는 OpenAI 호환 API입니다 |
-| `model` | `str` | `"gemma4:e2b"` | 모델 이름 또는 ID (빈 값 불가) |
+| `model` | `str` | `"gemma4:e4b"` | 모델 이름 또는 ID (빈 값 불가) |
 | `api_base` | `str` | `"http://localhost:11434"` | API 엔드포인트 URL (빈 값 불가) |
 | `api_key` | `str \| None` | `null` | API 키. `backend: "openai"`일 때 필수입니다. Ollama는 불필요합니다 |
 | `temperature` | `float` | `0.3` | 생성 온도 (0.0~1.0). 낮을수록 일관성 있는 답변을 생성합니다 |
@@ -165,7 +165,7 @@ chunking:
 ```yaml
 teacher:
   backend: "ollama"
-  model: "gemma4:e2b"
+  model: "gemma4:e4b"
   api_base: "http://localhost:11434"
   temperature: 0.3
   timeout: 300
@@ -184,7 +184,7 @@ teacher:
   temperature: 0.3
 ```
 
-권장 Ollama 모델: `gemma4:e2b` (기본값, Gemma4 Effective 2B, 경량), `qwen3.5:9b` (다국어, 8GB VRAM), `qwen3.5:27b` (고품질, 24GB+), `exaone3.5:7.8b` (한국어 최적화).
+권장 Ollama 모델: `gemma4:e4b` (기본값, Gemma4 Effective 4B, 경량), `qwen3.5:9b` (다국어, 8GB VRAM), `qwen3.5:27b` (고품질, 24GB+), `exaone3.5:7.8b` (한국어 최적화).
 
 ---
 
@@ -1009,7 +1009,7 @@ parsing:
   hwpx:
     apply_spacing: true  # 한국어 띄어쓰기 교정 (uv sync --extra korean 필요)
 
-# 로컬 Ollama 서버 사용 (한국어 품질 향상을 위해 기본 gemma4:e2b 대신 qwen3.5:9b 사용)
+# 로컬 Ollama 서버 사용 (한국어 품질 향상을 위해 기본 gemma4:e4b 대신 qwen3.5:9b 사용)
 teacher:
   backend: "ollama"
   model: "qwen3.5:9b"
@@ -1188,7 +1188,7 @@ slf check --config project.yaml
 │ 문서 디렉토리  │ OK     │ 5개 파일 (./documents)         │
 │ 출력 디렉토리  │ OK     │ 쓰기 가능 (./output)           │
 │ Ollama 연결    │ OK     │ v0.3.12 (http://localhost:11434)│
-│ 모델 사용 가능 │ OK     │ gemma4:e2b                     │
+│ 모델 사용 가능 │ OK     │ gemma4:e4b                     │
 │ 학생 모델      │ OK     │ google/gemma-3-1b-it           │
 │ 컴퓨팅 디바이스│ Apple Silicon GPU (MPS) │ Apple M3 Pro      │
 │ 학습 정밀도    │ OK     │ float16 (fp16)                 │

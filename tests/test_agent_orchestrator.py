@@ -912,7 +912,7 @@ class TestHandleAgent:
         events = await _collect(orch.handle_agent("질의"))
 
         tokens = [e["content"] for e in events if e["type"] == "token"]
-        assert "agent_via_planner" in tokens
+        assert "agent_via_planner" in "".join(tokens)
         assert not any(e.get("type") == "route" for e in events)
 
     @pytest.mark.asyncio
@@ -1398,11 +1398,39 @@ class TestReflectorIntegration:
         events = await _collect(orch.handle_agent("질의"))
 
         tokens = [e["content"] for e in events if e["type"] == "token"]
-        assert "최종답변" in tokens
+        assert "최종답변" in "".join(tokens)
         # synthesis 1회만 호출됨
         assert fixtures.app_state.http_client.stream.call_count == 1
         # 초기 계획 step 1회만 도구 호출
         assert fixtures.tool_registry.calls == [("search", {"query": "q"})]
+
+    @pytest.mark.asyncio
+    async def test_긴_답변은_chunk_단위로_여러_token_이벤트로_발행(self, monkeypatch):
+        """최종 답변 pseudo-streaming: 긴 답변이 chunk 크기 단위로 쪼개져 발행."""
+        from slm_factory.rag.agent.orchestrator import _FINAL_ANSWER_CHUNK_CHARS
+
+        plan = _make_plan([{"tool": "search", "args": {"query": "q"}}])
+        long_answer = "A" * (_FINAL_ANSWER_CHUNK_CHARS * 3 + 5)  # 3.4 chunks 분량
+        fixtures = _PlannerPathFixtures(
+            monkeypatch,
+            plan=plan,
+            tool_script=[_FakeToolResult(text="결과", sources=[])],
+            synthesis_tokens=[long_answer],
+        )
+
+        orch = _make_orchestrator(
+            planner_enabled=True,
+            app_state=fixtures.app_state,
+        )
+        events = await _collect(orch.handle_agent("질의"))
+
+        tokens = [e["content"] for e in events if e["type"] == "token"]
+        # 여러 이벤트로 쪼개짐 (단일 token 발행이 아님)
+        assert len(tokens) >= 4
+        # 각 chunk는 chunk_size 이하
+        assert all(len(t) <= _FINAL_ANSWER_CHUNK_CHARS for t in tokens)
+        # 재조립 시 원본과 일치 (중복·누락 없음)
+        assert "".join(tokens) == long_answer
 
     @pytest.mark.asyncio
     async def test_reflector_실패시_보완검색_후_재합성(self, monkeypatch):
@@ -1446,9 +1474,9 @@ class TestReflectorIntegration:
         # synthesis 2회 호출 (초안 + 수정본)
         assert fixtures.app_state.http_client.stream.call_count == 2
 
-        # HIGH-1/HIGH-2: 드래프트는 yield 하지 않고 최종 답변만 단일 token으로 발행.
+        # HIGH-1/HIGH-2: 드래프트는 yield 하지 않고 최종 답변만 발행 (chunk 단위).
         tokens = [e["content"] for e in events if e["type"] == "token"]
-        assert tokens == ["수정된 답변"]
+        assert "".join(tokens) == "수정된 답변"
 
         # 보완 source가 최종 sources에 포함됨
         sources = [e for e in events if e["type"] == "sources"][0]["sources"]
@@ -1563,7 +1591,7 @@ class TestReflectorIntegration:
         # 답변은 초안 그대로 유지 (재합성 안됨)
         assert events[-1]["type"] == "done"
         tokens = [e["content"] for e in events if e["type"] == "token"]
-        assert "초안" in tokens
+        assert "초안" in "".join(tokens)
 
 
 class TestParallelSteps:
@@ -2022,8 +2050,9 @@ class TestLegacyFallbackGate:
         events = await _collect(orch.handle_auto("비교"))
 
         tokens = [e["content"] for e in events if e["type"] == "token"]
-        assert "planner_path" in tokens
-        assert "LEGACY_SHOULD_NOT_RUN" not in tokens
+        joined = "".join(tokens)
+        assert "planner_path" in joined
+        assert "LEGACY_SHOULD_NOT_RUN" not in joined
         assert fixtures.tool_registry.calls == [("search", {"query": "x"})]
 
     @pytest.mark.asyncio
@@ -2049,8 +2078,9 @@ class TestLegacyFallbackGate:
         events = await _collect(orch.handle_auto("비교"))
 
         tokens = [e["content"] for e in events if e["type"] == "token"]
-        assert "ok" in tokens
-        assert "LEGACY_SHOULD_NOT_RUN" not in tokens
+        joined = "".join(tokens)
+        assert "ok" in joined
+        assert "LEGACY_SHOULD_NOT_RUN" not in joined
 
     @pytest.mark.asyncio
     async def test_fallback_전환시_세션_이중기록_방지(self, monkeypatch):

@@ -107,7 +107,7 @@ cd slm-factory
 <h2 id="사전-준비">사전 준비</h2>
 <p><code>./setup.sh</code>가 Ollama 모델 다운로드를 자동 처리합니다. 수동으로 실행하려면 아래 명령을 사용하세요.</p>
 <pre data-lang="bash"><code>ollama serve           # 별도 터미널에서 실행 (백그라운드 유지)
-ollama pull gemma4:e2b   # 기본 Teacher 모델 다운로드 (최초 1회, ./setup.sh가 자동 처리)</code></pre>
+ollama pull gemma4:e4b   # 기본 Teacher 모델 다운로드 (최초 1회, ./setup.sh가 자동 처리)</code></pre>
 <hr>
 </section>
 
@@ -175,7 +175,7 @@ slf tune               # 파인튜닝 + RAG + Student(1B) — 문서 20건+</cod
 </tr>
 <tr>
 <td><code>slf rag</code></td>
-<td>RAG 웹 채팅 (Student 자동 감지, 없으면 Teacher <code>gemma4:e2b</code> 폴백)</td>
+<td>RAG 웹 채팅 (Student 자동 감지, 없으면 Teacher <code>gemma4:e4b</code> 폴백)</td>
 <td><code>--chat/--no-chat</code></td>
 </tr>
 <tr>
@@ -492,7 +492,7 @@ paths:
 
 teacher:
   backend: "ollama"                     # "ollama" 또는 "openai"
-  model: "gemma4:e2b"                   # 기본값. 다국어 필요 시 "qwen3.5:9b"
+  model: "gemma4:e4b"                   # 기본값. 다국어 필요 시 "qwen3.5:9b"
   api_base: "http://localhost:11434"
   temperature: 0.3
 
@@ -557,7 +557,7 @@ chunking:
 <tr>
 <td><code>model not found</code> (Ollama)</td>
 <td>Teacher 모델 미다운로드</td>
-<td><code>ollama pull &lt;teacher-model&gt;</code> (기본값: <code>gemma4:e2b</code>)</td>
+<td><code>ollama pull &lt;teacher-model&gt;</code> (기본값: <code>gemma4:e4b</code>)</td>
 </tr>
 <tr>
 <td><code>externally-managed-environment</code> (pip)</td>

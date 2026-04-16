@@ -26,7 +26,7 @@ def _make_teacher_config(**overrides) -> TeacherConfig:
     """테스트용 TeacherConfig를 간편하게 생성합니다."""
     defaults = {
         "backend": "ollama",
-        "model": "gemma4:e2b",
+        "model": "gemma4:e4b",
         "api_base": "http://localhost:11434",
         "api_key": None,
         "temperature": 0.3,

@@ -37,6 +37,13 @@ SimpleStreamFn = Callable[[str], AsyncGenerator[dict, None]]
 # 컨텍스트 합성 시 prompt에 삽입되는 참고 문서의 최대 길이.
 _SYNTHESIS_CONTEXT_CHAR_LIMIT = 6000
 
+# 최종 답변의 pseudo-streaming chunk 파라미터.
+# quality loop가 끝난 뒤 확정된 answer를 여러 token 이벤트로 쪼개 발행하여
+# UI 타자기 효과를 복원합니다. 단일 LLM 호출 결과를 재생만 하는 것이므로
+# HIGH-1/HIGH-2 중복 yield 제약은 그대로 유지됩니다.
+_FINAL_ANSWER_CHUNK_CHARS = 12
+_FINAL_ANSWER_CHUNK_DELAY_SEC = 0.012
+
 
 class AgentOrchestrator:
     """``/auto`` 경로의 라우팅·스트리밍 오케스트레이터.
@@ -512,11 +519,15 @@ class AgentOrchestrator:
                 yield event
             return
 
-        if stream_reasoning:
-            summary = f"계획: {plan.strategy} 전략, {len(plan.steps)}개 step"
-            if plan.rationale:
-                summary += f" — {plan.rationale}"
-            yield {"type": "thought", "content": summary, "iteration": 0}
+        # plan.rationale이 있을 때만 초기 요약 thought를 발행합니다.
+        # rationale이 비어 있으면 "계획: fact 전략, 1개 step" 같은 저정보 텍스트만
+        # 나가 UI 노이즈가 되므로, 후속 action 이벤트가 상태 표시를 대신하도록 둡니다.
+        if stream_reasoning and plan.rationale:
+            yield {
+                "type": "thought",
+                "content": f"계획({plan.strategy}): {plan.rationale}",
+                "iteration": 0,
+            }
 
         all_sources: list[dict] = []
         seen_doc_ids: set[str] = set()
@@ -773,11 +784,6 @@ class AgentOrchestrator:
                         "content": obs_preview,
                         "iteration": reflect_iteration,
                     }
-                    yield {
-                        "type": "thought",
-                        "content": "보완된 컨텍스트로 답변을 재생성합니다.",
-                        "iteration": reflect_iteration,
-                    }
 
                 # 재합성도 token yield 없이 수집 — 최종 답변만 발행.
                 retry_answer = await self._collect_synthesis(
@@ -824,10 +830,11 @@ class AgentOrchestrator:
                 repair_iteration += 1
                 rq = verdict.missing_info_query or ""
                 if stream_reasoning:
+                    failed_label = ", ".join(verdict.failed_reviewers) or "(없음)"
                     yield {
                         "type": "thought",
                         "content": (
-                            f"Review-Work 재시도: failed={verdict.failed_reviewers} "
+                            f"Review-Work 재시도: 실패 리뷰어 {failed_label} "
                             f"→ '{rq}'"
                         ),
                         "iteration": repair_iteration,
@@ -926,13 +933,19 @@ class AgentOrchestrator:
                 if new_answer:
                     answer = new_answer
 
-        # --- 최종 답변 발행 (단일 token 이벤트) ------------------------
-        # 모든 quality loop가 종료된 뒤에야 답변 텍스트를 클라이언트에 발행합니다.
-        # 단일 이벤트로 보내 OpenAI compat adapter의 ``content_parts`` 누적이
-        # 정확히 한 답변만 포함하도록 보장합니다(HIGH-1/HIGH-2).
+        # --- 최종 답변 발행 (chunk 단위 pseudo-streaming) -----------------
+        # 모든 quality loop가 종료된 지점이므로 재합성이 더 이상 발생하지 않습니다.
+        # 이 시점에는 answer가 확정되어 있어 chunk로 쪼개서 발행해도
+        # ``content_parts`` 누적이 정확히 한 답변만 포함합니다(HIGH-1/HIGH-2 제약 유지).
+        # chunk 단위 발행으로 UI 타자기 효과를 복원합니다.
         if answer.strip():
-            yield {"type": "token", "content": answer}
             session_store.add_message(sid, Message(role="assistant", content=answer))
+            chunk_size = _FINAL_ANSWER_CHUNK_CHARS
+            chunk_delay = _FINAL_ANSWER_CHUNK_DELAY_SEC
+            for i in range(0, len(answer), chunk_size):
+                yield {"type": "token", "content": answer[i : i + chunk_size]}
+                if chunk_delay > 0:
+                    await asyncio.sleep(chunk_delay)
             await self._maybe_compress_memory(session_store, sid, http_client, aux_timeout)
 
             sources_payload = [

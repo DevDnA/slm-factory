@@ -197,9 +197,9 @@ curl -fsSL https://ollama.com/install.sh | sh
 <p>별도 터미널 창에서 서버를 실행합니다. 파이프라인이 실행되는 동안 계속 켜두어야 합니다.</p>
 <pre data-lang="bash"><code>ollama serve</code></pre>
 <p><strong>3단계: Teacher 모델 다운로드</strong></p>
-<p>기본 Teacher 모델은 <code>gemma4:e2b</code> (Gemma4 Effective 2B, 경량) 입니다. 한국어/다국어 품질이 더 필요하면 <code>qwen3.5:9b</code>를 사용하세요.</p>
+<p>기본 Teacher 모델은 <code>gemma4:e4b</code> (Gemma4 Effective 4B, 경량) 입니다. 한국어/다국어 품질이 더 필요하면 <code>qwen3.5:9b</code>를 사용하세요.</p>
 <pre data-lang="bash"><code># 기본 Teacher 모델 (경량, ./setup.sh가 자동 다운로드)
-ollama pull gemma4:e2b
+ollama pull gemma4:e4b
 
 # 한국어/다국어 대안 (8GB VRAM)
 ollama pull qwen3.5:9b
@@ -210,7 +210,7 @@ ollama pull qwen3.5:27b
 # 한국어 최적화 대안
 ollama pull exaone3.5:7.8b</code></pre>
 <p>다운로드 완료 후 정상 동작을 확인합니다.</p>
-<pre data-lang="bash"><code>ollama run gemma4:e2b "안녕하세요"</code></pre>
+<pre data-lang="bash"><code>ollama run gemma4:e4b "안녕하세요"</code></pre>
 <hr>
 <blockquote><p><code>./setup.sh</code>가 <code>slf</code> 명령어를 자동 설치합니다. 설치 후 바로 사용할 수 있습니다.</p></blockquote>
 <h3 id="slm-factory-설치">slm-factory 설치</h3>
@@ -554,7 +554,7 @@ ollama run my-first-project-model</code></pre>
 
 teacher:
   backend: "ollama"           # "ollama" 또는 "openai"
-  model: "gemma4:e2b"         # 기본 Teacher 모델. 다국어 필요 시 "qwen3.5:9b"
+  model: "gemma4:e4b"         # 기본 Teacher 모델. 다국어 필요 시 "qwen3.5:9b"
   api_base: "http://localhost:11434"
   temperature: 0.3
 
@@ -1129,7 +1129,7 @@ slf rag
 </table>
 </div>
 <h4 id="rag-베이스-모델-slf-rag">RAG + 베이스 모델 (<code>slf rag</code>)</h4>
-<p>문서를 파싱하고 벡터 인덱스를 구축한 후 바로 웹 채팅을 시작합니다. 파인튜닝 없이 Teacher 모델(기본 <code>gemma4:e2b</code>)이 검색된 문서를 참조하여 답변합니다. 파인튜닝된 Student 모델이 Ollama에 있으면 자동으로 해당 모델을 사용합니다.</p>
+<p>문서를 파싱하고 벡터 인덱스를 구축한 후 바로 웹 채팅을 시작합니다. 파인튜닝 없이 Teacher 모델(기본 <code>gemma4:e4b</code>)이 검색된 문서를 참조하여 답변합니다. 파인튜닝된 Student 모델이 Ollama에 있으면 자동으로 해당 모델을 사용합니다.</p>
 <h4 id="rag-파인튜닝-slm-slf-tune">RAG + 파인튜닝 SLM (<code>slf tune</code>)</h4>
 <p>13단계 파이프라인을 실행하여 Student 모델의 응답 스타일을 학습시키고, RAG 인덱스를 구축한 후 웹 채팅을 시작합니다. 파인튜닝된 경량 모델(1B)이 도메인에 맞는 어투로 근거를 인용하며 답변합니다. Teacher(9B) 대비 9배 빠르고 1/9 비용입니다. 두 패턴 모두 RAG 검색 결과를 근거로 답변하므로 할루시네이션이 억제됩니다.</p>
 <blockquote><p><strong>팁</strong>: 두 모드를 병렬로 실행할 수도 있습니다. 터미널 1에서 <code>slf rag</code>로 즉시 서비스하면서, 터미널 2에서 <code>slf tune --no-chat</code>으로 파인튜닝을 진행합니다.</p></blockquote>

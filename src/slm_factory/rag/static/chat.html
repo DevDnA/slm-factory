@@ -848,52 +848,30 @@ input, textarea, select { font-family: inherit; color: inherit; }
   font-family: var(--font-sans);
 }
 .reasoning.live .reasoning-toggle b { color: var(--accent); font-weight: 600; }
-.reasoning .summary-preview {
-  flex: 1;
-  min-width: 0;
-  color: var(--fg-subtle);
-  font-family: var(--font-sans);
-  font-size: 12px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  opacity: 0;
-  transition: opacity 200ms var(--ease);
-}
-.reasoning.live .summary-preview { opacity: 1; }
 .reasoning .live-dots { display: none; }
-.reasoning .step-counter {
-  color: var(--fg-subtle);
-  font-size: 11px;
-  font-family: var(--font-mono);
-  flex-shrink: 0;
-}
-.reasoning.live .step-counter { color: var(--accent); }
 
 .reasoning-body {
   display: none;
-  padding: 4px 0 6px;
-  max-height: 320px;
+  padding: 4px 0 8px;
+  max-height: 360px;
   overflow-y: auto;
-  font-size: 12.5px;
   scroll-behavior: smooth;
 }
 .reasoning-body.open { display: block; }
-.reasoning-step {
-  display: flex;
-  gap: 8px;
-  padding: 4px 0;
-  line-height: 1.55;
-  color: var(--fg-soft);
-  animation: step-in 200ms var(--ease-out) both;
-  font-family: var(--font-mono);
-  font-size: 12px;
+
+/* opencode 스타일 — 태그·아이콘 없이 흐르는 dimmed prose */
+.reasoning-prose {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--fg-subtle);
+  font-style: italic;
+  opacity: 0.92;
 }
-@keyframes step-in {
-  from { opacity: 0; transform: translateX(-4px); }
-  to { opacity: 1; transform: translateX(0); }
-}
-.reasoning.live .reasoning-step:last-child .step-text::after {
+.reasoning.live .reasoning-prose { opacity: 1; }
+.reasoning.live .reasoning-prose::after {
   content: '';
   display: inline-block;
   width: 1px; height: 0.95em;
@@ -902,26 +880,6 @@ input, textarea, select { font-family: inherit; color: inherit; }
   vertical-align: text-bottom;
   animation: blink 1s steps(2) infinite;
 }
-.step-text { flex: 1; min-width: 0; word-break: break-word; }
-.step-tag {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  padding: 0 4px;
-  flex-shrink: 0;
-  height: fit-content;
-  margin-top: 1px;
-  border-radius: 3px;
-  text-transform: lowercase;
-}
-.step-tag.thought { color: #a78bfa; background: transparent; }
-.step-tag.thought::before { content: '›'; margin-right: 4px; color: var(--fg-subtle); }
-.step-tag.action { color: var(--success); background: transparent; }
-.step-tag.action::before { content: '◉'; margin-right: 4px; }
-.step-tag.observation { color: var(--warning); background: transparent; }
-.step-tag.observation::before { content: '◎'; margin-right: 4px; }
-.step-tag.route { color: var(--accent); background: transparent; }
 
 /* Sources */
 .sources {
@@ -1809,6 +1767,42 @@ function renderMessage(msg) {
   return { el, body, content };
 }
 
+// thought/action/observation 배열을 opencode 스타일 흐르는 prose로 직렬화.
+// thought는 단락, action은 `→ ...`, observation은 `  ...`로 가볍게 구분.
+// Action 이벤트의 tool+input을 사람 친화 포맷으로 조합.
+// - 단일 query 인자: `search("키워드")`
+// - 다중 인자: `tool(k=v, k2=v2)`
+// - 인자 없음: `tool`
+function formatActionText(content, input) {
+  const tool = content || '';
+  if (!input || typeof input !== 'object') return tool;
+  const keys = Object.keys(input);
+  if (keys.length === 0) return tool;
+  if (keys.length === 1 && keys[0] === 'query') {
+    const q = input.query;
+    const s = typeof q === 'string' ? q : JSON.stringify(q);
+    return `${tool}("${s}")`;
+  }
+  const parts = keys.map(k => `${k}=${JSON.stringify(input[k])}`);
+  return `${tool}(${parts.join(', ')})`;
+}
+
+function joinReasoningProse(steps) {
+  let out = '';
+  steps.forEach((s, i) => {
+    const txt = (s.text || '').trim();
+    if (!txt) return;
+    if (s.type === 'thought') {
+      out += (out ? '\n\n' : '') + txt;
+    } else if (s.type === 'action') {
+      out += (out ? '\n' : '') + '→ ' + txt;
+    } else {
+      out += (out ? '\n' : '') + '↳ ' + txt;
+    }
+  });
+  return out;
+}
+
 function buildReasoning(steps, opts) {
   opts = opts || {};
   const wrap = document.createElement('div');
@@ -1816,33 +1810,17 @@ function buildReasoning(steps, opts) {
   const toggle = document.createElement('button');
   toggle.className = 'reasoning-toggle' + (opts.open ? ' open' : '');
   toggle.type = 'button';
-  // 미니멀 헤더: 아이콘은 ::before로, 라벨 + 최신 step 미리보기 + 단계 수 + chev
   toggle.innerHTML = `
     <b>${opts.live ? '추론 중' : '추론 과정'}</b>
-    <span class="summary-preview"></span>
-    <span class="step-counter">${steps.length}</span>
     <svg class="chev" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
   `;
   const bodyEl = document.createElement('div');
   bodyEl.className = 'reasoning-body' + (opts.open ? ' open' : '');
-  steps.forEach((s) => {
-    const row = document.createElement('div');
-    row.className = 'reasoning-step';
-    const tag = document.createElement('span');
-    tag.className = 'step-tag ' + s.type;
-    tag.textContent = s.type;
-    const text = document.createElement('span');
-    text.className = 'step-text';
-    text.textContent = s.text || '';
-    row.appendChild(tag);
-    row.appendChild(text);
-    bodyEl.appendChild(row);
-  });
-  // 최신 step 미리보기 채우기
   if (steps.length) {
-    const last = steps[steps.length - 1];
-    const prev = toggle.querySelector('.summary-preview');
-    if (prev) prev.textContent = last.text || '';
+    const proseEl = document.createElement('div');
+    proseEl.className = 'reasoning-prose';
+    proseEl.textContent = joinReasoningProse(steps);
+    bodyEl.appendChild(proseEl);
   }
   toggle.addEventListener('click', () => {
     toggle.classList.toggle('open');
@@ -1912,6 +1890,47 @@ function flushTypewriters() {
     entry.cancelled = true;
   }
   activeTypewriters.clear();
+  for (const el of Array.from(activeProseEls)) {
+    flushProse(el);
+  }
+}
+
+// 단일 prose element에 텍스트를 append-only로 흘려넣는 글로벌 큐.
+// step 사이 끊김 없이 연속 스트리밍 — opencode TUI 추론 표시와 동일한 흐름.
+const proseQueues = new WeakMap();
+const activeProseEls = new Set();
+function streamProse(el, addText, charsPerFrame) {
+  charsPerFrame = charsPerFrame || 4;
+  let q = proseQueues.get(el);
+  if (!q) {
+    q = { text: '', i: 0, charsPerFrame, running: false };
+    proseQueues.set(el, q);
+    activeProseEls.add(el);
+    el.textContent = '';
+  }
+  q.text += addText;
+  if (q.running) return;
+  q.running = true;
+  function tick() {
+    if (q.i >= q.text.length) {
+      q.running = false;
+      return;
+    }
+    q.i = Math.min(q.i + q.charsPerFrame, q.text.length);
+    el.textContent = q.text.slice(0, q.i);
+    const body = el.closest('.reasoning-body');
+    if (body) body.scrollTop = body.scrollHeight;
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+function flushProse(el) {
+  const q = proseQueues.get(el);
+  if (!q) return;
+  q.i = q.text.length;
+  el.textContent = q.text;
+  q.running = false;
+  activeProseEls.delete(el);
 }
 
 // 버퍼링된 최종 답변(markdown)을 DOM에 점진 렌더 — Agent 모드에서 마지막 사이클만 보여주기 위함.
@@ -2306,7 +2325,11 @@ async function runStream(chat, query) {
               if (lbl) lbl.textContent = '추론 중';
             }
           }
-          const text = (evt.content || '') + (evt.input ? ' → ' + JSON.stringify(evt.input) : '');
+          // action 이벤트는 `tool("query")` 형태로 사람 친화 포맷.
+          // thought/observation은 content만 노출 (원시 JSON 누출 방지).
+          const text = evt.type === 'action'
+            ? formatActionText(evt.content, evt.input)
+            : (evt.content || '');
           aiMsg.reasoning.push({ type: evt.type, text });
           if (state.settings.showReasoning) {
             if (!reasoningEl) {
@@ -2316,23 +2339,23 @@ async function runStream(chat, query) {
               // "준비 중..." placeholder 제거 — 중복 인디케이터 방지.
               if (thinking && thinking.parentNode) thinking.remove();
             }
-            const row = document.createElement('div');
-            row.className = 'reasoning-step';
-            const tag = document.createElement('span');
-            tag.className = 'step-tag ' + evt.type;
-            tag.textContent = evt.type;
-            const span = document.createElement('span');
-            span.className = 'step-text';
-            row.appendChild(tag);
-            row.appendChild(span);
-            reasoningBody.appendChild(row);
-            const counter = reasoningEl.querySelector('.step-counter');
-            if (counter) counter.textContent = aiMsg.reasoning.length;
-            // 헤더 summary-preview — 최신 step 1줄 요약
-            const preview = reasoningEl.querySelector('.summary-preview');
-            if (preview) preview.textContent = text;
-            // thought/action/observation 텍스트를 타이프라이터로 스트리밍 출력.
-            typewriterTo(span, text, 3);
+            // 단일 prose element에 append-only로 흘려넣음 (opencode 스타일).
+            let proseEl = reasoningBody.querySelector('.reasoning-prose');
+            if (!proseEl) {
+              proseEl = document.createElement('div');
+              proseEl.className = 'reasoning-prose';
+              reasoningBody.appendChild(proseEl);
+            }
+            const isFirst = aiMsg.reasoning.length === 1;
+            let chunk;
+            if (evt.type === 'thought') {
+              chunk = (isFirst ? '' : '\n\n') + text;
+            } else if (evt.type === 'action') {
+              chunk = (isFirst ? '' : '\n') + '→ ' + text;
+            } else {
+              chunk = (isFirst ? '' : '\n') + '↳ ' + text;
+            }
+            streamProse(proseEl, chunk, 4);
             // 상단바 status phase 갱신
             setStatusPhase(evt.type === 'action' ? 'Searching...' : '추론 중...');
             scrollToBottom();

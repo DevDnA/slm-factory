@@ -335,7 +335,7 @@ SLMConfig (root)
 │
 ├── teacher: TeacherConfig
 │   ├── backend: Literal["ollama", "openai"] = "ollama"
-│   ├── model: str = "gemma4:e2b"
+│   ├── model: str = "gemma4:e4b"
 │   ├── api_base: str = "http://localhost:11434"
 │   ├── api_key: str | None = None
 │   ├── temperature: float = 0.3
