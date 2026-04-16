@@ -134,7 +134,9 @@ def search_documents(
     initial_k = top_k * 3 if use_reranker else top_k
 
     t0 = time.monotonic()
-    query_embedding = embedding_model.encode(query, prompt_name="query").tolist()
+    query_embedding = embedding_model.encode(
+        query, prompt_name="query", show_progress_bar=False
+    ).tolist()
     t_embed = time.monotonic()
 
     results = qdrant_client.query_points(

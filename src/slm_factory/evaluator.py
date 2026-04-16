@@ -160,7 +160,7 @@ class RetrievalEvaluator:
             if not gt_ids:
                 continue
 
-            query_vec = model.encode(query).tolist()
+            query_vec = model.encode(query, show_progress_bar=False).tolist()
             results = client.query_points(
                 collection_name=collection,
                 query=query_vec,

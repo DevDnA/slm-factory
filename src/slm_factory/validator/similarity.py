@@ -85,8 +85,12 @@ class GroundednessChecker:
 
         chunks = self._chunk_text(source_text)
 
-        answer_embedding = self._model.encode(answer, convert_to_tensor=True)
-        chunk_embeddings = self._model.encode(chunks, convert_to_tensor=True)
+        answer_embedding = self._model.encode(
+            answer, convert_to_tensor=True, show_progress_bar=False
+        )
+        chunk_embeddings = self._model.encode(
+            chunks, convert_to_tensor=True, show_progress_bar=False
+        )
 
         similarities = st_util.cos_sim(answer_embedding, chunk_embeddings)
         max_sim = float(similarities.max())
@@ -145,10 +149,12 @@ class GroundednessChecker:
             if pair.source_doc not in chunk_cache:
                 chunks = self._chunk_text(source)
                 chunk_cache[pair.source_doc] = self._model.encode(
-                    chunks, convert_to_tensor=True
+                    chunks, convert_to_tensor=True, show_progress_bar=False
                 )
 
-            answer_emb = self._model.encode(pair.answer, convert_to_tensor=True)
+            answer_emb = self._model.encode(
+                pair.answer, convert_to_tensor=True, show_progress_bar=False
+            )
             sim = float(st_util.cos_sim(answer_emb, chunk_cache[pair.source_doc]).max())
 
             if sim >= self.threshold:
