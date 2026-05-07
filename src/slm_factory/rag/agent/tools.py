@@ -207,11 +207,137 @@ class ToolRegistry:
             return ToolResult(text="[오류] 'query' 파라미터가 필요합니다.")
 
         top_k = args.get("top_k")
-        output = await asyncio.to_thread(self._search_common, query, top_k)
+        output = await self._enhanced_search(query, top_k)
         return ToolResult(
             text=self._format_search_output(output),
             sources=self._extract_sources(output),
         )
+
+    async def _enhanced_search(self, query: str, top_k: int | None) -> SearchOutput:
+        """HyDE + Multi-Query + RRF로 검색 품질을 향상시킨 검색.
+
+        config 플래그가 모두 false면 단일 ``_search_common`` 호출과 동일하게
+        동작 — 기존 동작 보존.
+        """
+        from ..query_enhancer import (
+            generate_hyde_doc,
+            generate_multi_queries,
+            rrf_merge,
+        )
+
+        rag_cfg = self._config.rag
+        use_hyde = bool(getattr(rag_cfg, "hyde_enabled", False))
+        use_mq = bool(getattr(rag_cfg, "multi_query_enabled", False))
+
+        if not use_hyde and not use_mq:
+            return await asyncio.to_thread(self._search_common, query, top_k)
+
+        # 보조 LLM 호출용 모델·엔드포인트 — 라우터 모델 슬롯 재사용 (없으면 기본).
+        agent_cfg = getattr(rag_cfg, "agent", None)
+        models_cfg = getattr(agent_cfg, "models", None)
+        aux_model = (
+            getattr(models_cfg, "router_model", "")
+            or getattr(models_cfg, "synthesis_model", "")
+            or rag_cfg.ollama_model
+            or self._config.teacher.model
+        ).strip()
+        api_base = self._config.teacher.api_base
+        keep_alive = self._keep_alive
+        aux_timeout = min(rag_cfg.request_timeout, 30.0)
+        n_variants = max(1, int(getattr(rag_cfg, "multi_query_count", 3) or 3))
+        http_client = self._app_state.http_client
+
+        # 두 enhancer를 병렬 호출 — LLM 라운드트립 1회로 묶음.
+        hyde_task = (
+            asyncio.create_task(
+                generate_hyde_doc(
+                    query,
+                    http_client=http_client,
+                    ollama_model=aux_model,
+                    api_base=api_base,
+                    request_timeout=aux_timeout,
+                    keep_alive=keep_alive,
+                )
+            )
+            if use_hyde
+            else None
+        )
+        mq_task = (
+            asyncio.create_task(
+                generate_multi_queries(
+                    query,
+                    http_client=http_client,
+                    ollama_model=aux_model,
+                    api_base=api_base,
+                    n=n_variants,
+                    request_timeout=aux_timeout,
+                    keep_alive=keep_alive,
+                )
+            )
+            if use_mq
+            else None
+        )
+
+        hyde_doc = await hyde_task if hyde_task is not None else ""
+        variants = await mq_task if mq_task is not None else []
+
+        # 검색할 쿼리 목록 구성.
+        search_queries: list[str] = []
+        if hyde_doc:
+            # HyDE: 가상 문서 + 원본 질의 결합 — 둘 다 임베딩에 기여.
+            search_queries.append(f"{hyde_doc}\n\n{query}")
+        else:
+            search_queries.append(query)
+        # 변형들 추가 (원본은 이미 포함됨)
+        search_queries.extend(variants)
+
+        if len(search_queries) == 1:
+            return await asyncio.to_thread(self._search_common, search_queries[0], top_k)
+
+        # 병렬 검색 — top_k는 각 검색마다 동일 적용 (RRF가 융합 후 자르도록).
+        per_query_top_k = top_k or rag_cfg.top_k
+        results = await asyncio.gather(
+            *[
+                asyncio.to_thread(self._search_common, q, per_query_top_k)
+                for q in search_queries
+            ],
+            return_exceptions=True,
+        )
+
+        valid_outputs: list[SearchOutput] = []
+        for r in results:
+            if isinstance(r, Exception):
+                logger.warning("Multi-query 검색 부분 실패: %s", r)
+                continue
+            valid_outputs.append(r)
+
+        if not valid_outputs:
+            return await asyncio.to_thread(self._search_common, query, top_k)
+
+        if len(valid_outputs) == 1:
+            return valid_outputs[0]
+
+        # RRF 병합 — 각 SearchOutput.sources를 정렬된 리스트로 사용.
+        source_lists = [out.sources for out in valid_outputs]
+        merged_sources = rrf_merge(
+            source_lists,
+            top_k=per_query_top_k,
+            id_attr="doc_id",
+        )
+
+        # 병합된 sources에 해당하는 context_parts 재구성 (search.py의 contract 유지).
+        merged_ids = {s.doc_id for s in merged_sources}
+        merged_context: list[str] = []
+        seen_ctx: set[str] = set()
+        for out in valid_outputs:
+            for src, ctx in zip(out.sources, out.context_parts):
+                if src.doc_id in merged_ids and src.doc_id not in seen_ctx:
+                    merged_context.append(ctx)
+                    seen_ctx.add(src.doc_id)
+
+        from ..search import SearchOutput as SO
+
+        return SO(sources=merged_sources, context_parts=merged_context)
 
     async def _tool_lookup(self, args: dict) -> ToolResult:
         doc_id = args.get("doc_id", "")

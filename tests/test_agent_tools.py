@@ -25,11 +25,13 @@ def _make_app_state():
 
 
 def _make_config():
-    """테스트용 config mock."""
+    """테스트용 config mock — query enhancement 비활성으로 단순 검색 동작 검증."""
     config = MagicMock()
     config.rag.top_k = 3
     config.rag.min_score = 0.0
     config.rag.hybrid_search = False
+    config.rag.hyde_enabled = False
+    config.rag.multi_query_enabled = False
     return config
 
 

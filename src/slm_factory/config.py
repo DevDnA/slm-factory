@@ -793,6 +793,19 @@ class RagConfig(BaseModel):
     query_rewriting: bool = False
     """짧은 질의를 LLM으로 확장하여 검색 품질을 향상합니다."""
 
+    hyde_enabled: bool = True
+    """HyDE (Hypothetical Document Embeddings) 활성화. 검색 전 LLM이 가상 문서를
+    생성하고 그 텍스트로 임베딩하여 짧은 질의-긴 문서 mismatch를 줄임. ~+1.5s
+    검색당 추가 비용. 도메인 약어가 많은 corpus에서 recall 큰 폭 향상."""
+
+    multi_query_enabled: bool = True
+    """Multi-Query Expansion 활성화. LLM이 N개 패러프레이즈를 생성하고 각각
+    검색 후 Reciprocal Rank Fusion으로 병합. 단어 선택 변동성에 강건. ~+1.5s
+    LLM + 추가 (n-1)회 병렬 검색."""
+
+    multi_query_count: int = 3
+    """multi_query_enabled일 때 생성할 패러프레이즈 수."""
+
     min_score: float = 0.0
     """검색 결과 최소 유사도 점수 (0.0~1.0). 이 값 미만의 문서는 컨텍스트에서 제외됩니다.
     0.0으로 설정하면 필터링을 비활성화합니다."""
