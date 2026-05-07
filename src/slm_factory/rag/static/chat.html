@@ -580,8 +580,9 @@ input, textarea, select { font-family: inherit; color: inherit; }
 }
 .route-badge::before { content: '['; color: var(--fg-subtle); padding-right: 1px; }
 .route-badge::after  { content: ']'; color: var(--fg-subtle); padding-left: 1px; }
-.route-badge.simple { color: var(--fg-muted); border-color: var(--border); }
-.route-badge.agent  { color: var(--accent); border-color: var(--accent-soft); }
+.route-badge.simple   { color: var(--fg-muted); border-color: var(--border); }
+.route-badge.agent    { color: var(--accent); border-color: var(--accent-soft); }
+.route-badge.chitchat { color: var(--success); border-color: var(--success); }
 
 .message-content {
   font-size: 13px;
@@ -1740,8 +1741,10 @@ function renderMessage(msg) {
     header.appendChild(role);
     if (msg.route) {
       const badge = document.createElement('span');
-      badge.className = 'route-badge ' + (msg.route === 'agent' ? 'agent' : 'simple');
-      badge.textContent = msg.route === 'agent' ? 'Agent RAG' : 'Simple RAG';
+      const cls = msg.route === 'agent' ? 'agent' : (msg.route === 'chitchat' ? 'chitchat' : 'simple');
+      const txt = msg.route === 'agent' ? 'Agent RAG' : (msg.route === 'chitchat' ? 'Chitchat' : 'Simple RAG');
+      badge.className = 'route-badge ' + cls;
+      badge.textContent = txt;
       header.appendChild(badge);
     }
     body.appendChild(header);
@@ -2191,8 +2194,9 @@ async function runStream(chat, query) {
   state.abortController = new AbortController();
 
   try {
-    // Agent RAG 단일 모드 — /auto의 라우팅 분기 없이 항상 agent 경로 사용.
-    const res = await fetch('/agent', {
+    // /auto 경로 — IntentClassifier + 잡담 정규식이 chitchat / simple / agent로 라우팅.
+    // 잡담은 RAG 검색 없이 LLM이 직답하고, 도메인 질의만 agent 경로로 들어갑니다.
+    const res = await fetch('/auto', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query, session_id: chat.sessionId || null }),
@@ -2251,16 +2255,21 @@ async function runStream(chat, query) {
           }
         } else if (evt.type === 'route') {
           aiMsg.route = evt.mode;
+          const routeClass = evt.mode === 'agent' ? 'agent' : (evt.mode === 'chitchat' ? 'chitchat' : 'simple');
+          const routeLabel = evt.mode === 'agent' ? 'agent' : (evt.mode === 'chitchat' ? 'chitchat' : 'simple');
           if (!routeBadgeEl) {
             routeBadgeEl = document.createElement('span');
-            routeBadgeEl.className = 'route-badge ' + (evt.mode === 'agent' ? 'agent' : 'simple');
-            routeBadgeEl.textContent = evt.mode === 'agent' ? 'agent' : 'simple';
+            routeBadgeEl.className = 'route-badge ' + routeClass;
+            routeBadgeEl.textContent = routeLabel;
             header.appendChild(routeBadgeEl);
           } else {
-            routeBadgeEl.className = 'route-badge ' + (evt.mode === 'agent' ? 'agent' : 'simple');
-            routeBadgeEl.textContent = evt.mode === 'agent' ? 'agent' : 'simple';
+            routeBadgeEl.className = 'route-badge ' + routeClass;
+            routeBadgeEl.textContent = routeLabel;
           }
-          setStatusPhase(evt.mode === 'agent' ? '추론 중...' : '검색 중...');
+          const phaseText = evt.mode === 'agent' ? '추론 중...'
+                          : evt.mode === 'chitchat' ? '응답 중...'
+                          : '검색 중...';
+          setStatusPhase(phaseText);
           // Agent 라우트일 때만 reasoning 패널 미리 띄움 (대기 중이라도 시각적 피드백)
           if (evt.mode === 'agent' && state.settings.showReasoning && !reasoningEl) {
             const built = ensureReasoningPanel(body, contentEl || thinking);
@@ -2382,8 +2391,9 @@ async function runStream(chat, query) {
     hd.appendChild(role);
     if (aiMsg.route) {
       const b = document.createElement('span');
-      b.className = 'route-badge ' + (aiMsg.route === 'agent' ? 'agent' : 'simple');
-      b.textContent = aiMsg.route === 'agent' ? 'agent' : 'simple';
+      const cls2 = aiMsg.route === 'agent' ? 'agent' : (aiMsg.route === 'chitchat' ? 'chitchat' : 'simple');
+      b.className = 'route-badge ' + cls2;
+      b.textContent = cls2;
       hd.appendChild(b);
     }
     bd.appendChild(hd);

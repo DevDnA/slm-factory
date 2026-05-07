@@ -216,6 +216,14 @@ class AgentOrchestrator:
                     "iteration": 0,
                 }
 
+        # Chitchat: RAG 검색 불필요한 일반 발화 — Qdrant 우회하고 LLM 직답.
+        if decision.mode == "chitchat":
+            async for event in self._stream_chitchat(
+                normalized_query, session_id, raw_query=raw_query
+            ):
+                yield event
+            return
+
         # Clarifier: ambiguous 의도 + clarifier 활성화 시 명확화 질문 반환.
         if (
             decision.intent == "ambiguous"
@@ -309,6 +317,87 @@ class AgentOrchestrator:
             "questions": result.questions,
             "is_fallback": result.metadata.get("is_fallback", False),
         }
+        yield {"type": "done", "session_id": sid}
+
+    # ------------------------------------------------------------------
+    # 내부: Chitchat 경로 — RAG 검색 우회 LLM 직답
+    # ------------------------------------------------------------------
+
+    async def _stream_chitchat(
+        self,
+        query: str,
+        session_id: str | None,
+        *,
+        raw_query: str | None = None,
+    ) -> AsyncGenerator[dict, None]:
+        """잡담·인사·자기소개 등 RAG 무관 발화에 LLM으로 직답합니다.
+
+        Qdrant·planner·verifier·reflector 등 모든 quality gate를 우회하고
+        synthesis 모델로 짧게 응답합니다. 세션 history는 유지되어 다중 턴
+        잡담이 자연스럽게 이어집니다.
+        """
+        from .prompts import CHITCHAT_SYNTHESIS_PROMPT
+        from .session import Message
+
+        session_store = self._app_state.agent_session_manager
+        http_client = self._app_state.http_client
+
+        sid, _ = session_store.get_or_create(session_id)
+        history = session_store.format_history(sid)
+        session_store.add_message(
+            sid,
+            Message(
+                role="user",
+                content=raw_query if raw_query is not None else query,
+            ),
+        )
+
+        prompt = CHITCHAT_SYNTHESIS_PROMPT.format(
+            history=f"{history}\n" if history else "",
+            query=query,
+        )
+
+        payload = {
+            "model": self._model_for("synthesis"),
+            "prompt": prompt,
+            "stream": True,
+            "think": False,
+            "keep_alive": self._keep_alive,
+            "options": {"num_predict": self._rag_max_tokens},
+        }
+
+        answer_parts: list[str] = []
+        try:
+            async with http_client.stream(
+                "POST",
+                f"{self._api_base}/api/generate",
+                json=payload,
+                timeout=self._config.rag.request_timeout,
+            ) as resp:
+                resp.raise_for_status()
+                async for line in resp.aiter_lines():
+                    if not line:
+                        continue
+                    try:
+                        chunk = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    token = chunk.get("response", "")
+                    if token:
+                        answer_parts.append(token)
+                        yield {"type": "token", "content": token}
+                    if chunk.get("done"):
+                        break
+        except Exception as exc:
+            logger.error("Chitchat 합성 실패: %s", exc)
+            fallback = "안녕하세요. 무엇을 도와드릴까요?"
+            answer_parts = [fallback]
+            yield {"type": "token", "content": fallback}
+
+        answer = "".join(answer_parts).strip()
+        if answer:
+            session_store.add_message(sid, Message(role="assistant", content=answer))
+
         yield {"type": "done", "session_id": sid}
 
     # ------------------------------------------------------------------

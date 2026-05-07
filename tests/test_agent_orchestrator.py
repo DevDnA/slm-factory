@@ -2119,3 +2119,67 @@ class TestLegacyFallbackGate:
         assert msgs[0].role == "user"
         assert msgs[0].content == "비교 질의"
         assert msgs[1].role == "assistant"
+
+
+# ---------------------------------------------------------------------------
+# Chitchat 경로 — RAG 검색 우회 LLM 직답
+# ---------------------------------------------------------------------------
+
+
+class TestChitchatRoute:
+    """잡담 라우팅: planner/verifier/Qdrant 호출 없이 LLM 직답 + 세션 기록."""
+
+    @pytest.mark.asyncio
+    async def test_인사_질의는_chitchat_route_이벤트(self, monkeypatch):
+        # http_client.stream을 chitchat 합성용으로 모킹.
+        app_state = _make_app_state()
+        mock_http = MagicMock()
+        lines = _make_stream_lines(["안녕", "하세요!"])
+        mock_http.stream = MagicMock(return_value=_FakeStreamResponse(lines))
+        app_state.http_client = mock_http
+
+        orch = _make_orchestrator(
+            planner_enabled=True,  # planner 켜져 있어도 chitchat이면 우회되어야 함
+            app_state=app_state,
+        )
+        events = await _collect(orch.handle_auto("안녕하세요"))
+
+        # 첫 이벤트는 route(mode=chitchat)
+        assert events[0] == {"type": "route", "mode": "chitchat"}
+        # 마지막 이벤트는 done
+        assert events[-1]["type"] == "done"
+        # 토큰이 chitchat 합성기에서 흘러나옴
+        tokens = [e for e in events if e["type"] == "token"]
+        assert tokens, "chitchat이 token 이벤트를 발행해야 함"
+        assert "".join(t["content"] for t in tokens) == "안녕하세요!"
+
+        # ToolRegistry는 chitchat에서 호출되지 않음 (Qdrant 우회 검증).
+        app_state.agent_tool_registry.execute.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_chitchat_세션_기록(self, monkeypatch):
+        app_state = _make_app_state()
+        mock_http = MagicMock()
+        lines = _make_stream_lines(["반갑습니다."])
+        mock_http.stream = MagicMock(return_value=_FakeStreamResponse(lines))
+        app_state.http_client = mock_http
+
+        orch = _make_orchestrator(app_state=app_state)
+        events = await _collect(orch.handle_auto("안녕"))
+
+        sid = events[-1]["session_id"]
+        _, msgs = app_state.agent_session_manager.get_or_create(sid)
+        assert len(msgs) == 2
+        assert msgs[0].role == "user"
+        assert msgs[0].content == "안녕"
+        assert msgs[1].role == "assistant"
+        assert msgs[1].content == "반갑습니다."
+
+    @pytest.mark.asyncio
+    async def test_도메인_질의는_chitchat_아님(self, monkeypatch):
+        """도메인 키워드를 포함한 질의는 잡담 패턴에 매치되지 않아 simple/agent로 라우팅."""
+        orch = _make_orchestrator()
+        events = await _collect(orch.handle_auto("RFP에서 NMS 개발자가 무엇을 만들어야 하는지"))
+
+        # chitchat이 아니라 simple로 라우팅되어 _simple_stream_fixture를 통과.
+        assert events[0]["mode"] != "chitchat"

@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Literal
 if TYPE_CHECKING:
     from .intent_classifier import IntentCategory, IntentClassifier
 
-RouteMode = Literal["simple", "agent"]
+RouteMode = Literal["simple", "agent", "chitchat"]
 
 
 # 복합 질문 판단용 키워드 — 비교, 변경 이력, 인과, 조건 등.
@@ -31,6 +31,55 @@ _COMPLEX_KEYWORDS: tuple[str, ...] = (
 
 # "A와 B의 차이", "A와 B를 비교" 형태의 비교 절 패턴.
 _COMPARISON_RE = re.compile(r".{2,}[와과].{2,}(의|을|를|에|는|가)")
+
+# 잡담 / 인사 / 감사 패턴 — RAG 검색이 불필요한 일반 대화를 빠르게 분기.
+# oh-my-openagent의 `keyword-detector`와 동일한 정규식 사전 필터 패턴(다국어).
+# 매치 시 LLM 호출 없이 즉시 ``chitchat`` 모드로 라우팅합니다.
+_CHITCHAT_RE = re.compile(
+    r"^\s*("
+    # 한국어 인사·감사·작별 — 어간별 활용형 명시 enumerate
+    r"안녕(하세요|히|히\s*가세요|히\s*계세요)?"
+    r"|반갑(다|네|네요|군요|습니다|습니까)?"
+    r"|반가(워|워요|웠어|웠어요|웠습니다)"
+    r"|좋은\s*(아침|점심|저녁|밤|하루)(이에요|이네요|입니다)?"
+    r"|잘\s*(있어|있어요|있으세요|가|가요|가세요|자|자요|주무세요|지내|지내요|지내세요)"
+    r"|어서\s*(와|와요|오세요)"
+    r"|고맙(다|네|네요|군요|습니다|습니까)?"
+    r"|고마(워|워요|웠어요)"
+    r"|감사(합니다|해요|하다|드립니다|드려요)?"
+    r"|땡큐|쌩큐"
+    r"|미안(하다|합니다|해요|해)?"
+    r"|죄송(하다|합니다|해요|해)?"
+    r"|괜찮(다|아|아요|네|네요|습니다)?"
+    r"|수고(하셨습니다|하셨어요|하셨네요|많으셨습니다|많으셨어요|많으셨네요|했어요|했어)?"
+    r"|네\s*$|아니(요|오)?\s*$|응\s*$|예\s*$"
+    # 자기소개·정체성 질의
+    r"|너\s*(는\s*)?누구(야|니|냐|세요|이세요|예요)?"
+    r"|당신은\s*누구(인가요|예요|이세요)?"
+    r"|니가\s*누구(야|니|냐)?"
+    r"|(네|니)\s*이름(이|은)?\s*(뭐|무엇)(야|니|이야|예요|입니까)?"
+    r"|이름이\s*(뭐|무엇)(야|니|이야|예요|입니까)?"
+    r"|뭐\s*할\s*수\s*있(어|어요|니|냐|습니까|나요)?"
+    r"|무엇을\s*할\s*수\s*있(어|어요|니|냐|습니까|나요)?"
+    # 영어 greetings/thanks
+    r"|(hi|hello|hey|yo|howdy)(\s+(there|guys|all|everyone|y'?all|folks))?"
+    r"|good\s*(morning|afternoon|evening|night|day)"
+    r"|how\s*are\s*you|how'?s\s*it\s*going|what'?s\s*up|sup"
+    r"|thanks?|thank\s*you|thx|ty|cheers"
+    r"|sorry|my\s*bad"
+    r"|bye|goodbye|see\s*(you|ya)|cya|farewell"
+    r"|ok(ay)?|alright|sure|nope?|yep|yeah"
+    r"|who\s*are\s*you|what\s*can\s*you\s*do"
+    # 일본어
+    r"|こんにちは|こんばんは|おはよう(ございます)?|お疲れ(さま|様)?(です)?"
+    r"|ありがとう(ございます)?|すみません|さようなら|またね"
+    # 중국어
+    r"|你好|您好|早上好|晚上好|谢谢|对不起|再见"
+    # 베트남어
+    r"|xin\s*chào|cảm\s*ơn|tạm\s*biệt"
+    r")[\s.!?。、,，~～]*$",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -81,7 +130,15 @@ class QueryRouter:
         self._classifier = intent_classifier
 
     def route(self, query: str) -> RouteDecision:
-        """주어진 질의의 라우팅을 결정합니다 (동기·키워드 전용)."""
+        """주어진 질의의 라우팅을 결정합니다 (동기·키워드 전용).
+
+        라우팅 우선순위:
+        1. ``agent_enabled=False`` → simple 즉시 반환
+        2. 복합 키워드(비교/이유/관계 등) — 도메인 의도가 강하므로 chitchat보다 우선
+        3. 잡담 정규식 — 인사/감사/자기소개 등 RAG 무관 발화
+        4. 다중 물음표 / 비교 절 패턴 → agent
+        5. 그 외 → simple (단순 RAG)
+        """
         if not self._agent_enabled:
             return RouteDecision(
                 mode="simple",
@@ -91,6 +148,7 @@ class QueryRouter:
 
         lowered = query.lower()
 
+        # 도메인 신호(복합 키워드)가 잡담 신호보다 강함 — chitchat보다 먼저 검사.
         for keyword in _COMPLEX_KEYWORDS:
             if keyword in lowered:
                 return RouteDecision(
@@ -99,6 +157,14 @@ class QueryRouter:
                     complexity=0.8,
                     matched_keyword=keyword,
                 )
+
+        # 잡담 fast-path — 짧은 인사·감사·정체성 질의는 LLM 분류 없이 즉시 chitchat.
+        if _CHITCHAT_RE.match(query):
+            return RouteDecision(
+                mode="chitchat",
+                reason="잡담 패턴 감지 — RAG 검색 우회",
+                complexity=0.0,
+            )
 
         if query.count("?") >= 2 or query.count("？") >= 2:
             return RouteDecision(
@@ -132,14 +198,20 @@ class QueryRouter:
 
         keyword_decision = self.route(query)
 
+        # 키워드가 이미 chitchat으로 분류했으면 LLM 호출 없이 그대로 반환 — 비용 절감.
+        if keyword_decision.mode == "chitchat":
+            return keyword_decision
+
         try:
             intent = await self._classifier.classify(query)
         except Exception:  # pragma: no cover — classifier는 자체 never-raise
             return keyword_decision
 
-        # LLM이 명확한 복합 의도를 반환하면 agent로.
+        # LLM 분류 → 라우팅 모드 매핑.
         llm_mode: RouteMode
-        if intent.intent == "factual" and intent.confidence >= 0.7:
+        if intent.intent == "chitchat" and intent.confidence >= 0.7:
+            llm_mode = "chitchat"
+        elif intent.intent == "factual" and intent.confidence >= 0.7:
             llm_mode = "simple"
         else:
             llm_mode = "agent"

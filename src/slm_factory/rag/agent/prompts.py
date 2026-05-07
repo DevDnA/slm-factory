@@ -12,16 +12,18 @@ INTENT_CLASSIFIER_PROMPT = """\
 질의: {query}
 
 카테고리 정의:
-- factual: 단일 사실·정의·조항·수치·날짜 확인. 직접 답이 문서에 있음.
+- factual: 단일 사실·정의·조항·수치·날짜 확인. 직접 답이 (도메인) 문서에 있음.
 - comparative: 두 개 이상 개념의 비교·차이·대조.
 - analytical: 원인·영향·이유·종합·시사점 분석.
 - procedural: 절차·방법·순서·단계·방법론.
 - exploratory: 탐색·개요·목록·무엇이 있는지 나열.
+- chitchat: 인사·감사·작별·자기소개·일상 잡담·일반 상식 — **RAG 문서 검색이 불필요**한 발화.
+  주의: 도메인 특화 약어(NMS·RFP·SLA·BIS 등)나 정책·법조항이 포함되면 절대 chitchat 아님.
 - ambiguous: 지시대상 불명·맥락 부족·문장 너무 짧음으로 정확한 답변 어려움.
 
 반드시 다음 JSON 형식으로만 답변하세요 (다른 텍스트 금지):
 {{
-  "intent": "factual|comparative|analytical|procedural|exploratory|ambiguous",
+  "intent": "factual|comparative|analytical|procedural|exploratory|chitchat|ambiguous",
   "confidence": 0.0 ~ 1.0 사이 실수,
   "reason": "분류 근거 (1문장)"
 }}
@@ -43,9 +45,39 @@ INTENT_CLASSIFIER_PROMPT = """\
 질의: "약관에는 어떤 내용들이 있나요?"
 {{"intent": "exploratory", "confidence": 0.85, "reason": "문서 범위 개요 요청"}}
 
+질의: "안녕하세요, 반갑습니다"
+{{"intent": "chitchat", "confidence": 0.98, "reason": "단순 인사 — RAG 무관"}}
+
+질의: "너는 누구니?"
+{{"intent": "chitchat", "confidence": 0.95, "reason": "어시스턴트 정체성 질의 — 문서 검색 불필요"}}
+
+질의: "오늘 점심 뭐 먹지?"
+{{"intent": "chitchat", "confidence": 0.92, "reason": "일상 잡담 — 인덱싱된 도메인과 무관"}}
+
 질의: "그거 어떻게 돼요?"
 {{"intent": "ambiguous", "confidence": 0.8, "reason": "지시대상과 맥락 불명"}}
 """
+
+# ---------------------------------------------------------------------------
+# Chitchat 합성 프롬프트 — 잡담 경로에서 RAG 컨텍스트 없이 직답
+# ---------------------------------------------------------------------------
+
+CHITCHAT_SYNTHESIS_PROMPT = """\
+당신은 친절한 한국어 어시스턴트입니다. 아래 사용자의 발화는 **인사·감사·자기소개·일상 잡담** 등
+RAG 문서 검색이 불필요한 일반 대화입니다. 자연스럽고 짧게 응답하세요.
+
+규칙:
+- 답변은 1~3문장으로 간결하게.
+- 인사에는 같은 톤의 인사로 화답.
+- "너 누구야?" 같은 정체성 질의에는 "문서 기반 질의응답을 도와드리는 어시스턴트입니다" 정도로
+  소개하고, 사용자가 원하면 도움 줄 수 있는 범위를 1줄로 안내.
+- 도메인 지식(법조항·정책·기술 사양)은 추측하지 말고, 필요한 경우 "문서를 검색해 드릴까요?"라고
+  되묻기.
+- Markdown은 강조 정도만 사용, 표·코드블록 등 과한 포맷 금지.
+
+{history}\
+사용자 발화: {query}
+응답:"""
 
 # ---------------------------------------------------------------------------
 # Clarifier persona 프롬프트 — 모호한 질의에 명확화 질문 생성
