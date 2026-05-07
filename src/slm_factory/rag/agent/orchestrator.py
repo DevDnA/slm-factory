@@ -1257,7 +1257,11 @@ class AgentOrchestrator:
         else:
             head = "의도"
             kind = intent_label_map.get(intent, str(intent))
-        path = "agent 경로" if mode == "agent" else "단순 RAG 경로"
+        path = (
+            "agent 경로" if mode == "agent"
+            else "잡담 직답 경로" if mode == "chitchat"
+            else "단순 RAG 경로"
+        )
         parts = [f"[{head}] {kind}".strip(), f"→ {path}"]
         if reason:
             parts.append(f"({reason})")
