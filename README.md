@@ -95,13 +95,27 @@ Student 모델이 학습하는 것:
 
 **하이브리드 검색 + 리랭킹** — 벡터 검색과 BM25 키워드 검색을 RRF로 결합하고, Cross-Encoder로 최종 순위를 재조정합니다. Lost-in-the-middle 재정렬로 LLM이 관련 문서를 놓치지 않습니다.
 
+**HyDE + Multi-Query 검색 강화** — LLM이 가상 답변을 생성해 임베딩에 사용(HyDE)하고, 질의를 N개 패러프레이즈로 변형해 병렬 검색 후 Reciprocal Rank Fusion으로 병합합니다. 도메인 약어가 많은 corpus에서 짧은 질의-긴 문서 mismatch를 우회해 recall을 끌어올립니다.
+
+**Contextual Retrieval** — Anthropic 패턴. 인덱싱 시 LLM이 각 청크에 부모 문서 맥락을 prefix로 부여하여 임베딩·BM25·리랭커 모두에 동일한 맥락 정보가 적용됩니다.
+
 **자동 캘리브레이션** — 문서 길이, 밀도, 구조를 분석하여 chunk_size, 에포크 수, 학습률, 청크당 질문 수를 자동 결정합니다. 설정 없이 바로 실행해도 합리적인 결과를 냅니다.
 
 **컨텍스트 활용 스타일 학습** — 9B Teacher 모델이 문서 기반 QA를 자동 생성하고, 검증·채점·증강을 거쳐 1B Student 모델의 응답 스타일을 학습시킵니다. 학습 데이터에 문서 컨텍스트가 포함되어, 모델은 지식이 아닌 "문서를 읽고 답변하는 패턴"을 학습합니다.
 
 **과적합 방지 자동 조정** — 데이터 크기에 따라 learning rate, 에포크 수를 자동 조정하고, weight decay·label smoothing·NEFTune으로 과적합을 억제합니다.
 
-**Agent RAG (OMO 패턴)** — `rag.agent.smart_mode: true` 원클릭으로 LLM 기반 의도 분류, 질의 명확화, Persona 라우팅, Planner/Verifier 기반 다단계 검색, Review-Work 병렬 검증, Reflector 자기 검증을 모두 활성화합니다. `ultra_mode: true`는 여기에 Hooks, 대화 압축, Self-Improvement까지 추가합니다. OpenAI 호환 엔드포인트(`/v1/chat/completions`, `/v1/models`)를 제공해 OpenWebUI 등과 바로 연동할 수 있습니다.
+**Corpus-Aware 라우팅** — 인덱싱 시 LLM이 첫 N개 청크를 표본으로 corpus의 도메인 명칭·요약·핵심 키워드를 자동 추출(`corpus_profile.json` 영속화). 라우팅·합성 단계에 컨텍스트로 주입되어 도메인 약어를 정확히 인식합니다. 어떤 도메인 문서가 들어와도 즉시 적응.
+
+**8 카테고리 의도 분류** — IntentClassifier가 corpus profile + 8 카테고리(factual / comparative / analytical / procedural / exploratory / **chitchat** / **general** / ambiguous)로 질의를 분류:
+- **chitchat** — 인사·잡담은 정규식 fast-path로 LLM 호출 없이 1초 응답
+- **general** — corpus 외 일반 지식·시사 질의는 RAG 검색 우회 + DuckDuckGo 웹 검색으로 외부 사실 조회
+- **domain** — corpus 안 질의만 Agent 경로로 다단계 검색·합성
+- **ambiguous** — 진짜 모호한 질의("그거", "이거 좀")만 Clarifier가 역질문
+
+**Agent RAG (OMO 패턴)** — `rag.agent.smart_mode: true` 원클릭으로 LLM 기반 의도 분류, 질의 명확화, Persona 라우팅, Planner/Verifier 기반 다단계 검색, Review-Work 병렬 검증, Reflector 자기 검증을 모두 활성화합니다. `quality_mode: true`는 여기에 oh-my-openagent의 Ralph 통합 quality loop(reflector + reviewers + scorer 병렬 평가, `<promise>DONE</promise>` 게이트)까지 추가합니다. OpenAI 호환 엔드포인트(`/v1/chat/completions`, `/v1/models`)를 제공해 OpenWebUI 등과 바로 연동할 수 있습니다.
+
+**웹 검색 도구** — DuckDuckGo HTML 기반 (API 키 불필요). corpus 외 시기 의존 질의(현재 인물·환율·뉴스 등)에 LLM 추측 대신 실제 웹 결과를 근거로 답변하고 출처 URL을 인용합니다. 오프라인 환경에선 `web_search_for_general: false`로 비활성 가능.
 
 ## 문서
 
