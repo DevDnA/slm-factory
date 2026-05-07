@@ -1,11 +1,13 @@
 """설정 시스템(config.py)의 단위 테스트입니다."""
 
+import warnings
 from pathlib import Path
 
 import pytest
 
 from slm_factory.config import (
     ChunkingConfig,
+    CorpusExportConfig,
     EarlyStoppingConfig,
     EvalConfig,
     ExportConfig,
@@ -567,3 +569,58 @@ class TestSLMConfigRefinement:
         cfg = make_config(refinement={"enabled": True, "max_rounds": 2})
         assert cfg.refinement.enabled is True
         assert cfg.refinement.max_rounds == 2
+
+
+class TestAutoragExportMigration:
+    """``autorag_export`` → ``corpus_export`` 마이그레이션 validator 테스트입니다."""
+
+    def test_구_autorag_export_키_자동_변환(self):
+        """구 autorag_export 키가 corpus_export로 마이그레이션됩니다."""
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            cfg = SLMConfig(
+                **{
+                    "autorag_export": {
+                        "enabled": True,
+                        "output_dir": "legacy_dir",
+                        "chunk_size": 256,
+                        "overlap_chars": 32,
+                    }
+                }
+            )
+
+        assert isinstance(cfg.corpus_export, CorpusExportConfig)
+        assert cfg.corpus_export.output_dir == "legacy_dir"
+        assert cfg.corpus_export.chunk_size == 256
+        assert cfg.corpus_export.overlap_chars == 32
+
+        deprecations = [
+            w for w in caught if issubclass(w.category, DeprecationWarning)
+        ]
+        assert deprecations, "DeprecationWarning이 발생해야 합니다"
+        assert "autorag_export" in str(deprecations[0].message)
+
+    def test_corpus_export_있으면_autorag_export_무시(self):
+        """둘 다 있으면 corpus_export가 우선되고 autorag_export는 무시됩니다."""
+        cfg = SLMConfig(
+            **{
+                "autorag_export": {"output_dir": "legacy_dir"},
+                "corpus_export": {"output_dir": "new_dir"},
+            }
+        )
+        assert cfg.corpus_export.output_dir == "new_dir"
+
+    def test_corpus_export_단독_사용은_경고_없음(self):
+        """신규 키 단독 사용 시 DeprecationWarning이 발생하지 않습니다."""
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            cfg = SLMConfig(**{"corpus_export": {"output_dir": "corpus"}})
+
+        assert cfg.corpus_export.output_dir == "corpus"
+        deprecations = [
+            w
+            for w in caught
+            if issubclass(w.category, DeprecationWarning)
+            and "autorag_export" in str(w.message)
+        ]
+        assert not deprecations

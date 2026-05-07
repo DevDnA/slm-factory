@@ -1,6 +1,6 @@
-"""AutoRAG 내보내기(autorag_export) 모듈의 단위 테스트입니다.
+"""코퍼스 내보내기(corpus_export) 모듈의 단위 테스트입니다.
 
-AutoRAGExporter의 corpus/qa 변환, 청킹, 매핑 기능을 검증합니다.
+CorpusExporter의 corpus/qa 변환, 청킹, 매핑 기능을 검증합니다.
 pandas/pyarrow는 conftest.py에서 mock 처리되지 않으므로 실제 parquet 생성을 테스트합니다.
 """
 
@@ -10,8 +10,8 @@ from pathlib import Path
 
 import pytest
 
-from slm_factory.exporter.autorag_export import (
-    AutoRAGExporter,
+from slm_factory.exporter.corpus_export import (
+    CorpusExporter,
     _chunk_for_retrieval,
     _find_best_chunks,
 )
@@ -22,17 +22,17 @@ from slm_factory.exporter.autorag_export import (
 # ---------------------------------------------------------------------------
 
 
-def _make_autorag_exporter(make_config, **overrides):
-    """테스트용 AutoRAGExporter를 생성합니다."""
+def _make_corpus_exporter(make_config, **overrides):
+    """테스트용 CorpusExporter를 생성합니다."""
     export_cfg = {
         "enabled": True,
-        "output_dir": "autorag",
+        "output_dir": "corpus",
         "chunk_size": 512,
         "overlap_chars": 64,
         **overrides,
     }
-    config = make_config(autorag_export=export_cfg)
-    return AutoRAGExporter(config)
+    config = make_config(corpus_export=export_cfg)
+    return CorpusExporter(config)
 
 
 def _sample_parsed_docs():
@@ -165,16 +165,16 @@ class Test청크매칭함수:
 
 
 # ---------------------------------------------------------------------------
-# AutoRAGExporter._build_corpus
+# CorpusExporter._build_corpus
 # ---------------------------------------------------------------------------
 
 
 class TestBuildCorpus:
-    """AutoRAGExporter._build_corpus 메서드의 테스트입니다."""
+    """CorpusExporter._build_corpus 메서드의 테스트입니다."""
 
     def test_정상_문서_청킹(self, make_config):
         """정상 문서가 올바른 corpus 행으로 변환되는지 확인합니다."""
-        exporter = _make_autorag_exporter(make_config, chunk_size=200, overlap_chars=32)
+        exporter = _make_corpus_exporter(make_config, chunk_size=200, overlap_chars=32)
         docs = _sample_parsed_docs()
         corpus_rows, doc_chunk_map, _doc_full_text = exporter._build_corpus(docs)
 
@@ -182,7 +182,7 @@ class TestBuildCorpus:
         assert "doc_001" in doc_chunk_map
         assert "doc_002" in doc_chunk_map
 
-        # AutoRAG 필수 필드 확인
+        # 코퍼스 필수 필드 확인
         row = corpus_rows[0]
         assert "doc_id" in row
         assert "contents" in row
@@ -192,7 +192,7 @@ class TestBuildCorpus:
 
     def test_빈_문서_건너뜀(self, make_config):
         """빈 content인 문서는 건너뛰어야 합니다."""
-        exporter = _make_autorag_exporter(make_config)
+        exporter = _make_corpus_exporter(make_config)
         docs = [{"doc_id": "empty", "content": "", "title": "빈 문서", "metadata": {}}]
         corpus_rows, doc_chunk_map, _doc_full_text = exporter._build_corpus(docs)
 
@@ -201,7 +201,7 @@ class TestBuildCorpus:
 
     def test_테이블_내용_병합(self, make_config):
         """tables 필드가 있으면 content에 병합됩니다."""
-        exporter = _make_autorag_exporter(make_config, chunk_size=2000)
+        exporter = _make_corpus_exporter(make_config, chunk_size=2000)
         docs = [
             {
                 "doc_id": "with_table",
@@ -220,7 +220,7 @@ class TestBuildCorpus:
     def test_prev_next_id_연결(self, make_config):
         """같은 문서의 청크들이 prev_id/next_id로 연결됩니다."""
         # 작은 chunk_size로 여러 청크 강제 생성
-        exporter = _make_autorag_exporter(make_config, chunk_size=100, overlap_chars=16)
+        exporter = _make_corpus_exporter(make_config, chunk_size=100, overlap_chars=16)
         docs = [
             {
                 "doc_id": "long_doc",
@@ -243,7 +243,7 @@ class TestBuildCorpus:
 
     def test_결정적_UUID(self, make_config):
         """같은 문서를 두 번 처리하면 같은 doc_id가 생성됩니다."""
-        exporter = _make_autorag_exporter(make_config, chunk_size=2000)
+        exporter = _make_corpus_exporter(make_config, chunk_size=2000)
         docs = [
             {
                 "doc_id": "stable",
@@ -260,16 +260,16 @@ class TestBuildCorpus:
 
 
 # ---------------------------------------------------------------------------
-# AutoRAGExporter._build_qa
+# CorpusExporter._build_qa
 # ---------------------------------------------------------------------------
 
 
 class TestBuildQA:
-    """AutoRAGExporter._build_qa 메서드의 테스트입니다."""
+    """CorpusExporter._build_qa 메서드의 테스트입니다."""
 
     def test_정상_QA_변환(self, make_config):
         """정상 QA 쌍이 올바른 형식으로 변환되는지 확인합니다."""
-        exporter = _make_autorag_exporter(make_config, chunk_size=2000)
+        exporter = _make_corpus_exporter(make_config, chunk_size=2000)
         docs = _sample_parsed_docs()
         corpus_rows, doc_chunk_map, _doc_full_text = exporter._build_corpus(docs)
         qa_rows = exporter._build_qa(_sample_qa_pairs(), doc_chunk_map, corpus_rows)
@@ -284,7 +284,7 @@ class TestBuildQA:
 
     def test_retrieval_gt_이중리스트(self, make_config):
         """retrieval_gt가 list[list[str]] 형식인지 확인합니다."""
-        exporter = _make_autorag_exporter(make_config, chunk_size=2000)
+        exporter = _make_corpus_exporter(make_config, chunk_size=2000)
         docs = _sample_parsed_docs()
         corpus_rows, doc_chunk_map, _doc_full_text = exporter._build_corpus(docs)
         qa_rows = exporter._build_qa(_sample_qa_pairs(), doc_chunk_map, corpus_rows)
@@ -298,7 +298,7 @@ class TestBuildQA:
 
     def test_generation_gt_리스트(self, make_config):
         """generation_gt가 list[str] 형식인지 확인합니다."""
-        exporter = _make_autorag_exporter(make_config, chunk_size=2000)
+        exporter = _make_corpus_exporter(make_config, chunk_size=2000)
         docs = _sample_parsed_docs()
         corpus_rows, doc_chunk_map, _doc_full_text = exporter._build_corpus(docs)
         qa_rows = exporter._build_qa(_sample_qa_pairs(), doc_chunk_map, corpus_rows)
@@ -310,7 +310,7 @@ class TestBuildQA:
 
     def test_alpaca_형식_QA_지원(self, make_config):
         """instruction/output 형식의 QA도 변환됩니다."""
-        exporter = _make_autorag_exporter(make_config, chunk_size=2000)
+        exporter = _make_corpus_exporter(make_config, chunk_size=2000)
         docs = _sample_parsed_docs()
         corpus_rows, doc_chunk_map, _doc_full_text = exporter._build_corpus(docs)
 
@@ -328,7 +328,7 @@ class TestBuildQA:
 
     def test_빈_질문_답변_건너뜀(self, make_config):
         """질문이나 답변이 비어 있는 QA는 건너뜁니다."""
-        exporter = _make_autorag_exporter(make_config, chunk_size=2000)
+        exporter = _make_corpus_exporter(make_config, chunk_size=2000)
         docs = _sample_parsed_docs()
         corpus_rows, doc_chunk_map, _doc_full_text = exporter._build_corpus(docs)
 
@@ -342,7 +342,7 @@ class TestBuildQA:
 
     def test_source_doc_미매칭시_건너뜀(self, make_config):
         """source_doc가 doc_chunk_map에 없으면 해당 QA를 건너뜁니다."""
-        exporter = _make_autorag_exporter(make_config, chunk_size=2000)
+        exporter = _make_corpus_exporter(make_config, chunk_size=2000)
         docs = _sample_parsed_docs()
         corpus_rows, doc_chunk_map, _doc_full_text = exporter._build_corpus(docs)
 
@@ -359,24 +359,24 @@ class TestBuildQA:
 
 
 # ---------------------------------------------------------------------------
-# AutoRAGExporter.export (통합)
+# CorpusExporter.export (통합)
 # ---------------------------------------------------------------------------
 
 
 class TestExport통합:
-    """AutoRAGExporter.export 메서드의 통합 테스트입니다."""
+    """CorpusExporter.export 메서드의 통합 테스트입니다."""
 
     def test_parquet_파일_생성(self, make_config, tmp_path):
         """export()가 corpus.parquet과 qa.parquet 파일을 생성하는지 확인합니다."""
         config = make_config(
-            autorag_export={
+            corpus_export={
                 "enabled": True,
-                "output_dir": "autorag",
+                "output_dir": "corpus",
                 "chunk_size": 2000,
             },
             paths={"output": str(tmp_path), "documents": str(tmp_path / "docs")},
         )
-        exporter = AutoRAGExporter(config)
+        exporter = CorpusExporter(config)
 
         corpus_path, qa_path = exporter.export(
             _sample_parsed_docs(), _sample_qa_pairs()
@@ -392,14 +392,14 @@ class TestExport통합:
         import pandas as pd
 
         config = make_config(
-            autorag_export={
+            corpus_export={
                 "enabled": True,
-                "output_dir": "autorag",
+                "output_dir": "corpus",
                 "chunk_size": 2000,
             },
             paths={"output": str(tmp_path), "documents": str(tmp_path / "docs")},
         )
-        exporter = AutoRAGExporter(config)
+        exporter = CorpusExporter(config)
 
         corpus_path, qa_path = exporter.export(
             _sample_parsed_docs(), _sample_qa_pairs()
@@ -423,10 +423,10 @@ class TestExport통합:
     def test_빈_문서_빈_QA(self, make_config, tmp_path):
         """문서와 QA가 모두 비어 있어도 에러 없이 실행됩니다."""
         config = make_config(
-            autorag_export={"enabled": True, "output_dir": "autorag"},
+            corpus_export={"enabled": True, "output_dir": "corpus"},
             paths={"output": str(tmp_path), "documents": str(tmp_path / "docs")},
         )
-        exporter = AutoRAGExporter(config)
+        exporter = CorpusExporter(config)
 
         corpus_path, qa_path = exporter.export([], [])
 

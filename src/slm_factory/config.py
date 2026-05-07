@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import importlib.resources
 import logging
+import warnings
 from pathlib import Path
 from typing import Any, Literal, Union
 
@@ -1115,6 +1116,23 @@ class SLMConfig(BaseModel):
         """값이 ``None``인 최상위 키를 제거하여 기본값이 적용되도록 합니다."""
         if isinstance(values, dict):
             return {k: v for k, v in values.items() if v is not None}
+        return values
+
+    @model_validator(mode="before")
+    @classmethod
+    def _migrate_autorag_export(cls, values: dict[str, Any]) -> dict[str, Any]:
+        """구 ``autorag_export`` 키를 ``corpus_export``로 마이그레이션합니다."""
+        if isinstance(values, dict) and "autorag_export" in values:
+            if "corpus_export" not in values:
+                warnings.warn(
+                    "'autorag_export' 설정 키는 deprecated입니다. "
+                    "'corpus_export'로 변경하세요.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                values["corpus_export"] = values.pop("autorag_export")
+            else:
+                values.pop("autorag_export")
         return values
 
     @model_validator(mode="after")
