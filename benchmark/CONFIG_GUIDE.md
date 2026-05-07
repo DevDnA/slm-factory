@@ -21,49 +21,62 @@ Python 런타임 등.
 
 ### 추천 동시 상주 조합
 
-| 메모리 | 합성 | 판정 | 합 | 비고 |
+| 메모리 | 합성 | 라우팅·판정 | 합 | 비고 |
 |---|---|---|---|---|
-| 16GB | qwen3.5:4b | qwen3.5:4b | 5GB | quality 단순 단일 |
-| 24GB | qwen3.5:9b | qwen3.5:9b | 8GB | **벤치 검증 우승** ⭐ |
-| 24GB | qwen3.5:4b | qwen3.5:9b | 13GB | latency 우선 |
-| 24GB | gemma3:12b | qwen3.5:4b | 14GB | gemma 합성 시도 |
-| 32GB+ | qwen3.5:35b-a3b | qwen3.5:9b | 30GB | 큰 합성기 분리 (가능) |
+| 8GB | qwen3.5:4b | qwen3.5:4b | 5.8GB | latency 최우선, 단일 모델 |
+| 24GB | **qwen3.5:9b** | **qwen3.5:4b** | **14.4GB** | **하이브리드 — 정성 최우수** ⭐ (2026-05-08 재측정) |
+| 24GB | qwen3.5:9b | qwen3.5:9b | 17GB | 9b 통일 — 단, **라우팅이 도메인 약어를 ambiguous로 오분류**하는 경향 |
+| 32GB+ | qwen3.5:35b-a3b | qwen3.5:4b | 28GB | 큰 합성기 분리 (가능) |
 | 48GB+ | qwen3.5:35b-a3b | gemma3:12b | 31GB | 진정한 cross-family |
+
+⚠ **중요한 비직관**: 9b 통일이 "벤치 검증 우승"이라는 이전 결론은 corpus_profile +
+HyDE + 8 카테고리 IntentClassifier 도입 후 무효. **큰 라우팅 모델은 자기 학습
+지식이 풍부해서 corpus profile 컨텍스트를 무시하는 경향** — "NMS" 같은 도메인
+약어를 일반 IT 약어로 인식해 ambiguous로 분류, corpus 검색을 우회. 라우팅·plan은
+4b가 더 정확한 결과를 냅니다.
 
 ## 2. 사용 시나리오별 권장 프리셋
 
-### A. 품질 최우선 (RFP·법률·정밀 답변)
+### A. 품질 최우선 — 하이브리드 (RFP·법률·정밀 답변)
+
+> **권장 구성** (2026-05-08 재측정 검증). 이전 "9b 통일" 권장은 corpus_profile +
+> 8 카테고리 IntentClassifier 도입 후 무효 — 큰 라우팅 모델이 corpus 도메인 약어를
+> ambiguous로 오분류해 corpus 검색을 우회함.
 
 ```yaml
 rag:
-  ollama_model: "qwen3.5:9b"
+  ollama_model: "qwen3.5:4b"        # fallback (실제 슬롯 모두 명시되어 호출 안 됨)
   request_timeout: 600.0
   max_tokens: -1
+  hyde_enabled: true                # 검색 recall 향상
+  multi_query_enabled: true
+  multi_query_count: 3
+  corpus_profile:
+    enabled: true                   # 도메인 자기 기술 자동 생성
+    auto_generate: true
   agent:
     enabled: true
-    quality_mode: true             # cascade로 planner/verifier/clarifier ON
-    # ralph_loop_enabled는 cascade로 자동 ON
-    ralph_loop_max_iterations: 2
-    ralph_loop_quality_threshold: 7.0
-    ralph_loop_strategy: "reset"
-    ralph_loop_state_dir: "ralph_state"
+    quality_mode: true              # cascade로 planner/verifier/clarifier ON
+    ralph_loop_enabled: false       # latency 우선 — 게이트 OFF (ON일 시 +수십초)
     intent_verbalization_enabled: true
-    parallel_steps: false          # macOS Python 3.14 SIGSEGV 회피
-    native_thinking: true
+    parallel_steps: false           # macOS Python 3.14 SIGSEGV 회피
+    native_thinking: false
+    web_search_for_general: true    # corpus 외 질의용 DDG
     ollama_keep_alive: "168h"
     models:
-      synthesis_model: "qwen3.5:9b"
-      reviewer_model:  "qwen3.5:9b"
-      scorer_model:    "qwen3.5:9b"
-      reflector_model: "qwen3.5:9b"
-      clarifier_model: "qwen3.5:9b"
-      planner_model:   "qwen3.5:9b"
-      verifier_model:  "qwen3.5:9b"
-      router_model:    "qwen3.5:9b"
+      synthesis_model: "qwen3.5:9b"  # 합성만 9b — 디테일 풍부 (보안 표준·SLA·행정 절차)
+      reviewer_model:  "qwen3.5:4b"  # ralph OFF면 미호출
+      scorer_model:    "qwen3.5:4b"
+      reflector_model: "qwen3.5:4b"
+      clarifier_model: "qwen3.5:4b"
+      planner_model:   "qwen3.5:4b"  # 라우팅 정확도가 corpus 검색 진입에 결정적
+      verifier_model:  "qwen3.5:4b"
+      router_model:    "qwen3.5:4b"  # IntentClassifier·HyDE·Multi-Query 모두 4b
 ```
 
-**예상 동작**: query당 평균 130s, promise rate 67%, score 평균 8.0/10. 답변 길이
-~2000자, 출처 4-5개 인용. **RFP 같은 도메인에 권장.**
+**예상 동작**: query당 평균 ~85s, 답변 1400자, RFP 디테일(MIMO·BIS·ETRI/TTA) +
+보안 표준(WPA3·OWE·IEEE 802.1x) + SLA(2시간 통보+24시간 조치) + 행정 절차(국산제품
+계획서) 모두 포섭. 메모리 14.4GB(4b+9b 동시 상주).
 
 ### B. 균형 (일반 사용 — 채팅 응답성·답변 풍부도)
 
