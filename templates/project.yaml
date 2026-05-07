@@ -184,10 +184,12 @@ refinement:
   max_rounds: 1                         # 최대 Refinement 반복 횟수
   llm_judge_threshold: 0.6              # 이 점수 미만인 QA를 약점으로 판단 (0.0~1.0)
 
-# -- AutoRAG 데이터 내보내기(AutoRAG Export) -----------------------------------
-autorag_export:
-  enabled: true                         # RAG 서비스를 위한 parquet 데이터를 생성합니다
-  output_dir: "autorag"                 # 출력 디렉토리 (output/ 하위)
+# -- 코퍼스 데이터 내보내기(Corpus Export) -------------------------------------
+# 외부 평가 도구나 자체 평가에서도 사용 가능한 parquet 포맷으로 내보냅니다.
+# RAG 인덱싱 파이프라인에서도 동일한 corpus.parquet을 사용합니다.
+corpus_export:
+  enabled: true                         # 코퍼스 parquet 데이터를 생성합니다
+  output_dir: "corpus"                  # 출력 디렉토리 (output/ 하위)
   chunk_size: 512                       # 검색용 문서 청크 크기 (문자 수, 최소 100)
   overlap_chars: 64                     # 청크 간 중첩 문자 수
   # -- Anthropic Contextual Retrieval (옵션) --
