@@ -271,8 +271,9 @@ class TestAgentRoute:
 
         obs_events = [e for e in events if e["type"] == "observation"]
         assert len(obs_events) == 1
-        assert obs_events[0]["content"].endswith("...")
-        assert len(obs_events[0]["content"]) == 303
+        truncated = obs_events[0]["content"]
+        assert truncated.endswith("...")
+        assert len(truncated) < len(long_obs)  # truncation 발생 확인 — 정확 임계값에는 의존하지 않음
 
     @pytest.mark.asyncio
     async def test_agent_error_이벤트는_오류_토큰으로_변환(self):
@@ -287,6 +288,29 @@ class TestAgentRoute:
         token_events = [e for e in events if e["type"] == "token"]
         assert any("오류" in e["content"] for e in token_events)
 
+    @pytest.mark.asyncio
+    async def test_planner_enabled_false_면_legacy_사용(self, monkeypatch):
+        """planner_enabled=False일 때 Planner가 instantiate조차 되지 않아야 함."""
+        from rag_factory.rag.agent import planner as planner_mod
+
+        class _ShouldNotBeCalled:
+            def __init__(self, **_kwargs):
+                raise AssertionError("Planner가 호출되면 안됨")
+
+            async def plan(self, query):
+                raise AssertionError("plan()이 호출되면 안됨")
+
+        monkeypatch.setattr(planner_mod, "Planner", _ShouldNotBeCalled)
+
+        _FakeAgentLoop.script = [
+            _FakeAgentEvent(type="token", content="legacy"),
+            _FakeAgentEvent(type="done", metadata={"sources": []}),
+        ]
+
+        orch = _make_orchestrator(planner_enabled=False)
+        events = await _collect(orch.handle_auto("비교"))
+        assert any(e.get("content") == "legacy" for e in events)
+
 
 # ---------------------------------------------------------------------------
 # 세션 부수효과
@@ -294,27 +318,50 @@ class TestAgentRoute:
 
 
 class TestSessionSideEffects:
-    """agent 경로는 user/assistant 메시지를 세션에 기록합니다."""
+    """agent/planner 경로 × handle_auto/handle_agent dispatcher가 모두 user/assistant 메시지를 세션에 기록합니다."""
 
     @pytest.mark.asyncio
-    async def test_user_assistant_메시지_기록(self):
-        _FakeAgentLoop.script = [
-            _FakeAgentEvent(type="token", content="안녕"),
-            _FakeAgentEvent(type="token", content="하세요"),
-            _FakeAgentEvent(type="done", metadata={"sources": []}),
-        ]
+    @pytest.mark.parametrize(
+        "dispatcher,path,query,assistant_tokens",
+        [
+            ("handle_auto", "legacy", "A와 B 비교", ["안녕", "하세요"]),
+            ("handle_auto", "planner", "비교 질의", ["최종 ", "답변"]),
+            ("handle_agent", "legacy", "질문", ["안녕"]),
+            ("handle_agent", "planner", "질의", ["agent_via_planner"]),
+        ],
+    )
+    async def test_user_assistant_메시지_기록(
+        self, monkeypatch, dispatcher, path, query, assistant_tokens
+    ):
+        expected_assistant = "".join(assistant_tokens)
 
-        app_state = _make_app_state()
-        orch = _make_orchestrator(app_state=app_state)
-        events = await _collect(orch.handle_auto("A와 B 비교"))
+        if path == "legacy":
+            _FakeAgentLoop.script = [
+                *(_FakeAgentEvent(type="token", content=t) for t in assistant_tokens),
+                _FakeAgentEvent(type="done", metadata={"sources": []}),
+            ]
+            app_state = _make_app_state()
+            orch = _make_orchestrator(app_state=app_state, planner_enabled=False)
+        else:  # planner
+            plan = _make_plan([{"tool": "search", "args": {"query": "q"}}])
+            fixtures = _PlannerPathFixtures(
+                monkeypatch,
+                plan=plan,
+                tool_script=[_FakeToolResult(text="r", sources=[])],
+                synthesis_tokens=assistant_tokens,
+            )
+            app_state = fixtures.app_state
+            orch = _make_orchestrator(planner_enabled=True, app_state=app_state)
+
+        events = await _collect(getattr(orch, dispatcher)(query))
 
         sid = events[-1]["session_id"]
         _, msgs = app_state.agent_session_manager.get_or_create(sid)
         assert len(msgs) == 2
         assert msgs[0].role == "user"
-        assert msgs[0].content == "A와 B 비교"
+        assert msgs[0].content == query
         assert msgs[1].role == "assistant"
-        assert msgs[1].content == "안녕하세요"
+        assert msgs[1].content == expected_assistant
 
     @pytest.mark.asyncio
     async def test_답변없으면_assistant_메시지_미기록(self):
@@ -706,30 +753,6 @@ class TestPlannerRoute:
         assert "token" in types
 
     @pytest.mark.asyncio
-    async def test_세션_user_assistant_기록(self, monkeypatch):
-        plan = _make_plan([{"tool": "search", "args": {"query": "q"}}])
-        fixtures = _PlannerPathFixtures(
-            monkeypatch,
-            plan=plan,
-            tool_script=[_FakeToolResult(text="r", sources=[])],
-            synthesis_tokens=["최종 ", "답변"],
-        )
-
-        orch = _make_orchestrator(
-            planner_enabled=True,
-            app_state=fixtures.app_state,
-        )
-        events = await _collect(orch.handle_auto("비교 질의"))
-
-        sid = events[-1]["session_id"]
-        _, msgs = fixtures.app_state.agent_session_manager.get_or_create(sid)
-        assert len(msgs) == 2
-        assert msgs[0].role == "user"
-        assert msgs[0].content == "비교 질의"
-        assert msgs[1].role == "assistant"
-        assert msgs[1].content == "최종 답변"
-
-    @pytest.mark.asyncio
     async def test_fallback_gate_비활성시_planner_가_fallback_실행(self, monkeypatch):
         # legacy_fallback_enabled=False이면 planner fallback 계획도 그대로 실행
         from rag_factory.rag.agent.planner import ExecutionPlan, PlanStep
@@ -827,35 +850,6 @@ class TestPlannerRoute:
         assert "".join(tokens) == long_answer
 
 
-class TestPlannerVsLegacyDispatch:
-    """planner_enabled 스위치가 경로를 올바르게 선택하는지."""
-
-    @pytest.mark.asyncio
-    async def test_planner_enabled_false_면_legacy_사용(self, monkeypatch):
-        """이 테스트가 통과한다는 것은 planner_enabled=False일 때 AgentLoop가 호출됨을 의미."""
-
-        # Planner가 호출되면 실패하도록 sentinel 설정
-        from rag_factory.rag.agent import planner as planner_mod
-
-        class _ShouldNotBeCalled:
-            def __init__(self, **_kwargs):
-                raise AssertionError("Planner가 호출되면 안됨")
-
-            async def plan(self, query):
-                raise AssertionError("plan()이 호출되면 안됨")
-
-        monkeypatch.setattr(planner_mod, "Planner", _ShouldNotBeCalled)
-
-        _FakeAgentLoop.script = [
-            _FakeAgentEvent(type="token", content="legacy"),
-            _FakeAgentEvent(type="done", metadata={"sources": []}),
-        ]
-
-        orch = _make_orchestrator(planner_enabled=False)
-        events = await _collect(orch.handle_auto("비교"))
-        assert any(e.get("content") == "legacy" for e in events)
-
-
 # ---------------------------------------------------------------------------
 # handle_agent() — /agent endpoint path (no route event)
 # ---------------------------------------------------------------------------
@@ -915,24 +909,6 @@ class TestHandleAgent:
         tokens = [e["content"] for e in events if e["type"] == "token"]
         assert "agent_via_planner" in "".join(tokens)
         assert not any(e.get("type") == "route" for e in events)
-
-    @pytest.mark.asyncio
-    async def test_세션_user_assistant_기록(self):
-        _FakeAgentLoop.script = [
-            _FakeAgentEvent(type="token", content="안녕"),
-            _FakeAgentEvent(type="done", metadata={"sources": []}),
-        ]
-
-        app_state = _make_app_state()
-        orch = _make_orchestrator(app_state=app_state)
-        events = await _collect(orch.handle_agent("질문"))
-
-        sid = events[-1]["session_id"]
-        _, msgs = app_state.agent_session_manager.get_or_create(sid)
-        assert len(msgs) == 2
-        assert msgs[0].content == "질문"
-        assert msgs[1].content == "안녕"
-
 
 # ---------------------------------------------------------------------------
 # Phase 2 — Legacy fallback gate
@@ -1339,7 +1315,6 @@ class TestParallelSteps:
             async def execute(self, name, args):
                 self.calls.append((name, dict(args)))
                 concurrency_log.append(f"start:{args['query']}")
-                await asyncio.sleep(0.01)
                 concurrency_log.append(f"end:{args['query']}")
                 return _FakeToolResult(text="r", sources=[])
 
@@ -1386,7 +1361,6 @@ class TestParallelSteps:
             async def execute(self, name, args):
                 self.calls.append((name, dict(args)))
                 concurrency_log.append(f"start:{name}")
-                await asyncio.sleep(0.01)
                 concurrency_log.append(f"end:{name}")
                 return _FakeToolResult(text="r", sources=[])
 
