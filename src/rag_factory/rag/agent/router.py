@@ -109,6 +109,7 @@ class RouteDecision:
     complexity: float
     matched_keyword: str | None = None
     intent: "IntentCategory | None" = None
+    confidence: float = 0.0
 
 
 class QueryRouter:
@@ -240,6 +241,7 @@ class QueryRouter:
                     complexity=intent.confidence,
                     matched_keyword=None,
                     intent=intent.intent,
+                    confidence=intent.confidence,
                 )
             return RouteDecision(
                 mode="agent",
@@ -250,6 +252,7 @@ class QueryRouter:
                 complexity=max(keyword_decision.complexity, intent.confidence),
                 matched_keyword=keyword_decision.matched_keyword,
                 intent=intent.intent,
+                confidence=intent.confidence,
             )
 
         return RouteDecision(
@@ -258,6 +261,7 @@ class QueryRouter:
             complexity=intent.confidence if llm_mode == "agent" else 1.0 - intent.confidence,
             matched_keyword=None,
             intent=intent.intent,
+            confidence=intent.confidence,
         )
 
 
