@@ -732,6 +732,20 @@ input, textarea, select { font-family: inherit; color: inherit; }
   margin-top: 2px;
 }
 .message.ai:hover .message-actions, .message-actions.force-visible { opacity: 0.8; }
+
+/* Per-message metrics (TTFT · 글자수 · 처리량) */
+.message-metrics {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--fg-muted);
+  opacity: 0.65;
+  user-select: none;
+}
+.message-metrics .sep { opacity: 0.5; }
 .action-btn {
   width: 22px; height: 20px;
   border-radius: 0;
@@ -1837,6 +1851,8 @@ function renderMessage(msg) {
   }
 
   if (msg.role === 'ai') {
+    const metricsEl = buildMessageMetrics(msg);
+    if (metricsEl) body.appendChild(metricsEl);
     body.appendChild(buildMessageActions(msg, content));
   }
 
@@ -2094,6 +2110,34 @@ function buildMessageActions(msg, contentEl) {
   return wrap;
 }
 
+// 메시지 메타 — TTFT · 글자수 · 처리량. metrics가 없으면 null 반환.
+function buildMessageMetrics(msg) {
+  const m = msg && msg.metrics;
+  if (!m || (m.ttftMs == null && m.totalMs == null)) return null;
+  const wrap = document.createElement('div');
+  wrap.className = 'message-metrics';
+  const parts = [];
+  if (m.ttftMs != null) parts.push(`TTFT ${(m.ttftMs / 1000).toFixed(1)}s`);
+  if (m.totalMs != null) parts.push(`총 ${(m.totalMs / 1000).toFixed(1)}s`);
+  if (m.chars != null) parts.push(`${m.chars}자`);
+  if (m.ttftMs != null && m.totalMs != null && m.chars && m.totalMs > m.ttftMs) {
+    const cps = (m.chars * 1000) / (m.totalMs - m.ttftMs);
+    parts.push(`${cps.toFixed(0)}c/s`);
+  }
+  parts.forEach((text, i) => {
+    if (i > 0) {
+      const sep = document.createElement('span');
+      sep.className = 'sep';
+      sep.textContent = '·';
+      wrap.appendChild(sep);
+    }
+    const span = document.createElement('span');
+    span.textContent = text;
+    wrap.appendChild(span);
+  });
+  return wrap;
+}
+
 /* ═══════════════════════════════════════════════════════════════
    Scroll / input
    ═══════════════════════════════════════════════════════════════ */
@@ -2211,7 +2255,9 @@ async function runStream(chat, query) {
     reasoning: [],
     route: null,
     ts: Date.now(),
+    metrics: { ttftMs: null, totalMs: null, chars: 0 },
   };
+  const t_start = performance.now();
   chat.messages.push(aiMsg);
 
   // 빈 placeholder를 렌더
@@ -2278,6 +2324,7 @@ async function runStream(chat, query) {
           // 이 답변 사이클의 첫 token — reasoning 패널 finalize + status phase 전환.
           if (!hasStartedAnswer) {
             hasStartedAnswer = true;
+            if (aiMsg.metrics.ttftMs == null) aiMsg.metrics.ttftMs = performance.now() - t_start;
             if (reasoningEl) finalizeReasoning(reasoningEl);
             setStatusPhase('답변 생성 중...');
           }
@@ -2456,6 +2503,12 @@ async function runStream(chat, query) {
     bd.appendChild(buildMessageActions(aiMsg, cEl));
     el.appendChild(av);
     el.appendChild(bd);
+    // TTFT/총 시간/글자수 메트릭 확정
+    aiMsg.metrics.totalMs = performance.now() - t_start;
+    aiMsg.metrics.chars = (aiMsg.content || '').length;
+    const metricsEl = buildMessageMetrics(aiMsg);
+    if (metricsEl) bd.insertBefore(metricsEl, bd.querySelector('.message-actions'));
+
     messagesInner.appendChild(el);
 
     chat.updatedAt = Date.now();
