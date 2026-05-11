@@ -230,47 +230,42 @@ class AgentOrchestrator:
 
         # General: corpus 외 일반 지식·코드·잡학 — Qdrant 우회 + general 합성 프롬프트.
         # 안전망(2단 임계): IntentClassifier가 general(OOD)로 분류했더라도 corpus
-        # 의미적 유사도로 in-domain 정정. confidence별로 override 임계를 분리:
-        #  · conf < 0.95: score ≥ threshold(기본 0.55)면 override
-        #  · conf ≥ 0.95: score ≥ 0.65(strong signal)일 때만 override
-        # 매우 확신하는 OOD에 키워드만 우연히 겹친 case("NMS 개발 계획"처럼 corpus가
-        # NMS/개발/계획 단어를 포함해 score 0.5~0.6 나오는 hallucination 함정)는
-        # 보호하면서, 명시적으로 corpus를 가리키는 query("제안서에 쓰인 ...")처럼
-        # 분류는 general이지만 실제 답이 corpus에 있는 case는 정정 가능.
+        # 의미적 유사도로 in-domain 정정. ``_check_corpus_override`` 참조.
         if decision.mode == "general":
-            threshold = self._config.rag.agent.in_domain_score_threshold
-            if threshold > 0.0:
-                score = await self._corpus_relevance_score(normalized_query)
-                very_confident = decision.confidence >= 0.95
-                strong_signal_threshold = max(threshold, 0.65)
-                should_override = (
-                    score >= strong_signal_threshold
-                    if very_confident
-                    else score >= threshold
-                )
-                if should_override:
-                    if self._config.rag.agent.stream_reasoning:
-                        yield {
-                            "type": "thought",
-                            "content": (
-                                f"의도 보정: corpus 유사도 {score:.2f} "
-                                f"≥ 임계 {threshold:.2f} — general 분류 무시하고 RAG로 정정"
-                            ),
-                            "iteration": 0,
-                        }
-                    yield {
-                        "type": "route",
-                        "mode": "simple",
-                        "intent": "factual",
-                    }
-                    async for event in self._simple_stream_fn(normalized_query):
-                        yield event
-                    return
+            override = await self._check_corpus_override(normalized_query, decision)
+            if override is not None:
+                async for event in self._emit_corpus_override(
+                    normalized_query, override, source_label="general"
+                ):
+                    yield event
+                return
             async for event in self._stream_general(
                 normalized_query, session_id, raw_query=raw_query
             ):
                 yield event
             return
+
+        # Agent override 안전망 — IntentClassifier가 exploratory/analytical 등으로
+        # agent에 보낸 query라도 corpus가 사용자 원문에 직접 잘 매칭되면 simple로
+        # 정정. planner가 검색어를 추상화해 매칭이 폭락하는 비대칭(예: "표형식"은
+        # general→corpus override→simple로 성공하지만 "그래프형식"은 exploratory→
+        # agent→planner abstraction→0.03 매칭 실패)을 해소합니다.
+        # 제외 조건:
+        #   · matched_keyword (비교/이유/차이 등) — 사용자가 명시적으로 분해/비교를
+        #     요청한 신호이므로 corpus가 잘 맞아도 agent 경로 유지
+        #   · intent="ambiguous" — clarifier에 위임해 사용자에게 명확화 질문 반환
+        if (
+            decision.mode == "agent"
+            and decision.matched_keyword is None
+            and decision.intent != "ambiguous"
+        ):
+            override = await self._check_corpus_override(normalized_query, decision)
+            if override is not None:
+                async for event in self._emit_corpus_override(
+                    normalized_query, override, source_label="agent"
+                ):
+                    yield event
+                return
 
         # Clarifier: ambiguous 의도 + clarifier 활성화. corpus profile이 비어
         # 있지 않으면 query에 corpus 키워드가 하나도 없을 때 out-of-domain
@@ -752,6 +747,29 @@ class AgentOrchestrator:
         )
         plan = await planner.plan(query)
 
+        # Planner가 사용자 query를 추상화한 검색어로 첫 step을 만들면 임베딩 매칭이
+        # 폭락해 refusal gate에 걸리는 케이스가 있음(예: "그래프형식으로 정리"가
+        # planner에서 "NMS 개발 업체 제안서 준비사항"으로 변환되어 0.03 매칭).
+        # 첫 search/lookup step의 ``query`` 인자를 사용자 원문으로 강제해 항상
+        # 사용자 원문 grounding을 보장. 이후 step들은 planner의 분해를 그대로
+        # 보존해 multi-step decomposition이 유지됩니다.
+        if (
+            getattr(self._config.rag.agent, "planner_preserve_first_query", False)
+            and not plan.is_fallback
+        ):
+            for step in plan.steps:
+                if step.tool not in ("search", "lookup"):
+                    continue
+                if not isinstance(step.args, dict):
+                    break
+                planner_query = str(step.args.get("query", "")).strip()
+                if planner_query == query.strip():
+                    break
+                step.args = {**step.args, "query": query}
+                if not step.reason:
+                    step.reason = "사용자 원문 보존 검색"
+                break
+
         # Persona가 도구 권한을 제한하면 plan step을 필터링.
         if persona is not None and persona.allowed_tools is not None:
             allowed = persona.allowed_tools
@@ -1044,6 +1062,58 @@ class AgentOrchestrator:
         """질의에 표·비교 형식을 명시 요청하는 키워드가 있는지 판정."""
         lowered = query.lower()
         return any(k.lower() in lowered for k in cls._TABULAR_KEYWORDS)
+
+    async def _check_corpus_override(
+        self, query: str, decision: Any
+    ) -> tuple[float, float] | None:
+        """corpus 유사도 probe 후 override 임계 통과 여부 판정.
+
+        Returns
+        -------
+        ``(score, threshold)`` 튜플 — override 발동. ``None`` — 미발동.
+
+        confidence별 2단 임계:
+          · conf < 0.95: score ≥ threshold(기본 0.55)면 override
+          · conf ≥ 0.95: score ≥ 0.65(strong signal)일 때만 override
+
+        매우 확신하는 분류(0.95+)에 키워드만 우연히 겹친 case는 보호하면서,
+        명시적으로 corpus를 가리키는 query처럼 분류는 OOD/exploratory지만 실제
+        답이 corpus에 있는 case는 정정 가능.
+        """
+        threshold = self._config.rag.agent.in_domain_score_threshold
+        if threshold <= 0.0:
+            return None
+        score = await self._corpus_relevance_score(query)
+        very_confident = getattr(decision, "confidence", 0.0) >= 0.95
+        strong_signal_threshold = max(threshold, 0.65)
+        should_override = (
+            score >= strong_signal_threshold
+            if very_confident
+            else score >= threshold
+        )
+        return (score, threshold) if should_override else None
+
+    async def _emit_corpus_override(
+        self,
+        query: str,
+        override: tuple[float, float],
+        *,
+        source_label: str,
+    ) -> AsyncGenerator[dict, None]:
+        """Override 결정에 따른 thought + route + simple 스트림을 emit합니다."""
+        score, threshold = override
+        if self._config.rag.agent.stream_reasoning:
+            yield {
+                "type": "thought",
+                "content": (
+                    f"의도 보정: corpus 유사도 {score:.2f} "
+                    f"≥ 임계 {threshold:.2f} — {source_label} 분류 무시하고 단순 RAG로 정정"
+                ),
+                "iteration": 0,
+            }
+        yield {"type": "route", "mode": "simple", "intent": "factual"}
+        async for event in self._simple_stream_fn(query):
+            yield event
 
     async def _corpus_relevance_score(self, query: str) -> float:
         """query와 corpus의 vector similarity 최대값을 반환합니다.

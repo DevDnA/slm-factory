@@ -211,6 +211,14 @@ class QueryRouter:
         except Exception:  # pragma: no cover — classifier는 자체 never-raise
             return keyword_decision
 
+        # IntentClassifier는 LLM 호출/파싱 실패 시 ``ambiguous + conf=0.0`` 으로
+        # never-raise fallback (intent_classifier.py:_fallback). 이걸 진짜 모호한
+        # 질의로 취급하면 한 번의 LLM 일시 장애로 사용자가 답 대신 clarifier 질문을
+        # 받게 되는 비결정성이 생김. fallback decision은 LLM이 분류한 게 아니므로
+        # keyword 휴리스틱 결과로 회귀해 일관성 확보.
+        if intent.confidence == 0.0 and intent.reason.startswith("fallback:"):
+            return keyword_decision
+
         # LLM 분류 → 라우팅 모드 매핑.
         llm_mode: RouteMode
         if intent.intent == "chitchat" and intent.confidence >= 0.7:

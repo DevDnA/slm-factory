@@ -185,6 +185,25 @@ class TestChitchatLLMPath:
         assert classifier.calls == 1
 
     @pytest.mark.asyncio
+    async def test_LLM_호출_실패_fallback은_keyword_휴리스틱으로_회귀(self):
+        """IntentClassifier가 LLM 실패로 ambiguous+conf=0.0+reason='fallback:...'
+        을 반환하면 진짜 ambiguous로 취급하지 말고 keyword 휴리스틱 결과를 사용.
+        한 번의 LLM 일시 장애로 사용자가 clarifier로 끌려가는 비결정성 방지."""
+        from rag_factory.rag.agent.intent_classifier import IntentDecision
+
+        classifier = self._FakeClassifier([
+            IntentDecision(
+                intent="ambiguous", confidence=0.0, reason="fallback: llm-error"
+            ),
+        ])
+        router = QueryRouter(agent_enabled=True, intent_classifier=classifier)
+        # keyword 휴리스틱으로는 simple로 분류되는 query.
+        d = await router.route_async("제안서 내용 정리해줘")
+        assert d.mode == "simple"
+        assert d.intent is None  # keyword_decision에는 intent 필드 없음.
+        assert d.matched_keyword is None
+
+    @pytest.mark.asyncio
     async def test_LLM_chitchat_저신뢰는_agent_fallback(self):
         from rag_factory.rag.agent.intent_classifier import IntentDecision
 

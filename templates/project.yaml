@@ -254,6 +254,8 @@ rag:
     smart_mode: true
     intent_verbalization_enabled: true   # 라우팅 결정 직후 의도를 thought 이벤트로 발화
     refusal_min_score: 0.15              # 검색 best score 미만이면 합성 대신 거부 응답 (0.0=비활성). bge-m3 기준 0.15 권장
+    in_domain_score_threshold: 0.55      # general/agent 라우팅 안전망. corpus 유사도 ≥ 임계면 simple로 정정 (0.0=비활성)
+    planner_preserve_first_query: true   # planner의 첫 search step query를 사용자 원문으로 강제 (planner 추상화 → 매칭 폭락 방지)
     parallel_steps: false                # macOS Python 3.14 + sentence-transformers + loky SIGSEGV 회피로 false 권장
     ollama_keep_alive: "168h"            # Ollama 모델 메모리 유지 기간 (duration 문자열). "-1" 은 Ollama가 거부하므로 "168h" 권장
 

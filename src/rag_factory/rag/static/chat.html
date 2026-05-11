@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16/dist/katex.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 <style>
 /* ═══════════════════════════════════════════════════════════════
@@ -721,6 +722,23 @@ input, textarea, select { font-family: inherit; color: inherit; }
   text-align: center;
 }
 .mermaid-container svg { max-width: 100%; height: auto; }
+
+.chart-container {
+  margin: 8px 0;
+  padding: 8px;
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  height: 320px;
+  position: relative;
+  overflow: hidden;
+}
+.chart-error {
+  color: var(--danger, #dc2626);
+  font-size: 12px;
+  text-align: center;
+  padding: 8px;
+}
 
 /* Message actions */
 .message-actions {
@@ -1583,22 +1601,76 @@ function renderKatex(el) {
   el.innerHTML = sanitize(html);
 }
 
-function renderMermaid(el) {
+async function renderMermaid(el) {
   const found = el.querySelectorAll('code.language-mermaid');
   if (!found.length) return;
-  found.forEach((codeEl) => {
+  // Mermaid v11은 invalid 입력 시 throw 대신 "Syntax error in text mermaid
+  // version 11.x.x" 에러 SVG를 인라인 렌더해버림 — 기존 try/catch가 무용지물.
+  // parse(suppressErrors:true)로 사전 검증해 invalid 블록은 코드 블록으로
+  // 남겨 enhanceCodeBlocks가 hljs syntax highlight로 처리하게 함.
+  for (const codeEl of found) {
     const pre = codeEl.parentElement;
-    if (!pre || pre.tagName !== 'PRE' || pre.getAttribute('data-mermaid-done')) return;
+    if (!pre || pre.tagName !== 'PRE' || pre.getAttribute('data-mermaid-done')) continue;
     pre.setAttribute('data-mermaid-done', '1');
+    const text = (codeEl.textContent || '').trim();
+    if (!text) continue;
+    let valid = false;
+    try {
+      const result = await mermaid.parse(text, { suppressErrors: true });
+      valid = result !== false && result !== undefined && result !== null;
+    } catch (e) {
+      valid = false;
+    }
+    if (!valid) continue;  // 깨진 mermaid는 코드 블록으로 남김.
     const div = document.createElement('div');
     div.className = 'mermaid-container';
     const inner = document.createElement('div');
     inner.className = 'mermaid';
-    inner.textContent = codeEl.textContent;
+    inner.textContent = text;
     div.appendChild(inner);
     pre.replaceWith(div);
-  });
-  try { mermaid.run({ querySelector: '.mermaid' }); } catch(e) {}
+  }
+  try { await mermaid.run({ querySelector: '.mermaid:not([data-processed="true"])' }); } catch(e) {}
+}
+
+function renderCharts(el) {
+  // ```chart``` 코드 블록을 Chart.js 캔버스로 렌더링.
+  // spec은 Chart.js v4 호환 JSON: {type, data, options}.
+  // JSON 파싱 실패 또는 필수 필드 누락이면 코드 블록으로 남겨 hljs가 처리.
+  // 렌더 실패는 chart-error 메시지로 표시.
+  const found = el.querySelectorAll('code.language-chart');
+  if (!found.length) return;
+  if (typeof Chart === 'undefined') return;
+  for (const codeEl of found) {
+    const pre = codeEl.parentElement;
+    if (!pre || pre.tagName !== 'PRE' || pre.getAttribute('data-chart-done')) continue;
+    pre.setAttribute('data-chart-done', '1');
+    const text = (codeEl.textContent || '').trim();
+    if (!text) continue;
+    let spec;
+    try { spec = JSON.parse(text); }
+    catch (e) { continue; }
+    if (!spec || typeof spec !== 'object' || !spec.type || !spec.data) continue;
+    const div = document.createElement('div');
+    div.className = 'chart-container';
+    const canvas = document.createElement('canvas');
+    div.appendChild(canvas);
+    pre.replaceWith(div);
+    try {
+      const baseOpts = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' } },
+      };
+      spec.options = Object.assign({}, baseOpts, spec.options || {});
+      new Chart(canvas.getContext('2d'), spec);
+    } catch (e) {
+      const note = document.createElement('div');
+      note.className = 'chart-error';
+      note.textContent = '차트 렌더 실패: ' + (e && e.message ? e.message : 'unknown');
+      div.appendChild(note);
+    }
+  }
 }
 
 function enhanceCodeBlocks(root) {
@@ -1842,6 +1914,7 @@ function renderMessage(msg) {
     content.innerHTML = renderMarkdown(msg.content);
     renderKatex(content);
     renderMermaid(content);
+    renderCharts(content);
     enhanceCodeBlocks(content);
   }
   body.appendChild(content);
@@ -2025,6 +2098,7 @@ function streamMarkdownTo(el, text, charsPerFrame) {
         el.innerHTML = renderMarkdown(text);
         renderKatex(el);
         renderMermaid(el);
+        renderCharts(el);
         enhanceCodeBlocks(el);
         resolve();
         return;
@@ -2521,6 +2595,7 @@ async function runStream(chat, query) {
     cEl.innerHTML = renderMarkdown(finalText);
     renderKatex(cEl);
     renderMermaid(cEl);
+    renderCharts(cEl);
     enhanceCodeBlocks(cEl);
     setStreaming(false);
     setStatusPhase(null);

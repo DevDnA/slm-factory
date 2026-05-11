@@ -76,6 +76,8 @@ def _make_config(
     personas_enabled: bool = False,
     native_thinking: bool = False,
     refusal_min_score: float = 0.0,
+    in_domain_score_threshold: float = 0.0,
+    planner_preserve_first_query: bool = False,
 ):
     return SimpleNamespace(
         rag=SimpleNamespace(
@@ -95,6 +97,8 @@ def _make_config(
                 personas_enabled=personas_enabled,
                 native_thinking=native_thinking,
                 refusal_min_score=refusal_min_score,
+                in_domain_score_threshold=in_domain_score_threshold,
+                planner_preserve_first_query=planner_preserve_first_query,
             ),
             request_timeout=60.0,
         ),
@@ -136,6 +140,8 @@ def _make_orchestrator(
     clarifier_max_questions: int = 2,
     personas_enabled: bool = False,
     refusal_min_score: float = 0.0,
+    in_domain_score_threshold: float = 0.0,
+    planner_preserve_first_query: bool = False,
     router=None,
     simple_fn=_simple_stream_fixture,
     app_state=None,
@@ -154,6 +160,8 @@ def _make_orchestrator(
         clarifier_max_questions=clarifier_max_questions,
         personas_enabled=personas_enabled,
         refusal_min_score=refusal_min_score,
+        in_domain_score_threshold=in_domain_score_threshold,
+        planner_preserve_first_query=planner_preserve_first_query,
     )
     return AgentOrchestrator(
         router=router or QueryRouter(agent_enabled=agent_enabled),
@@ -1895,3 +1903,364 @@ class TestRefusalGate:
         tokens = [e["content"] for e in events if e["type"] == "token"]
         assert _REFUSAL_MESSAGE not in tokens
         assert "답변" in "".join(tokens)
+
+
+# ---------------------------------------------------------------------------
+# Corpus override 안전망 — agent 경로
+# ---------------------------------------------------------------------------
+
+
+class _StubEmbedding:
+    """encode → numpy ndarray-like(.tolist()) 모방."""
+
+    def encode(self, query, prompt_name=None, show_progress_bar=False):
+        class _Vec:
+            def tolist(self):
+                return [0.0]
+
+        return _Vec()
+
+
+class _StubQdrantClient:
+    """query_points → score 고정값."""
+
+    def __init__(self, score: float):
+        self._score = score
+
+    def query_points(self, collection_name, query, limit, with_payload=False):
+        class _Point:
+            def __init__(self, score):
+                self.score = score
+
+        class _Result:
+            def __init__(self, points):
+                self.points = points
+
+        return _Result([_Point(self._score)])
+
+
+class TestAgentCorpusOverride:
+    """agent 경로의 corpus override 안전망 — 키워드 없이 LLM-only로 agent 분류된
+    경우 corpus 유사도가 임계 이상이면 simple로 정정합니다."""
+
+    def _make_router(self, intent: str, conf: float = 0.90):
+        from rag_factory.rag.agent.intent_classifier import IntentDecision
+        from rag_factory.rag.agent.router import QueryRouter
+
+        class _FakeClassifier:
+            async def classify(self, query):
+                return IntentDecision(intent=intent, confidence=conf)
+
+        return QueryRouter(agent_enabled=True, intent_classifier=_FakeClassifier())
+
+    def _make_app_state_with_corpus(self, score: float, collection: str = "c1"):
+        app_state = _make_app_state()
+        app_state.embedding_model = _StubEmbedding()
+        app_state.qdrant_client = _StubQdrantClient(score)
+        return app_state
+
+    @pytest.mark.asyncio
+    async def test_exploratory_intent도_corpus_매칭_되면_simple로(self):
+        """exploratory(키워드 없음) → corpus 0.59 ≥ 0.55 → simple 정정."""
+
+        router = self._make_router("exploratory", conf=0.90)
+        app_state = self._make_app_state_with_corpus(score=0.59)
+        # collection_name 참조용 — config의 rag.collection_name이 필요.
+        config = _make_config(in_domain_score_threshold=0.55)
+        config.rag.collection_name = "c1"
+
+        captured: list[str] = []
+
+        async def _simple(q: str):
+            captured.append(q)
+            yield {"type": "token", "content": "SIMPLE_OK"}
+            yield {"type": "done"}
+
+        orch = AgentOrchestrator(
+            router=router,
+            app_state=app_state,
+            config=config,
+            ollama_model="t",
+            api_base="http://x",
+            rag_max_tokens=-1,
+            simple_stream_fn=_simple,
+        )
+        events = await _collect(orch.handle_auto("그래프형식으로 정리해줘"))
+
+        # 첫 route는 agent, override 후 두번째 route는 simple
+        route_events = [e for e in events if e["type"] == "route"]
+        assert route_events[0]["mode"] == "agent"
+        assert route_events[1]["mode"] == "simple"
+
+        # 보정 thought + 사용자 원문 그대로 simple_fn에 전달됨
+        thoughts = [e["content"] for e in events if e["type"] == "thought"]
+        assert any("의도 보정" in t and "agent" in t for t in thoughts)
+        assert captured == ["그래프형식으로 정리해줘"]
+
+    @pytest.mark.asyncio
+    async def test_keyword_매칭된_agent는_override_안함(self):
+        """matched_keyword가 있으면 corpus 점수 무관하게 agent 유지."""
+
+        # router는 키워드 휴리스틱 ON → "비교"가 keyword_decision.matched_keyword로 잡힘
+        router = self._make_router("comparative", conf=0.90)
+        app_state = self._make_app_state_with_corpus(score=0.99)
+        config = _make_config(in_domain_score_threshold=0.55, planner_enabled=False)
+        config.rag.collection_name = "c1"
+
+        # legacy agent(planner OFF) → AgentLoop 사용. _FakeAgentLoop에 토큰 주입.
+        _FakeAgentLoop.script = [
+            _FakeAgentEvent(type="token", content="AGENT_RAN"),
+            _FakeAgentEvent(type="done", metadata={"sources": []}),
+        ]
+
+        async def _simple(q: str):  # 호출되면 안됨
+            yield {"type": "token", "content": "SHOULD_NOT_RUN"}
+
+        orch = AgentOrchestrator(
+            router=router,
+            app_state=app_state,
+            config=config,
+            ollama_model="t",
+            api_base="http://x",
+            rag_max_tokens=-1,
+            simple_stream_fn=_simple,
+        )
+        events = await _collect(orch.handle_auto("A와 B의 차이 비교"))
+
+        tokens = "".join(e["content"] for e in events if e["type"] == "token")
+        assert "AGENT_RAN" in tokens
+        assert "SHOULD_NOT_RUN" not in tokens
+
+    @pytest.mark.asyncio
+    async def test_ambiguous는_clarifier로_위임_override_안함(self):
+        """intent=ambiguous + clarifier_enabled → corpus 매칭과 무관하게 clarifier."""
+
+        router = self._make_router("ambiguous", conf=0.50)
+        app_state = self._make_app_state_with_corpus(score=0.99)
+        # clarifier_enabled=True + ambiguous → clarifier 호출.
+        config = _make_config(
+            in_domain_score_threshold=0.55,
+            planner_enabled=False,
+            clarifier_enabled=True,
+        )
+        config.rag.collection_name = "c1"
+
+        # Clarifier는 http_client.post를 사용 — JSON 응답을 모킹.
+        import json as _json
+
+        post_resp = MagicMock()
+        post_resp.raise_for_status = MagicMock(return_value=None)
+        post_resp.json = MagicMock(
+            return_value={"response": _json.dumps({"questions": ["무엇을 원하시나요?"]})}
+        )
+
+        async def _post(*a, **kw):
+            return post_resp
+
+        app_state.http_client.post = _post
+
+        async def _simple(q):
+            yield {"type": "token", "content": "SHOULD_NOT_RUN"}
+
+        orch = AgentOrchestrator(
+            router=router,
+            app_state=app_state,
+            config=config,
+            ollama_model="t",
+            api_base="http://x",
+            rag_max_tokens=-1,
+            simple_stream_fn=_simple,
+        )
+        events = await _collect(orch.handle_auto("그거 어떻게 돼요?"))
+
+        # clarification 이벤트가 발행되어야 함 (override 안 일어남)
+        types = [e["type"] for e in events]
+        assert "clarification" in types
+        tokens = "".join(e.get("content", "") for e in events if e["type"] == "token")
+        assert "SHOULD_NOT_RUN" not in tokens
+
+    @pytest.mark.asyncio
+    async def test_score_낮으면_agent_유지(self):
+        """score < threshold이면 override 안하고 agent 경로 진행."""
+
+        router = self._make_router("exploratory", conf=0.90)
+        app_state = self._make_app_state_with_corpus(score=0.20)  # 낮음
+        config = _make_config(in_domain_score_threshold=0.55, planner_enabled=False)
+        config.rag.collection_name = "c1"
+
+        _FakeAgentLoop.script = [
+            _FakeAgentEvent(type="token", content="AGENT_RAN"),
+            _FakeAgentEvent(type="done", metadata={"sources": []}),
+        ]
+
+        async def _simple(q):
+            yield {"type": "token", "content": "SHOULD_NOT_RUN"}
+
+        orch = AgentOrchestrator(
+            router=router,
+            app_state=app_state,
+            config=config,
+            ollama_model="t",
+            api_base="http://x",
+            rag_max_tokens=-1,
+            simple_stream_fn=_simple,
+        )
+        events = await _collect(orch.handle_auto("탐색적 질의"))
+
+        tokens = "".join(e["content"] for e in events if e["type"] == "token")
+        assert "AGENT_RAN" in tokens
+        assert "SHOULD_NOT_RUN" not in tokens
+
+
+# ---------------------------------------------------------------------------
+# Planner 첫 search step query 보존
+# ---------------------------------------------------------------------------
+
+
+class TestPlannerPreserveFirstQuery:
+    """planner_preserve_first_query=True이면 plan의 첫 search/lookup step ``query``
+    인자를 사용자 원문으로 강제 — planner의 추상화로 임베딩 매칭이 폭락하는
+    케이스를 방지합니다."""
+
+    @pytest.mark.asyncio
+    async def test_단일_search_step의_query는_사용자_원문으로_치환(self, monkeypatch):
+        plan = _make_plan(
+            [{"tool": "search", "args": {"query": "추상화된 검색어"}, "reason": ""}]
+        )
+        fixtures = _PlannerPathFixtures(
+            monkeypatch,
+            plan=plan,
+            tool_script=[_FakeToolResult(text="r", sources=[])],
+            synthesis_tokens=["답"],
+        )
+
+        orch = _make_orchestrator(
+            planner_enabled=True,
+            planner_preserve_first_query=True,
+            app_state=fixtures.app_state,
+        )
+        await _collect(orch.handle_auto("사용자 원문 비교"))
+
+        # planner가 만든 "추상화된 검색어" 대신 사용자 원문이 그대로 전달됨
+        assert fixtures.tool_registry.calls == [
+            ("search", {"query": "사용자 원문 비교"})
+        ]
+
+    @pytest.mark.asyncio
+    async def test_다단계_decompose는_첫_step만_치환(self, monkeypatch):
+        """decomposition은 보존 — 첫 search만 사용자 원문, 이후는 planner 분해 유지."""
+        plan = _make_plan(
+            [
+                {"tool": "search", "args": {"query": "abstract1"}},
+                {"tool": "search", "args": {"query": "분해 검색2"}},
+                {"tool": "search", "args": {"query": "분해 검색3"}},
+            ],
+            strategy="decompose",
+        )
+        fixtures = _PlannerPathFixtures(
+            monkeypatch,
+            plan=plan,
+            tool_script=[
+                _FakeToolResult(text="r1", sources=[]),
+                _FakeToolResult(text="r2", sources=[]),
+                _FakeToolResult(text="r3", sources=[]),
+            ],
+            synthesis_tokens=["ans"],
+        )
+
+        orch = _make_orchestrator(
+            planner_enabled=True,
+            planner_preserve_first_query=True,
+            app_state=fixtures.app_state,
+        )
+        await _collect(orch.handle_auto("RFP 핵심 비교"))
+
+        assert fixtures.tool_registry.calls == [
+            ("search", {"query": "RFP 핵심 비교"}),
+            ("search", {"query": "분해 검색2"}),
+            ("search", {"query": "분해 검색3"}),
+        ]
+
+    @pytest.mark.asyncio
+    async def test_플래그_off이면_planner_query_그대로(self, monkeypatch):
+        plan = _make_plan(
+            [{"tool": "search", "args": {"query": "추상화"}}]
+        )
+        fixtures = _PlannerPathFixtures(
+            monkeypatch,
+            plan=plan,
+            tool_script=[_FakeToolResult(text="r", sources=[])],
+            synthesis_tokens=["답"],
+        )
+
+        orch = _make_orchestrator(
+            planner_enabled=True,
+            planner_preserve_first_query=False,
+            app_state=fixtures.app_state,
+        )
+        await _collect(orch.handle_auto("사용자 비교 질의"))
+
+        assert fixtures.tool_registry.calls == [("search", {"query": "추상화"})]
+
+    @pytest.mark.asyncio
+    async def test_fallback_plan은_치환_안함(self, monkeypatch):
+        """is_fallback=True인 plan은 이미 사용자 query를 사용 — 추가 치환 불필요."""
+        from rag_factory.rag.agent.planner import ExecutionPlan, PlanStep
+
+        plan = ExecutionPlan(
+            strategy="fact",
+            steps=[PlanStep(tool="search", args={"query": "원래 fallback query"})],
+            rationale="fallback: parse-error",
+        )
+        fixtures = _PlannerPathFixtures(
+            monkeypatch,
+            plan=plan,
+            tool_script=[_FakeToolResult(text="r", sources=[])],
+            synthesis_tokens=["답"],
+        )
+
+        orch = _make_orchestrator(
+            planner_enabled=True,
+            planner_preserve_first_query=True,
+            legacy_fallback_enabled=False,  # planner 경로에 머무름
+            app_state=fixtures.app_state,
+        )
+        await _collect(orch.handle_auto("사용자 비교 질의"))
+
+        # fallback plan의 query가 그대로 보존됨
+        assert fixtures.tool_registry.calls == [
+            ("search", {"query": "원래 fallback query"})
+        ]
+
+    @pytest.mark.asyncio
+    async def test_compare_도구는_치환_대상_아님(self, monkeypatch):
+        """compare 도구는 query 인자 의미가 다름 — 치환하지 않음."""
+        plan = _make_plan(
+            [
+                {"tool": "compare", "args": {"query_a": "a", "query_b": "b"}},
+                {"tool": "search", "args": {"query": "abstract"}},
+            ],
+            strategy="compare",
+        )
+        fixtures = _PlannerPathFixtures(
+            monkeypatch,
+            plan=plan,
+            tool_script=[
+                _FakeToolResult(text="r1", sources=[]),
+                _FakeToolResult(text="r2", sources=[]),
+            ],
+            synthesis_tokens=["ans"],
+        )
+
+        orch = _make_orchestrator(
+            planner_enabled=True,
+            planner_preserve_first_query=True,
+            app_state=fixtures.app_state,
+        )
+        await _collect(orch.handle_auto("진짜 사용자 비교 질의"))
+
+        # compare는 그대로, 첫 search step query만 사용자 원문으로 치환
+        assert fixtures.tool_registry.calls == [
+            ("compare", {"query_a": "a", "query_b": "b"}),
+            ("search", {"query": "진짜 사용자 비교 질의"}),
+        ]

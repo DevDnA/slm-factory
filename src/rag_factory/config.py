@@ -577,11 +577,20 @@ class AgentRagConfig(BaseModel):
     명시 발화합니다. 라우팅 결정의 투명성과 follow-up 처리 일관성을 확보합니다."""
 
     in_domain_score_threshold: float = 0.55
-    """general 라우팅 안전망 — IntentClassifier가 general(OOD)로 분류했더라도
-    query와 corpus의 vector similarity 최대값이 이 임계 이상이면 in-domain으로
-    정정해 simple 경로로 보냅니다. corpus 자체를 in-domain 신호로 사용하므로
-    도메인 무관(RFP, 의료, 법률 등 어떤 corpus든 작동). 임베딩 모델 cosine
-    score 분포에 따라 0.3~0.5 사이에서 튜닝. 0.0이면 안전망 비활성."""
+    """general/agent 라우팅 안전망 — IntentClassifier가 general(OOD) 또는
+    exploratory/analytical 등으로 agent 경로에 보냈더라도, query와 corpus의
+    vector similarity 최대값이 이 임계 이상이면 in-domain으로 정정해 simple
+    경로로 보냅니다. corpus 자체를 in-domain 신호로 사용하므로 도메인 무관(RFP,
+    의료, 법률 등 어떤 corpus든 작동). agent 경로에서는 명시적 키워드
+    (비교/이유/차이 등)가 매칭된 경우와 ambiguous(clarifier 위임)는 제외합니다.
+    임베딩 모델 cosine score 분포에 따라 0.3~0.5 사이에서 튜닝. 0.0이면 비활성."""
+
+    planner_preserve_first_query: bool = True
+    """Planner가 사용자 query를 추상화한 검색어로 첫 search step을 만들 때,
+    임베딩 매칭이 폭락해 refusal gate에 걸리는 케이스를 방지하는 안전망. ``true``이면
+    plan의 첫 search/lookup step의 ``query`` 인자를 사용자 원문으로 강제합니다.
+    이후 step들은 planner의 분해를 그대로 보존하므로 multi-step decomposition은
+    유지됩니다. 단일 step이면 사실상 사용자 원문 검색과 동일."""
 
     smart_mode: bool = False
     """**원클릭 프리셋** — ``true``이면 Planner + Verifier + IntentClassifier +
