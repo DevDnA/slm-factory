@@ -207,9 +207,9 @@ corpus_export:
 # corpus.parquet을 Qdrant에 임베딩하여 적재하고,
 # Ollama SLM과 연동하는 RAG API 서버를 실행합니다.
 # 파이프라인 기본 실행 시 인덱싱까지 자동 수행됩니다.
-# 서버 실행: slf tool rag-serve --config project.yaml
+# 서버 실행: rf rag --config project.yaml
 rag:
-  embedding_model: "Qwen/Qwen3-Embedding-0.6B"  # 임베딩 모델 (sentence-transformers 호환)
+  embedding_model: "BAAI/bge-m3"  # 임베딩 모델 (sentence-transformers 호환) — bge-reranker-v2-m3-ko와 페어
   vector_db_path: "qdrant_db"           # Qdrant 저장 경로 (output/ 하위)
   collection_name: "corpus"             # Qdrant 컬렉션 이름
   top_k: 5                              # 검색 시 반환할 최대 청크 수

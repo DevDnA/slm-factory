@@ -9,5 +9,5 @@
 #
 # 내부적으로 uv run rag-factory를 호출합니다.
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 exec uv run --project "$SCRIPT_DIR" rag-factory "$@"
