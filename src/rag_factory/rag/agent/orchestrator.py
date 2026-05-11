@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from typing import Any, AsyncGenerator, Callable, Iterable
 
 from ...utils import get_logger
@@ -1065,49 +1066,101 @@ class AgentOrchestrator:
 
     async def _check_corpus_override(
         self, query: str, decision: Any
-    ) -> tuple[float, float] | None:
-        """corpus 유사도 probe 후 override 임계 통과 여부 판정.
+    ) -> dict | None:
+        """corpus 유사도 + corpus_profile 키워드 매칭으로 override 발동 판정.
 
         Returns
         -------
-        ``(score, threshold)`` 튜플 — override 발동. ``None`` — 미발동.
+        ``{"score", "threshold", "trigger", "matched"}`` dict — override 발동.
+        ``None`` — 미발동.
 
-        confidence별 2단 임계:
-          · conf < 0.95: score ≥ threshold(기본 0.55)면 override
-          · conf ≥ 0.95: score ≥ 0.65(strong signal)일 때만 override
+        ``trigger``는 ``"vector"`` 또는 ``"keyword"`` — emit 시 사유 분기.
 
-        매우 확신하는 분류(0.95+)에 키워드만 우연히 겹친 case는 보호하면서,
-        명시적으로 corpus를 가리키는 query처럼 분류는 OOD/exploratory지만 실제
-        답이 corpus에 있는 case는 정정 가능.
+        규칙:
+          · conf < 0.95: 벡터 score ≥ threshold **또는** corpus 키워드 매칭이면 override.
+          · conf ≥ 0.95: 벡터 score ≥ 0.65(strong) **또는**
+            (키워드 매칭 AND 벡터 score ≥ threshold) — 매우 확신 분류에선
+            키워드 우연 일치만으로 정정하지 않도록 보조 벡터 확인.
+
+        짧은 도메인 쿼리(예: "RFP 요약해줘")가 벡터 임계 아래로 떨어지는 비대칭을
+        해소합니다 — corpus_profile.name/keywords의 토큰이 명시적으로 등장하면
+        이는 LLM의 OOD 판정을 뒤집을 만한 직접 신호입니다.
         """
         threshold = self._config.rag.agent.in_domain_score_threshold
         if threshold <= 0.0:
             return None
         score = await self._corpus_relevance_score(query)
+        keyword_matched = self._query_has_corpus_token(query)
         very_confident = getattr(decision, "confidence", 0.0) >= 0.95
         strong_signal_threshold = max(threshold, 0.65)
-        should_override = (
-            score >= strong_signal_threshold
-            if very_confident
-            else score >= threshold
-        )
-        return (score, threshold) if should_override else None
+
+        if very_confident:
+            vector_ok = score >= strong_signal_threshold
+            keyword_ok = keyword_matched and score >= threshold
+        else:
+            vector_ok = score >= threshold
+            keyword_ok = keyword_matched
+
+        if not (vector_ok or keyword_ok):
+            return None
+        trigger = "vector" if vector_ok else "keyword"
+        return {
+            "score": score,
+            "threshold": threshold,
+            "trigger": trigger,
+            "matched": keyword_matched,
+        }
+
+    def _query_has_corpus_token(self, query: str) -> bool:
+        """query에 corpus_profile의 name/keywords 토큰이 포함됐는지 판정.
+
+        영문/숫자 토큰은 ASCII 한정 단어 경계로 매칭 — 한국어 조사가 결합된
+        ``"SLA가"`` 같은 케이스도 매칭됨 (한글은 ASCII letter/digit이 아니므로
+        경계 역할). 한국어 토큰은 substring 매칭. corpus_profile 부재 시 ``False``.
+        """
+        profile = getattr(self._app_state, "corpus_profile", None)
+        if profile is None or not hasattr(profile, "merged_keywords"):
+            return False
+        tokens = profile.merged_keywords()
+        if not tokens:
+            return False
+        q_lower = query.lower()
+        for tok in tokens:
+            if not tok or len(tok) < 2:
+                continue
+            t_lower = tok.lower()
+            if all(c.isascii() for c in t_lower):
+                pattern = rf"(?:^|[^a-z0-9]){re.escape(t_lower)}(?:[^a-z0-9]|$)"
+                if re.search(pattern, q_lower):
+                    return True
+            elif t_lower in q_lower:
+                return True
+        return False
 
     async def _emit_corpus_override(
         self,
         query: str,
-        override: tuple[float, float],
+        override: dict,
         *,
         source_label: str,
     ) -> AsyncGenerator[dict, None]:
         """Override 결정에 따른 thought + route + simple 스트림을 emit합니다."""
-        score, threshold = override
+        score = override["score"]
+        threshold = override["threshold"]
+        trigger = override.get("trigger", "vector")
         if self._config.rag.agent.stream_reasoning:
+            if trigger == "keyword":
+                reason = (
+                    f"corpus 키워드 매칭(유사도 {score:.2f})"
+                )
+            else:
+                reason = (
+                    f"corpus 유사도 {score:.2f} ≥ 임계 {threshold:.2f}"
+                )
             yield {
                 "type": "thought",
                 "content": (
-                    f"의도 보정: corpus 유사도 {score:.2f} "
-                    f"≥ 임계 {threshold:.2f} — {source_label} 분류 무시하고 단순 RAG로 정정"
+                    f"의도 보정: {reason} — {source_label} 분류 무시하고 단순 RAG로 정정"
                 ),
                 "iteration": 0,
             }

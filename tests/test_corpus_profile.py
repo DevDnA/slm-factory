@@ -40,14 +40,34 @@ class TestCorpusProfile:
         assert "요약: S" in h
         assert "k1" in h and "k2" in h
 
-    def test_to_prompt_header_keywords_상한_50개(self):
-        p = CorpusProfile(name="N", keywords=[f"k{i}" for i in range(60)])
+    def test_to_prompt_header_keywords_상한_60개(self):
+        p = CorpusProfile(name="N", keywords=[f"k{i}" for i in range(70)])
         h = p.to_prompt_header()
-        # k50 이상은 잘림 (cap을 30→50으로 확장: 영문 약어 max 20 + 한국어 명사
-        # max 20 + LLM 일반 키워드가 모두 prompt header에 노출되도록 함)
+        # cap을 50→60으로 확장: name 토큰까지 병합해 노출하므로 약간 늘림.
         assert "k0" in h
-        assert "k49" in h
-        assert "k50" not in h
+        assert "k59" in h
+        assert "k60" not in h
+
+    def test_merged_keywords_name_토큰_병합(self):
+        # name의 의미 토큰(2자+, 불용어 제외)이 keywords에 자동 병합되어야 함.
+        p = CorpusProfile(
+            name="소프트웨어 및 사업지원 RFP 입찰 제안서",
+            keywords=["AP", "SLA"],
+        )
+        merged = p.merged_keywords()
+        # 기존 keywords 보존 + name 토큰 추가
+        assert "AP" in merged
+        assert "SLA" in merged
+        assert "RFP" in merged
+        assert "제안서" in merged
+        # 불용어("및") 및 짧은 토큰은 제외
+        assert "및" not in merged
+
+    def test_merged_keywords_중복_제거(self):
+        p = CorpusProfile(name="RFP 입찰", keywords=["RFP", "AP"])
+        merged = p.merged_keywords()
+        # 같은 토큰이 name과 keywords에 동시 있어도 한 번만 노출
+        assert merged.count("RFP") == 1
 
 
 class TestPersistence:

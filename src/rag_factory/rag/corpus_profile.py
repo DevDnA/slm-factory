@@ -191,6 +191,33 @@ def extract_korean_nouns(
     return [t for t, _ in qualified[:max_results]]
 
 
+# name 토큰화에서 제외할 한국어 조사·접속사·기능어. 짧고 의미 약한 토큰이
+# IntentClassifier 헤더에 노출되면 매칭 잡음만 늘어남.
+_NAME_STOPWORDS: frozenset[str] = frozenset(
+    {"및", "또는", "그리고", "관련", "전용", "기반", "위한", "대한", "통한"}
+)
+
+
+def _extract_name_tokens(name: str) -> list[str]:
+    """CorpusProfile.name에서 의미 토큰(2자 이상, 비기능어)을 추출합니다.
+
+    예: "소프트웨어 및 사업지원 RFP 입찰 제안서"
+        → ["소프트웨어", "사업지원", "RFP", "입찰", "제안서"]
+    """
+    if not name:
+        return []
+    parts = re.split(r"[\s,()\[\]<>'\"·•\-/]+", name)
+    out: list[str] = []
+    for raw in parts:
+        token = raw.strip()
+        if len(token) < 2:
+            continue
+        if token in _NAME_STOPWORDS:
+            continue
+        out.append(token)
+    return out
+
+
 @dataclass(frozen=True)
 class CorpusProfile:
     """인덱스 corpus의 도메인 자기 기술.
@@ -223,6 +250,25 @@ class CorpusProfile:
         """name·summary·keywords가 모두 비어 있으면 True (라우팅 컨텍스트 미주입)."""
         return not self.name and not self.summary and not self.keywords
 
+    def merged_keywords(self) -> list[str]:
+        """name의 의미 토큰을 keywords와 합쳐 중복 제거한 리스트.
+
+        IntentClassifier가 `name`에 포함된 약어·표제어(예: "RFP")를 keywords와
+        동등하게 매칭하도록 하기 위함. 매칭은 corpus_override 보조 신호로도 사용.
+        """
+        tokens = _extract_name_tokens(self.name)
+        seen: set[str] = set()
+        out: list[str] = []
+        for k in list(self.keywords) + tokens:
+            if not k:
+                continue
+            key = k.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(k)
+        return out
+
     def to_prompt_header(self) -> str:
         """IntentClassifier·합성 프롬프트에 주입할 헤더 텍스트.
 
@@ -235,10 +281,10 @@ class CorpusProfile:
             lines.append(f"- 명칭: {self.name}")
         if self.summary:
             lines.append(f"- 요약: {self.summary}")
-        if self.keywords:
-            # cap 50 — 영문 약어(max 20)·한국어 명사(max 20)·LLM 일반 키워드를
-            # 모두 노출. IntentClassifier 1회 호출당 비용 미미.
-            lines.append(f"- 핵심 키워드: {', '.join(self.keywords[:50])}")
+        merged = self.merged_keywords()
+        if merged:
+            # cap 60 — name 토큰까지 합쳐 약간 늘림. IntentClassifier 비용 미미.
+            lines.append(f"- 핵심 키워드: {', '.join(merged[:60])}")
         return "\n".join(lines)
 
     def as_dict(self) -> dict[str, Any]:
