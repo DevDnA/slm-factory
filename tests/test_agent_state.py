@@ -6,8 +6,8 @@ import time
 
 import pytest
 
-from slm_factory.rag.agent.session import Message
-from slm_factory.rag.agent.state import FileBackedSessionStore, SessionRecord
+from rag_factory.rag.agent.session import Message
+from rag_factory.rag.agent.state import FileBackedSessionStore, SessionRecord
 
 
 @pytest.fixture

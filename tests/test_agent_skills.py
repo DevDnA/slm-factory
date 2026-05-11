@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from slm_factory.rag.agent.skills import (
+from rag_factory.rag.agent.skills import (
     Skill,
     SkillRegistry,
     load_skills_from_dir)
@@ -172,8 +172,8 @@ class TestOrchestratorIntegration:
             planner_enabled=True,
             app_state=fixtures.app_state)
         # orchestrator 직접 생성 (skills_enabled 주입 필요)
-        from slm_factory.rag.agent.orchestrator import AgentOrchestrator
-        from slm_factory.rag.agent.router import QueryRouter
+        from rag_factory.rag.agent.orchestrator import AgentOrchestrator
+        from rag_factory.rag.agent.router import QueryRouter
 
         config_ns = SimpleNamespace(
             rag=SimpleNamespace(
@@ -229,8 +229,8 @@ class TestOrchestratorIntegration:
             _make_plan,
             _FakeToolResult,
             _collect)
-        from slm_factory.rag.agent.orchestrator import AgentOrchestrator
-        from slm_factory.rag.agent.router import QueryRouter
+        from rag_factory.rag.agent.orchestrator import AgentOrchestrator
+        from rag_factory.rag.agent.router import QueryRouter
 
         plan = _make_plan([{"tool": "search", "args": {"query": "q"}}])
         fixtures = _PlannerPathFixtures(

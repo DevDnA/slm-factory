@@ -9,7 +9,7 @@ import pytest
 
 sys.modules["olefile"] = MagicMock()
 
-from slm_factory.parsers.ppt import PPTParser
+from rag_factory.parsers.ppt import PPTParser
 
 
 def _build_ppt_stream(texts: list[str]) -> bytes:
@@ -65,7 +65,7 @@ class TestPPTParser:
 
         parser = PPTParser()
 
-        with patch("slm_factory.parsers.ppt.HAS_OLEFILE", False):
+        with patch("rag_factory.parsers.ppt.HAS_OLEFILE", False):
             with pytest.raises(RuntimeError) as exc_info:
                 parser.parse(ppt_file)
 
@@ -79,8 +79,8 @@ class TestPPTParser:
 
         parser = PPTParser()
 
-        with patch("slm_factory.parsers.ppt.HAS_OLEFILE", True):
-            with patch("slm_factory.parsers.ppt.olefile") as mock_ole_mod:
+        with patch("rag_factory.parsers.ppt.HAS_OLEFILE", True):
+            with patch("rag_factory.parsers.ppt.olefile") as mock_ole_mod:
                 mock_ole_mod.isOleFile.return_value = False
                 with pytest.raises(RuntimeError) as exc_info:
                     parser.parse(ppt_file)
@@ -104,8 +104,8 @@ class TestPPTParser:
 
         parser = PPTParser()
 
-        with patch("slm_factory.parsers.ppt.HAS_OLEFILE", True):
-            with patch("slm_factory.parsers.ppt.olefile") as mock_ole_mod:
+        with patch("rag_factory.parsers.ppt.HAS_OLEFILE", True):
+            with patch("rag_factory.parsers.ppt.olefile") as mock_ole_mod:
                 mock_ole_mod.isOleFile.return_value = True
                 mock_ole_mod.OleFileIO.return_value = mock_ole
 
@@ -134,8 +134,8 @@ class TestPPTParser:
 
         parser = PPTParser()
 
-        with patch("slm_factory.parsers.ppt.HAS_OLEFILE", True):
-            with patch("slm_factory.parsers.ppt.olefile") as mock_ole_mod:
+        with patch("rag_factory.parsers.ppt.HAS_OLEFILE", True):
+            with patch("rag_factory.parsers.ppt.olefile") as mock_ole_mod:
                 mock_ole_mod.isOleFile.return_value = True
                 mock_ole_mod.OleFileIO.return_value = mock_ole
 
@@ -168,8 +168,8 @@ class TestPPTParser:
 
         parser = PPTParser()
 
-        with patch("slm_factory.parsers.ppt.HAS_OLEFILE", True):
-            with patch("slm_factory.parsers.ppt.olefile") as mock_ole_mod:
+        with patch("rag_factory.parsers.ppt.HAS_OLEFILE", True):
+            with patch("rag_factory.parsers.ppt.olefile") as mock_ole_mod:
                 mock_ole_mod.isOleFile.return_value = True
                 mock_ole_mod.OleFileIO.return_value = mock_ole
 

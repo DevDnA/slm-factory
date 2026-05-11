@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from slm_factory.rag.agent.loop import AgentLoop, AgentEvent, AgentResult
-from slm_factory.rag.agent.tools import ToolResult
+from rag_factory.rag.agent.loop import AgentLoop, AgentEvent, AgentResult
+from rag_factory.rag.agent.tools import ToolResult
 
 
 class _FakeToolRegistry:

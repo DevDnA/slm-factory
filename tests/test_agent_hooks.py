@@ -6,7 +6,7 @@ import asyncio
 
 import pytest
 
-from slm_factory.rag.agent.hooks import (
+from rag_factory.rag.agent.hooks import (
     BUILT_IN_HOOKS,
     HookRegistry,
     build_default_registry,
@@ -205,8 +205,8 @@ class TestOrchestratorIntegration:
             _make_plan,
             _FakeToolResult,
             _collect)
-        from slm_factory.rag.agent.orchestrator import AgentOrchestrator
-        from slm_factory.rag.agent.router import QueryRouter
+        from rag_factory.rag.agent.orchestrator import AgentOrchestrator
+        from rag_factory.rag.agent.router import QueryRouter
 
         plan = _make_plan([{"tool": "search", "args": {"query": "q"}}])
         fixtures = _PlannerPathFixtures(

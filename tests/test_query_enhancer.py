@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from slm_factory.rag.query_enhancer import (
+from rag_factory.rag.query_enhancer import (
     generate_hyde_doc,
     generate_multi_queries,
     rrf_merge,

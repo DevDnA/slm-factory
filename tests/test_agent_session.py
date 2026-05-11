@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 
-from slm_factory.rag.agent.session import Message, SessionManager
+from rag_factory.rag.agent.session import Message, SessionManager
 
 
 class TestSessionManager:

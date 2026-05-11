@@ -7,9 +7,9 @@ from unittest.mock import AsyncMock, MagicMock
 import httpx
 import pytest
 
-from slm_factory.rag.agent.memory import ConversationCompressor
-from slm_factory.rag.agent.session import Message, SessionManager
-from slm_factory.rag.agent.state import FileBackedSessionStore
+from rag_factory.rag.agent.memory import ConversationCompressor
+from rag_factory.rag.agent.session import Message, SessionManager
+from rag_factory.rag.agent.state import FileBackedSessionStore
 
 
 def _ollama_response(payload: str) -> MagicMock:
@@ -167,8 +167,8 @@ class TestOrchestratorCompression:
             _make_plan,
             _FakeToolResult,
             _collect)
-        from slm_factory.rag.agent.orchestrator import AgentOrchestrator
-        from slm_factory.rag.agent.router import QueryRouter
+        from rag_factory.rag.agent.orchestrator import AgentOrchestrator
+        from rag_factory.rag.agent.router import QueryRouter
         from types import SimpleNamespace
 
         plan = _make_plan([{"tool": "search", "args": {"query": "q"}}])

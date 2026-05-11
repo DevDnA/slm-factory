@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from slm_factory.config import (
+from rag_factory.config import (
     ChunkingConfig,
     CorpusExportConfig,
     EarlyStoppingConfig,

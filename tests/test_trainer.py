@@ -17,7 +17,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from slm_factory.trainer.lora_trainer import DataLoader, LoRATrainer, _RichProgressCallback
+from rag_factory.trainer.lora_trainer import DataLoader, LoRATrainer, _RichProgressCallback
 
 
 # ---------------------------------------------------------------------------
@@ -27,7 +27,7 @@ from slm_factory.trainer.lora_trainer import DataLoader, LoRATrainer, _RichProgr
 
 def _make_training_config(**overrides):
     """테스트용 SLMConfig를 생성합니다."""
-    from slm_factory.config import SLMConfig
+    from rag_factory.config import SLMConfig
     return SLMConfig(**overrides)
 
 
@@ -128,7 +128,7 @@ class TestDataLoaderInit:
 class TestDataLoaderLoadJsonl:
     """DataLoader.load_jsonl() 테스트입니다."""
 
-    @patch("slm_factory.trainer.lora_trainer.DataLoader.load_jsonl")
+    @patch("rag_factory.trainer.lora_trainer.DataLoader.load_jsonl")
     def test_load_dataset_호출(self, mock_load, tmp_path):
         """load_jsonl이 올바른 경로로 호출됩니다."""
         jsonl_path = _make_jsonl_file(tmp_path)
@@ -260,7 +260,7 @@ class TestCreateCallbacks:
 
         # _RichProgressCallback() 인스턴스화를 mock으로 우회
         with patch(
-            "slm_factory.trainer.lora_trainer._RichProgressCallback",
+            "rag_factory.trainer.lora_trainer._RichProgressCallback",
             return_value=MagicMock(),
         ):
             callbacks = trainer._create_callbacks()
@@ -276,7 +276,7 @@ class TestCreateCallbacks:
         trainer = LoRATrainer(config)
 
         with patch(
-            "slm_factory.trainer.lora_trainer._RichProgressCallback",
+            "rag_factory.trainer.lora_trainer._RichProgressCallback",
             return_value=MagicMock(),
         ):
             callbacks = trainer._create_callbacks()
@@ -310,7 +310,7 @@ class TestCreateTrainingArgs:
         trainer._device_info = mock_device
 
         # get_training_overrides는 lazy import (from ..device import ...)
-        with patch("slm_factory.device.get_training_overrides", return_value={}):
+        with patch("rag_factory.device.get_training_overrides", return_value={}):
             args = trainer._create_training_args()
         assert args is not None
 
@@ -325,7 +325,7 @@ class TestCreateTrainingArgs:
         mock_device.gpu_count = 4
         trainer._device_info = mock_device
 
-        with patch("slm_factory.device.get_training_overrides", return_value={}):
+        with patch("rag_factory.device.get_training_overrides", return_value={}):
             args = trainer._create_training_args()
         assert args is not None
 

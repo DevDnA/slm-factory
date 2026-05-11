@@ -8,7 +8,7 @@ import pytest
 
 sys.modules["docx"] = MagicMock()
 
-from slm_factory.parsers.docx import DOCXParser
+from rag_factory.parsers.docx import DOCXParser
 
 
 class TestDOCXParser:

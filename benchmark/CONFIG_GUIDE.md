@@ -4,7 +4,7 @@
 > `quality_mode`, `ralph_loop_*` 등 관련 설정은 현재 코드베이스에 존재하지 않습니다.
 > 아래 가이드의 구성 예시는 `smart_mode: true` 기반으로 읽어주세요.
 
-slm-factory의 Agent RAG는 메모리·latency·품질 trade-off가 큽니다. 본 가이드는
+rag-factory의 Agent RAG는 메모리·latency·품질 trade-off가 큽니다. 본 가이드는
 실측 벤치(`FINDINGS.md`)를 바탕으로 사용자 환경에 맞는 구성을 제시합니다.
 
 ## 1. 메모리 예산 산정
@@ -112,7 +112,7 @@ rag:
     verifier_enabled: false
 ```
 
-또는 chat.html 등 클라이언트가 `/v1/chat/completions`를 `model="slm-factory-rag"`
+또는 chat.html 등 클라이언트가 `/v1/chat/completions`를 `model="rag-factory-rag"`
 (simple) 으로 직접 호출.
 
 **예상 동작**: query당 ~12-18s, 단일 검색+합성. **품질 손실 큼** — 도메인 약어가
@@ -163,16 +163,16 @@ duration "-1"`)
 
 ```bash
 # 스크립트
-~/.local/bin/ollama-warmup-slm-factory.sh
+~/.local/bin/ollama-warmup-rag-factory.sh
 
 # 등록
-launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.devdna.slm-factory.ollama-warmup.plist
+launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.devdna.rag-factory.ollama-warmup.plist
 
 # 즉시 실행
-launchctl kickstart -p gui/$UID/com.devdna.slm-factory.ollama-warmup
+launchctl kickstart -p gui/$UID/com.devdna.rag-factory.ollama-warmup
 
 # 로그 확인
-cat /tmp/ollama-warmup-slm-factory.log
+cat /tmp/ollama-warmup-rag-factory.log
 ```
 
 스크립트의 `MODEL` 변수를 변경하면 다른 모델을 핀할 수 있습니다.

@@ -6,8 +6,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from slm_factory.rag.agent.tools import ToolRegistry, ToolSpec, ToolResult
-from slm_factory.rag.search import SearchResult, SearchOutput
+from rag_factory.rag.agent.tools import ToolRegistry, ToolSpec, ToolResult
+from rag_factory.rag.search import SearchResult, SearchOutput
 
 
 def _make_app_state():
@@ -106,7 +106,7 @@ class TestToolSearch:
     async def test_검색_실행(self, registry):
         with pytest.MonkeyPatch.context() as mp:
             mp.setattr(
-                "slm_factory.rag.agent.tools.search_documents",
+                "rag_factory.rag.agent.tools.search_documents",
                 lambda *a, **kw: SearchOutput(
                     sources=[SearchResult(content="테스트 문서", doc_id="doc1", score=0.9)],
                     context_parts=["[문서 1]\n테스트 문서"],

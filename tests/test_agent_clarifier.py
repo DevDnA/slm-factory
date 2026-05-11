@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import httpx
 import pytest
 
-from slm_factory.rag.agent.personas.clarifier import Clarifier
+from rag_factory.rag.agent.personas.clarifier import Clarifier
 
 
 def _ollama_response(payload: str) -> MagicMock:

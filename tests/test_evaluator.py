@@ -8,9 +8,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from slm_factory.config import EvalConfig, ProjectConfig, SLMConfig, TeacherConfig
-from slm_factory.evaluator import ModelEvaluator, _preprocess_for_metrics
-from slm_factory.models import EvalResult, QAPair
+from rag_factory.config import EvalConfig, ProjectConfig, SLMConfig, TeacherConfig
+from rag_factory.evaluator import ModelEvaluator, _preprocess_for_metrics
+from rag_factory.models import EvalResult, QAPair
 
 
 @pytest.fixture
@@ -67,8 +67,8 @@ def _mock_httpx_response(text: str):
 class TestComputeScores:
     def test_bleu_and_rouge(self, evaluator, mock_bleu, mock_rouge):
         with (
-            patch("slm_factory.evaluator._load_bleu", return_value=mock_bleu),
-            patch("slm_factory.evaluator._load_rouge", return_value=mock_rouge),
+            patch("rag_factory.evaluator._load_bleu", return_value=mock_bleu),
+            patch("rag_factory.evaluator._load_rouge", return_value=mock_rouge),
         ):
             scores = evaluator._compute_scores("서울입니다.", "서울입니다.")
 
@@ -80,7 +80,7 @@ class TestComputeScores:
     def test_bleu_only(self, slm_config, mock_bleu):
         slm_config.eval.metrics = ["bleu"]
         ev = ModelEvaluator(slm_config)
-        with patch("slm_factory.evaluator._load_bleu", return_value=mock_bleu):
+        with patch("rag_factory.evaluator._load_bleu", return_value=mock_bleu):
             scores = ev._compute_scores("ref", "gen")
 
         assert "bleu" in scores
@@ -89,7 +89,7 @@ class TestComputeScores:
     def test_rouge_only(self, slm_config, mock_rouge):
         slm_config.eval.metrics = ["rouge"]
         ev = ModelEvaluator(slm_config)
-        with patch("slm_factory.evaluator._load_rouge", return_value=mock_rouge):
+        with patch("rag_factory.evaluator._load_rouge", return_value=mock_rouge):
             scores = ev._compute_scores("ref", "gen")
 
         assert "rouge1" in scores
@@ -101,8 +101,8 @@ class TestEvaluate:
         mock_response = _mock_httpx_response("서울입니다.")
 
         with (
-            patch("slm_factory.evaluator._load_bleu", return_value=mock_bleu),
-            patch("slm_factory.evaluator._load_rouge", return_value=mock_rouge),
+            patch("rag_factory.evaluator._load_bleu", return_value=mock_bleu),
+            patch("rag_factory.evaluator._load_rouge", return_value=mock_rouge),
             patch("httpx.AsyncClient") as mock_client_cls,
         ):
             mock_client = AsyncMock()
@@ -134,8 +134,8 @@ class TestEvaluate:
         mock_response = _mock_httpx_response("answer")
 
         with (
-            patch("slm_factory.evaluator._load_bleu", return_value=mock_bleu),
-            patch("slm_factory.evaluator._load_rouge", return_value=mock_rouge),
+            patch("rag_factory.evaluator._load_bleu", return_value=mock_bleu),
+            patch("rag_factory.evaluator._load_rouge", return_value=mock_rouge),
             patch("httpx.AsyncClient") as mock_client_cls,
         ):
             mock_client = AsyncMock()
@@ -258,10 +258,10 @@ class TestKoreanTokenizer:
 
         mock_tokenizer = MagicMock(side_effect=lambda text: text.split())
         with (
-            patch("slm_factory.evaluator._load_bleu", return_value=mock_bleu),
-            patch("slm_factory.evaluator._load_rouge", return_value=mock_rouge),
+            patch("rag_factory.evaluator._load_bleu", return_value=mock_bleu),
+            patch("rag_factory.evaluator._load_rouge", return_value=mock_rouge),
             patch(
-                "slm_factory.evaluator._load_korean_tokenizer",
+                "rag_factory.evaluator._load_korean_tokenizer",
                 return_value=mock_tokenizer,
             ),
         ):
@@ -281,9 +281,9 @@ class TestKoreanTokenizer:
         ev = ModelEvaluator(config)
 
         with (
-            patch("slm_factory.evaluator._load_bleu", return_value=mock_bleu),
-            patch("slm_factory.evaluator._load_rouge", return_value=mock_rouge),
-            patch("slm_factory.evaluator._load_korean_tokenizer") as mock_load,
+            patch("rag_factory.evaluator._load_bleu", return_value=mock_bleu),
+            patch("rag_factory.evaluator._load_rouge", return_value=mock_rouge),
+            patch("rag_factory.evaluator._load_korean_tokenizer") as mock_load,
         ):
             ev._compute_scores("hello", "hello")
 
@@ -528,8 +528,8 @@ class TestEvaluateOneWithLlmJudge:
         mock_judge_response.raise_for_status = MagicMock()
 
         with (
-            patch("slm_factory.evaluator._load_bleu", return_value=mock_bleu),
-            patch("slm_factory.evaluator._load_rouge", return_value=mock_rouge),
+            patch("rag_factory.evaluator._load_bleu", return_value=mock_bleu),
+            patch("rag_factory.evaluator._load_rouge", return_value=mock_rouge),
             patch("httpx.AsyncClient") as mock_client_cls,
         ):
             mock_client = AsyncMock()
@@ -568,8 +568,8 @@ class TestEvaluateOneWithLlmJudge:
         mock_response.raise_for_status = MagicMock()
 
         with (
-            patch("slm_factory.evaluator._load_bleu", return_value=mock_bleu),
-            patch("slm_factory.evaluator._load_rouge", return_value=mock_rouge),
+            patch("rag_factory.evaluator._load_bleu", return_value=mock_bleu),
+            patch("rag_factory.evaluator._load_rouge", return_value=mock_rouge),
             patch("httpx.AsyncClient") as mock_client_cls,
         ):
             mock_client = AsyncMock()

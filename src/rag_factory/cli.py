@@ -1,4 +1,4 @@
-"""slm-factory용 명령줄 인터페이스입니다."""
+"""rag-factory용 명령줄 인터페이스입니다."""
 
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ class PipelineStep(str, enum.Enum):
 
 
 app = typer.Typer(
-    name="slm-factory",
+    name="rag-factory",
     rich_markup_mode="rich",
 )
 console = Console()
@@ -52,7 +52,7 @@ app.add_typer(tool_app, name="tool", rich_help_panel="🔧 도구")
 
 def _version_callback(value: bool) -> None:
     if value:
-        console.print(f"slm-factory [bold]{__version__}[/bold]")
+        console.print(f"rag-factory [bold]{__version__}[/bold]")
         raise typer.Exit()
 
 
@@ -76,11 +76,11 @@ def main_callback(
     if verbose:
         import logging
 
-        logging.getLogger("slm_factory").setLevel(logging.DEBUG)
+        logging.getLogger("rag_factory").setLevel(logging.DEBUG)
     elif quiet:
         import logging
 
-        logging.getLogger("slm_factory").setLevel(logging.WARNING)
+        logging.getLogger("rag_factory").setLevel(logging.WARNING)
     if ctx.invoked_subcommand is None:
         console.print(ctx.get_help())
 
@@ -107,7 +107,7 @@ def _get_error_hints(error: Exception) -> list[str]:
 
     if isinstance(error, FileNotFoundError):
         return [
-            "설정 파일을 찾을 수 없습니다. `slm-factory init`으로 프로젝트를 생성하세요"
+            "설정 파일을 찾을 수 없습니다. `rag-factory init`으로 프로젝트를 생성하세요"
         ]
 
     if (
@@ -162,7 +162,7 @@ def _get_error_hints(error: Exception) -> list[str]:
         return [
             "디스크 공간이 부족합니다:",
             "  `df -h`로 디스크 사용량을 확인하세요",
-            "  불필요한 체크포인트를 삭제하세요: `slm-factory clean`",
+            "  불필요한 체크포인트를 삭제하세요: `rag-factory clean`",
         ]
 
     return ["--verbose 옵션으로 상세 로그를 확인하세요"]
@@ -297,7 +297,7 @@ def _try_load_parsed_docs(pipeline: Pipeline) -> list | None:
     except (json.JSONDecodeError, TypeError, KeyError):
         import logging
 
-        logging.getLogger("slm_factory.cli").warning(
+        logging.getLogger("rag_factory.cli").warning(
             "파싱된 문서 파일 로드 실패: %s", parsed_path
         )
         return None
@@ -379,7 +379,7 @@ def init(
         ".", "--path", help="프로젝트를 생성할 상위 디렉토리입니다"
     ),
 ) -> None:
-    """새로운 slm-factory 프로젝트를 초기화합니다."""
+    """새로운 rag-factory 프로젝트를 초기화합니다."""
     from .config import create_default_config
 
     from rich.prompt import Confirm
@@ -429,10 +429,10 @@ def init(
     )
     console.print(f"\n[bold]실행 (택 1):[/bold]")
     console.print(
-        f"  [bold cyan]slf rag[/bold cyan]               RAG 채팅 즉시 시작 (30초)"
+        f"  [bold cyan]rf rag[/bold cyan]               RAG 채팅 즉시 시작 (30초)"
     )
     console.print(
-        f"  [bold cyan]slf tune[/bold cyan]              파인튜닝 + RAG + 채팅 (30분)\n"
+        f"  [bold cyan]rf tune[/bold cyan]              파인튜닝 + RAG + 채팅 (30분)\n"
     )
 
 
@@ -767,7 +767,7 @@ def _run_until_step(
                 if db_path.name:
                     console.print(f"  [green]✓[/green] RAG 인덱싱 완료: {db_path}")
                     console.print(
-                        f"  [dim]RAG 서버 실행: slm-factory tool rag-serve --config project.yaml[/dim]"
+                        f"  [dim]RAG 서버 실행: rag-factory tool rag-serve --config project.yaml[/dim]"
                     )
                 else:
                     console.print("  [dim]⏭[/dim] rag_index 건너뜀 (RAG 의존성 미설치)")
@@ -884,7 +884,7 @@ def tune(
         )
         if from_step:
             label = f"{from_step.value} 단계부터 " + label
-        console.print(f"\n[bold blue]slm-factory[/bold blue] — {label}\n")
+        console.print(f"\n[bold blue]rag-factory[/bold blue] — {label}\n")
 
         model_dir = _run_until_step(
             pipeline,
@@ -959,7 +959,7 @@ def rag(
                 shutil.rmtree(db_path, ignore_errors=True)
         if needs_index:
             console.print(
-                "\n[bold blue]slm-factory[/bold blue] — RAG 인덱스 구축 중...\n"
+                "\n[bold blue]rag-factory[/bold blue] — RAG 인덱스 구축 중...\n"
             )
             from dataclasses import asdict
 
@@ -988,7 +988,7 @@ def rag(
         if not chat:
             console.print(
                 "\n[bold green]RAG 인덱스 구축 완료![/bold green]\n"
-                f"  채팅 시작: [cyan]slf rag[/cyan]\n"
+                f"  채팅 시작: [cyan]rf rag[/cyan]\n"
             )
             return
 
@@ -1079,7 +1079,7 @@ def check(
     """프로젝트 설정과 환경을 사전 점검합니다."""
     from rich.table import Table
 
-    table = Table(title="slm-factory 환경 점검")
+    table = Table(title="rag-factory 환경 점검")
     table.add_column("항목", style="cyan")
     table.add_column("상태", style="bold")
     table.add_column("상세", style="dim")
@@ -1692,8 +1692,8 @@ def export_model(
 
 @app.command(rich_help_panel="ℹ️ 정보")
 def version() -> None:
-    """slm-factory 버전을 표시합니다."""
-    console.print(f"slm-factory [bold]{__version__}[/bold]")
+    """rag-factory 버전을 표시합니다."""
+    console.print(f"rag-factory [bold]{__version__}[/bold]")
 
 
 @eval_app.command(name="run")
@@ -1757,7 +1757,7 @@ def export_corpus(
             _print_error(
                 "파싱 데이터 미발견",
                 f"파일을 찾을 수 없음: {docs_path}",
-                ["먼저 파이프라인을 실행하세요: slf tune"],
+                ["먼저 파이프라인을 실행하세요: rf tune"],
             )
             raise typer.Exit(code=1)
 
@@ -1779,7 +1779,7 @@ def export_corpus(
                     "QA 데이터 미발견",
                     f"QA 파일을 찾을 수 없음: {output_dir}",
                     [
-                        "먼저 파이프라인을 실행하세요: slf tune",
+                        "먼저 파이프라인을 실행하세요: rf tune",
                         "또는 --qa-file 옵션으로 QA 파일 경로를 직접 지정하세요",
                     ],
                 )
@@ -1807,7 +1807,7 @@ def export_corpus(
             f"\n[bold green]코퍼스 내보내기 완료![/bold green]\n"
             f"  corpus: [cyan]{corpus_path}[/cyan]\n"
             f"  qa:     [cyan]{qa_parquet_path}[/cyan]\n\n"
-            f"[dim]다음 단계: slf tool rag-index --config {config}[/dim]\n"
+            f"[dim]다음 단계: rf tool rag-index --config {config}[/dim]\n"
         )
 
     except FileNotFoundError as e:
@@ -1847,7 +1847,7 @@ def eval_retrieval(
                 "QA 데이터 미발견",
                 f"파일을 찾을 수 없음: {qa_path}",
                 [
-                    "먼저 코퍼스 내보내기를 실행하세요: slf tool export-corpus",
+                    "먼저 코퍼스 내보내기를 실행하세요: rf tool export-corpus",
                 ],
             )
             raise typer.Exit(code=1)
@@ -1859,7 +1859,7 @@ def eval_retrieval(
             _print_error(
                 "벡터 DB 미발견",
                 f"Qdrant 인덱스를 찾을 수 없음: {db_path}",
-                ["먼저 인덱싱을 실행하세요: slf tool rag-index"],
+                ["먼저 인덱싱을 실행하세요: rf tool rag-index"],
             )
             raise typer.Exit(code=1)
 
@@ -1915,7 +1915,7 @@ def rag_index(
                 f"파일을 찾을 수 없음: {corpus_path}",
                 [
                     "먼저 코퍼스 데이터를 내보내세요: "
-                    "slm-factory tool export-corpus --config project.yaml",
+                    "rag-factory tool export-corpus --config project.yaml",
                 ],
             )
             raise typer.Exit(code=1)
@@ -1933,7 +1933,7 @@ def rag_index(
         console.print(
             f"\n[bold green]인덱싱 완료![/bold green]\n"
             f"  Qdrant: [cyan]{db_path}[/cyan]\n\n"
-            f"[dim]다음 단계: slm-factory tool rag-serve --config {config}[/dim]\n"
+            f"[dim]다음 단계: rag-factory tool rag-serve --config {config}[/dim]\n"
         )
 
     except ImportError:
@@ -1980,7 +1980,7 @@ def rag_serve(
                 f"Qdrant DB를 찾을 수 없음: {db_path}",
                 [
                     "먼저 인덱싱을 실행하세요: "
-                    "slm-factory tool rag-index --config project.yaml",
+                    "rag-factory tool rag-index --config project.yaml",
                 ],
             )
             raise typer.Exit(code=1)
@@ -2176,7 +2176,7 @@ def evolve(
                             f"  모델: [cyan]{versioned_name}[/cyan]\n"
                             f"  상태: 품질 검증 보류\n\n"
                             f"Ollama 실행 후 수동 비교:\n"
-                            f"  [cyan]slm-factory eval compare --base-model {previous_name} --ft {versioned_name}[/cyan]",
+                            f"  [cyan]rag-factory eval compare --base-model {previous_name} --ft {versioned_name}[/cyan]",
                             expand=False,
                         )
                     )

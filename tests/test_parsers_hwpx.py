@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from slm_factory.parsers.hwpx import HWPXParser, _table_to_markdown
+from rag_factory.parsers.hwpx import HWPXParser, _table_to_markdown
 
 
 # ---------------------------------------------------------------------------
@@ -195,7 +195,7 @@ class TestHWPXParserBasic:
 
     def test_parse_returns_parsed_document(self, simple_hwpx: Path):
         """반환 타입이 ParsedDocument인지 확인합니다."""
-        from slm_factory.models import ParsedDocument
+        from rag_factory.models import ParsedDocument
 
         parser = HWPXParser()
         result = parser.parse(simple_hwpx)

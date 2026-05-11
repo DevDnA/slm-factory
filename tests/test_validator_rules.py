@@ -1,8 +1,8 @@
 """규칙 기반 검증(validator/rules.py)의 단위 테스트입니다."""
 
-from slm_factory.config import ValidationConfig
-from slm_factory.models import QAPair
-from slm_factory.validator.rules import RuleValidator, ValidationResult
+from rag_factory.config import ValidationConfig
+from rag_factory.models import QAPair
+from rag_factory.validator.rules import RuleValidator, ValidationResult
 
 
 # ---------------------------------------------------------------------------

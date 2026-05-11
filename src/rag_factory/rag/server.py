@@ -137,7 +137,7 @@ def create_app(config: "SLMConfig"):
     매개변수
     ----------
     config:
-        slm-factory 프로젝트 설정. RAG, export, teacher 설정을 참조합니다.
+        rag-factory 프로젝트 설정. RAG, export, teacher 설정을 참조합니다.
 
     반환값
     -------
@@ -224,13 +224,13 @@ def create_app(config: "SLMConfig"):
             raise RuntimeError(
                 f"Qdrant 컬렉션 '{collection_name}'을(를) 찾을 수 없습니다.\n"
                 f"  인덱스가 손상되었거나 구축이 완료되지 않았을 수 있습니다.\n"
-                f"  해결: rm -rf {db_path} 후 slf rag를 다시 실행하세요."
+                f"  해결: rm -rf {db_path} 후 rf rag를 다시 실행하세요."
             )
         if count == 0:
             qdrant_client.close()
             raise RuntimeError(
                 f"Qdrant 컬렉션 '{collection_name}'이 비어 있습니다.\n"
-                f"  해결: rm -rf {db_path} 후 slf rag를 다시 실행하세요."
+                f"  해결: rm -rf {db_path} 후 rf rag를 다시 실행하세요."
             )
         logger.info(
             "Qdrant 컬렉션 로드 완료: %s (%d개 문서)",
@@ -466,7 +466,7 @@ def create_app(config: "SLMConfig"):
     # ------------------------------------------------------------------
 
     app = FastAPI(
-        title="slm-factory RAG 서비스",
+        title="rag-factory RAG 서비스",
         version="0.1.0",
         lifespan=lifespan,
     )
@@ -1151,16 +1151,16 @@ def create_app(config: "SLMConfig"):
             return self.content or ""
 
     class _OpenAIChatRequest(BaseModel):
-        model: str = "slm-factory-auto"
+        model: str = "rag-factory-auto"
         messages: list[_OpenAIChatMessage]
         stream: bool = False
         temperature: float | None = None
         max_tokens: int | None = None
         user: str | None = None
 
-    _MODEL_AUTO = "slm-factory-auto"
-    _MODEL_AGENT = "slm-factory-agent"
-    _MODEL_RAG = "slm-factory-rag"
+    _MODEL_AUTO = "rag-factory-auto"
+    _MODEL_AGENT = "rag-factory-agent"
+    _MODEL_RAG = "rag-factory-rag"
     _MODEL_ALIASES = {_MODEL_AUTO, _MODEL_AGENT, _MODEL_RAG}
 
     def _format_sources_markdown(sources: list[dict]) -> str:
@@ -1193,14 +1193,14 @@ def create_app(config: "SLMConfig"):
                 "id": _MODEL_AUTO,
                 "object": "model",
                 "created": now,
-                "owned_by": "slm-factory",
+                "owned_by": "rag-factory",
                 "description": "Auto-routed (Simple RAG ↔ Agent RAG)",
             },
             {
                 "id": _MODEL_RAG,
                 "object": "model",
                 "created": now,
-                "owned_by": "slm-factory",
+                "owned_by": "rag-factory",
                 "description": "Simple RAG (single-shot retrieval)",
             },
         ]
@@ -1210,7 +1210,7 @@ def create_app(config: "SLMConfig"):
                     "id": _MODEL_AGENT,
                     "object": "model",
                     "created": now,
-                    "owned_by": "slm-factory",
+                    "owned_by": "rag-factory",
                     "description": "Agent RAG (multi-step ReAct)",
                 }
             )
@@ -1221,7 +1221,7 @@ def create_app(config: "SLMConfig"):
         """OpenAI Chat Completions 호환 엔드포인트.
 
         - 마지막 user 메시지를 query로 사용합니다.
-        - 모델명으로 경로를 라우팅: ``slm-factory-auto`` | ``-agent`` | ``-rag``.
+        - 모델명으로 경로를 라우팅: ``rag-factory-auto`` | ``-agent`` | ``-rag``.
         - ``user`` 필드가 있으면 세션 키로 사용해 Agent RAG 히스토리를 유지합니다.
         """
         user_msgs = [m for m in body.messages if m.role == "user"]
@@ -1415,7 +1415,7 @@ def run_server(config: "SLMConfig") -> None:
     매개변수
     ----------
     config:
-        slm-factory 프로젝트 설정. ``config.rag.server_host``와
+        rag-factory 프로젝트 설정. ``config.rag.server_host``와
         ``config.rag.server_port``로 서버 바인딩 주소를 결정합니다.
     """
     import uvicorn

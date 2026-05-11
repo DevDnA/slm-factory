@@ -6,8 +6,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from slm_factory.models import QAPair
-from slm_factory.teacher.qa_generator import chunk_document
+from rag_factory.models import QAPair
+from rag_factory.teacher.qa_generator import chunk_document
 
 
 # ---------------------------------------------------------------------------
@@ -19,10 +19,10 @@ def _make_generator(mocker, make_config, **config_overrides):
     """create_teacher를 mock하여 QAGenerator 인스턴스를 생성하는 헬퍼입니다."""
     mock_teacher = MagicMock()
     mocker.patch(
-        "slm_factory.teacher.create_teacher",
+        "rag_factory.teacher.create_teacher",
         return_value=mock_teacher,
     )
-    from slm_factory.teacher.qa_generator import QAGenerator
+    from rag_factory.teacher.qa_generator import QAGenerator
 
     config = make_config(**config_overrides)
     gen = QAGenerator(config)

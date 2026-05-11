@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-import slm_factory.parsers.hwp as _hwp_mod
+import rag_factory.parsers.hwp as _hwp_mod
 
 if not hasattr(_hwp_mod, "olefile"):
     _hwp_mod.olefile = MagicMock()  # type: ignore[attr-defined]
@@ -51,7 +51,7 @@ class TestHWPParserBasic:
 
     def test_파일_없으면_FileNotFoundError(self, tmp_path: Path):
         """존재하지 않는 파일에 대해 FileNotFoundError를 발생시킵니다."""
-        from slm_factory.parsers.hwp import HWPParser
+        from rag_factory.parsers.hwp import HWPParser
 
         parser = HWPParser()
         with pytest.raises(FileNotFoundError, match="HWP not found"):
@@ -62,8 +62,8 @@ class TestHWPParserBasic:
         hwp_file = tmp_path / "test.hwp"
         hwp_file.write_bytes(b"dummy")
 
-        with patch("slm_factory.parsers.hwp.HAS_OLEFILE", False):
-            from slm_factory.parsers.hwp import HWPParser
+        with patch("rag_factory.parsers.hwp.HAS_OLEFILE", False):
+            from rag_factory.parsers.hwp import HWPParser
 
             parser = HWPParser()
             with pytest.raises(RuntimeError, match="olefile이 필요합니다"):
@@ -75,12 +75,12 @@ class TestHWPParserBasic:
         hwp_file.write_bytes(b"this is not an OLE file")
 
         with (
-            patch("slm_factory.parsers.hwp.HAS_OLEFILE", True),
-            patch("slm_factory.parsers.hwp.olefile") as mock_olefile,
+            patch("rag_factory.parsers.hwp.HAS_OLEFILE", True),
+            patch("rag_factory.parsers.hwp.olefile") as mock_olefile,
         ):
             mock_olefile.isOleFile.return_value = False
 
-            from slm_factory.parsers.hwp import HWPParser
+            from rag_factory.parsers.hwp import HWPParser
 
             parser = HWPParser()
             with pytest.raises(RuntimeError, match="유효한 HWP"):
@@ -104,13 +104,13 @@ class TestHWPParserBasic:
         mock_ole.exists.return_value = False
 
         with (
-            patch("slm_factory.parsers.hwp.HAS_OLEFILE", True),
-            patch("slm_factory.parsers.hwp.olefile") as mock_olefile,
+            patch("rag_factory.parsers.hwp.HAS_OLEFILE", True),
+            patch("rag_factory.parsers.hwp.olefile") as mock_olefile,
         ):
             mock_olefile.isOleFile.return_value = True
             mock_olefile.OleFileIO.return_value = mock_ole
 
-            from slm_factory.parsers.hwp import HWPParser
+            from rag_factory.parsers.hwp import HWPParser
 
             parser = HWPParser()
             result = parser.parse(hwp_file)
@@ -138,13 +138,13 @@ class TestHWPParserBasic:
         mock_ole.exists.return_value = False
 
         with (
-            patch("slm_factory.parsers.hwp.HAS_OLEFILE", True),
-            patch("slm_factory.parsers.hwp.olefile") as mock_olefile,
+            patch("rag_factory.parsers.hwp.HAS_OLEFILE", True),
+            patch("rag_factory.parsers.hwp.olefile") as mock_olefile,
         ):
             mock_olefile.isOleFile.return_value = True
             mock_olefile.OleFileIO.return_value = mock_ole
 
-            from slm_factory.parsers.hwp import HWPParser
+            from rag_factory.parsers.hwp import HWPParser
 
             parser = HWPParser()
             result = parser.parse(hwp_file)
@@ -183,13 +183,13 @@ class TestHWPParserMultiSection:
         mock_ole.exists.return_value = False
 
         with (
-            patch("slm_factory.parsers.hwp.HAS_OLEFILE", True),
-            patch("slm_factory.parsers.hwp.olefile") as mock_olefile,
+            patch("rag_factory.parsers.hwp.HAS_OLEFILE", True),
+            patch("rag_factory.parsers.hwp.olefile") as mock_olefile,
         ):
             mock_olefile.isOleFile.return_value = True
             mock_olefile.OleFileIO.return_value = mock_ole
 
-            from slm_factory.parsers.hwp import HWPParser
+            from rag_factory.parsers.hwp import HWPParser
 
             parser = HWPParser()
             result = parser.parse(hwp_file)
@@ -218,13 +218,13 @@ class TestHWPParserMetadata:
         mock_ole.exists.return_value = False
 
         with (
-            patch("slm_factory.parsers.hwp.HAS_OLEFILE", True),
-            patch("slm_factory.parsers.hwp.olefile") as mock_olefile,
+            patch("rag_factory.parsers.hwp.HAS_OLEFILE", True),
+            patch("rag_factory.parsers.hwp.olefile") as mock_olefile,
         ):
             mock_olefile.isOleFile.return_value = True
             mock_olefile.OleFileIO.return_value = mock_ole
 
-            from slm_factory.parsers.hwp import HWPParser
+            from rag_factory.parsers.hwp import HWPParser
 
             parser = HWPParser()
             result = parser.parse(hwp_file)
@@ -237,13 +237,13 @@ class TestHWPParserRegistration:
 
     def test_확장자(self):
         """지원 확장자가 .hwp인지 확인합니다."""
-        from slm_factory.parsers.hwp import HWPParser
+        from rag_factory.parsers.hwp import HWPParser
 
         assert HWPParser.extensions == [".hwp"]
 
     def test_can_parse_hwp(self, tmp_path: Path):
         """.hwp 파일에 대해 can_parse가 True를 반환합니다."""
-        from slm_factory.parsers.hwp import HWPParser
+        from rag_factory.parsers.hwp import HWPParser
 
         hwp_file = tmp_path / "test.hwp"
         hwp_file.write_bytes(b"dummy")
@@ -252,7 +252,7 @@ class TestHWPParserRegistration:
 
     def test_cannot_parse_txt(self, tmp_path: Path):
         """.txt 파일에 대해 can_parse가 False를 반환합니다."""
-        from slm_factory.parsers.hwp import HWPParser
+        from rag_factory.parsers.hwp import HWPParser
 
         txt = tmp_path / "file.txt"
         txt.write_text("text")
@@ -270,7 +270,7 @@ class TestDecodeParaText:
 
     def test_순수_텍스트_디코딩(self):
         """제어 코드 없는 순수 텍스트를 올바르게 디코딩합니다."""
-        from slm_factory.parsers.hwp import _decode_para_text
+        from rag_factory.parsers.hwp import _decode_para_text
 
         text = "한글 테스트"
         payload = text.encode("utf-16-le")
@@ -278,7 +278,7 @@ class TestDecodeParaText:
 
     def test_제어_코드_건너뜀(self):
         """인라인 제어 코드(0~31)를 건너뛰고 텍스트만 추출합니다."""
-        from slm_factory.parsers.hwp import _decode_para_text
+        from rag_factory.parsers.hwp import _decode_para_text
 
         payload = b""
         payload += "가".encode("utf-16-le")
@@ -290,7 +290,7 @@ class TestDecodeParaText:
 
     def test_줄바꿈_처리(self):
         """CR(13), LF(10) 제어 코드를 줄바꿈으로 변환합니다."""
-        from slm_factory.parsers.hwp import _decode_para_text
+        from rag_factory.parsers.hwp import _decode_para_text
 
         payload = b""
         payload += "가".encode("utf-16-le")
@@ -305,7 +305,7 @@ class TestExtractTextFromBodytext:
 
     def test_단일_레코드_파싱(self):
         """단일 HWPTAG_PARA_TEXT 레코드에서 텍스트를 추출합니다."""
-        from slm_factory.parsers.hwp import _extract_text_from_bodytext
+        from rag_factory.parsers.hwp import _extract_text_from_bodytext
 
         data = _build_hwptag_para_text("테스트 단락")
         result = _extract_text_from_bodytext(data)
@@ -314,7 +314,7 @@ class TestExtractTextFromBodytext:
 
     def test_여러_레코드_파싱(self):
         """여러 HWPTAG_PARA_TEXT 레코드에서 텍스트를 추출합니다."""
-        from slm_factory.parsers.hwp import _extract_text_from_bodytext
+        from rag_factory.parsers.hwp import _extract_text_from_bodytext
 
         data = _build_bodytext_data("단락1", "단락2", "단락3")
         result = _extract_text_from_bodytext(data)
@@ -322,7 +322,7 @@ class TestExtractTextFromBodytext:
 
     def test_빈_데이터(self):
         """빈 데이터에서 빈 리스트를 반환합니다."""
-        from slm_factory.parsers.hwp import _extract_text_from_bodytext
+        from rag_factory.parsers.hwp import _extract_text_from_bodytext
 
         result = _extract_text_from_bodytext(b"")
         assert result == []

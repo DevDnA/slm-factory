@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from slm_factory.incremental import IncrementalTracker
+from rag_factory.incremental import IncrementalTracker
 
 
 # ---------------------------------------------------------------------------

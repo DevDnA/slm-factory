@@ -9,7 +9,7 @@ import pytest
 sys.modules["pptx"] = MagicMock()
 sys.modules["pptx.table"] = MagicMock()
 
-from slm_factory.parsers.pptx import PPTXParser
+from rag_factory.parsers.pptx import PPTXParser
 
 
 class TestPPTXParser:

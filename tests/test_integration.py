@@ -13,10 +13,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from slm_factory.config import SLMConfig
-from slm_factory.models import ParsedDocument, QAPair
-from slm_factory.pipeline import Pipeline
-from slm_factory.teacher.qa_generator import QAGenerator, chunk_document
+from rag_factory.config import SLMConfig
+from rag_factory.models import ParsedDocument, QAPair
+from rag_factory.pipeline import Pipeline
+from rag_factory.teacher.qa_generator import QAGenerator, chunk_document
 
 
 def _make_pipeline(make_config, tmp_path, **overrides) -> Pipeline:
@@ -152,7 +152,7 @@ class TestChunkingToQAChain:
         )
 
         mock_generator_cls = mocker.patch(
-            "slm_factory.teacher.qa_generator.QAGenerator"
+            "rag_factory.teacher.qa_generator.QAGenerator"
         )
         mock_generator = mock_generator_cls.return_value
         mock_generator.save_alpaca = MagicMock()
@@ -160,10 +160,10 @@ class TestChunkingToQAChain:
         mock_coro = AsyncMock(return_value=[mock_qa])
         mock_generator.generate_all_async = mock_coro
         mocker.patch(
-            "slm_factory.pipeline.run_async",
+            "rag_factory.pipeline.run_async",
             side_effect=lambda c: asyncio.run(c) if asyncio.iscoroutine(c) else c,
         )
-        mocker.patch("slm_factory.pipeline.run_async", return_value=[mock_qa])
+        mocker.patch("rag_factory.pipeline.run_async", return_value=[mock_qa])
 
         pairs = pipeline.step_generate([doc])
 

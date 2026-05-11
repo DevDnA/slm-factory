@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from bs4 import BeautifulSoup
 
-from slm_factory.parsers.html import HTMLParser, _table_to_markdown
+from rag_factory.parsers.html import HTMLParser, _table_to_markdown
 
 
 # ---------------------------------------------------------------------------

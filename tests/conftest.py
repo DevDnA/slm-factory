@@ -1,4 +1,4 @@
-"""slm-factory 테스트 스위트의 공유 fixture 정의."""
+"""rag-factory 테스트 스위트의 공유 fixture 정의."""
 
 from __future__ import annotations
 
@@ -61,7 +61,7 @@ def make_config():
     사용법::
         cfg = make_config(project={"name": "test"})
     """
-    from slm_factory.config import SLMConfig
+    from rag_factory.config import SLMConfig
 
     def _factory(**overrides) -> SLMConfig:
         return SLMConfig(**overrides)
@@ -82,7 +82,7 @@ def make_qa_pair():
     사용법::
         pair = make_qa_pair(question="Q?", answer="A.")
     """
-    from slm_factory.models import QAPair
+    from rag_factory.models import QAPair
 
     def _factory(
         question: str = "테스트 질문입니다.",
@@ -109,7 +109,7 @@ def make_parsed_doc():
     사용법::
         doc = make_parsed_doc(title="My Doc", content="Some content")
     """
-    from slm_factory.models import ParsedDocument
+    from rag_factory.models import ParsedDocument
 
     def _factory(
         doc_id: str = "test.pdf",
@@ -195,6 +195,6 @@ teacher:
 @pytest.fixture
 def sample_validation_config():
     """테스트용 ValidationConfig를 반환합니다."""
-    from slm_factory.config import ValidationConfig
+    from rag_factory.config import ValidationConfig
 
     return ValidationConfig()

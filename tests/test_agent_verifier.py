@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import httpx
 import pytest
 
-from slm_factory.rag.agent.verifier import Verifier, VerifierDecision
+from rag_factory.rag.agent.verifier import Verifier, VerifierDecision
 
 
 def _ollama_response(payload: str) -> MagicMock:

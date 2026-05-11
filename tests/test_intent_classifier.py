@@ -6,8 +6,8 @@ import json
 
 import pytest
 
-from slm_factory.rag.agent.intent_classifier import IntentClassifier
-from slm_factory.rag.corpus_profile import CorpusProfile
+from rag_factory.rag.agent.intent_classifier import IntentClassifier
+from rag_factory.rag.corpus_profile import CorpusProfile
 
 
 class _FakeResponse:

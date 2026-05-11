@@ -1,5 +1,5 @@
 [project]
-name = "slm-factory"
+name = "rag-factory"
 version = "0.1.0"
 description = "Teacher-Student Knowledge Distillation framework for building domain-specific SLMs"
 readme = "README.md"
@@ -97,7 +97,7 @@ all = [
 ]
 
 [project.scripts]
-slm-factory = "slm_factory.cli:app"
+rag-factory = "rag_factory.cli:app"
 
 [build-system]
 requires = ["setuptools>=82.0"]

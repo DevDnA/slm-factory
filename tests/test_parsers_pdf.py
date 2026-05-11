@@ -12,7 +12,7 @@ from pathlib import Path
 import fitz  # PyMuPDF
 import pytest
 
-from slm_factory.parsers.pdf import PDFParser, _clean_page_numbers, _table_to_markdown
+from rag_factory.parsers.pdf import PDFParser, _clean_page_numbers, _table_to_markdown
 
 # 맑은고딕 폰트 경로 (WSL 환경에서 Windows 폰트 참조)
 _MALGUN_FONT = "/mnt/c/Windows/Fonts/malgun.ttf"
@@ -153,7 +153,7 @@ class TestPDFParserBasic:
 
     def test_parse_returns_parsed_document(self, simple_pdf: Path):
         """반환 타입이 ParsedDocument인지 확인합니다."""
-        from slm_factory.models import ParsedDocument
+        from rag_factory.models import ParsedDocument
 
         parser = PDFParser()
         result = parser.parse(simple_pdf)
@@ -325,9 +325,9 @@ class TestPDFParserPymupdf4llm:
         doc.close()
 
         md_content = "# 제목\n\n본문 내용입니다.\n\n| 이름 | 값 |\n| --- | --- |\n| A | 1 |"
-        mocker.patch("slm_factory.parsers.pdf.HAS_PYMUPDF4LLM", True)
-        mocker.patch("slm_factory.parsers.pdf.pymupdf4llm")
-        from slm_factory.parsers import pdf as pdf_mod
+        mocker.patch("rag_factory.parsers.pdf.HAS_PYMUPDF4LLM", True)
+        mocker.patch("rag_factory.parsers.pdf.pymupdf4llm")
+        from rag_factory.parsers import pdf as pdf_mod
         pdf_mod.pymupdf4llm.to_markdown.return_value = md_content
 
         parser = PDFParser()
@@ -346,9 +346,9 @@ class TestPDFParserPymupdf4llm:
         doc.save(str(pdf_path))
         doc.close()
 
-        mocker.patch("slm_factory.parsers.pdf.HAS_PYMUPDF4LLM", True)
-        mocker.patch("slm_factory.parsers.pdf.pymupdf4llm")
-        from slm_factory.parsers import pdf as pdf_mod
+        mocker.patch("rag_factory.parsers.pdf.HAS_PYMUPDF4LLM", True)
+        mocker.patch("rag_factory.parsers.pdf.pymupdf4llm")
+        from rag_factory.parsers import pdf as pdf_mod
         pdf_mod.pymupdf4llm.to_markdown.side_effect = RuntimeError("OCR 실패")
 
         parser = PDFParser()
@@ -365,7 +365,7 @@ class TestPDFParserPymupdf4llm:
         doc.save(str(pdf_path))
         doc.close()
 
-        mocker.patch("slm_factory.parsers.pdf.HAS_PYMUPDF4LLM", False)
+        mocker.patch("rag_factory.parsers.pdf.HAS_PYMUPDF4LLM", False)
 
         parser = PDFParser()
         result = parser.parse(pdf_path)
@@ -379,7 +379,7 @@ class TestExtractTablesFromMarkdown:
 
     def test_마크다운_표_추출(self):
         """마크다운 텍스트에서 표 블록을 정확히 추출합니다."""
-        from slm_factory.parsers.pdf import _extract_tables_from_markdown
+        from rag_factory.parsers.pdf import _extract_tables_from_markdown
 
         md = "텍스트\n\n| A | B |\n| --- | --- |\n| 1 | 2 |\n\n추가 텍스트"
         tables = _extract_tables_from_markdown(md)
@@ -388,14 +388,14 @@ class TestExtractTablesFromMarkdown:
 
     def test_표_없는_텍스트(self):
         """표가 없는 텍스트에서 빈 리스트를 반환합니다."""
-        from slm_factory.parsers.pdf import _extract_tables_from_markdown
+        from rag_factory.parsers.pdf import _extract_tables_from_markdown
 
         tables = _extract_tables_from_markdown("그냥 텍스트입니다.")
         assert tables == []
 
     def test_여러_표_추출(self):
         """여러 표가 포함된 텍스트에서 모두 추출합니다."""
-        from slm_factory.parsers.pdf import _extract_tables_from_markdown
+        from rag_factory.parsers.pdf import _extract_tables_from_markdown
 
         md = "| A |\n| --- |\n| 1 |\n\n텍스트\n\n| B |\n| --- |\n| 2 |"
         tables = _extract_tables_from_markdown(md)

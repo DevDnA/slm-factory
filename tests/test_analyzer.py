@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from slm_factory.analyzer import AnalysisReport, DataAnalyzer
-from slm_factory.models import QAPair
+from rag_factory.analyzer import AnalysisReport, DataAnalyzer
+from rag_factory.models import QAPair
 
 
 @pytest.fixture

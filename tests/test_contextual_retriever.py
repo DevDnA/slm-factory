@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from slm_factory.config import ContextualRetrievalConfig
-from slm_factory.contextual_retriever import (
+from rag_factory.config import ContextualRetrievalConfig
+from rag_factory.contextual_retriever import (
     _build_prompt,
     _truncate_document,
     generate_chunk_contexts_async,

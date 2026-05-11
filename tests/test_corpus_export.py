@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from slm_factory.exporter.corpus_export import (
+from rag_factory.exporter.corpus_export import (
     CorpusExporter,
     _chunk_for_retrieval,
     _find_best_chunks,

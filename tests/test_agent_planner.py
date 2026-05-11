@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 import httpx
 import pytest
 
-from slm_factory.rag.agent.planner import ExecutionPlan, PlanStep, Planner
+from rag_factory.rag.agent.planner import ExecutionPlan, PlanStep, Planner
 
 
 def _ollama_response(payload: str) -> MagicMock:

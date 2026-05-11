@@ -11,8 +11,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from slm_factory.exporter.hf_export import HFExporter
-from slm_factory.exporter.ollama_export import OllamaExporter
+from rag_factory.exporter.hf_export import HFExporter
+from rag_factory.exporter.ollama_export import OllamaExporter
 
 
 # ---------------------------------------------------------------------------

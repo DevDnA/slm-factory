@@ -23,7 +23,7 @@ logger = get_logger("pipeline")
 
 
 class Pipeline:
-    """전체 slm-factory 파이프라인 오케스트레이터입니다."""
+    """전체 rag-factory 파이프라인 오케스트레이터입니다."""
 
     def __init__(self, config: SLMConfig) -> None:
         self.config = config
@@ -609,7 +609,7 @@ class Pipeline:
             raise RuntimeError(
                 f"corpus.parquet을 찾을 수 없음: {corpus_path}\n"
                 "  corpus_export 단계가 정상적으로 완료되었는지 확인하세요.\n"
-                "  해결: slf tune --from corpus_export 로 재실행하세요."
+                "  해결: rf tune --from corpus_export 로 재실행하세요."
             )
 
         logger.info("Qdrant 인덱싱 시작: %s", corpus_path)
@@ -824,7 +824,7 @@ class Pipeline:
                 else:
                     logger.warning(
                         "Ollama 모델 '%s'을(를) 찾을 수 없어 평가를 건너뜁니다. "
-                        "모델 등록 후 수동 평가: slm-factory eval model --model %s",
+                        "모델 등록 후 수동 평가: rag-factory eval model --model %s",
                         ollama_cfg.model_name,
                         ollama_cfg.model_name,
                     )

@@ -7,9 +7,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from slm_factory.config import AugmentConfig, TeacherConfig
-from slm_factory.models import QAPair
-from slm_factory.augmenter import DataAugmenter, _token_overlap_ratio
+from rag_factory.config import AugmentConfig, TeacherConfig
+from rag_factory.models import QAPair
+from rag_factory.augmenter import DataAugmenter, _token_overlap_ratio
 
 
 @pytest.fixture

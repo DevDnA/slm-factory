@@ -12,9 +12,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from slm_factory.config import SLMConfig
+from rag_factory.config import SLMConfig
 
-from slm_factory.pipeline import Pipeline
+from rag_factory.pipeline import Pipeline
 
 
 # ---------------------------------------------------------------------------
@@ -67,7 +67,7 @@ class TestStepParse:
         )
 
         mocker.patch(
-            "slm_factory.parsers.registry.parse_directory",
+            "rag_factory.parsers.registry.parse_directory",
             return_value=[mock_doc],
         )
 
@@ -81,7 +81,7 @@ class TestStepParse:
         pipeline = _make_pipeline(make_config, tmp_path)
 
         mocker.patch(
-            "slm_factory.parsers.registry.parse_directory",
+            "rag_factory.parsers.registry.parse_directory",
             return_value=[],
         )
 
@@ -96,7 +96,7 @@ class TestStepParse:
         mock_doc = make_parsed_doc()
 
         mocker.patch(
-            "slm_factory.parsers.registry.parse_directory",
+            "rag_factory.parsers.registry.parse_directory",
             return_value=[mock_doc],
         )
 
@@ -123,13 +123,13 @@ class TestStepGenerate:
         expected_pair = make_qa_pair()
 
         mock_generator_cls = mocker.patch(
-            "slm_factory.teacher.qa_generator.QAGenerator"
+            "rag_factory.teacher.qa_generator.QAGenerator"
         )
         mock_generator = mock_generator_cls.return_value
         mock_generator.generate_all_async = MagicMock(return_value=[expected_pair])
 
         # asyncio.run을 mock하여 코루틴 실행 없이 결과 반환
-        mocker.patch("slm_factory.pipeline.run_async", return_value=[expected_pair])
+        mocker.patch("rag_factory.pipeline.run_async", return_value=[expected_pair])
 
         pairs = pipeline.step_generate([mock_doc])
 
@@ -172,7 +172,7 @@ class TestStepValidate:
         pipeline = _make_pipeline(make_config, tmp_path)
         pairs = [make_qa_pair()]
 
-        mock_validator_cls = mocker.patch("slm_factory.validator.rules.RuleValidator")
+        mock_validator_cls = mocker.patch("rag_factory.validator.rules.RuleValidator")
         mock_validator = mock_validator_cls.return_value
         mock_validator.validate_batch.return_value = (pairs, [])
 
@@ -201,11 +201,11 @@ class TestStepValidate:
         pairs = [make_qa_pair()]
         docs = [make_parsed_doc()]
 
-        mock_rule_cls = mocker.patch("slm_factory.validator.rules.RuleValidator")
+        mock_rule_cls = mocker.patch("rag_factory.validator.rules.RuleValidator")
         mock_rule_cls.return_value.validate_batch.return_value = (pairs, [])
 
         mock_ground_cls = mocker.patch(
-            "slm_factory.validator.similarity.GroundednessChecker"
+            "rag_factory.validator.similarity.GroundednessChecker"
         )
         mock_ground = mock_ground_cls.return_value
         mock_ground.check_batch.return_value = (pairs, [])
@@ -229,7 +229,7 @@ class TestStepConvert:
         pairs = [make_qa_pair()]
         expected_path = pipeline.output_dir / "training_data.jsonl"
 
-        mock_formatter_cls = mocker.patch("slm_factory.converter.ChatFormatter")
+        mock_formatter_cls = mocker.patch("rag_factory.converter.ChatFormatter")
         mock_formatter = mock_formatter_cls.return_value
         mock_formatter.save_training_data.return_value = expected_path
 
@@ -253,8 +253,8 @@ class TestStepTrain:
         training_data_path.touch()
         expected_adapter_path = tmp_path / "adapter"
 
-        mock_loader_cls = mocker.patch("slm_factory.trainer.DataLoader")
-        mock_trainer_cls = mocker.patch("slm_factory.trainer.LoRATrainer")
+        mock_loader_cls = mocker.patch("rag_factory.trainer.DataLoader")
+        mock_trainer_cls = mocker.patch("rag_factory.trainer.LoRATrainer")
         mock_trainer = mock_trainer_cls.return_value
         mock_trainer.train.return_value = expected_adapter_path
 
@@ -278,11 +278,11 @@ class TestStepExport:
         adapter_path.mkdir()
         expected_export_path = tmp_path / "export"
 
-        mock_hf_cls = mocker.patch("slm_factory.exporter.HFExporter")
+        mock_hf_cls = mocker.patch("rag_factory.exporter.HFExporter")
         mock_hf = mock_hf_cls.return_value
         mock_hf.export.return_value = expected_export_path
 
-        mock_ollama_cls = mocker.patch("slm_factory.exporter.OllamaExporter")
+        mock_ollama_cls = mocker.patch("rag_factory.exporter.OllamaExporter")
         mock_ollama = mock_ollama_cls.return_value
         mock_ollama.export.return_value = expected_export_path
 
@@ -461,7 +461,7 @@ class TestStepEval:
         pairs = [make_qa_pair()]
         mock_results = [MagicMock()]
 
-        mock_evaluator_cls = mocker.patch("slm_factory.evaluator.ModelEvaluator")
+        mock_evaluator_cls = mocker.patch("rag_factory.evaluator.ModelEvaluator")
         mock_evaluator = mock_evaluator_cls.return_value
         mock_evaluator.evaluate.return_value = mock_results
         mock_evaluator.save_results = MagicMock()
@@ -491,7 +491,7 @@ class TestStepEval:
         pairs = [make_qa_pair()]
         mock_results = [MagicMock()]
 
-        mock_evaluator_cls = mocker.patch("slm_factory.evaluator.ModelEvaluator")
+        mock_evaluator_cls = mocker.patch("rag_factory.evaluator.ModelEvaluator")
         mock_evaluator = mock_evaluator_cls.return_value
         mock_evaluator.evaluate.return_value = mock_results
         mock_evaluator.save_results = MagicMock()
@@ -548,7 +548,7 @@ class TestStepCompare:
         pairs = [make_qa_pair()]
         mock_results = [MagicMock()]
 
-        mock_comparator_cls = mocker.patch("slm_factory.comparator.ModelComparator")
+        mock_comparator_cls = mocker.patch("rag_factory.comparator.ModelComparator")
         mock_comparator = mock_comparator_cls.return_value
         mock_comparator.compare.return_value = mock_results
         mock_comparator.save_results = MagicMock()
@@ -575,7 +575,7 @@ class TestStepCompare:
         pairs = [make_qa_pair()]
         mock_results = [MagicMock()]
 
-        mock_comparator_cls = mocker.patch("slm_factory.comparator.ModelComparator")
+        mock_comparator_cls = mocker.patch("rag_factory.comparator.ModelComparator")
         mock_comparator = mock_comparator_cls.return_value
         mock_comparator.compare.return_value = mock_results
         mock_comparator.save_results = MagicMock()
@@ -612,10 +612,10 @@ class TestStepScoreRegeneration:
 
         pairs = [make_qa_pair()]
 
-        mocker.patch("slm_factory.teacher.create_teacher", return_value=MagicMock())
-        mock_scorer_cls = mocker.patch("slm_factory.scorer.QualityScorer")
+        mocker.patch("rag_factory.teacher.create_teacher", return_value=MagicMock())
+        mock_scorer_cls = mocker.patch("rag_factory.scorer.QualityScorer")
         mock_scorer = mock_scorer_cls.return_value
-        mocker.patch("slm_factory.pipeline.run_async", return_value=(pairs, []))
+        mocker.patch("rag_factory.pipeline.run_async", return_value=(pairs, []))
 
         result = pipeline.step_score(pairs)
 
@@ -639,10 +639,10 @@ class TestStepScoreRegeneration:
         pairs = [make_qa_pair()]
         docs = [make_parsed_doc()]
 
-        mocker.patch("slm_factory.teacher.create_teacher", return_value=MagicMock())
-        mock_scorer_cls = mocker.patch("slm_factory.scorer.QualityScorer")
+        mocker.patch("rag_factory.teacher.create_teacher", return_value=MagicMock())
+        mock_scorer_cls = mocker.patch("rag_factory.scorer.QualityScorer")
         mock_scorer_cls.return_value
-        mocker.patch("slm_factory.pipeline.run_async", return_value=(pairs, []))
+        mocker.patch("rag_factory.pipeline.run_async", return_value=(pairs, []))
 
         result = pipeline.step_score(pairs, docs=docs)
 
@@ -702,7 +702,7 @@ class TestStepRagIndex:
         mock_indexer_cls = MagicMock()
         mocker.patch.dict(
             "sys.modules",
-            {"slm_factory.rag.indexer": MagicMock(RAGIndexer=mock_indexer_cls)},
+            {"rag_factory.rag.indexer": MagicMock(RAGIndexer=mock_indexer_cls)},
         )
 
         missing_path = tmp_path / "nonexistent" / "corpus.parquet"
@@ -719,7 +719,7 @@ class TestStepRagIndex:
         mock_indexer_cls = MagicMock()
         mocker.patch.dict(
             "sys.modules",
-            {"slm_factory.rag.indexer": MagicMock(RAGIndexer=mock_indexer_cls)},
+            {"rag_factory.rag.indexer": MagicMock(RAGIndexer=mock_indexer_cls)},
         )
 
         with pytest.raises(RuntimeError):
@@ -745,7 +745,7 @@ class TestStepValidateErrorHandling:
         rejected_pair.rejection_reasons = ["too_short"]
         rejected_pairs = [rejected_pair, rejected_pair]
 
-        mock_validator_cls = mocker.patch("slm_factory.validator.rules.RuleValidator")
+        mock_validator_cls = mocker.patch("rag_factory.validator.rules.RuleValidator")
         mock_validator = mock_validator_cls.return_value
         mock_validator.validate_batch.return_value = ([], rejected_pairs)
 
@@ -759,7 +759,7 @@ class TestStepValidateErrorHandling:
         pipeline = _make_pipeline(make_config, tmp_path)
         accepted_pairs = [make_qa_pair(), make_qa_pair(question="두 번째 질문")]
 
-        mock_validator_cls = mocker.patch("slm_factory.validator.rules.RuleValidator")
+        mock_validator_cls = mocker.patch("rag_factory.validator.rules.RuleValidator")
         mock_validator = mock_validator_cls.return_value
         mock_validator.validate_batch.return_value = (accepted_pairs, [])
 

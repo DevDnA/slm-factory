@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-slm-factory is a Teacher-Student Knowledge Distillation framework for building domain-specific Small Language Models (SLMs). It uses a Teacher LLM (default `qwen3.5:9b` — Qwen3.5 9B — via Ollama; `qwen3.5:27b` recommended for higher-quality results on 24GB+ VRAM) to generate QA training data from domain documents, then fine-tunes a small Student model (1B) with LoRA. RAG handles factual knowledge (WHAT); fine-tuning teaches response style (HOW).
+rag-factory is a Teacher-Student Knowledge Distillation framework for building domain-specific Small Language Models (SLMs). It uses a Teacher LLM (default `qwen3.5:9b` — Qwen3.5 9B — via Ollama; `qwen3.5:27b` recommended for higher-quality results on 24GB+ VRAM) to generate QA training data from domain documents, then fine-tunes a small Student model (1B) with LoRA. RAG handles factual knowledge (WHAT); fine-tuning teaches response style (HOW).
 
 Two main usage patterns:
-- `slf rag` — instant RAG + Teacher model chat (30 seconds setup)
-- `slf tune` — fine-tune Student + RAG + chat (30 minutes)
+- `rf rag` — instant RAG + Teacher model chat (30 seconds setup)
+- `rf tune` — fine-tune Student + RAG + chat (30 minutes)
 
 ## Commands
 
@@ -21,23 +21,23 @@ uv run pytest                       # All tests
 uv run pytest tests/test_cli.py -v  # Single file
 uv run pytest -k "test_name"        # Single test by name
 
-# CLI (use slf wrapper or uv run)
-slf init my-project                 # Create project from template
-slf rag                             # Start RAG + chat
-slf tune                            # Full pipeline: parse → generate → train → RAG → chat
-slf train                           # Training pipeline only (no chat)
-slf check                           # Validate docs/config without processing
-slf export                          # Export model to Ollama/HuggingFace
-slf eval run                        # Evaluate model performance
-slf status                          # Show project progress
-slf clean                           # Clean artifacts
+# CLI (use rf wrapper or uv run)
+rf init my-project                 # Create project from template
+rf rag                             # Start RAG + chat
+rf tune                            # Full pipeline: parse → generate → train → RAG → chat
+rf train                           # Training pipeline only (no chat)
+rf check                           # Validate docs/config without processing
+rf export                          # Export model to Ollama/HuggingFace
+rf eval run                        # Evaluate model performance
+rf status                          # Show project progress
+rf clean                           # Clean artifacts
 
 # Dependencies
 uv sync --extra all                 # Install all optional deps
 uv sync --extra dev                 # Dev deps only (pytest)
 ```
 
-The `slf` wrapper runs `uv run --project <repo-dir> slm-factory [args]` — no venv activation needed.
+The `rf` wrapper runs `uv run --project <repo-dir> rag-factory [args]` — no venv activation needed.
 
 ## Architecture
 
@@ -47,7 +47,7 @@ Parse → Generate QA → Validate → Score → Augment → Analyze → Convert
 
 Orchestrated by `Pipeline` class in `pipeline.py`, CLI in `cli.py` (Typer).
 
-### Module Layout (`src/slm_factory/`)
+### Module Layout (`src/rag_factory/`)
 
 | Module | Role |
 |---|---|
@@ -175,7 +175,7 @@ orchestrator의 SSE 이벤트 타입을 추가·변경하면 `chat.html`의 `ren
 - **macOS Python 3.14 + sentence-transformers**: `parallel_steps: true`이면 첫 query 처리 중 SIGSEGV 또는 SIGABRT 발생 (`loky` joblib 멀티프로세싱 호환성). 회피:
   - `rag.agent.parallel_steps: false`
   - 환경변수 `TOKENIZERS_PARALLELISM=false OMP_NUM_THREADS=1`
-  - 예: `TOKENIZERS_PARALLELISM=false OMP_NUM_THREADS=1 slf rag`
+  - 예: `TOKENIZERS_PARALLELISM=false OMP_NUM_THREADS=1 rf rag`
 - **Ollama keep_alive "-1" 거부**: Go `time.Duration` 파서가 단위 없는 `"-1"`을 `time: missing unit in duration "-1"`로 거부 (HTTP 400). 정수 `-1`은 OK이지만 YAML/JSON 직렬화 시 문자열로 전달됨. 권장: `ollama_keep_alive: "168h"` (1주일 = 사실상 영구).
 - **24GB 통합 메모리에서 큰 합성 모델 분리**: `qwen3.5:35b-a3b`(22GB) 또는 `gemma4:26b`(16GB) + 판정 모델 동시 상주 시 swap thrashing 발생 (query당 5~14분). 24GB 환경에서는 단일 9b 또는 4b+9b 분리가 한계. 자세한 매트릭스는 `benchmark/FINDINGS.md` "메모리 한계" 섹션.
 
@@ -184,14 +184,14 @@ orchestrator의 SSE 이벤트 타입을 추가·변경하면 `chat.html`의 `ren
 부팅·로그인 시 Ollama 모델을 메모리에 영구 핀하는 LaunchAgent 예시:
 
 ```bash
-# 스크립트: ~/.local/bin/ollama-warmup-slm-factory.sh
+# 스크립트: ~/.local/bin/ollama-warmup-rag-factory.sh
 #   - Ollama 데몬 응답까지 폴링 → /api/generate에 keep_alive=-1로 ping
-# plist:    ~/Library/LaunchAgents/com.devdna.slm-factory.ollama-warmup.plist
+# plist:    ~/Library/LaunchAgents/com.devdna.rag-factory.ollama-warmup.plist
 #   - RunAtLoad: true, KeepAlive: false
 
-launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.devdna.slm-factory.ollama-warmup.plist
-launchctl kickstart -p gui/$UID/com.devdna.slm-factory.ollama-warmup   # 즉시 실행
-cat /tmp/ollama-warmup-slm-factory.log                                  # 로그 확인
+launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.devdna.rag-factory.ollama-warmup.plist
+launchctl kickstart -p gui/$UID/com.devdna.rag-factory.ollama-warmup   # 즉시 실행
+cat /tmp/ollama-warmup-rag-factory.log                                  # 로그 확인
 ```
 
 스크립트의 `MODEL` 변수로 핀할 모델 변경 가능. `benchmark/CONFIG_GUIDE.md` "모델 cold start 회피" 섹션에 전체 절차.

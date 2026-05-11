@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# ── slm-factory 원클릭 셋업 ──────────────────────────────────────────
+# ── rag-factory 원클릭 셋업 ──────────────────────────────────────────
 # uv 기반 의존성 설치 + Ollama 모델 준비까지 한 번에 수행합니다.
 # 사용법: ./setup.sh
 # ─────────────────────────────────────────────────────────────────────
@@ -22,7 +22,7 @@ TEACHER_MODEL="${SLM_TEACHER_MODEL:-qwen3.5:9b}"
 OLLAMA_URL="${OLLAMA_HOST:-http://localhost:11434}"
 
 echo ""
-echo -e "${BOLD}slm-factory 셋업${NC}"
+echo -e "${BOLD}rag-factory 셋업${NC}"
 echo "────────────────────────────────────────"
 echo ""
 
@@ -87,19 +87,19 @@ else
     ok "${TEACHER_MODEL} 다운로드 완료"
 fi
 
-# ── 5. slf 간편 명령어 설치 ──────────────────────────────────────────
-info "slf 간편 명령어 설치 중..."
-chmod +x "$PWD/slf"
+# ── 5. rf 간편 명령어 설치 ──────────────────────────────────────────
+info "rf 간편 명령어 설치 중..."
+chmod +x "$PWD/rf"
 
 # ~/.local/bin에 심링크 생성 (uv도 여기에 설치됨)
 mkdir -p "$HOME/.local/bin"
-ln -sf "$PWD/slf" "$HOME/.local/bin/slf"
+ln -sf "$PWD/rf" "$HOME/.local/bin/rf"
 
 # PATH에 ~/.local/bin이 없으면 추가 안내
 if ! echo "$PATH" | tr ':' '\n' | grep -qx "$HOME/.local/bin"; then
     export PATH="$HOME/.local/bin:$PATH"
 fi
-ok "slf 명령어 설치 완료"
+ok "rf 명령어 설치 완료"
 
 # ── 완료 ────────────────────────────────────────────────────────────
 echo ""
@@ -107,13 +107,13 @@ echo -e "${GREEN}${BOLD}준비 완료!${NC}"
 echo "────────────────────────────────────────"
 echo ""
 echo -e "  ${CYAN}# 1. 프로젝트 생성${NC}"
-echo "  slf init my-project"
+echo "  rf init my-project"
 echo "  cp docs/*.pdf my-project/documents/"
 echo ""
 echo -e "  ${CYAN}# 2. 실행 (택 1)${NC}"
 echo ""
-echo -e "  ${BOLD}slf rag${NC}               RAG 채팅 즉시 시작 (30초)"
-echo -e "  ${BOLD}slf rag --no-chat${NC}     RAG 인덱스만 구축"
-echo -e "  ${BOLD}slf tune${NC}              파인튜닝 + RAG + 채팅 (30분)"
-echo -e "  ${BOLD}slf tune --no-chat${NC}    파인튜닝 + RAG 구축 (채팅 안 띄움)"
+echo -e "  ${BOLD}rf rag${NC}               RAG 채팅 즉시 시작 (30초)"
+echo -e "  ${BOLD}rf rag --no-chat${NC}     RAG 인덱스만 구축"
+echo -e "  ${BOLD}rf tune${NC}              파인튜닝 + RAG + 채팅 (30분)"
+echo -e "  ${BOLD}rf tune --no-chat${NC}    파인튜닝 + RAG 구축 (채팅 안 띄움)"
 echo ""

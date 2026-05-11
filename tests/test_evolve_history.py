@@ -9,9 +9,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from slm_factory.config import EvolveConfig
-from slm_factory.evolve_history import EvolveHistory
-from slm_factory.models import CompareResult
+from rag_factory.config import EvolveConfig
+from rag_factory.evolve_history import EvolveHistory
+from rag_factory.models import CompareResult
 
 
 # ---------------------------------------------------------------------------
@@ -232,7 +232,7 @@ class TestEvolveHistoryGenerateVersionName:
         config = make_config(paths={"output": str(tmp_path)})
         history = EvolveHistory(config)
 
-        with patch("slm_factory.evolve_history.datetime") as mock_dt:
+        with patch("rag_factory.evolve_history.datetime") as mock_dt:
             mock_dt.now.return_value = datetime(
                 2025, 2, 20, 10, 30, 0, tzinfo=timezone.utc
             )
@@ -253,7 +253,7 @@ class TestEvolveHistoryGenerateVersionName:
 
         history = EvolveHistory(config)
 
-        with patch("slm_factory.evolve_history.datetime") as mock_dt:
+        with patch("rag_factory.evolve_history.datetime") as mock_dt:
             mock_dt.now.return_value = datetime(
                 2025, 2, 20, 15, 45, 0, tzinfo=timezone.utc
             )
@@ -275,7 +275,7 @@ class TestEvolveHistoryGenerateVersionName:
 
         history = EvolveHistory(config)
 
-        with patch("slm_factory.evolve_history.datetime") as mock_dt:
+        with patch("rag_factory.evolve_history.datetime") as mock_dt:
             mock_dt.now.return_value = datetime(
                 2025, 2, 20, 20, 0, 0, tzinfo=timezone.utc
             )
@@ -296,7 +296,7 @@ class TestEvolveHistoryGenerateVersionName:
 
         history = EvolveHistory(config)
 
-        with patch("slm_factory.evolve_history.datetime") as mock_dt:
+        with patch("rag_factory.evolve_history.datetime") as mock_dt:
             mock_dt.now.return_value = datetime(
                 2025, 2, 21, 10, 0, 0, tzinfo=timezone.utc
             )

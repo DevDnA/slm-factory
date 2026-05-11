@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from slm_factory.rag.agent.persona_router import PersonaRouter
-from slm_factory.rag.agent.personas import (
+from rag_factory.rag.agent.persona_router import PersonaRouter
+from rag_factory.rag.agent.personas import (
     Analyst,
     Clarifier,
     Comparator,

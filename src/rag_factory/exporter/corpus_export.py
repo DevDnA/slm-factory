@@ -1,6 +1,6 @@
 """코퍼스 데이터 내보내기 — 문서와 QA 쌍을 외부 평가용 parquet으로 변환합니다.
 
-slm-factory의 ``parsed_documents.json``과 QA 쌍 파일(``qa_alpaca.json`` 등)을
+rag-factory의 ``parsed_documents.json``과 QA 쌍 파일(``qa_alpaca.json`` 등)을
 ``corpus.parquet`` + ``qa.parquet`` 형식으로 변환합니다. 결과는 RAG 인덱싱
 파이프라인뿐 아니라 외부 평가 도구나 자체 검색 평가에서도 사용할 수
 있는 일반 포맷입니다.
@@ -161,7 +161,7 @@ def _get_tokenizer():
 
 
 class CorpusExporter:
-    """slm-factory 데이터를 외부 평가용 parquet 형식으로 변환합니다."""
+    """rag-factory 데이터를 외부 평가용 parquet 형식으로 변환합니다."""
 
     def __init__(self, config: SLMConfig) -> None:
         self.config = config

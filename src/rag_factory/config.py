@@ -1,4 +1,4 @@
-"""Pydantic v2 + YAML를 사용한 slm-factory 설정 시스템입니다.
+"""Pydantic v2 + YAML를 사용한 rag-factory 설정 시스템입니다.
 
 YAML 파일에서 프로젝트 설정을 로드하고 검증합니다.
 파싱, 교사 모델, 질문, 검증, 훈련, 내보내기 등 모든 파이프라인 설정에 대한
@@ -815,7 +815,7 @@ class CorpusProfileConfig(BaseModel):
 class CorpusExportConfig(BaseModel):
     """외부 평가용 코퍼스 데이터 내보내기 설정입니다.
 
-    slm-factory의 파싱된 문서와 QA 쌍을 ``corpus.parquet`` +
+    rag-factory의 파싱된 문서와 QA 쌍을 ``corpus.parquet`` +
     ``qa.parquet`` 형식으로 변환합니다. RAG 인덱싱뿐 아니라 외부 평가
     도구나 자체 검색 평가에서도 활용할 수 있는 일반 포맷입니다.
     """
@@ -966,7 +966,7 @@ class ChunkingConfig(BaseModel):
 
 
 class SLMConfig(BaseModel):
-    """slm-factory 프로젝트의 루트 설정 객체입니다.
+    """rag-factory 프로젝트의 루트 설정 객체입니다.
 
     전체 ``project.yaml`` 스키마를 반영합니다. :func:`load_config`를 통해
     또는 딕셔너리/YAML에서 직접 인스턴스화됩니다.
@@ -1093,12 +1093,12 @@ def create_default_config() -> str:
 
     # 폴백: importlib.resources (설치된 wheel)
     try:
-        ref = importlib.resources.files("slm_factory").joinpath(
+        ref = importlib.resources.files("rag_factory").joinpath(
             "../../" + _TEMPLATE_PATH
         )
         return ref.read_text(encoding="utf-8")
     except Exception as e:
-        logging.getLogger("slm_factory.config").debug(
+        logging.getLogger("rag_factory.config").debug(
             "importlib.resources에서 템플릿 로드 실패: %s", e
         )
 

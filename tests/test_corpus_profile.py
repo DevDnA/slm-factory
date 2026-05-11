@@ -8,7 +8,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from slm_factory.rag.corpus_profile import (
+from rag_factory.rag.corpus_profile import (
     CorpusProfile,
     extract_acronyms,
     extract_korean_nouns,

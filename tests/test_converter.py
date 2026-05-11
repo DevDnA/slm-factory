@@ -12,8 +12,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from slm_factory.converter import ChatFormatter
-from slm_factory.models import QAPair
+from rag_factory.converter import ChatFormatter
+from rag_factory.models import QAPair
 
 
 # ---------------------------------------------------------------------------

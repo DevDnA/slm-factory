@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from slm_factory.rag.agent.parser import parse_react_output
+from rag_factory.rag.agent.parser import parse_react_output
 
 
 class TestParseReactOutput:

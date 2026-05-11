@@ -14,9 +14,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from slm_factory.rag.agent.orchestrator import AgentOrchestrator
-from slm_factory.rag.agent.router import QueryRouter
-from slm_factory.rag.agent.session import Message, SessionManager
+from rag_factory.rag.agent.orchestrator import AgentOrchestrator
+from rag_factory.rag.agent.router import QueryRouter
+from rag_factory.rag.agent.session import Message, SessionManager
 
 
 # ---------------------------------------------------------------------------
@@ -48,8 +48,8 @@ class _FakeAgentLoop:
 @pytest.fixture(autouse=True)
 def _patch_agent_loop(monkeypatch):
     """orchestrator가 import하는 AgentLoop를 _FakeAgentLoop로 바꿉니다."""
-    from slm_factory.rag.agent import orchestrator as orch_mod
-    from slm_factory.rag.agent import loop as loop_mod
+    from rag_factory.rag.agent import orchestrator as orch_mod
+    from rag_factory.rag.agent import loop as loop_mod
 
     monkeypatch.setattr(loop_mod, "AgentLoop", _FakeAgentLoop)
     # orchestrator가 지연 import하므로 loop 모듈만 패치하면 충분합니다.
@@ -454,8 +454,8 @@ class _PlannerPathFixtures:
         synthesis_tokens=None,
         synthesis_scripts: list[list[str]] | None = None,
     ):
-        from slm_factory.rag.agent import planner as planner_mod
-        from slm_factory.rag.agent import verifier as verifier_mod
+        from rag_factory.rag.agent import planner as planner_mod
+        from rag_factory.rag.agent import verifier as verifier_mod
 
         # Planner.plan()을 상수 반환으로 패치
         class _FakePlanner:
@@ -501,7 +501,7 @@ class _PlannerPathFixtures:
 
 
 def _make_plan(steps, strategy="fact", rationale="test plan"):
-    from slm_factory.rag.agent.planner import ExecutionPlan, PlanStep
+    from rag_factory.rag.agent.planner import ExecutionPlan, PlanStep
 
     return ExecutionPlan(
         strategy=strategy,
@@ -561,7 +561,7 @@ class TestPlannerRoute:
 
     @pytest.mark.asyncio
     async def test_verifier_필요시_추가_검색(self, monkeypatch):
-        from slm_factory.rag.agent.verifier import VerifierDecision
+        from rag_factory.rag.agent.verifier import VerifierDecision
 
         plan = _make_plan([
             {"tool": "search", "args": {"query": "초기 검색"}, "reason": "첫 검색"},
@@ -614,7 +614,7 @@ class TestPlannerRoute:
 
     @pytest.mark.asyncio
     async def test_verifier_비활성시_repair_안함(self, monkeypatch):
-        from slm_factory.rag.agent.verifier import VerifierDecision
+        from rag_factory.rag.agent.verifier import VerifierDecision
 
         plan = _make_plan([
             {"tool": "search", "args": {"query": "q"}},
@@ -645,7 +645,7 @@ class TestPlannerRoute:
 
     @pytest.mark.asyncio
     async def test_verifier_max_repairs_존중(self, monkeypatch):
-        from slm_factory.rag.agent.verifier import VerifierDecision
+        from rag_factory.rag.agent.verifier import VerifierDecision
 
         plan = _make_plan([{"tool": "search", "args": {"query": "q"}}])
         # 계속 repair 필요하다고 해도 max_repairs=1로 1회만 실행
@@ -732,7 +732,7 @@ class TestPlannerRoute:
     @pytest.mark.asyncio
     async def test_fallback_gate_비활성시_planner_가_fallback_실행(self, monkeypatch):
         # legacy_fallback_enabled=False이면 planner fallback 계획도 그대로 실행
-        from slm_factory.rag.agent.planner import ExecutionPlan, PlanStep
+        from rag_factory.rag.agent.planner import ExecutionPlan, PlanStep
 
         fallback_plan = ExecutionPlan(
             strategy="fact",
@@ -801,7 +801,7 @@ class TestPlannerRoute:
     @pytest.mark.asyncio
     async def test_긴_답변은_chunk_단위로_여러_token_이벤트로_발행(self, monkeypatch):
         """최종 답변 pseudo-streaming: 긴 답변이 chunk 크기 단위로 쪼개져 발행."""
-        from slm_factory.rag.agent.orchestrator import _FINAL_ANSWER_CHUNK_CHARS
+        from rag_factory.rag.agent.orchestrator import _FINAL_ANSWER_CHUNK_CHARS
 
         plan = _make_plan([{"tool": "search", "args": {"query": "q"}}])
         long_answer = "A" * (_FINAL_ANSWER_CHUNK_CHARS * 3 + 5)  # 3.4 chunks 분량
@@ -835,7 +835,7 @@ class TestPlannerVsLegacyDispatch:
         """이 테스트가 통과한다는 것은 planner_enabled=False일 때 AgentLoop가 호출됨을 의미."""
 
         # Planner가 호출되면 실패하도록 sentinel 설정
-        from slm_factory.rag.agent import planner as planner_mod
+        from rag_factory.rag.agent import planner as planner_mod
 
         class _ShouldNotBeCalled:
             def __init__(self, **_kwargs):
@@ -943,8 +943,8 @@ class TestPersonaIntegration:
     """Phase 6 — Persona가 intent별 synthesis prompt와 도구 권한에 반영됨."""
 
     def _make_router_with_intent(self, intent_label: str, confidence: float = 0.9):
-        from slm_factory.rag.agent.intent_classifier import IntentDecision
-        from slm_factory.rag.agent.router import QueryRouter
+        from rag_factory.rag.agent.intent_classifier import IntentDecision
+        from rag_factory.rag.agent.router import QueryRouter
 
         class _FakeClassifier:
             async def classify(self, query):
@@ -1089,8 +1089,8 @@ class TestClarifierIntegration:
     """Phase 11 — Clarifier: ambiguous 의도 시 역질문 반환."""
 
     def _make_router_with_intent(self, intent_label: str, confidence: float = 0.8):
-        from slm_factory.rag.agent.intent_classifier import IntentDecision
-        from slm_factory.rag.agent.router import QueryRouter
+        from rag_factory.rag.agent.intent_classifier import IntentDecision
+        from rag_factory.rag.agent.router import QueryRouter
 
         class _FakeClassifier:
             async def classify(self, query):
@@ -1099,8 +1099,8 @@ class TestClarifierIntegration:
         return QueryRouter(agent_enabled=True, intent_classifier=_FakeClassifier())
 
     def _patch_clarifier(self, monkeypatch, *, questions, is_fallback=False):
-        from slm_factory.rag.agent.personas import clarifier as clarifier_mod
-        from slm_factory.rag.agent.personas.base import PersonaResult
+        from rag_factory.rag.agent.personas import clarifier as clarifier_mod
+        from rag_factory.rag.agent.personas.base import PersonaResult
 
         class _FakeClarifier(clarifier_mod.Clarifier):
             def __init__(self, **_kwargs):
@@ -1141,7 +1141,7 @@ class TestClarifierIntegration:
     @pytest.mark.asyncio
     async def test_ambiguous_clarifier_비활성이면_일반_경로(self, monkeypatch):
         # Clarifier가 호출되면 실패하도록
-        from slm_factory.rag.agent.personas import clarifier as clarifier_mod
+        from rag_factory.rag.agent.personas import clarifier as clarifier_mod
 
         class _ShouldNotBeCalled:
             def __init__(self, **_kwargs):
@@ -1170,7 +1170,7 @@ class TestClarifierIntegration:
 
     @pytest.mark.asyncio
     async def test_factual_의도는_clarifier_트리거_안함(self, monkeypatch):
-        from slm_factory.rag.agent.personas import clarifier as clarifier_mod
+        from rag_factory.rag.agent.personas import clarifier as clarifier_mod
 
         class _ShouldNotBeCalled:
             def __init__(self, **_kwargs):
@@ -1607,7 +1607,7 @@ class TestLegacyFallbackGate:
 
     @pytest.mark.asyncio
     async def test_fallback_plan이면_legacy로_전환(self, monkeypatch):
-        from slm_factory.rag.agent.planner import ExecutionPlan, PlanStep
+        from rag_factory.rag.agent.planner import ExecutionPlan, PlanStep
 
         fallback_plan = ExecutionPlan(
             strategy="fact",
@@ -1643,7 +1643,7 @@ class TestLegacyFallbackGate:
 
     @pytest.mark.asyncio
     async def test_fallback_plan이어도_gate_off면_planner_실행(self, monkeypatch):
-        from slm_factory.rag.agent.planner import ExecutionPlan, PlanStep
+        from rag_factory.rag.agent.planner import ExecutionPlan, PlanStep
 
         fallback_plan = ExecutionPlan(
             strategy="fact",
@@ -1704,7 +1704,7 @@ class TestLegacyFallbackGate:
 
     @pytest.mark.asyncio
     async def test_fallback_전환시_세션_이중기록_방지(self, monkeypatch):
-        from slm_factory.rag.agent.planner import ExecutionPlan, PlanStep
+        from rag_factory.rag.agent.planner import ExecutionPlan, PlanStep
 
         fallback_plan = ExecutionPlan(
             strategy="fact",

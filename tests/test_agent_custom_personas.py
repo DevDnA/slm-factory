@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from slm_factory.rag.agent.persona_loader import (
+from rag_factory.rag.agent.persona_loader import (
     CustomPersona,
     CustomPersonaRegistry,
     load_custom_personas)
@@ -96,7 +96,7 @@ class TestCustomPersonaRegistry:
 
 class TestPersonaRouterWithCustom:
     def test_custom_persona_우선_적용(self):
-        from slm_factory.rag.agent.persona_router import PersonaRouter
+        from rag_factory.rag.agent.persona_router import PersonaRouter
 
         custom = CustomPersona(
             name="legal-custom",
@@ -110,8 +110,8 @@ class TestPersonaRouterWithCustom:
         assert p.name == "legal-custom"
 
     def test_custom_없으면_builtin_fallback(self):
-        from slm_factory.rag.agent.persona_router import PersonaRouter
-        from slm_factory.rag.agent.personas import Researcher
+        from rag_factory.rag.agent.persona_router import PersonaRouter
+        from rag_factory.rag.agent.personas import Researcher
 
         reg = CustomPersonaRegistry([])
         router = PersonaRouter(enabled=True, custom_registry=reg)
@@ -120,8 +120,8 @@ class TestPersonaRouterWithCustom:
 
     def test_custom_intent_매핑_없으면_builtin(self):
         """custom이 analytical에만 매핑됐는데 factual 질의면 builtin 사용."""
-        from slm_factory.rag.agent.persona_router import PersonaRouter
-        from slm_factory.rag.agent.personas import Researcher
+        from rag_factory.rag.agent.persona_router import PersonaRouter
+        from rag_factory.rag.agent.personas import Researcher
 
         custom = CustomPersona(name="analytical-custom", intent="analytical")
         reg = CustomPersonaRegistry([custom])
@@ -134,7 +134,7 @@ class TestPersonaRouterWithCustom:
         assert p.name == "analytical-custom"
 
     def test_enabled_False면_None(self):
-        from slm_factory.rag.agent.persona_router import PersonaRouter
+        from rag_factory.rag.agent.persona_router import PersonaRouter
 
         custom = CustomPersona(name="x", intent="factual")
         reg = CustomPersonaRegistry([custom])
@@ -150,9 +150,9 @@ class TestOrchestratorIntegration:
             _make_plan,
             _FakeToolResult,
             _collect)
-        from slm_factory.rag.agent.orchestrator import AgentOrchestrator
-        from slm_factory.rag.agent.intent_classifier import IntentDecision
-        from slm_factory.rag.agent.router import QueryRouter
+        from rag_factory.rag.agent.orchestrator import AgentOrchestrator
+        from rag_factory.rag.agent.intent_classifier import IntentDecision
+        from rag_factory.rag.agent.router import QueryRouter
         from types import SimpleNamespace
 
         # custom persona 파일 작성

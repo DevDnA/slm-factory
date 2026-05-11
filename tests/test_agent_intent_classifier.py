@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock
 import httpx
 import pytest
 
-from slm_factory.rag.agent.intent_classifier import IntentClassifier, IntentDecision
+from rag_factory.rag.agent.intent_classifier import IntentClassifier, IntentDecision
 
 
 def _ollama_response(payload: str) -> MagicMock:

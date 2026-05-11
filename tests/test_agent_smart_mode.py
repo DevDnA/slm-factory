@@ -7,7 +7,7 @@ intent_classifier, clarifier, personas, legacy_fallback, session_source_reuse)
 
 from __future__ import annotations
 
-from slm_factory.config import AgentRagConfig
+from rag_factory.config import AgentRagConfig
 
 
 class TestSmartModeCascade:

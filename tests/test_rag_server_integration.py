@@ -119,7 +119,7 @@ class _FakeAsyncClient:
 
 def _fake_search_documents(query, **kwargs):
     """search.search_documents 교체본 — 고정 sources 반환."""
-    from slm_factory.rag.search import SearchOutput, SearchResult
+    from rag_factory.rag.search import SearchOutput, SearchResult
 
     return SearchOutput(
         sources=[
@@ -158,11 +158,11 @@ def rag_client(monkeypatch, tmp_path):
 
     # search_documents를 결정적으로 교체 — 실제 임베딩/벡터 검색 우회.
     monkeypatch.setattr(
-        "slm_factory.rag.search.search_documents", _fake_search_documents
+        "rag_factory.rag.search.search_documents", _fake_search_documents
     )
 
     # 테스트용 config — 무거운 기능은 비활성화.
-    from slm_factory.config import SLMConfig
+    from rag_factory.config import SLMConfig
 
     config = SLMConfig.model_validate(
         {
@@ -189,7 +189,7 @@ def rag_client(monkeypatch, tmp_path):
     _FakeAsyncClient.stream_tokens = ["모킹된 ", "답변"]
     _FakeAsyncClient.post_response = {"response": "모킹된 비스트리밍 답변", "done": True}
 
-    from slm_factory.rag.server import create_app
+    from rag_factory.rag.server import create_app
 
     app = create_app(config)
     with TestClient(app) as client:
@@ -363,10 +363,10 @@ def smart_rag_client(monkeypatch, tmp_path):
     monkeypatch.setattr(sentence_transformers, "SentenceTransformer", _FakeST)
     monkeypatch.setattr(httpx, "AsyncClient", _FakeAsyncClient)
     monkeypatch.setattr(
-        "slm_factory.rag.search.search_documents", _fake_search_documents
+        "rag_factory.rag.search.search_documents", _fake_search_documents
     )
 
-    from slm_factory.config import SLMConfig
+    from rag_factory.config import SLMConfig
 
     config = SLMConfig.model_validate(
         {
@@ -402,7 +402,7 @@ def smart_rag_client(monkeypatch, tmp_path):
         "done": True,
     }
 
-    from slm_factory.rag.server import create_app
+    from rag_factory.rag.server import create_app
 
     app = create_app(config)
     with TestClient(app) as client:
@@ -441,16 +441,16 @@ class TestOpenAICompat:
         body = response.json()
         assert body["object"] == "list"
         ids = {m["id"] for m in body["data"]}
-        assert "slm-factory-auto" in ids
-        assert "slm-factory-rag" in ids
+        assert "rag-factory-auto" in ids
+        assert "rag-factory-rag" in ids
         # agent.enabled=True 이므로 agent 모델도 노출
-        assert "slm-factory-agent" in ids
+        assert "rag-factory-agent" in ids
 
     def test_chat_completions_비스트리밍(self, rag_client):
         response = rag_client.post(
             "/v1/chat/completions",
             json={
-                "model": "slm-factory-rag",
+                "model": "rag-factory-rag",
                 "messages": [{"role": "user", "content": "테스트"}],
                 "stream": False,
             },
@@ -458,7 +458,7 @@ class TestOpenAICompat:
         assert response.status_code == 200
         body = response.json()
         assert body["object"] == "chat.completion"
-        assert body["model"] == "slm-factory-rag"
+        assert body["model"] == "rag-factory-rag"
         assert body["choices"][0]["message"]["role"] == "assistant"
         # 본문 + sources footer
         content = body["choices"][0]["message"]["content"]
@@ -470,7 +470,7 @@ class TestOpenAICompat:
         response = rag_client.post(
             "/v1/chat/completions",
             json={
-                "model": "slm-factory-auto",
+                "model": "rag-factory-auto",
                 "messages": [{"role": "user", "content": "오늘 날씨"}],
                 "stream": True,
             },
@@ -503,7 +503,7 @@ class TestOpenAICompat:
         response = rag_client.post(
             "/v1/chat/completions",
             json={
-                "model": "slm-factory-auto",
+                "model": "rag-factory-auto",
                 "messages": [{"role": "system", "content": "sys"}],
                 "stream": False,
             },
@@ -515,7 +515,7 @@ class TestOpenAICompat:
         response = rag_client.post(
             "/v1/chat/completions",
             json={
-                "model": "slm-factory-auto",
+                "model": "rag-factory-auto",
                 "messages": [{"role": "user", "content": "   "}],
                 "stream": False,
             },
@@ -527,7 +527,7 @@ class TestOpenAICompat:
         response = rag_client.post(
             "/v1/chat/completions",
             json={
-                "model": "slm-factory-rag",
+                "model": "rag-factory-rag",
                 "messages": [
                     {
                         "role": "user",
@@ -551,7 +551,7 @@ class TestOpenAICompat:
             },
         )
         assert response.status_code == 200
-        assert response.json()["model"] == "slm-factory-auto"
+        assert response.json()["model"] == "rag-factory-auto"
 
 
 # ---------------------------------------------------------------------------

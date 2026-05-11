@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from slm_factory.rag.agent.router import QueryRouter, RouteDecision
+from rag_factory.rag.agent.router import QueryRouter, RouteDecision
 
 
 class TestAgentDisabled:
@@ -166,13 +166,13 @@ class TestChitchatLLMPath:
         async def classify(self, query):
             self.calls += 1
             if not self._decisions:
-                from slm_factory.rag.agent.intent_classifier import IntentDecision
+                from rag_factory.rag.agent.intent_classifier import IntentDecision
                 return IntentDecision(intent="ambiguous", confidence=0.0)
             return self._decisions.pop(0)
 
     @pytest.mark.asyncio
     async def test_LLM_chitchat_고신뢰는_chitchat(self):
-        from slm_factory.rag.agent.intent_classifier import IntentDecision
+        from rag_factory.rag.agent.intent_classifier import IntentDecision
 
         # 정규식엔 매치 안 되지만 LLM이 chitchat으로 분류 가능한 잡담.
         classifier = self._FakeClassifier([
@@ -186,7 +186,7 @@ class TestChitchatLLMPath:
 
     @pytest.mark.asyncio
     async def test_LLM_chitchat_저신뢰는_agent_fallback(self):
-        from slm_factory.rag.agent.intent_classifier import IntentDecision
+        from rag_factory.rag.agent.intent_classifier import IntentDecision
 
         classifier = self._FakeClassifier([
             IntentDecision(intent="chitchat", confidence=0.4, reason="확신 없음"),
@@ -216,7 +216,7 @@ class TestRouteAsync:
         async def classify(self, query):
             self.calls += 1
             if not self._decisions:
-                from slm_factory.rag.agent.intent_classifier import IntentDecision
+                from rag_factory.rag.agent.intent_classifier import IntentDecision
                 return IntentDecision(intent="ambiguous", confidence=0.0)
             return self._decisions.pop(0)
 
@@ -229,7 +229,7 @@ class TestRouteAsync:
 
     @pytest.mark.asyncio
     async def test_factual_고신뢰는_simple(self):
-        from slm_factory.rag.agent.intent_classifier import IntentDecision
+        from rag_factory.rag.agent.intent_classifier import IntentDecision
 
         classifier = self._FakeClassifier([
             IntentDecision(intent="factual", confidence=0.92, reason="단일 사실"),
@@ -242,7 +242,7 @@ class TestRouteAsync:
 
     @pytest.mark.asyncio
     async def test_factual_저신뢰는_agent(self):
-        from slm_factory.rag.agent.intent_classifier import IntentDecision
+        from rag_factory.rag.agent.intent_classifier import IntentDecision
 
         classifier = self._FakeClassifier([
             IntentDecision(intent="factual", confidence=0.3),
@@ -253,7 +253,7 @@ class TestRouteAsync:
 
     @pytest.mark.asyncio
     async def test_comparative는_agent(self):
-        from slm_factory.rag.agent.intent_classifier import IntentDecision
+        from rag_factory.rag.agent.intent_classifier import IntentDecision
 
         classifier = self._FakeClassifier([
             IntentDecision(intent="comparative", confidence=0.9),
@@ -265,7 +265,7 @@ class TestRouteAsync:
 
     @pytest.mark.asyncio
     async def test_ambiguous는_agent_route(self):
-        from slm_factory.rag.agent.intent_classifier import IntentDecision
+        from rag_factory.rag.agent.intent_classifier import IntentDecision
 
         classifier = self._FakeClassifier([
             IntentDecision(intent="ambiguous", confidence=0.6),
@@ -278,7 +278,7 @@ class TestRouteAsync:
     @pytest.mark.asyncio
     async def test_키워드가_agent이면_LLM이_factual여도_agent_유지(self):
         """명시적 비교 키워드가 있으면 LLM 결과와 상관없이 agent 유지."""
-        from slm_factory.rag.agent.intent_classifier import IntentDecision
+        from rag_factory.rag.agent.intent_classifier import IntentDecision
 
         classifier = self._FakeClassifier([
             IntentDecision(intent="factual", confidence=0.95),

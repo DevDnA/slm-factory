@@ -8,7 +8,7 @@ import pytest
 
 sys.modules["openpyxl"] = MagicMock()
 
-from slm_factory.parsers.xlsx import XLSXParser
+from rag_factory.parsers.xlsx import XLSXParser
 
 
 class TestXLSXParser:

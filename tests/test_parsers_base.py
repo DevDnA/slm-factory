@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-from slm_factory.models import ParsedDocument
-from slm_factory.parsers.base import BaseParser, ParserRegistry, extract_date_from_filename, rows_to_markdown
+from rag_factory.models import ParsedDocument
+from rag_factory.parsers.base import BaseParser, ParserRegistry, extract_date_from_filename, rows_to_markdown
 
 
 # ---------------------------------------------------------------------------

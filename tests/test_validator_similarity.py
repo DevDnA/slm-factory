@@ -10,8 +10,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from slm_factory.config import GroundednessConfig
-from slm_factory.validator.similarity import GroundednessChecker
+from rag_factory.config import GroundednessConfig
+from rag_factory.validator.similarity import GroundednessChecker
 
 
 # ---------------------------------------------------------------------------

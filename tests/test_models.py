@@ -1,6 +1,6 @@
 """ParsedDocument 및 QAPair 데이터 모델의 단위 테스트입니다."""
 
-from slm_factory.models import ParsedDocument, QAPair
+from rag_factory.models import ParsedDocument, QAPair
 
 
 class TestParsedDocument:

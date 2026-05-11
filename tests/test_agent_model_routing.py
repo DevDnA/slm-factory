@@ -10,7 +10,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from slm_factory.config import AgentModelsConfig, AgentRagConfig
+from rag_factory.config import AgentModelsConfig, AgentRagConfig
 
 
 class TestAgentModelsConfig:
@@ -39,8 +39,8 @@ class TestOrchestratorModelRouting:
     """orchestrator._model_for가 슬롯 지정/fallback을 올바르게 처리."""
 
     def _make_orch(self, models: dict | None = None):
-        from slm_factory.rag.agent.orchestrator import AgentOrchestrator
-        from slm_factory.rag.agent.router import QueryRouter
+        from rag_factory.rag.agent.orchestrator import AgentOrchestrator
+        from rag_factory.rag.agent.router import QueryRouter
 
         models_ns = SimpleNamespace(
             router_model="",
@@ -132,8 +132,8 @@ class TestOrchestratorUsesSlots:
             _make_plan,
             _FakeToolResult,
             _collect)
-        from slm_factory.rag.agent.orchestrator import AgentOrchestrator
-        from slm_factory.rag.agent.router import QueryRouter
+        from rag_factory.rag.agent.orchestrator import AgentOrchestrator
+        from rag_factory.rag.agent.router import QueryRouter
 
         plan = _make_plan([{"tool": "search", "args": {"query": "q"}}])
         fixtures = _PlannerPathFixtures(

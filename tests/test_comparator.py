@@ -8,9 +8,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-from slm_factory.config import CompareConfig, EvalConfig, ProjectConfig, SLMConfig, TeacherConfig
-from slm_factory.comparator import ModelComparator
-from slm_factory.models import CompareResult, QAPair
+from rag_factory.config import CompareConfig, EvalConfig, ProjectConfig, SLMConfig, TeacherConfig
+from rag_factory.comparator import ModelComparator
+from rag_factory.models import CompareResult, QAPair
 
 
 @pytest.fixture
@@ -64,8 +64,8 @@ def _mock_httpx_response(text: str):
 class TestComputeScores:
     def test_bleu_and_rouge(self, comparator, mock_bleu, mock_rouge):
         with (
-            patch("slm_factory.comparator._load_bleu", return_value=mock_bleu),
-            patch("slm_factory.comparator._load_rouge", return_value=mock_rouge),
+            patch("rag_factory.comparator._load_bleu", return_value=mock_bleu),
+            patch("rag_factory.comparator._load_rouge", return_value=mock_rouge),
         ):
             scores = comparator._compute_scores("서울입니다.", "서울", "서울입니다.")
 
@@ -79,7 +79,7 @@ class TestComputeScores:
     def test_bleu_only(self, slm_config, mock_bleu):
         slm_config.compare.metrics = ["bleu"]
         comp = ModelComparator(slm_config)
-        with patch("slm_factory.comparator._load_bleu", return_value=mock_bleu):
+        with patch("rag_factory.comparator._load_bleu", return_value=mock_bleu):
             scores = comp._compute_scores("ref", "base", "ft")
 
         assert "base_bleu" in scores
@@ -89,7 +89,7 @@ class TestComputeScores:
     def test_rouge_only(self, slm_config, mock_rouge):
         slm_config.compare.metrics = ["rouge"]
         comp = ModelComparator(slm_config)
-        with patch("slm_factory.comparator._load_rouge", return_value=mock_rouge):
+        with patch("rag_factory.comparator._load_rouge", return_value=mock_rouge):
             scores = comp._compute_scores("ref", "base", "ft")
 
         assert "base_rouge1" in scores
@@ -134,8 +134,8 @@ class TestCompareOne:
         mock_client.post = AsyncMock(return_value=_mock_httpx_response("서울"))
 
         with (
-            patch("slm_factory.comparator._load_bleu", return_value=mock_bleu),
-            patch("slm_factory.comparator._load_rouge", return_value=mock_rouge),
+            patch("rag_factory.comparator._load_bleu", return_value=mock_bleu),
+            patch("rag_factory.comparator._load_rouge", return_value=mock_rouge),
         ):
             result = await comparator._compare_one(mock_client, pair)
 
@@ -154,8 +154,8 @@ class TestCompareAsync:
         mock_response = _mock_httpx_response("답변")
 
         with (
-            patch("slm_factory.comparator._load_bleu", return_value=mock_bleu),
-            patch("slm_factory.comparator._load_rouge", return_value=mock_rouge),
+            patch("rag_factory.comparator._load_bleu", return_value=mock_bleu),
+            patch("rag_factory.comparator._load_rouge", return_value=mock_rouge),
             patch("httpx.AsyncClient") as mock_client_cls,
         ):
             mock_client = AsyncMock()
@@ -174,8 +174,8 @@ class TestCompareAsync:
         pairs = [QAPair(question="q?", answer="a", source_doc="d.pdf", category="c")]
 
         with (
-            patch("slm_factory.comparator._load_bleu", return_value=mock_bleu),
-            patch("slm_factory.comparator._load_rouge", return_value=mock_rouge),
+            patch("rag_factory.comparator._load_bleu", return_value=mock_bleu),
+            patch("rag_factory.comparator._load_rouge", return_value=mock_rouge),
             patch("httpx.AsyncClient") as mock_client_cls,
         ):
             mock_client = AsyncMock()
@@ -194,8 +194,8 @@ class TestCompare:
         mock_response = _mock_httpx_response("답변")
 
         with (
-            patch("slm_factory.comparator._load_bleu", return_value=mock_bleu),
-            patch("slm_factory.comparator._load_rouge", return_value=mock_rouge),
+            patch("rag_factory.comparator._load_bleu", return_value=mock_bleu),
+            patch("rag_factory.comparator._load_rouge", return_value=mock_rouge),
             patch("httpx.AsyncClient") as mock_client_cls,
         ):
             mock_client = AsyncMock()
@@ -226,8 +226,8 @@ class TestCompare:
         mock_response = _mock_httpx_response("answer")
 
         with (
-            patch("slm_factory.comparator._load_bleu", return_value=mock_bleu),
-            patch("slm_factory.comparator._load_rouge", return_value=mock_rouge),
+            patch("rag_factory.comparator._load_bleu", return_value=mock_bleu),
+            patch("rag_factory.comparator._load_rouge", return_value=mock_rouge),
             patch("httpx.AsyncClient") as mock_client_cls,
         ):
             mock_client = AsyncMock()
@@ -345,9 +345,9 @@ class TestKoreanTokenizer:
 
         mock_tokenizer = MagicMock(side_effect=lambda text: text.split())
         with (
-            patch("slm_factory.comparator._load_bleu", return_value=mock_bleu),
-            patch("slm_factory.comparator._load_rouge", return_value=mock_rouge),
-            patch("slm_factory.comparator._load_korean_tokenizer", return_value=mock_tokenizer),
+            patch("rag_factory.comparator._load_bleu", return_value=mock_bleu),
+            patch("rag_factory.comparator._load_rouge", return_value=mock_rouge),
+            patch("rag_factory.comparator._load_korean_tokenizer", return_value=mock_tokenizer),
         ):
             comp._compute_scores("서울", "서울", "서울입니다")
 
@@ -369,9 +369,9 @@ class TestKoreanTokenizer:
         comp = ModelComparator(config)
 
         with (
-            patch("slm_factory.comparator._load_bleu", return_value=mock_bleu),
-            patch("slm_factory.comparator._load_rouge", return_value=mock_rouge),
-            patch("slm_factory.comparator._load_korean_tokenizer") as mock_load,
+            patch("rag_factory.comparator._load_bleu", return_value=mock_bleu),
+            patch("rag_factory.comparator._load_rouge", return_value=mock_rouge),
+            patch("rag_factory.comparator._load_korean_tokenizer") as mock_load,
         ):
             comp._compute_scores("hello", "hello", "hello world")
 

@@ -8,7 +8,7 @@ import pytest
 
 sys.modules["xlrd"] = MagicMock()
 
-from slm_factory.parsers.xls import XLSParser
+from rag_factory.parsers.xls import XLSParser
 
 
 class TestXLSParser:

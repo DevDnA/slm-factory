@@ -9,7 +9,7 @@ import pytest
 
 sys.modules["olefile"] = MagicMock()
 
-from slm_factory.parsers.doc import DOCParser
+from rag_factory.parsers.doc import DOCParser
 
 
 def _build_minimal_word_doc(text: str) -> bytes:
@@ -99,7 +99,7 @@ class TestDOCParser:
 
         parser = DOCParser()
 
-        with patch("slm_factory.parsers.doc.HAS_OLEFILE", False):
+        with patch("rag_factory.parsers.doc.HAS_OLEFILE", False):
             with pytest.raises(RuntimeError) as exc_info:
                 parser.parse(doc_file)
 
@@ -113,8 +113,8 @@ class TestDOCParser:
 
         parser = DOCParser()
 
-        with patch("slm_factory.parsers.doc.HAS_OLEFILE", True):
-            with patch("slm_factory.parsers.doc.olefile") as mock_ole_mod:
+        with patch("rag_factory.parsers.doc.HAS_OLEFILE", True):
+            with patch("rag_factory.parsers.doc.olefile") as mock_ole_mod:
                 mock_ole_mod.isOleFile.return_value = False
                 with pytest.raises(RuntimeError) as exc_info:
                     parser.parse(doc_file)
@@ -145,8 +145,8 @@ class TestDOCParser:
 
         parser = DOCParser()
 
-        with patch("slm_factory.parsers.doc.HAS_OLEFILE", True):
-            with patch("slm_factory.parsers.doc.olefile") as mock_ole_mod:
+        with patch("rag_factory.parsers.doc.HAS_OLEFILE", True):
+            with patch("rag_factory.parsers.doc.olefile") as mock_ole_mod:
                 mock_ole_mod.isOleFile.return_value = True
                 mock_ole_mod.OleFileIO.return_value = mock_ole
 
@@ -175,8 +175,8 @@ class TestDOCParser:
 
         parser = DOCParser()
 
-        with patch("slm_factory.parsers.doc.HAS_OLEFILE", True):
-            with patch("slm_factory.parsers.doc.olefile") as mock_ole_mod:
+        with patch("rag_factory.parsers.doc.HAS_OLEFILE", True):
+            with patch("rag_factory.parsers.doc.olefile") as mock_ole_mod:
                 mock_ole_mod.isOleFile.return_value = True
                 mock_ole_mod.OleFileIO.return_value = mock_ole
 
@@ -211,8 +211,8 @@ class TestDOCParser:
 
         parser = DOCParser()
 
-        with patch("slm_factory.parsers.doc.HAS_OLEFILE", True):
-            with patch("slm_factory.parsers.doc.olefile") as mock_ole_mod:
+        with patch("rag_factory.parsers.doc.HAS_OLEFILE", True):
+            with patch("rag_factory.parsers.doc.olefile") as mock_ole_mod:
                 mock_ole_mod.isOleFile.return_value = True
                 mock_ole_mod.OleFileIO.return_value = mock_ole
 

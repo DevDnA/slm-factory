@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from slm_factory.parsers.base import detect_encoding
-from slm_factory.parsers.text import TextParser
+from rag_factory.parsers.base import detect_encoding
+from rag_factory.parsers.text import TextParser
 
 
 # ---------------------------------------------------------------------------

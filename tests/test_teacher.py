@@ -11,10 +11,10 @@ from unittest.mock import AsyncMock, MagicMock
 import httpx
 import pytest
 
-from slm_factory.config import TeacherConfig
-from slm_factory.teacher.ollama import OllamaTeacher
-from slm_factory.teacher.openai_compat import OpenAICompatTeacher
-from slm_factory.teacher import create_teacher
+from rag_factory.config import TeacherConfig
+from rag_factory.teacher.ollama import OllamaTeacher
+from rag_factory.teacher.openai_compat import OpenAICompatTeacher
+from rag_factory.teacher import create_teacher
 
 
 # ---------------------------------------------------------------------------
@@ -306,7 +306,7 @@ class TestOllamaTeacherStreamGenerate:
     def test_스트리밍_타임아웃_RuntimeError(self, mocker):
         """스트리밍 중 타임아웃 시 RuntimeError를 발생시킵니다."""
         mocker.patch("httpx.stream", side_effect=httpx.TimeoutException("timeout"))
-        mocker.patch("slm_factory.teacher.ollama.time.sleep")
+        mocker.patch("rag_factory.teacher.ollama.time.sleep")
 
         teacher = OllamaTeacher(_make_teacher_config())
         with pytest.raises(RuntimeError, match="타임아웃"):

@@ -2,7 +2,7 @@
 
 import pytest
 
-from slm_factory.calibration import (
+from rag_factory.calibration import (
     _find_section_boundaries,
     auto_chunk_size,
     auto_num_epochs,
@@ -120,19 +120,19 @@ class TestAutoQuestionsPerChunk:
 
 class TestAutoConfigIntegration:
     def test_chunk_size_auto_config(self):
-        from slm_factory.config import ChunkingConfig
+        from rag_factory.config import ChunkingConfig
 
         cfg = ChunkingConfig(chunk_size="auto")
         assert cfg.chunk_size == "auto"
 
     def test_questions_per_chunk_auto_config(self):
-        from slm_factory.config import QuestionsConfig
+        from rag_factory.config import QuestionsConfig
 
         cfg = QuestionsConfig(questions_per_chunk="auto")
         assert cfg.questions_per_chunk == "auto"
 
     def test_정수값_하위호환(self):
-        from slm_factory.config import ChunkingConfig, QuestionsConfig
+        from rag_factory.config import ChunkingConfig, QuestionsConfig
 
         c_cfg = ChunkingConfig(chunk_size=8000)
         assert c_cfg.chunk_size == 8000
@@ -141,7 +141,7 @@ class TestAutoConfigIntegration:
         assert q_cfg.questions_per_chunk == 5
 
     def test_동시_auto_설정(self):
-        from slm_factory.config import SLMConfig
+        from rag_factory.config import SLMConfig
 
         cfg = SLMConfig(
             chunking={"chunk_size": "auto"},
@@ -151,7 +151,7 @@ class TestAutoConfigIntegration:
         assert cfg.questions.questions_per_chunk == "auto"
 
     def test_기본값_auto(self):
-        from slm_factory.config import ChunkingConfig, QuestionsConfig
+        from rag_factory.config import ChunkingConfig, QuestionsConfig
 
         assert ChunkingConfig().chunk_size == "auto"
         assert QuestionsConfig().questions_per_chunk == "auto"
@@ -271,7 +271,7 @@ class TestSectionAwareChunk:
             assert len(chunk.strip()) >= 200
 
     def test_하위_호환_정수_chunk_size(self):
-        from slm_factory.teacher.qa_generator import chunk_document
+        from rag_factory.teacher.qa_generator import chunk_document
 
         content = "가나다라마바사" * 500
         expected = chunk_document(content, 1000, 200)

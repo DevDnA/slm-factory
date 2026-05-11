@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from slm_factory.device import DeviceInfo, get_training_overrides
+from rag_factory.device import DeviceInfo, get_training_overrides
 
 
 # ---------------------------------------------------------------------------
@@ -122,10 +122,10 @@ class TestDetectDevice:
 
         with (
             patch.dict("sys.modules", {"torch": mock_torch}),
-            patch("slm_factory.device._check_bitsandbytes", return_value=True),
+            patch("rag_factory.device._check_bitsandbytes", return_value=True),
         ):
             from importlib import reload
-            import slm_factory.device as dev_mod
+            import rag_factory.device as dev_mod
 
             reload(dev_mod)
             info = dev_mod.detect_device()
@@ -147,10 +147,10 @@ class TestDetectDevice:
 
         with (
             patch.dict("sys.modules", {"torch": mock_torch}),
-            patch("slm_factory.device._check_bitsandbytes", return_value=False),
+            patch("rag_factory.device._check_bitsandbytes", return_value=False),
         ):
             from importlib import reload
-            import slm_factory.device as dev_mod
+            import rag_factory.device as dev_mod
 
             reload(dev_mod)
             info = dev_mod.detect_device()
@@ -166,7 +166,7 @@ class TestDetectDevice:
 
         with patch.dict("sys.modules", {"torch": mock_torch}):
             from importlib import reload
-            import slm_factory.device as dev_mod
+            import rag_factory.device as dev_mod
 
             reload(dev_mod)
             info = dev_mod.detect_device()

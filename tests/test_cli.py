@@ -12,7 +12,7 @@ from unittest.mock import MagicMock
 import pytest
 from typer.testing import CliRunner
 
-from slm_factory.cli import app
+from rag_factory.cli import app
 
 
 runner = CliRunner()
@@ -96,7 +96,7 @@ class TestParseCommand:
         mock_pipeline.step_parse.return_value = [MagicMock()]
         mock_pipeline.config.paths.ensure_dirs = MagicMock()
 
-        mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
+        mocker.patch("rag_factory.cli._load_pipeline", return_value=mock_pipeline)
 
         result = runner.invoke(
             app, ["tune", "--until", "parse", "--config", "test.yaml"]
@@ -137,7 +137,7 @@ class TestGenerateCommand:
         mock_pipeline.step_generate.return_value = [MagicMock()]
         mock_pipeline.config.paths.ensure_dirs = MagicMock()
 
-        mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
+        mocker.patch("rag_factory.cli._load_pipeline", return_value=mock_pipeline)
 
         result = runner.invoke(
             app, ["tune", "--until", "generate", "--config", "test.yaml"]
@@ -159,7 +159,7 @@ class TestConfigValidation:
     def test_프로젝트명_빈문자열_거부(self):
         """ProjectConfig.name에 빈 문자열을 넣으면 ValidationError가 발생하는지 확인합니다."""
         from pydantic import ValidationError
-        from slm_factory.config import ProjectConfig
+        from rag_factory.config import ProjectConfig
 
         with pytest.raises(ValidationError):
             ProjectConfig(name="")
@@ -167,35 +167,35 @@ class TestConfigValidation:
     def test_교사모델명_빈문자열_거부(self):
         """TeacherConfig.model에 빈 문자열을 넣으면 ValidationError가 발생하는지 확인합니다."""
         from pydantic import ValidationError
-        from slm_factory.config import TeacherConfig
+        from rag_factory.config import TeacherConfig
 
         with pytest.raises(ValidationError):
             TeacherConfig(model="")
 
     def test_교사_api_base_빈문자열_거부(self):
         from pydantic import ValidationError
-        from slm_factory.config import TeacherConfig
+        from rag_factory.config import TeacherConfig
 
         with pytest.raises(ValidationError):
             TeacherConfig(api_base="")
 
     def test_학생모델명_빈문자열_거부(self):
         from pydantic import ValidationError
-        from slm_factory.config import StudentConfig
+        from rag_factory.config import StudentConfig
 
         with pytest.raises(ValidationError):
             StudentConfig(model="")
 
     def test_ollama_모델명_빈문자열_거부(self):
         from pydantic import ValidationError
-        from slm_factory.config import OllamaExportConfig
+        from rag_factory.config import OllamaExportConfig
 
         with pytest.raises(ValidationError):
             OllamaExportConfig(model_name="")
 
     def test_정상값_통과(self):
         """기본값이 유효한지 확인합니다."""
-        from slm_factory.config import (
+        from rag_factory.config import (
             ProjectConfig,
             TeacherConfig,
             StudentConfig,
@@ -266,7 +266,7 @@ class TestScoreCommand:
         mock_pipeline.step_validate.return_value = [MagicMock()]
         mock_pipeline.step_score.return_value = [MagicMock()]
         mock_pipeline.config.paths.ensure_dirs = MagicMock()
-        mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
+        mocker.patch("rag_factory.cli._load_pipeline", return_value=mock_pipeline)
 
         result = runner.invoke(
             app, ["tune", "--until", "score", "--config", "test.yaml"]
@@ -291,7 +291,7 @@ class TestAugmentCommand:
         mock_pipeline.step_score.return_value = [MagicMock()]
         mock_pipeline.step_augment.return_value = [MagicMock()]
         mock_pipeline.config.paths.ensure_dirs = MagicMock()
-        mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
+        mocker.patch("rag_factory.cli._load_pipeline", return_value=mock_pipeline)
 
         result = runner.invoke(
             app, ["tune", "--until", "augment", "--config", "test.yaml"]
@@ -317,7 +317,7 @@ class TestAnalyzeCommand:
         mock_pipeline.step_augment.return_value = [MagicMock()]
         mock_pipeline.step_analyze.return_value = None
         mock_pipeline.config.paths.ensure_dirs = MagicMock()
-        mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
+        mocker.patch("rag_factory.cli._load_pipeline", return_value=mock_pipeline)
 
         result = runner.invoke(
             app, ["tune", "--until", "analyze", "--config", "test.yaml"]
@@ -364,7 +364,7 @@ class TestLoadQaData:
 
     def test_명시적_경로_파일_존재(self, tmp_path):
         """--data 옵션으로 지정한 파일이 존재하면 해당 파일을 로드하는지 확인합니다."""
-        from slm_factory.cli import _load_qa_data
+        from rag_factory.cli import _load_qa_data
 
         data_file = tmp_path / "test.json"
         data_file.write_text("[]", encoding="utf-8")
@@ -382,7 +382,7 @@ class TestLoadQaData:
         """--data 옵션으로 지정한 파일이 없으면 Exit 예외가 발생하는지 확인합니다."""
         from click.exceptions import Exit as ClickExit
 
-        from slm_factory.cli import _load_qa_data
+        from rag_factory.cli import _load_qa_data
 
         pipeline = MagicMock()
 
@@ -391,7 +391,7 @@ class TestLoadQaData:
 
     def test_자동감지_qa_augmented(self, tmp_path):
         """출력 디렉토리에서 qa_augmented.json을 자동 감지하는지 확인합니다."""
-        from slm_factory.cli import _load_qa_data
+        from rag_factory.cli import _load_qa_data
 
         qa_file = tmp_path / "qa_augmented.json"
         qa_file.write_text("[]", encoding="utf-8")
@@ -408,7 +408,7 @@ class TestLoadQaData:
 
     def test_자동감지_우선순위(self, tmp_path):
         """qa_augmented > qa_scored > qa_alpaca 우선순위로 감지하는지 확인합니다."""
-        from slm_factory.cli import _load_qa_data
+        from rag_factory.cli import _load_qa_data
 
         (tmp_path / "qa_augmented.json").write_text("[]", encoding="utf-8")
         (tmp_path / "qa_scored.json").write_text("[]", encoding="utf-8")
@@ -425,7 +425,7 @@ class TestLoadQaData:
 
     def test_extra_candidates_우선(self, tmp_path):
         """extra_candidates가 기본 후보보다 우선하는지 확인합니다."""
-        from slm_factory.cli import _load_qa_data
+        from rag_factory.cli import _load_qa_data
 
         (tmp_path / "qa_reviewed.json").write_text("[]", encoding="utf-8")
         (tmp_path / "qa_augmented.json").write_text("[]", encoding="utf-8")
@@ -443,7 +443,7 @@ class TestLoadQaData:
         """출력 디렉토리에 QA 파일이 없으면 Exit 예외가 발생하는지 확인합니다."""
         from click.exceptions import Exit as ClickExit
 
-        from slm_factory.cli import _load_qa_data
+        from rag_factory.cli import _load_qa_data
 
         pipeline = MagicMock()
         pipeline.output_dir = tmp_path
@@ -465,13 +465,13 @@ class TestEvalCommand:
         mock_pipeline = MagicMock()
         mock_pipeline.output_dir = tmp_path / "output"
         mock_pipeline.config.eval.output_file = "eval_results.json"
-        mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
-        mocker.patch("slm_factory.cli._load_qa_data", return_value=[MagicMock()])
+        mocker.patch("rag_factory.cli._load_pipeline", return_value=mock_pipeline)
+        mocker.patch("rag_factory.cli._load_qa_data", return_value=[MagicMock()])
 
         mock_evaluator = MagicMock()
         mock_evaluator.evaluate.return_value = [MagicMock()]
         mocker.patch(
-            "slm_factory.evaluator.ModelEvaluator",
+            "rag_factory.evaluator.ModelEvaluator",
             return_value=mock_evaluator,
         )
 
@@ -524,13 +524,13 @@ class TestUpdateCommand:
         mock_pipeline.step_generate.return_value = [MagicMock()]
         mock_pipeline._load_pairs.return_value = []
         mock_pipeline.config.incremental.merge_strategy = "append"
-        mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
+        mocker.patch("rag_factory.cli._load_pipeline", return_value=mock_pipeline)
 
         mock_tracker = MagicMock()
         mock_tracker.get_changed_files.return_value = [Path("doc1.pdf")]
         mock_tracker.merge_qa_pairs.return_value = [MagicMock()]
         mocker.patch(
-            "slm_factory.incremental.IncrementalTracker",
+            "rag_factory.incremental.IncrementalTracker",
             return_value=mock_tracker,
         )
 
@@ -544,12 +544,12 @@ class TestUpdateCommand:
     def test_변경_없음_조기종료(self, mocker):
         """변경된 문서가 없으면 조기 종료하는지 확인합니다."""
         mock_pipeline = MagicMock()
-        mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
+        mocker.patch("rag_factory.cli._load_pipeline", return_value=mock_pipeline)
 
         mock_tracker = MagicMock()
         mock_tracker.get_changed_files.return_value = []
         mocker.patch(
-            "slm_factory.incremental.IncrementalTracker",
+            "rag_factory.incremental.IncrementalTracker",
             return_value=mock_tracker,
         )
 
@@ -585,13 +585,13 @@ class TestCompareCommand:
         mock_pipeline = MagicMock()
         mock_pipeline.output_dir = tmp_path / "output"
         mock_pipeline.config.compare.output_file = "compare_results.json"
-        mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
-        mocker.patch("slm_factory.cli._load_qa_data", return_value=[MagicMock()])
+        mocker.patch("rag_factory.cli._load_pipeline", return_value=mock_pipeline)
+        mocker.patch("rag_factory.cli._load_qa_data", return_value=[MagicMock()])
 
         mock_comparator = MagicMock()
         mock_comparator.compare.return_value = [MagicMock()]
         mocker.patch(
-            "slm_factory.comparator.ModelComparator",
+            "rag_factory.comparator.ModelComparator",
             return_value=mock_comparator,
         )
 
@@ -645,8 +645,8 @@ class TestReviewCommand:
         mock_pipeline = MagicMock()
         mock_pipeline.output_dir = tmp_path / "output"
         mock_pipeline.config.review.output_file = "qa_reviewed.json"
-        mocker.patch("slm_factory.cli._load_pipeline", return_value=mock_pipeline)
-        mocker.patch("slm_factory.cli._load_qa_data", return_value=[MagicMock()])
+        mocker.patch("rag_factory.cli._load_pipeline", return_value=mock_pipeline)
+        mocker.patch("rag_factory.cli._load_qa_data", return_value=[MagicMock()])
 
         mock_reviewer_cls = MagicMock()
         mock_reviewer_cls.count_statuses.return_value = {
@@ -655,7 +655,7 @@ class TestReviewCommand:
             "pending": 0,
         }
         mocker.patch(
-            "slm_factory.tui.reviewer.QAReviewerApp",
+            "rag_factory.tui.reviewer.QAReviewerApp",
             mock_reviewer_cls,
         )
 

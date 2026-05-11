@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-docs/build.py — Markdown → HTML converter for slm-factory documentation.
+docs/build.py — Markdown → HTML converter for rag-factory documentation.
 
 Converts the 7 .md files in docs/ into .html files matching the existing
 hand-crafted template. Uses ONLY Python stdlib (no external dependencies).
@@ -26,55 +26,22 @@ from pathlib import Path
 DOCS_DIR = Path(__file__).parent
 
 PAGES: dict[str, dict] = {
-    "guide": {
-        "title": "사용 가이드",
-        "badge": "Guide",
-        "subtitle": "slm-factory 설치부터 모델 배포까지, 단계별로 안내합니다.",
-    },
     "cli-reference": {
-        "title": "CLI 명령어 레퍼런스",
+        "title": "CLI 레퍼런스",
         "badge": "Reference",
-        "subtitle": "slm-factory의 모든 명령어와 옵션을 정리한 공식 레퍼런스입니다.",
+        "subtitle": "rf 명령어와 옵션 정리.",
     },
     "configuration": {
         "title": "설정 레퍼런스",
         "badge": "Reference",
-        "subtitle": "project.yaml의 모든 설정 옵션을 상세히 설명합니다.",
-    },
-    "architecture": {
-        "title": "아키텍처 가이드",
-        "badge": "Architecture",
-        "subtitle": "slm-factory의 내부 구조와 설계 원칙을 설명합니다.",
-    },
-    "development": {
-        "title": "개발 가이드",
-        "badge": "Developer",
-        "subtitle": "모듈 구조, API 레퍼런스, 확장 가이드",
-    },
-    "quick-reference": {
-        "title": "빠른 참조",
-        "badge": "Quick Ref",
-        "subtitle": "자주 사용하는 명령어, 워크플로우, 설정 패턴을 한 페이지로 요약합니다.",
-    },
-    "integration-guide": {
-        "title": "RAG 서비스 가이드",
-        "badge": "Integration",
-        "subtitle": "SLM + RAG 서비스 구축 방법과 프로덕션 배포 가이드",
+        "subtitle": "project.yaml 필드 정리.",
     },
 }
 
 SIDEBAR_ITEMS = [
-    ("section", "시작하기"),
-    ("link", "index.html", "문서 홈"),
-    ("link", "guide.html", "사용 가이드"),
-    ("link", "integration-guide.html", "RAG 서비스 가이드"),
-    ("link", "quick-reference.html", "빠른 참조"),
-    ("section", "레퍼런스"),
+    ("link", "index.html", "Quick Start"),
     ("link", "cli-reference.html", "CLI 레퍼런스"),
     ("link", "configuration.html", "설정 레퍼런스"),
-    ("section", "심화"),
-    ("link", "architecture.html", "아키텍처 가이드"),
-    ("link", "development.html", "개발 가이드"),
 ]
 
 
@@ -607,7 +574,7 @@ def build_sidebar(active_page: str) -> str:
         '        <path d="M7 14h4l2-4 3 8 2-4h3" stroke="#fff"'
         ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
         "      </svg>",
-        "      slm-factory",
+        "      rag-factory",
         "    </a>",
         '    <span class="sidebar-version">Documentation</span>',
         "  </div>",
@@ -637,7 +604,7 @@ def build_page(page_name: str, content_html: str, toc_html: str) -> str:
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{meta["title"]} - slm-factory</title>
+  <title>{meta["title"]} - rag-factory</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css">
   <link rel="stylesheet" href="./assets/style.css">
 </head>
@@ -672,7 +639,7 @@ def build_page(page_name: str, content_html: str, toc_html: str) -> str:
     </div>
 
     <footer class="page-footer">
-      <p>slm-factory Documentation</p>
+      <p>rag-factory Documentation</p>
     </footer>
 
   </div>
