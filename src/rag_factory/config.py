@@ -576,7 +576,7 @@ class AgentRagConfig(BaseModel):
     """라우팅 결정 직후 의도(IntentClassifier 결과)를 짧은 thought 이벤트로
     명시 발화합니다. 라우팅 결정의 투명성과 follow-up 처리 일관성을 확보합니다."""
 
-    in_domain_score_threshold: float = 0.4
+    in_domain_score_threshold: float = 0.55
     """general 라우팅 안전망 — IntentClassifier가 general(OOD)로 분류했더라도
     query와 corpus의 vector similarity 최대값이 이 임계 이상이면 in-domain으로
     정정해 simple 경로로 보냅니다. corpus 자체를 in-domain 신호로 사용하므로

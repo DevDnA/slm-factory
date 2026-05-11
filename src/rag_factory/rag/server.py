@@ -11,6 +11,12 @@ import os
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
 os.environ.setdefault("TRANSFORMERS_NO_ADVISORY_WARNINGS", "1")
+# OpenMP 스레드 수 제한 — MPS 디스패처와 충돌해 bge-m3 등 무거운 모델 인코딩
+# 중 SIGSEGV/세마포어 누수 후 서버 종료를 유발하는 경우가 있습니다.
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
+# MPS에서 미구현 연산을 만나면 CPU로 폴백 — 크래시 대신 느려지는 정도로 끝남.
+os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
 
 import asyncio
 import json

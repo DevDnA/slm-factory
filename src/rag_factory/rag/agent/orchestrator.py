@@ -229,15 +229,26 @@ class AgentOrchestrator:
             return
 
         # General: corpus 외 일반 지식·코드·잡학 — Qdrant 우회 + general 합성 프롬프트.
-        # 안전망: LLM이 general로 분류했더라도 corpus와의 의미적 유사도가 충분히
-        # 높으면(`in_domain_score_threshold` 이상) in-domain query를 잘못 분류한
-        # 경우로 보고 simple로 정정합니다. corpus 자체를 신호로 사용하므로 도메인
-        # 무관 — corpus_profile keyword 추출 품질이나 도메인 특성에 의존 안 함.
+        # 안전망(2단 임계): IntentClassifier가 general(OOD)로 분류했더라도 corpus
+        # 의미적 유사도로 in-domain 정정. confidence별로 override 임계를 분리:
+        #  · conf < 0.95: score ≥ threshold(기본 0.55)면 override
+        #  · conf ≥ 0.95: score ≥ 0.65(strong signal)일 때만 override
+        # 매우 확신하는 OOD에 키워드만 우연히 겹친 case("NMS 개발 계획"처럼 corpus가
+        # NMS/개발/계획 단어를 포함해 score 0.5~0.6 나오는 hallucination 함정)는
+        # 보호하면서, 명시적으로 corpus를 가리키는 query("제안서에 쓰인 ...")처럼
+        # 분류는 general이지만 실제 답이 corpus에 있는 case는 정정 가능.
         if decision.mode == "general":
             threshold = self._config.rag.agent.in_domain_score_threshold
             if threshold > 0.0:
                 score = await self._corpus_relevance_score(normalized_query)
-                if score >= threshold:
+                very_confident = decision.confidence >= 0.95
+                strong_signal_threshold = max(threshold, 0.65)
+                should_override = (
+                    score >= strong_signal_threshold
+                    if very_confident
+                    else score >= threshold
+                )
+                if should_override:
                     if self._config.rag.agent.stream_reasoning:
                         yield {
                             "type": "thought",
